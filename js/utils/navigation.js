@@ -1,5 +1,5 @@
 // js/modules/navigation.js
-export function showTab(tabName) {
+function showTab(tabName) {
     console.log("Mostrando tab:", tabName);
     
     // Ocultar todos los tabs
@@ -19,17 +19,18 @@ export function showTab(tabName) {
     
     // Activar botón correspondiente
     document.querySelectorAll('.nav-tab').forEach(tab => {
-        if (tab.getAttribute('data-tab') === tabName || 
-            tab.textContent.includes(tabName.replace('-', ' '))) {
+        if (tab.textContent.toLowerCase().includes(tabName.replace('-', ' '))) {
             tab.classList.add('active');
         }
     });
     
     // Acciones específicas
-    if (tabName === 'saved-specs') {
-        if (typeof window.loadSavedSpecsList === 'function') {
-            window.loadSavedSpecsList();
-        }
+    if (tabName === 'saved-specs' && typeof window.loadSavedSpecsList === 'function') {
+        window.loadSavedSpecsList();
+    }
+    
+    if (tabName === 'dashboard' && typeof window.updateDashboard === 'function') {
+        window.updateDashboard();
     }
 }
 
