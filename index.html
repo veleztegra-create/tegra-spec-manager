@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tegra – Technical Spec Manager (Multi-arte + PDF Analysis)</title>
-    
+
     <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -13,43 +13,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- CSS locales -->
+
+    <!-- CSS locales (crea estos archivos con el contenido que te envié antes) -->
     <link rel="stylesheet" href="css/utils/variables.css">
+    <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/components/cards.css">
     <link rel="stylesheet" href="css/components/buttons.css">
     <link rel="stylesheet" href="css/components/forms.css">
     <link rel="stylesheet" href="css/components/layout.css">
     <link rel="stylesheet" href="css/components/tabs.css">
-    <link rel="stylesheet" href="css/main.css">
-</head>
-<body>
-    <!-- Status Message -->
-    <div id="statusMessage" class="status-message"></div>
-    
-    <!-- Inputs Ocultos -->
-    <input type="file" id="excelFile" accept=".xlsx,.xls,.json,.zip" style="display:none">
-    <input type="file" id="imageInput" accept="image/*" style="display:none">
-    
-    <!-- App Container será poblado por JavaScript -->
-    <div id="app-container"></div>
-    
-    <!-- Scripts -->
-    <script src="js/config/constants.js"></script>
-    <script src="js/config/presets.js"></script>
-    <script src="js/config/pantone-db.js"></script>
-    <script src="js/utils/file-helpers.js"></script>
-    <script src="js/utils/pdf-helpers.js"></script>
-    <script src="js/utils/image-helpers.js"></script>
-    <script src="js/utils/validation.js"></script>
-    <script src="js/utils/ui-helpers.js"></script>
-    <script src="js/modules/navigation.js"></script>
-    <script src="js/modules/dashboard.js"></script>
-    <script src="js/modules/spec-creator.js"></script>
-    <script src="js/modules/pdf-analyzer.js"></script>
-    <script src="js/modules/storage-manager.js"></script>
-    <script src="js/modules/excel-importer.js"></script>
-    <script src="js/modules/zip-exporter.js"></script>
-    <script src="js/main.js"></script>
-</body>
-</html>
+
+    <style>
+        /* Estilos básicos para que funcione inmediatamente */
+        * { box-sizing: border-box; margin: 0
