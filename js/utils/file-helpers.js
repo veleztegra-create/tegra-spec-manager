@@ -1,25 +1,33 @@
-// js/utils/file-helpers.js
-export function dataURLToBlob(dataURL) {
-    try {
-        const arr = dataURL.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
-        const bstr = atob(arr[1]);
-        const u8arr = new Uint8Array(bstr.length);
-        for (let i = 0; i < bstr.length; i++) {
-            u8arr[i] = bstr.charCodeAt(i);
-        }
-        return new Blob([u8arr], { type: mime });
-    } catch (error) {
-        console.error('Error convirtiendo dataURL a Blob:', error);
-        return null;
-    }
+// js/utils/ui-helpers.js
+// Esta función NO necesita export/import porque se usa globalmente
+function showStatus(msg, type = 'success') {
+    const el = document.getElementById('statusMessage');
+    if (!el) return;
+    
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    el.style.display = 'block';
+    
+    setTimeout(() => {
+        el.style.display = 'none';
+    }, 4000);
 }
 
-export function formatBytes(bytes, decimals = 2) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+// Hacerla disponible globalmente
+window.showStatus = showStatus;
+
+export function updateDateTime() {
+    const dateElement = document.getElementById('current-datetime');
+    if (!dateElement) return;
+    
+    const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    };
+    
+    dateElement.textContent = new Date().toLocaleDateString('es-ES', options);
 }
