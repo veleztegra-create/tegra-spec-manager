@@ -1,0 +1,28 @@
+:root {
+    /* Colores principales */
+    --primary: #D32F2F;
+    --primary-dark: #B71C1C;
+    --accent: #FF5252;
+    
+    /* Escala de grises */
+    --gray-dark: #263238;
+    --gray-medium: #546E7A;
+    --gray-light: #78909C;
+    --gray-extra-light: #ECEFF1;
+    --gray-bg: #FAFAFA;
+    
+    /* Estados */
+    --success: #4CAF50;
+    --warning: #FF9800;
+    --error: #F44336;
+    
+    /* Bordes y sombras */
+    --border: #CFD8DC;
+    --shadow: 0 4px 12px rgba(38,50,56,.1);
+    --shadow-lg: 0 8px 24px rgba(38,50,56,.15);
+    
+    /* Dimensiones */
+    --radius: 8px;
+    --radius-lg: 12px;
+    --transition: all .3s cubic-bezier(.4,0,.2,1);
+}
