@@ -276,4 +276,92 @@ function createSpecCreator() {
                     <i class="fas fa-file-excel"></i> Exportar Excel
                 </button>
                 <button class="btn btn-outline btn-lg" onclick="clearForm()">
-                   
+                    <i class="fas fa-broom"></i> Limpiar
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function createPDFAnalyzer() {
+    return `
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-file-pdf"></i> Análisis de Separaciones PDF</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">ARCHIVO PDF:</label>
+                        <input type="file" id="pdf-file" accept="application/pdf" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">DPI DE ANÁLISIS:</label>
+                        <select id="analysis-dpi" class="form-control">
+                            <option value="300" selected>300 DPI</option>
+                            <option value="150">150 DPI</option>
+                            <option value="72">72 DPI</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">PÍXELES DE RUIDO A RESTAR:</label>
+                        <input type="number" id="noise-pixels" class="form-control" value="15870446">
+                        <small style="color:var(--gray-light)">Guías, texto y elementos no deseados</small>
+                    </div>
+                </div>
+                
+                <div class="progress-container" id="progress-container" style="display:none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div id="progress-text" style="text-align:center;margin-top:5px;"></div>
+                </div>
+                
+                <div style="text-align:center;margin-top:20px;">
+                    <button class="btn btn-primary btn-lg" onclick="startPDFAnalysis()">
+                        <i class="fas fa-play"></i> Iniciar Análisis de PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-chart-bar"></i> Resultados del Análisis</h2>
+                <div>
+                    <button class="btn btn-success btn-sm" onclick="savePDFResults()" id="save-results-btn" style="display:none;">
+                        <i class="fas fa-save"></i> Guardar Resultados
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="pdf-results-container">
+                    <p style="text-align:center;color:var(--gray-light);padding:30px;">
+                        Los resultados del análisis aparecerán aquí después de procesar un PDF.
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createSavedSpecs() {
+    return `
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-database"></i> Specs Guardadas</h2>
+                <button class="btn btn-outline btn-sm" onclick="clearAllSpecs()">
+                    <i class="fas fa-trash"></i> Limpiar Todo
+                </button>
+            </div>
+            <div class="card-body" id="saved-specs-list"></div>
+        </div>
+    `;
+}
+
+// Hacer funciones disponibles globalmente
+window.showTab = showTab;
+window.addArte = addArte;
+window.startPDFAnalysis = startPDFAnalysis;
+window.updateClientLogo = updateClientLogo;
+window.collectData = collectData;
