@@ -46,17 +46,23 @@
         }
         
         .logo-section { display: flex; align-items: center; gap: 25px; }
+        
         .client-section {
             display: flex; align-items: center; gap: 12px;
             background: rgba(255,255,255,.15); padding: 8px 18px;
             border-radius: var(--radius); backdrop-filter: blur(5px);
         }
+        
         .header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+        
         .folder-input-container {
             display: flex; align-items: center; gap: 8px;
             background: rgba(255,255,255,.15); padding: 6px 12px;
             border-radius: var(--radius); backdrop-filter: blur(5px);
         }
+        
+        .app-title { font-size: 1.5rem; font-weight: bold; margin: 0; }
+        .app-subtitle { font-size: 0.85rem; opacity: 0.9; margin: 0; }
         
         /* Navegación */
         .nav-tabs { display: flex; list-style: none; background: white; border-bottom: 1px solid var(--border); }
@@ -90,6 +96,7 @@
         
         /* Formularios */
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .form-group { margin-bottom: 15px; }
         .form-label {
             display: block; margin-bottom: 8px; font-weight: 700;
             font-size: .85rem; color: var(--gray-dark); text-transform: uppercase;
@@ -111,6 +118,7 @@
         .btn-primary:hover { background: var(--primary-dark); }
         .btn-success { background: var(--success); }
         .btn-warning { background: var(--warning); }
+        .btn-danger { background: var(--error); }
         .btn-outline {
             background: transparent; border: 1px solid var(--border); color: var(--gray-medium);
         }
@@ -164,110 +172,10 @@
             .dashboard-grid { grid-template-columns: 1fr; }
             body { padding: 10px; }
         }
-        
     </style>
 </head>
 <body>
-    <!-- El contenido será insertado por JavaScript -->
-  <!-- SPEC CREATOR -->
-<div id="spec-creator" class="tab-content">
-    <!-- Información General -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title"><i class="fas fa-info-circle"></i> Información General</h2>
-            <button class="btn btn-success btn-sm" onclick="document.getElementById('excelFile').click()">
-                <i class="fas fa-file-excel"></i> Cargar Excel
-            </button>
-        </div>
-        <div class="card-body">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">CLIENTE:</label>
-                    <input type="text" id="customer" class="form-control" oninput="updateClientLogo()">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">STYLE:</label>
-                    <input type="text" id="style" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">COLORWAY:</label>
-                    <input type="text" id="colorway" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">SEASON:</label>
-                    <input type="text" id="season" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">PATTERN #:</label>
-                    <input type="text" id="pattern" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">P.O. #:</label>
-                    <input type="text" id="po" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">SAMPLE TYPE:</label>
-                    <input type="text" id="sample-type" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">NAME / TEAM:</label>
-                    <input type="text" id="name-team" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">GENDER:</label>
-                    <input type="text" id="gender" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">DISEÑADOR:</label>
-                    <select id="designer" class="form-control">
-                        <option value="">Seleccionar...</option>
-                        <option>ELMER VELEZ</option>
-                        <option>DANIEL HERNANDEZ</option>
-                        <option>CINDY PINEDA</option>
-                        <option>FERNANDO FERRERA</option>
-                        <option>NILDA CORDOBA</option>
-                        <option>OTRO</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Artes / Ubicaciones -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title"><i class="fas fa-layer-group"></i> Artes / Ubicaciones</h2>
-            <button class="btn btn-primary btn-sm" onclick="addArte()">
-                <i class="fas fa-plus"></i> Nueva Ubicación
-            </button>
-        </div>
-        <div class="card-body" id="artes-container">
-            <!-- Las ubicaciones aparecerán aquí -->
-        </div>
-    </div>
-
-    <!-- Botones finales -->
-    <div class="card">
-        <div class="card-body" style="display:flex;gap:15px;flex-wrap:wrap;justify-content:center">
-            <button class="btn btn-success btn-lg" onclick="saveSpec()">
-                <i class="fas fa-save"></i> Guardar Spec
-            </button>
-            <button class="btn btn-primary btn-lg" onclick="downloadProjectZip()">
-                <i class="fas fa-file-archive"></i> Descargar ZIP
-            </button>
-            <button class="btn btn-success btn-lg" onclick="exportPDF()">
-                <i class="fas fa-file-pdf"></i> Exportar PDF
-            </button>
-            <button class="btn btn-warning btn-lg" onclick="exportToExcel()">
-                <i class="fas fa-file-excel"></i> Exportar Excel
-            </button>
-            <button class="btn btn-outline btn-lg" onclick="clearForm()">
-                <i class="fas fa-broom"></i> Limpiar
-            </button>
-        </div>
-    </div>
-</div>
-    </div>
+    <div id="app-container"></div>
     
     <!-- Status Message -->
     <div id="statusMessage" class="status-message"></div>
@@ -276,24 +184,7 @@
     <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none">
     <input type="file" id="imageInput" accept="image/*" style="display:none">
     
-    <!-- UN SOLO ARCHIVO JAVASCRIPT con TODO -->
-    <script src="js/app.js"></script>
-    <div class="card-body" style="display:flex;gap:15px;flex-wrap:wrap;justify-content:center">
-    <button class="btn btn-success btn-lg" onclick="saveSpec()">
-        <i class="fas fa-save"></i> Guardar Spec
-    </button>
-    <button class="btn btn-primary btn-lg" onclick="downloadProjectZip()">
-        <i class="fas fa-file-archive"></i> Descargar ZIP
-    </button>
-    <button class="btn btn-success btn-lg" onclick="exportPDF()">
-        <i class="fas fa-file-pdf"></i> Exportar PDF
-    </button>
-    <button class="btn btn-warning btn-lg" onclick="exportToExcel()">
-        <i class="fas fa-file-excel"></i> Exportar Excel
-    </button>
-    <button class="btn btn-outline btn-lg" onclick="clearForm()">
-        <i class="fas fa-broom"></i> Limpiar
-    </button>
-</div>
+    <!-- UN SOLO ARCHIVO JAVASCRIPT -->
+    <script src="app.js"></script>
 </body>
 </html>
