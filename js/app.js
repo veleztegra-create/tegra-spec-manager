@@ -1,4 +1,4 @@
-// js/app.js - TODA la aplicación en un solo archivo
+// js/app.js - TODA la aplicación en un solo archivo - VERSIÓN CORREGIDA
 
 // ========== CONFIGURACIÓN GLOBAL ==========
 const INK_PRESETS = {
@@ -242,9 +242,6 @@ function updateInkPreset() {
     }
 }
 
-// ========== SPEC CREATOR ==========
-// (Busca y reemplaza estas funciones)
-
 function addArte() {
     const name = prompt('Nombre de la ubicación (ej: FRONT, BACK, SLEEVE):', 'FRONT');
     if (!name) return;
@@ -407,7 +404,7 @@ function updateColorValue(i, colorId, value) {
     const color = specGlobal.artes[i].colors.find(c => c.id === colorId);
     if (color) {
         color.val = value;
-        renderArteColors(i); // Para actualizar el color del indicador
+        renderArteColors(i);
     }
 }
 
@@ -435,19 +432,16 @@ function getColorHex(colorName) {
     if (!colorName) return '#CCCCCC';
     const normalized = colorName.toUpperCase().trim();
     
-    // Buscar en PANTONE_DB
     if (PANTONE_DB[normalized]) {
         return PANTONE_DB[normalized];
     }
     
-    // Búsqueda parcial
     for (const [key, value] of Object.entries(PANTONE_DB)) {
         if (normalized.includes(key) || key.includes(normalized)) {
             return value;
         }
     }
     
-    // Valores por defecto
     if (normalized.includes('BLACK')) return '#000000';
     if (normalized.includes('WHITE')) return '#FFFFFF';
     if (normalized.includes('RED')) return '#C8102E';
@@ -459,6 +453,24 @@ function getColorHex(colorName) {
     return '#CCCCCC';
 }
 
+function editArte(index) {
+    const arte = specGlobal.artes[index];
+    const newName = prompt('Nuevo nombre para la ubicación:', arte.name);
+    if (newName) {
+        arte.name = newName.toUpperCase();
+        renderArtes();
+        showStatus('✅ Ubicación actualizada');
+    }
+}
+
+function removeArte(index) {
+    if (confirm('¿Eliminar esta ubicación?')) {
+        specGlobal.artes.splice(index, 1);
+        renderArtes();
+        showStatus('🗑️ Ubicación eliminada');
+    }
+}
+
 // ========== PDF ANALYSIS ==========
 function initPDFAnalyzer() {
     document.getElementById('pdf-file')?.addEventListener('change', function() {
@@ -466,7 +478,6 @@ function initPDFAnalyzer() {
     });
 }
 
-// ========== PDF ANALYSIS ==========
 function startPDFAnalysis() {
     const fileInput = document.getElementById('pdf-file');
     const file = fileInput?.files[0];
@@ -478,9 +489,7 @@ function startPDFAnalysis() {
     
     showStatus('🔍 Analizando PDF... Esto puede tomar unos segundos', 'info');
     
-    // Simulación más realista con tiempo de espera
     setTimeout(() => {
-        // Datos más completos para simulación
         pdfAnalysisResults = [
             {
                 page: 1,
@@ -507,19 +516,6 @@ function startPDFAnalysis() {
                 matchesSpec: true,
                 expectedPixels: calculateExpectedPixels(),
                 pageScreenshot: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmNWY1ZjUiLz48dGV4dCB4PSIxMDAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qw6FnaW5hIDI8L3RleHQ+PHRleHQgeD0iMTAwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QkxPQ0tFUiAvIFNjcmVlbiBCPC90ZXh0Pjwvc3ZnPg=='
-            },
-            {
-                page: 3,
-                colorName: "UNI BLUE",
-                screenLetter: "C",
-                colorType: "COLOR",
-                arteName: "BACK",
-                blackPixels: 1200000,
-                netBlackPixels: Math.max(0, 1200000 - 15870446),
-                coveragePercentage: "0.00", // Menor que el ruido
-                matchesSpec: true,
-                expectedPixels: calculateExpectedPixels(),
-                pageScreenshot: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmNWY1ZjUiLz48dGV4dCB4PSIxMDAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qw6FnaW5hIDM8L3RleHQ+PHRleHQgeD0iMTAwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QkxVRS8gU2NyZWVuIEM8L3RleHQ+PC9zdmc+'
             }
         ];
         
@@ -541,37 +537,7 @@ function calculateExpectedPixels() {
     
     if (isNaN(widthInches) || isNaN(heightInches)) return 0;
     
-    // Calcular a 300 DPI
     return Math.round(widthInches * 300) * Math.round(heightInches * 300);
-}
-    // Simulación de resultados
-    pdfAnalysisResults = [
-        {
-            page: 1,
-            colorName: "UNI RED",
-            screenLetter: "A",
-            colorType: "COLOR",
-            arteName: "FRONT",
-            blackPixels: 1500000,
-            netBlackPixels: 1200000,
-            coveragePercentage: "15.75",
-            matchesSpec: true
-        },
-        {
-            page: 2,
-            colorName: "BLOCKER CHT",
-            screenLetter: "B",
-            colorType: "BLOCKER",
-            arteName: "FRONT",
-            blackPixels: 2000000,
-            netBlackPixels: 1800000,
-            coveragePercentage: "22.50",
-            matchesSpec: true
-        }
-    ];
-    
-    displayPDFResults();
-    document.getElementById('save-results-btn').style.display = 'inline-flex';
 }
 
 function displayPDFResults() {
@@ -693,22 +659,18 @@ function loadSpec(key) {
     try {
         const spec = JSON.parse(localStorage.getItem(key));
         
-        // Cargar datos básicos
         Object.keys(spec).forEach(k => {
             const el = document.getElementById(k);
             if (el) el.value = spec[k] || '';
         });
         
-        // Cargar artes
         if (spec.artes) {
             specGlobal.artes = spec.artes;
             renderArtes();
         }
         
-        // Actualizar logo
         updateClientLogo();
         
-        // Actualizar tinta
         const inkSelect = document.getElementById('ink-type-select');
         if (inkSelect && spec.inkType) {
             inkSelect.value = spec.inkType;
@@ -750,7 +712,6 @@ function handleExcelUpload(e) {
     
     showStatus('⚠️ Importación de Excel en desarrollo. Mostrando datos de ejemplo.', 'warning');
     
-    // Datos de ejemplo
     const mockData = {
         customer: 'NIKE',
         style: 'JERSEY-2024',
@@ -766,36 +727,269 @@ function handleExcelUpload(e) {
         placement: '4.5" FROM COLLAR SEAM'
     };
     
-    // Llenar formulario con datos
     Object.keys(mockData).forEach(key => {
         const el = document.getElementById(key);
         if (el) el.value = mockData[key];
     });
     
-    // Actualizar logo
     updateClientLogo();
     
     showTab('spec-creator');
     showStatus('✅ Datos de ejemplo cargados (Excel en desarrollo)');
 }
 
+// ========== GUARDAR SPEC ==========
+function saveSpec() {
+    const fields = ['customer', 'style', 'colorway', 'season', 'pattern', 'po', 
+                   'sampleType', 'nameTeam', 'gender', 'designer', 'dimensions', 
+                   'placement', 'specialties', 'instructions'];
+    
+    fields.forEach(field => {
+        const el = document.getElementById(field);
+        if (el) specGlobal[field] = el.value;
+    });
+    
+    specGlobal.inkType = document.getElementById('ink-type-select')?.value || 'WATER';
+    specGlobal.temp = document.getElementById('temp')?.value || '320 °F';
+    specGlobal.time = document.getElementById('time')?.value || '1:40 min';
+    specGlobal.folder = document.getElementById('folder-num')?.value || '';
+    specGlobal.imageB64 = currentImageData || '';
+    specGlobal.savedAt = new Date().toISOString();
+    
+    if (!specGlobal.customer || !specGlobal.style) {
+        showStatus('⚠️ Completa al menos CLIENTE y STYLE', 'warning');
+        return;
+    }
+    
+    const key = `spec_${specGlobal.style}_${Date.now()}`;
+    localStorage.setItem(key, JSON.stringify(specGlobal));
+    
+    updateDashboard();
+    showStatus(`✅ Spec "${specGlobal.style}" guardada correctamente`, 'success');
+}
+
+// ========== EXPORTAR A EXCEL ==========
+function exportToExcel() {
+    if (!specGlobal.customer || !specGlobal.style) {
+        showStatus('⚠️ Primero completa los datos de la spec', 'warning');
+        return;
+    }
+    
+    try {
+        const wb = XLSX.utils.book_new();
+        
+        const generalData = [
+            ['TEGRA TECHNICAL SPEC MANAGER', '', '', ''],
+            ['Fecha', new Date().toLocaleDateString('es-ES'), '', ''],
+            ['', '', '', ''],
+            ['INFORMACIÓN GENERAL', '', '', ''],
+            ['CLIENTE', specGlobal.customer],
+            ['STYLE', specGlobal.style],
+            ['COLORWAY', specGlobal.colorway],
+            ['SEASON', specGlobal.season],
+            ['PATTERN #', specGlobal.pattern],
+            ['P.O. #', specGlobal.po],
+            ['SAMPLE TYPE', specGlobal.sampleType],
+            ['TEAM', specGlobal.nameTeam],
+            ['GENDER', specGlobal.gender],
+            ['DESIGNER', specGlobal.designer],
+            ['INK TYPE', specGlobal.inkType],
+            ['DIMENSIONS', specGlobal.dimensions],
+            ['PLACEMENT', specGlobal.placement],
+            ['TEMP/TIME', `${specGlobal.temp} / ${specGlobal.time}`],
+            ['SPECIALTIES', specGlobal.specialties],
+            ['INSTRUCTIONS', specGlobal.instructions],
+            ['', '', '', ''],
+            ['ARTES / UBICACIONES', '', '', ''],
+            ['Nombre', 'Colores', 'Dimensiones', 'Placement']
+        ];
+        
+        specGlobal.artes.forEach(arte => {
+            generalData.push([
+                arte.name,
+                arte.colors.length,
+                arte.dimensions,
+                arte.placement
+            ]);
+        });
+        
+        const ws1 = XLSX.utils.aoa_to_sheet(generalData);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Datos Generales');
+        
+        if (specGlobal.artes.length > 0) {
+            const colorsData = [
+                ['ARTE', 'SCREEN', 'TIPO', 'NOMBRE TINTA', 'MESH', 'DURÓMETRO', 'GOLPES', 'ADITIVOS']
+            ];
+            
+            specGlobal.artes.forEach(arte => {
+                arte.colors.forEach(color => {
+                    const preset = INK_PRESETS[specGlobal.inkType];
+                    colorsData.push([
+                        arte.name,
+                        color.screenLetter,
+                        color.type === 'BLOCKER' ? 'BLOQUEADOR' : 
+                        color.type === 'WHITE_BASE' ? 'WHITE BASE' : 'COLOR',
+                        color.val,
+                        color.type === 'BLOCKER' ? preset?.blocker?.mesh1 || 'N/A' :
+                        color.type === 'WHITE_BASE' ? preset?.white?.mesh1 || 'N/A' :
+                        preset?.color?.mesh || 'N/A',
+                        color.type === 'BLOCKER' ? preset?.blocker?.durometer || 'N/A' :
+                        color.type === 'WHITE_BASE' ? preset?.white?.durometer || 'N/A' :
+                        preset?.color?.durometer || 'N/A',
+                        color.type === 'BLOCKER' ? preset?.blocker?.strokes || 'N/A' :
+                        color.type === 'WHITE_BASE' ? preset?.white?.strokes || 'N/A' :
+                        preset?.color?.strokes || 'N/A',
+                        color.type === 'BLOCKER' ? preset?.blocker?.additives || 'N/A' :
+                        color.type === 'WHITE_BASE' ? preset?.white?.additives || 'N/A' :
+                        preset?.color?.additives || 'N/A'
+                    ]);
+                });
+            });
+            
+            const ws2 = XLSX.utils.aoa_to_sheet(colorsData);
+            XLSX.utils.book_append_sheet(wb, ws2, 'Colores');
+        }
+        
+        const fileName = `TegraSpec_${specGlobal.style}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        showStatus('✅ Excel exportado correctamente', 'success');
+    } catch (error) {
+        console.error('Error exportando Excel:', error);
+        showStatus('❌ Error al exportar Excel', 'error');
+    }
+}
+
+// ========== EXPORTAR PDF ==========
+function exportPDF() {
+    if (!specGlobal.customer || !specGlobal.style) {
+        showStatus('⚠️ Primero completa los datos de la spec', 'warning');
+        return;
+    }
+    
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        let y = 20;
+        
+        function addText(text, x, yPos, size = 10, bold = false, color = [0, 0, 0]) {
+            pdf.setFontSize(size);
+            pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+            pdf.setTextColor(...color);
+            pdf.text(text, x, yPos);
+        }
+        
+        pdf.setFillColor(211, 47, 47);
+        pdf.rect(0, 0, pageWidth, 30, 'F');
+        addText('TEGRA TECHNICAL SPEC MANAGER', 15, 15, 16, true, [255, 255, 255]);
+        addText('PDF MAESTRO', 15, 22, 12, false, [255, 255, 255]);
+        
+        y = 40;
+        addText('INFORMACIÓN GENERAL', 15, y, 12, true, [211, 47, 47]);
+        y += 10;
+        
+        const generalFields = [
+            ['CLIENTE:', specGlobal.customer],
+            ['STYLE:', specGlobal.style],
+            ['COLORWAY:', specGlobal.colorway],
+            ['SEASON:', specGlobal.season],
+            ['PATTERN #:', specGlobal.pattern],
+            ['P.O. #:', specGlobal.po],
+            ['SAMPLE TYPE:', specGlobal.sampleType],
+            ['TEAM:', specGlobal.nameTeam],
+            ['GENDER:', specGlobal.gender],
+            ['DESIGNER:', specGlobal.designer],
+            ['INK TYPE:', specGlobal.inkType],
+            ['DIMENSIONS:', specGlobal.dimensions],
+            ['PLACEMENT:', specGlobal.placement],
+            ['TEMP/TIME:', `${specGlobal.temp} / ${specGlobal.time}`]
+        ];
+        
+        generalFields.forEach(([label, value], i) => {
+            const x = i % 2 === 0 ? 15 : 110;
+            addText(label, x, y, 9, true);
+            addText(value || '---', x + 25, y, 9);
+            if (i % 2 !== 0) y += 6;
+        });
+        
+        y += 10;
+        
+        if (specGlobal.specialties) {
+            addText('SPECIALTIES:', 15, y, 10, true);
+            addText(specGlobal.specialties, 15, y + 5, 9);
+            y += 15;
+        }
+        
+        if (specGlobal.instructions) {
+            addText('INSTRUCTIONS:', 15, y, 10, true);
+            const instructions = pdf.splitTextToSize(specGlobal.instructions, pageWidth - 30);
+            pdf.text(instructions, 15, y + 5);
+            y += instructions.length * 5 + 10;
+        }
+        
+        if (specGlobal.artes.length > 0) {
+            addText('ARTES / UBICACIONES', 15, y, 12, true, [211, 47, 47]);
+            y += 10;
+            
+            specGlobal.artes.forEach((arte, index) => {
+                if (y > 250) {
+                    pdf.addPage();
+                    y = 20;
+                }
+                
+                addText(`UBICACIÓN: ${arte.name}`, 15, y, 11, true);
+                y += 7;
+                
+                addText(`Dimensiones: ${arte.dimensions}`, 20, y, 9);
+                y += 5;
+                addText(`Placement: ${arte.placement}`, 20, y, 9);
+                y += 5;
+                
+                if (arte.specialties) {
+                    addText(`Specialties: ${arte.specialties}`, 20, y, 9);
+                    y += 5;
+                }
+                
+                if (arte.colors.length > 0) {
+                    addText('Colores:', 20, y, 10, true);
+                    y += 6;
+                    
+                    arte.colors.forEach(color => {
+                        const typeLabel = color.type === 'BLOCKER' ? 'BLOQUEADOR' : 
+                                        color.type === 'WHITE_BASE' ? 'WHITE BASE' : 'COLOR';
+                        addText(`  ${color.screenLetter}: ${color.val} (${typeLabel})`, 25, y, 9);
+                        y += 5;
+                    });
+                }
+                
+                y += 10;
+            });
+        }
+        
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text('Generado por Tegra Technical Spec Manager', pageWidth / 2, 290, { align: 'center' });
+        pdf.text(new Date().toLocaleDateString('es-ES'), pageWidth / 2, 294, { align: 'center' });
+        
+        const fileName = `TegraSpec_${specGlobal.style}_${new Date().toISOString().slice(0,10)}.pdf`;
+        pdf.save(fileName);
+        
+        showStatus('✅ PDF exportado correctamente', 'success');
+    } catch (error) {
+        console.error('Error exportando PDF:', error);
+        showStatus('❌ Error al exportar PDF', 'error');
+    }
+}
+
 // ========== ZIP EXPORTER ==========
 function downloadProjectZip() {
-    showStatus('⚠️ Función ZIP en desarrollo. Por ahora usa los otros formatos.', 'warning');
-}
-
-function exportPDF() {
-    showStatus('⚠️ Función PDF en desarrollo. Próximamente.', 'warning');
-}
-
-function exportToExcel() {
-    showStatus('⚠️ Función Excel en desarrollo. Próximamente.', 'warning');
+    showStatus('⚠️ Función ZIP en desarrollo. Por ahora usa PDF o Excel.', 'warning');
 }
 
 // ========== CLEAR FORM ==========
 function clearForm() {
     if (confirm('¿Limpiar todo el formulario?')) {
-        // Resetear objeto global
         specGlobal = {
             customer: '', style: '', colorway: '', season: '', pattern: '', po: '',
             sampleType: '', nameTeam: '', gender: '', designer: '', inkType: 'WATER',
@@ -805,7 +999,6 @@ function clearForm() {
         
         currentImageData = null;
         
-        // Limpiar campos del formulario
         const fields = ['customer', 'style', 'colorway', 'season', 'pattern', 'po', 
                        'sampleType', 'nameTeam', 'gender', 'dimensions', 'placement', 
                        'specialties', 'instructions', 'folder-num'];
@@ -815,24 +1008,20 @@ function clearForm() {
             if (el) el.value = '';
         });
         
-        // Resetear selects
         document.getElementById('designer').value = '';
         document.getElementById('ink-type-select').value = 'WATER';
         document.getElementById('temp').value = '320 °F';
         document.getElementById('time').value = '1:40 min';
         
-        // Limpiar imagen
         const preview = document.getElementById('imagePreview');
         if (preview) {
             preview.style.display = 'none';
             preview.src = '';
         }
         
-        // Limpiar artes
         specGlobal.artes = [];
         renderArtes();
         
-        // Limpiar logo
         const logo = document.getElementById('logoCliente');
         if (logo) logo.style.display = 'none';
         
@@ -844,7 +1033,6 @@ function clearForm() {
 function initApp() {
     console.log("Inicializando Tegra Spec Manager...");
     
-    // 1. Crear el HTML de la aplicación
     const appContainer = document.getElementById('app-container');
     if (appContainer) {
         appContainer.innerHTML = `
@@ -992,11 +1180,14 @@ function initApp() {
                         <!-- Botones finales -->
                         <div class="card">
                             <div class="card-body" style="display:flex;gap:15px;flex-wrap:wrap;justify-content:center">
+                                <button class="btn btn-success btn-lg" onclick="saveSpec()">
+                                    <i class="fas fa-save"></i> Guardar Spec
+                                </button>
                                 <button class="btn btn-primary btn-lg" onclick="downloadProjectZip()">
-                                    <i class="fas fa-file-archive"></i> Descargar Proyecto ZIP
+                                    <i class="fas fa-file-archive"></i> Descargar ZIP
                                 </button>
                                 <button class="btn btn-success btn-lg" onclick="exportPDF()">
-                                    <i class="fas fa-file-pdf"></i> Exportar PDF Maestro
+                                    <i class="fas fa-file-pdf"></i> Exportar PDF
                                 </button>
                                 <button class="btn btn-warning btn-lg" onclick="exportToExcel()">
                                     <i class="fas fa-file-excel"></i> Exportar Excel
@@ -1081,29 +1272,22 @@ function initApp() {
         `;
     }
     
-    // 2. Configurar eventos
     setupEventListeners();
-    
-    // 3. Inicializar componentes
     initPDFAnalyzer();
     updateDateTime();
     updateDashboard();
     renderArtes();
     
-    // 4. Actualizar fecha/hora cada minuto
     setInterval(updateDateTime, 60000);
     
-    // 5. Mostrar mensaje de éxito
     setTimeout(() => {
         showStatus('✅ Tegra Spec Manager cargado correctamente', 'success');
     }, 1000);
 }
 
 function setupEventListeners() {
-    // Excel
     document.getElementById('excelFile')?.addEventListener('change', handleExcelUpload);
     
-    // Imagen principal
     document.getElementById('imageInput')?.addEventListener('change', function(e) {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -1118,7 +1302,6 @@ function setupEventListeners() {
         reader.readAsDataURL(e.target.files[0]);
     });
     
-    // Pegar imagen
     document.addEventListener('paste', function(e) {
         if (e.clipboardData && e.clipboardData.items) {
             const items = e.clipboardData.items;
@@ -1142,279 +1325,12 @@ function setupEventListeners() {
         }
     });
     
-    // Folder number
     document.getElementById('folder-num')?.addEventListener('input', function() {
         specGlobal.folder = this.value;
     });
     
-    // Tinta
     document.getElementById('ink-type-select')?.addEventListener('change', updateInkPreset);
 }
 
-// ========== GUARDAR SPEC ==========
-function saveSpec() {
-    // Recoger datos del formulario
-    const fields = ['customer', 'style', 'colorway', 'season', 'pattern', 'po', 
-                   'sampleType', 'nameTeam', 'gender', 'designer', 'dimensions', 
-                   'placement', 'specialties', 'instructions'];
-    
-    fields.forEach(field => {
-        const el = document.getElementById(field);
-        if (el) specGlobal[field] = el.value;
-    });
-    
-    specGlobal.inkType = document.getElementById('ink-type-select')?.value || 'WATER';
-    specGlobal.temp = document.getElementById('temp')?.value || '320 °F';
-    specGlobal.time = document.getElementById('time')?.value || '1:40 min';
-    specGlobal.folder = document.getElementById('folder-num')?.value || '';
-    specGlobal.imageB64 = currentImageData || '';
-    specGlobal.savedAt = new Date().toISOString();
-    
-    // Validar datos obligatorios
-    if (!specGlobal.customer || !specGlobal.style) {
-        showStatus('⚠️ Completa al menos CLIENTE y STYLE', 'warning');
-        return;
-    }
-    
-    // Guardar en localStorage
-    const key = `spec_${specGlobal.style}_${Date.now()}`;
-    localStorage.setItem(key, JSON.stringify(specGlobal));
-    
-    // Actualizar dashboard
-    updateDashboard();
-    
-    showStatus(`✅ Spec "${specGlobal.style}" guardada correctamente`, 'success');
-}
-
-// ========== EXPORTAR A EXCEL ==========
-function exportToExcel() {
-    if (!specGlobal.customer || !specGlobal.style) {
-        showStatus('⚠️ Primero completa los datos de la spec', 'warning');
-        return;
-    }
-    
-    try {
-        // Crear hoja de cálculo
-        const wb = XLSX.utils.book_new();
-        
-        // Hoja 1: Datos generales
-        const generalData = [
-            ['TEGRA TECHNICAL SPEC MANAGER', '', '', ''],
-            ['Fecha', new Date().toLocaleDateString('es-ES'), '', ''],
-            ['', '', '', ''],
-            ['INFORMACIÓN GENERAL', '', '', ''],
-            ['CLIENTE', specGlobal.customer],
-            ['STYLE', specGlobal.style],
-            ['COLORWAY', specGlobal.colorway],
-            ['SEASON', specGlobal.season],
-            ['PATTERN #', specGlobal.pattern],
-            ['P.O. #', specGlobal.po],
-            ['SAMPLE TYPE', specGlobal.sampleType],
-            ['TEAM', specGlobal.nameTeam],
-            ['GENDER', specGlobal.gender],
-            ['DESIGNER', specGlobal.designer],
-            ['INK TYPE', specGlobal.inkType],
-            ['DIMENSIONS', specGlobal.dimensions],
-            ['PLACEMENT', specGlobal.placement],
-            ['TEMP/TIME', `${specGlobal.temp} / ${specGlobal.time}`],
-            ['SPECIALTIES', specGlobal.specialties],
-            ['INSTRUCTIONS', specGlobal.instructions],
-            ['', '', '', ''],
-            ['ARTES / UBICACIONES', '', '', ''],
-            ['Nombre', 'Colores', 'Dimensiones', 'Placement']
-        ];
-        
-        // Agregar artes
-        specGlobal.artes.forEach(arte => {
-            generalData.push([
-                arte.name,
-                arte.colors.length,
-                arte.dimensions,
-                arte.placement
-            ]);
-        });
-        
-        const ws1 = XLSX.utils.aoa_to_sheet(generalData);
-        XLSX.utils.book_append_sheet(wb, ws1, 'Datos Generales');
-        
-        // Hoja 2: Colores por arte
-        if (specGlobal.artes.length > 0) {
-            const colorsData = [
-                ['ARTE', 'SCREEN', 'TIPO', 'NOMBRE TINTA', 'MESH', 'DURÓMETRO', 'GOLPES', 'ADITIVOS']
-            ];
-            
-        specGlobal.artes.forEach(arte => {
-            arte.colors.forEach(color => {
-                const preset = INK_PRESETS[specGlobal.inkType];
-                colorsData.push([
-                    arte.name,
-                    color.screenLetter,
-                    color.type === 'BLOCKER' ? 'BLOQUEADOR' : 
-                    color.type === 'WHITE_BASE' ? 'WHITE BASE' : 'COLOR',
-                    color.val,
-                    color.type === 'BLOCKER' ? preset?.blocker?.mesh1 || 'N/A' :
-                    color.type === 'WHITE_BASE' ? preset?.white?.mesh1 || 'N/A' :
-                    preset?.color?.mesh || 'N/A',
-                    color.type === 'BLOCKER' ? preset?.blocker?.durometer || 'N/A' :
-                    color.type === 'WHITE_BASE' ? preset?.white?.durometer || 'N/A' :
-                    preset?.color?.durometer || 'N/A',
-                    color.type === 'BLOCKER' ? preset?.blocker?.strokes || 'N/A' :
-                    color.type === 'WHITE_BASE' ? preset?.white?.strokes || 'N/A' :
-                    preset?.color?.strokes || 'N/A',
-                    color.type === 'BLOCKER' ? preset?.blocker?.additives || 'N/A' :
-                    color.type === 'WHITE_BASE' ? preset?.white?.additives || 'N/A' :
-                    preset?.color?.additives || 'N/A'
-                ]);
-            });
-        });
-        
-        const ws2 = XLSX.utils.aoa_to_sheet(colorsData);
-            XLSX.utils.book_append_sheet(wb, ws2, 'Colores');
-        }
-        
-        // Descargar archivo
-        const fileName = `TegraSpec_${specGlobal.style}_${new Date().toISOString().slice(0,10)}.xlsx`;
-        XLSX.writeFile(wb, fileName);
-        
-        showStatus('✅ Excel exportado correctamente', 'success');
-    } catch (error) {
-        console.error('Error exportando Excel:', error);
-        showStatus('❌ Error al exportar Excel', 'error');
-    }
-}
-
-// ========== EXPORTAR PDF ==========
-function exportPDF() {
-    if (!specGlobal.customer || !specGlobal.style) {
-        showStatus('⚠️ Primero completa los datos de la spec', 'warning');
-        return;
-    }
-    
-    try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        let y = 20;
-        
-        // Función auxiliar para texto
-        function addText(text, x, yPos, size = 10, bold = false, color = [0, 0, 0]) {
-            pdf.setFontSize(size);
-            pdf.setFont('helvetica', bold ? 'bold' : 'normal');
-            pdf.setTextColor(...color);
-            pdf.text(text, x, yPos);
-        }
-        
-        // Portada
-        pdf.setFillColor(211, 47, 47);
-        pdf.rect(0, 0, pageWidth, 30, 'F');
-        addText('TEGRA TECHNICAL SPEC MANAGER', 15, 15, 16, true, [255, 255, 255]);
-        addText('PDF MAESTRO', 15, 22, 12, false, [255, 255, 255]);
-        
-        y = 40;
-        
-        // Datos generales
-        addText('INFORMACIÓN GENERAL', 15, y, 12, true, [211, 47, 47]);
-        y += 10;
-        
-        const generalFields = [
-            ['CLIENTE:', specGlobal.customer],
-            ['STYLE:', specGlobal.style],
-            ['COLORWAY:', specGlobal.colorway],
-            ['SEASON:', specGlobal.season],
-            ['PATTERN #:', specGlobal.pattern],
-            ['P.O. #:', specGlobal.po],
-            ['SAMPLE TYPE:', specGlobal.sampleType],
-            ['TEAM:', specGlobal.nameTeam],
-            ['GENDER:', specGlobal.gender],
-            ['DESIGNER:', specGlobal.designer],
-            ['INK TYPE:', specGlobal.inkType],
-            ['DIMENSIONS:', specGlobal.dimensions],
-            ['PLACEMENT:', specGlobal.placement],
-            ['TEMP/TIME:', `${specGlobal.temp} / ${specGlobal.time}`]
-        ];
-        
-        generalFields.forEach(([label, value], i) => {
-            const x = i % 2 === 0 ? 15 : 110;
-            addText(label, x, y, 9, true);
-            addText(value || '---', x + 25, y, 9);
-            if (i % 2 !== 0) y += 6;
-        });
-        
-        y += 10;
-        
-        // Especialidades e instrucciones
-        if (specGlobal.specialties) {
-            addText('SPECIALTIES:', 15, y, 10, true);
-            addText(specGlobal.specialties, 15, y + 5, 9);
-            y += 15;
-        }
-        
-        if (specGlobal.instructions) {
-            addText('INSTRUCTIONS:', 15, y, 10, true);
-            const instructions = pdf.splitTextToSize(specGlobal.instructions, pageWidth - 30);
-            pdf.text(instructions, 15, y + 5);
-            y += instructions.length * 5 + 10;
-        }
-        
-        // Artes
-        if (specGlobal.artes.length > 0) {
-            addText('ARTES / UBICACIONES', 15, y, 12, true, [211, 47, 47]);
-            y += 10;
-            
-            specGlobal.artes.forEach((arte, index) => {
-                // Nueva página si es necesario
-                if (y > 250) {
-                    pdf.addPage();
-                    y = 20;
-                }
-                
-                addText(`UBICACIÓN: ${arte.name}`, 15, y, 11, true);
-                y += 7;
-                
-                addText(`Dimensiones: ${arte.dimensions}`, 20, y, 9);
-                y += 5;
-                addText(`Placement: ${arte.placement}`, 20, y, 9);
-                y += 5;
-                
-                if (arte.specialties) {
-                    addText(`Specialties: ${arte.specialties}`, 20, y, 9);
-                    y += 5;
-                }
-                
-                // Colores
-                if (arte.colors.length > 0) {
-                    addText('Colores:', 20, y, 10, true);
-                    y += 6;
-                    
-                    arte.colors.forEach(color => {
-                        const typeLabel = color.type === 'BLOCKER' ? 'BLOQUEADOR' : 
-                                        color.type === 'WHITE_BASE' ? 'WHITE BASE' : 'COLOR';
-                        addText(`  ${color.screenLetter}: ${color.val} (${typeLabel})`, 25, y, 9);
-                        y += 5;
-                    });
-                }
-                
-                y += 10;
-            });
-        }
-        
-        // Pie de página
-        pdf.setFontSize(8);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text('Generado por Tegra Technical Spec Manager', pageWidth / 2, 290, { align: 'center' });
-        pdf.text(new Date().toLocaleDateString('es-ES'), pageWidth / 2, 294, { align: 'center' });
-        
-        // Descargar PDF
-        const fileName = `TegraSpec_${specGlobal.style}_${new Date().toISOString().slice(0,10)}.pdf`;
-        pdf.save(fileName);
-        
-        showStatus('✅ PDF exportado correctamente', 'success');
-    } catch (error) {
-        console.error('Error exportando PDF:', error);
-        showStatus('❌ Error al exportar PDF', 'error');
-    }
-}
-
 // ========== EJECUCIÓN PRINCIPAL ==========
-// Iniciar la aplicación cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', initApp);
