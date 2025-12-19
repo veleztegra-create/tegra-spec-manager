@@ -1,22 +1,13 @@
 // js/modules/spec-creator.js
-// Variables globales que necesitamos
-window.specGlobal = {
-    customer: '', style: '', colorway: '', season: '', pattern: '', po: '',
-    sampleType: '', nameTeam: '', gender: '', designer: '', inkType: 'WATER',
-    folder: '', dimensions: '', placement: '', temp: '320 °F', time: '1:40 min',
-    specialties: '', instructions: '', imageB64: '', artes: [], savedAt: null
-};
-
-window.currentImageData = null;
-
-export function initSpecCreator() {
+function initSpecCreator() {
     console.log("Inicializando spec creator...");
-    // Inicializar eventos específicos del formulario
+    
+    // Configurar eventos
     document.getElementById('customer')?.addEventListener('input', updateClientLogo);
     document.getElementById('ink-type-select')?.addEventListener('change', updateInkPreset);
 }
 
-export function renderArtes() {
+function renderArtes() {
     const container = document.getElementById('artes-container');
     if (!container) return;
     
@@ -29,31 +20,26 @@ export function renderArtes() {
     window.specGlobal.artes.forEach((arte, i) => {
         const div = document.createElement('div');
         div.className = 'arte-card';
+        div.style.cssText = 'background:white;border-radius:8px;border:1px solid #CFD8DC;margin-bottom:15px;padding:15px;';
         div.innerHTML = `
-            <div class="arte-header">
-                <span class="arte-title">${arte.name}</span>
-                <div>
-                    <button class="btn btn-outline btn-sm" onclick="editArte(${i})">
-                        <i class="fas fa-edit"></i> Editar
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="removeArte(${i})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="color:var(--primary);margin:0;">${arte.name}</h4>
+                <button class="btn btn-danger btn-sm" onclick="removeArte(${i})">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
             </div>
-            <div class="arte-body">
-                <p><strong>Dimensiones:</strong> ${arte.dimensions}</p>
-                <p><strong>Placement:</strong> ${arte.placement}</p>
-                ${arte.colors && arte.colors.length > 0 ? 
-                    `<p><strong>Colores:</strong> ${arte.colors.length}</p>` : ''}
-            </div>
+            <p><strong>Dimensiones:</strong> ${arte.dimensions}</p>
+            <p><strong>Placement:</strong> ${arte.placement}</p>
+            ${arte.colors && arte.colors.length > 0 ? 
+                `<p><strong>Colores:</strong> ${arte.colors.length}</p>` : 
+                '<p style="color:var(--gray-light);"><em>Sin colores definidos</em></p>'
+            }
         `;
         container.appendChild(div);
     });
 }
 
-// Hacer funciones globales para llamarlas desde HTML
-window.addArte = function() {
+function addArte() {
     const name = prompt('Nombre de la ubicación (ej: FRONT, BACK, SLEEVE):', 'FRONT');
     if (!name) return;
     
@@ -70,9 +56,17 @@ window.addArte = function() {
     window.specGlobal.artes.push(arte);
     renderArtes();
     showStatus('✅ Ubicación agregada');
-};
+}
 
-window.updateClientLogo = function() {
+function removeArte(index) {
+    if (confirm('¿Eliminar esta ubicación?')) {
+        window.specGlobal.artes.splice(index, 1);
+        renderArtes();
+        showStatus('🗑️ Ubicación eliminada');
+    }
+}
+
+function updateClientLogo() {
     const customer = document.getElementById('customer')?.value.toUpperCase() || '';
     const img = document.getElementById('logoCliente');
     if (!img) return;
@@ -92,14 +86,14 @@ window.updateClientLogo = function() {
     }
     
     img.style.display = 'none';
-};
+}
 
 function updateInkPreset() {
     const select = document.getElementById('ink-type-select');
     if (!select) return;
     
     const inkType = select.value;
-    const preset = window.INK_PRESETS ? window.INK_PRESETS[inkType] : null;
+    const preset = window.INK_PRESETS[inkType];
     
     if (preset) {
         document.getElementById('temp').value = preset.temp;
@@ -107,3 +101,10 @@ function updateInkPreset() {
         showStatus(`Preset ${inkType} aplicado`);
     }
 }
+
+// Hacer funciones globales
+window.initSpecCreator = initSpecCreator;
+window.renderArtes = renderArtes;
+window.addArte = addArte;
+window.updateClientLogo = updateClientLogo;
+window.removeArte = removeArte;
