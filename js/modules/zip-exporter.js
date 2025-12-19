@@ -1,13 +1,13 @@
 // js/modules/zip-exporter.js
-export function downloadProjectZip() {
-    showStatus('⚠️ Función ZIP en desarrollo. Por ahora usa PDF o Excel.', 'warning');
+function downloadProjectZip() {
+    showStatus('⚠️ Función ZIP en desarrollo. Por ahora usa los otros formatos.', 'warning');
 }
 
-export function exportPDF() {
+function exportPDF() {
     showStatus('⚠️ Función PDF en desarrollo. Próximamente.', 'warning');
 }
 
-export function exportToExcel() {
+function exportToExcel() {
     showStatus('⚠️ Función Excel en desarrollo. Próximamente.', 'warning');
 }
 
