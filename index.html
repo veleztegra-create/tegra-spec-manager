@@ -164,6 +164,7 @@
             .dashboard-grid { grid-template-columns: 1fr; }
             body { padding: 10px; }
         }
+        
     </style>
 </head>
 <body>
@@ -183,5 +184,22 @@
     
     <!-- UN SOLO ARCHIVO JAVASCRIPT con TODO -->
     <script src="js/app.js"></script>
+    <div class="card-body" style="display:flex;gap:15px;flex-wrap:wrap;justify-content:center">
+    <button class="btn btn-success btn-lg" onclick="saveSpec()">
+        <i class="fas fa-save"></i> Guardar Spec
+    </button>
+    <button class="btn btn-primary btn-lg" onclick="downloadProjectZip()">
+        <i class="fas fa-file-archive"></i> Descargar ZIP
+    </button>
+    <button class="btn btn-success btn-lg" onclick="exportPDF()">
+        <i class="fas fa-file-pdf"></i> Exportar PDF
+    </button>
+    <button class="btn btn-warning btn-lg" onclick="exportToExcel()">
+        <i class="fas fa-file-excel"></i> Exportar Excel
+    </button>
+    <button class="btn btn-outline btn-lg" onclick="clearForm()">
+        <i class="fas fa-broom"></i> Limpiar
+    </button>
+</div>
 </body>
 </html>
