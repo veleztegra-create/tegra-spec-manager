@@ -1,5 +1,5 @@
 // js/modules/storage-manager.js
-export function loadSavedSpecsList() {
+function loadSavedSpecsList() {
     const list = document.getElementById('saved-specs-list');
     if (!list) return;
     
@@ -27,6 +27,9 @@ export function loadSavedSpecsList() {
                         <button class="btn btn-primary btn-sm" onclick="loadSpec('${key}')">
                             <i class="fas fa-edit"></i> Cargar
                         </button>
+                        <button class="btn btn-outline btn-sm" onclick="deleteSpec('${key}')" style="margin-left:5px;">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
                     </div>
                 </div>
             `;
@@ -38,13 +41,11 @@ export function loadSavedSpecsList() {
     list.innerHTML = html;
 }
 
-// Hacer global
-window.loadSavedSpecsList = loadSavedSpecsList;
-
-window.loadSpec = function(key) {
+function loadSpec(key) {
     try {
         const spec = JSON.parse(localStorage.getItem(key));
-        // Cargar datos en el formulario
+        
+        // Cargar datos básicos
         Object.keys(spec).forEach(k => {
             const el = document.getElementById(k);
             if (el) el.value = spec[k] || '';
@@ -53,9 +54,14 @@ window.loadSpec = function(key) {
         // Cargar artes
         if (spec.artes) {
             window.specGlobal.artes = spec.artes;
-            if (typeof window.renderArtes === 'function') {
-                window.renderArtes();
+            if (typeof renderArtes === 'function') {
+                renderArtes();
             }
+        }
+        
+        // Actualizar logo
+        if (typeof updateClientLogo === 'function') {
+            updateClientLogo();
         }
         
         showTab('spec-creator');
@@ -63,18 +69,35 @@ window.loadSpec = function(key) {
     } catch(e) {
         showStatus('Error cargando spec', 'error');
     }
-};
+}
 
-window.clearAllSpecs = function() {
+function deleteSpec(key) {
+    if (confirm('¿Eliminar esta spec?')) {
+        localStorage.removeItem(key);
+        loadSavedSpecsList();
+        if (typeof updateDashboard === 'function') {
+            updateDashboard();
+        }
+        showStatus('Spec eliminada');
+    }
+}
+
+function clearAllSpecs() {
     if (confirm('¿Eliminar TODAS las specs guardadas?')) {
         Object.keys(localStorage)
             .filter(k => k.startsWith('spec_'))
             .forEach(k => localStorage.removeItem(k));
         
         loadSavedSpecsList();
-        if (typeof window.updateDashboard === 'function') {
-            window.updateDashboard();
+        if (typeof updateDashboard === 'function') {
+            updateDashboard();
         }
         showStatus('Todas las specs eliminadas');
     }
-};
+}
+
+// Hacer globales
+window.loadSavedSpecsList = loadSavedSpecsList;
+window.loadSpec = loadSpec;
+window.deleteSpec = deleteSpec;
+window.clearAllSpecs = clearAllSpecs;
