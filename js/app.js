@@ -261,6 +261,7 @@ function addArte() {
     showStatus('✅ Ubicación agregada');
 }
 
+// ========== SPEC CREATOR ==========
 function renderArtes() {
     const container = document.getElementById('artes-container');
     if (!container) return;
@@ -270,6 +271,180 @@ function renderArtes() {
         return;
     }
     
+    container.innerHTML = '';
+    specGlobal.artes.forEach((arte, i) => {
+        const div = document.createElement('div');
+        div.className = 'arte-card';
+        div.style.cssText = 'background:white;border-radius:8px;border:1px solid var(--border);margin-bottom:25px;overflow:hidden;';
+        div.innerHTML = `
+            <div style="background:var(--gray-extra-light);padding:15px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                <h4 style="color:var(--primary);margin:0;">${arte.name}</h4>
+                <div>
+                    <button class="btn btn-outline btn-sm" onclick="editArte(${i})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="removeArte(${i})" style="margin-left:5px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div style="padding:20px;">
+                <!-- IMAGEN DE LA UBICACIÓN -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:10px;">IMAGEN ${arte.name}:</label>
+                    <div class="file-upload-area" onclick="loadArteImage(${i})" style="padding:20px;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:var(--primary);margin-bottom:10px;"></i>
+                        <p>Haz clic para cargar imagen para ${arte.name}</p>
+                    </div>
+                    <div class="image-preview-container" id="arte-image-${i}" style="margin-top:10px;">
+                        ${arte.imageB64 ? `<img src="${arte.imageB64}" class="image-preview" style="max-height:200px;">` : ''}
+                    </div>
+                </div>
+                
+                <!-- DIMENSIONES Y PLACEMENT -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:15px;margin-bottom:20px;">
+                    <div>
+                        <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">DIMENSIONES (PULGADAS):</label>
+                        <input type="text" class="form-control" value="${arte.dimensions}" 
+                               onchange="updateArteField(${i}, 'dimensions', this.value)" style="font-size:14px;" placeholder='SIZE: (W) ##" X (H) ##"'>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">PLACEMENT:</label>
+                        <input type="text" class="form-control" value="${arte.placement}" 
+                               onchange="updateArteField(${i}, 'placement', this.value)" style="font-size:14px;" placeholder='#.#" FROM COLLAR SEAM'>
+                    </div>
+                </div>
+                
+                <!-- CONDICIONES DE IMPRESIÓN -->
+                <div style="background:var(--gray-extra-light);padding:15px;border-radius:8px;margin-bottom:20px;">
+                    <h5 style="color:var(--primary);margin-bottom:10px;"><i class="fas fa-print"></i> Condiciones de Impresión</h5>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:15px;">
+                        <div>
+                            <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">INK TYPE:</label>
+                            <select id="ink-type-${i}" class="form-control" style="font-size:14px;" onchange="updateArteInkType(${i}, this.value)">
+                                <option value="WATER" ${arte.inkType === 'WATER' ? 'selected' : ''}>WATER</option>
+                                <option value="PLASTISOL" ${arte.inkType === 'PLASTISOL' ? 'selected' : ''}>PLASTISOL</option>
+                                <option value="SILICONE" ${arte.inkType === 'SILICONE' ? 'selected' : ''}>SILICONE</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">TEMP:</label>
+                            <input type="text" class="form-control" value="${arte.temp || '320 °F'}" 
+                                   onchange="updateArteField(${i}, 'temp', this.value)" style="font-size:14px;">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">TIME:</label>
+                            <input type="text" class="form-control" value="${arte.time || '1:40 min'}" 
+                                   onchange="updateArteField(${i}, 'time', this.value)" style="font-size:14px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- COLORES / TINTAS -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:10px;">COLORES / TINTAS ${arte.name}:</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                        <button class="btn btn-danger btn-sm" onclick="addArteColor(${i}, 'BLOCKER')">
+                            <i class="fas fa-plus"></i> Blocker
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="addArteColor(${i}, 'WHITE_BASE')">
+                            <i class="fas fa-plus"></i> White Base
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="addArteColor(${i}, 'COLOR')">
+                            <i class="fas fa-plus"></i> Color
+                        </button>
+                    </div>
+                    <div id="arte-colors-${i}"></div>
+                </div>
+                
+                <!-- SPECIALTIES -->
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">SPECIALTIES ${arte.name}:</label>
+                    <input type="text" class="form-control" value="${arte.specialties || ''}" 
+                           onchange="updateArteField(${i}, 'specialties', this.value)" style="font-size:14px;" placeholder="Especialidades específicas para esta ubicación">
+                </div>
+                
+                <!-- INSTRUCTIONS -->
+                <div>
+                    <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">INSTRUCTIONS ${arte.name}:</label>
+                    <textarea class="form-control" rows="2" onchange="updateArteField(${i}, 'instructions', this.value)" style="font-size:14px;">${arte.instructions || ''}</textarea>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        renderArteColors(i);
+    });
+}
+
+// Nueva función para cargar imagen por arte
+function loadArteImage(i) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            specGlobal.artes[i].imageB64 = e.target.result;
+            renderArtes(); // Re-renderizar para mostrar la imagen
+            showStatus('✅ Imagen cargada para ' + specGlobal.artes[i].name);
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+function addArte() {
+    const name = prompt('Nombre de la ubicación (ej: FRONT, BACK, SLEEVE):', 'FRONT');
+    if (!name) return;
+    
+    const arte = {
+        name: name.toUpperCase(),
+        imageB64: '',
+        colors: [],
+        dimensions: 'SIZE: (W) ##" X (H) ##"',
+        placement: '#.#" FROM COLLAR SEAM',
+        inkType: 'WATER', // Tipo de tinta por defecto
+        temp: '320 °F',
+        time: '1:40 min',
+        specialties: '',
+        instructions: ''
+    };
+    
+    specGlobal.artes.push(arte);
+    renderArtes();
+    showStatus('✅ Ubicación agregada');
+}
+function updateArteField(i, field, value) {
+    specGlobal.artes[i][field] = value;
+}
+function applyInkPresetToArte(i) {
+    const inkType = specGlobal.artes[i].inkType || 'WATER';
+    const preset = INK_PRESETS[inkType];
+    if (!preset) return;
+    
+    const colors = specGlobal.artes[i].colors;
+    colors.forEach(c => {
+        if (!c.val) {
+            if (c.type === 'BLOCKER') c.val = preset.blocker.name;
+            if (c.type === 'WHITE_BASE') c.val = preset.white.name;
+        }
+    });
+    renderArteColors(i);
+}
+
+// Nueva función para actualizar tipo de tinta por arte
+function updateArteInkType(i, inkType) {
+    specGlobal.artes[i].inkType = inkType;
+    const preset = INK_PRESETS[inkType];
+    if (preset) {
+        specGlobal.artes[i].temp = preset.temp;
+        specGlobal.artes[i].time = preset.time;
+        renderArtes(); // Actualizar para mostrar nuevos valores
+        applyInkPresetToArte(i);
+    }
+}
     container.innerHTML = '';
     specGlobal.artes.forEach((arte, i) => {
         const div = document.createElement('div');
@@ -345,7 +520,156 @@ function addArteColor(i, type) {
                           .map(c => parseInt(c.screenLetter) || 0);
         letter = String(Math.max(...nums, 0) + 1);
     }
+
+    // ========== EXCEL IMPORTER ==========
+function handleExcelUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
     
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+            
+            // Buscar datos en las primeras filas (formato más flexible)
+            const processedData = {};
+            
+            jsonData.forEach(row => {
+                if (Array.isArray(row)) {
+                    const key = row[0] ? String(row[0]).trim().toUpperCase().replace(/\s+/g, ' ') : '';
+                    const value = row[1] ? String(row[1]).trim() : '';
+                    
+                    if (key && value) {
+                        switch(key) {
+                            case 'CLIENTE': processedData.customer = value; break;
+                            case 'STYLE': processedData.style = value; break;
+                            case 'COLORWAY': processedData.colorway = value; break;
+                            case 'SEASON': processedData.season = value; break;
+                            case 'PATTERN #': 
+                            case 'PATTERN': processedData.pattern = value; break;
+                            case 'P.O. #': 
+                            case 'PO': processedData.po = value; break;
+                            case 'SAMPLE TYPE': processedData.sampleType = value; break;
+                            case 'NAME / TEAM': 
+                            case 'NAME/TEAM': 
+                            case 'TEAM': processedData.nameTeam = value; break;
+                            case 'GENDER': processedData.gender = value; break;
+                            case 'DESIGNER': processedData.designer = value; break;
+                            case 'INK TYPE': processedData.inkType = value; break;
+                            case 'DIMENSIONS': processedData.dimensions = value; break;
+                            case 'PLACEMENT': processedData.placement = value; break;
+                        }
+                    }
+                }
+            });
+            
+            // También buscar datos en formato de tabla
+            if (jsonData.length > 0 && jsonData[0].length > 1) {
+                const headerRow = jsonData[0];
+                const dataRow = jsonData[1] || [];
+                
+                headerRow.forEach((header, index) => {
+                    if (header && dataRow[index]) {
+                        const key = String(header).trim().toUpperCase().replace(/\s+/g, ' ');
+                        const value = String(dataRow[index]).trim();
+                        
+                        if (!processedData.customer && key.includes('CLIENT')) processedData.customer = value;
+                        if (!processedData.style && key.includes('STYLE')) processedData.style = value;
+                        if (!processedData.colorway && key.includes('COLOR')) processedData.colorway = value;
+                        if (!processedData.season && key.includes('SEASON')) processedData.season = value;
+                        if (!processedData.pattern && (key.includes('PATTERN') || key.includes('PATT'))) processedData.pattern = value;
+                        if (!processedData.po && (key.includes('PO') || key.includes('P.O'))) processedData.po = value;
+                        if (!processedData.sampleType && key.includes('SAMPLE')) processedData.sampleType = value;
+                        if (!processedData.nameTeam && (key.includes('NAME') || key.includes('TEAM'))) processedData.nameTeam = value;
+                        if (!processedData.gender && key.includes('GENDER')) processedData.gender = value;
+                        if (!processedData.designer && key.includes('DESIGN')) processedData.designer = value;
+                    }
+                });
+            }
+            
+            // Llenar formulario con los datos encontrados
+            Object.keys(processedData).forEach(key => {
+                const el = document.getElementById(key);
+                if (el) el.value = processedData[key] || '';
+            });
+            
+            // Actualizar logo del cliente
+            updateClientLogo();
+            
+            // Si hay datos de artes/ubicaciones en el Excel
+            processExcelArtes(jsonData, processedData);
+            
+            showTab('spec-creator');
+            showStatus('✅ Excel cargado correctamente', 'success');
+            
+        } catch(error) {
+            console.error('Error leyendo Excel:', error);
+            showStatus('❌ Error al leer Excel. Asegúrate de que tenga el formato correcto.', 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// Función para procesar artes desde Excel
+function processExcelArtes(jsonData, generalData) {
+    // Buscar sección de artes/ubicaciones
+    let artesSectionStart = -1;
+    
+    for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (Array.isArray(row) && row[0]) {
+            const cellValue = String(row[0]).toUpperCase();
+            if (cellValue.includes('ARTE') || cellValue.includes('UBICACION') || 
+                cellValue.includes('LOCATION') || cellValue.includes('FRONT') || 
+                cellValue.includes('BACK') || cellValue.includes('SLEEVE')) {
+                artesSectionStart = i;
+                break;
+            }
+        }
+    }
+    
+    if (artesSectionStart !== -1) {
+        // Limpiar artes existentes
+        specGlobal.artes = [];
+        
+        // Procesar filas de artes
+        for (let i = artesSectionStart; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (Array.isArray(row) && row[0] && String(row[0]).trim()) {
+                const arteName = String(row[0]).trim().toUpperCase();
+                
+                // Saltar encabezados
+                if (arteName.includes('ARTE') || arteName.includes('UBICACION') || 
+                    arteName.includes('LOCATION') || arteName.includes('NOMBRE')) {
+                    continue;
+                }
+                
+                const arte = {
+                    name: arteName,
+                    imageB64: '',
+                    colors: [],
+                    dimensions: row[1] || 'SIZE: (W) ##" X (H) ##"',
+                    placement: row[2] || '#.#" FROM COLLAR SEAM',
+                    inkType: generalData.inkType || 'WATER',
+                    temp: '320 °F',
+                    time: '1:40 min',
+                    specialties: row[3] || '',
+                    instructions: row[4] || ''
+                };
+                
+                specGlobal.artes.push(arte);
+            }
+        }
+        
+        if (specGlobal.artes.length > 0) {
+            renderArtes();
+            showStatus(`✅ ${specGlobal.artes.length} ubicaciones cargadas desde Excel`, 'info');
+        }
+    }
+}
     colors.push({
         id: Date.now() + Math.random(),
         type: type,
