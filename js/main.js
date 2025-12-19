@@ -1,33 +1,29 @@
 // js/main.js
-// Importa solo lo que necesites como módulos
-import { updateDashboard, createDashboard } from './modules/dashboard.js';
-import { initSpecCreator, renderArtes } from './modules/spec-creator.js';
-import { initPDFAnalyzer } from './modules/pdf-analyzer.js';
-
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Tegra Spec Manager iniciando...");
     
-    // 1. Cargar datos iniciales
-    if (!window.INK_PRESETS) {
-        // Si no están cargados los presets, cargarlos ahora
-        window.INK_PRESETS = {
-            WATER: { temp: '320 °F', time: '1:40 min' },
-            PLASTISOL: { temp: '320 °F', time: '0:45 min' },
-            SILICONE: { temp: '320 °F', time: '1:00 min' }
-        };
-    }
+    // 1. Inicializar funciones básicas
+    updateDateTime();
     
     // 2. Inicializar módulos
-    initSpecCreator();
-    initPDFAnalyzer();
+    if (typeof initSpecCreator === 'function') {
+        initSpecCreator();
+    }
     
-    // 3. Inicializar UI
-    updateDateTime();
-    updateDashboard();
-    renderArtes();
+    if (typeof initPDFAnalyzer === 'function') {
+        initPDFAnalyzer();
+    }
     
-    // 4. Configurar eventos
+    // 3. Inicializar datos
+    if (typeof updateDashboard === 'function') {
+        updateDashboard();
+    }
+    
+    if (typeof renderArtes === 'function') {
+        renderArtes();
+    }
+    
+    // 4. Configurar eventos adicionales
     setupEventListeners();
     
     // 5. Mostrar que todo está listo
@@ -36,12 +32,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 
-// Función para configurar eventos (moverla aquí para simplificar)
 function setupEventListeners() {
     // Excel
-    document.getElementById('excelFile')?.addEventListener('change', window.handleExcelUpload || function(e) {
-        showStatus('Funcionalidad Excel no disponible aún', 'warning');
-    });
+    document.getElementById('excelFile')?.addEventListener('change', handleExcelUpload);
     
     // Imagen principal
     document.getElementById('imageInput')?.addEventListener('change', function(e) {
@@ -82,6 +75,11 @@ function setupEventListeners() {
         }
     });
     
+    // Folder number
+    document.getElementById('folder-num')?.addEventListener('input', function() {
+        window.specGlobal.folder = this.value;
+    });
+    
     // Tinta
     document.getElementById('ink-type-select')?.addEventListener('change', function() {
         const preset = window.INK_PRESETS?.[this.value];
@@ -91,36 +89,12 @@ function setupEventListeners() {
             showStatus(`Preset ${this.value} aplicado`);
         }
     });
-    
-    // Folder
-    document.getElementById('folder-num')?.addEventListener('input', function() {
-        window.specGlobal.folder = this.value;
-    });
 }
 
-// Función para fecha/hora (moverla aquí)
-function updateDateTime() {
-    const dateElement = document.getElementById('current-datetime');
-    if (!dateElement) return;
-    
-    const options = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    };
-    
-    dateElement.textContent = new Date().toLocaleDateString('es-ES', options);
-}
-
-// Actualizar cada minuto
-setInterval(updateDateTime, 60000);
-
-// Hacer funciones globales para HTML
+// Función para limpiar formulario
 window.clearForm = function() {
     if (confirm('¿Limpiar todo el formulario?')) {
+        // Resetear objeto global
         window.specGlobal = {
             customer: '', style: '', colorway: '', season: '', pattern: '', po: '',
             sampleType: '', nameTeam: '', gender: '', designer: '', inkType: 'WATER',
@@ -131,9 +105,11 @@ window.clearForm = function() {
         window.currentImageData = null;
         
         // Limpiar campos del formulario
-        ['customer', 'style', 'colorway', 'season', 'pattern', 'po', 'sampleType', 
-         'nameTeam', 'gender', 'dimensions', 'placement', 'specialties', 'instructions']
-         .forEach(id => {
+        const fields = ['customer', 'style', 'colorway', 'season', 'pattern', 'po', 
+                       'sampleType', 'nameTeam', 'gender', 'dimensions', 'placement', 
+                       'specialties', 'instructions'];
+        
+        fields.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
         });
@@ -152,9 +128,9 @@ window.clearForm = function() {
         }
         
         // Limpiar artes
-        if (typeof window.renderArtes === 'function') {
+        if (typeof renderArtes === 'function') {
             window.specGlobal.artes = [];
-            window.renderArtes();
+            renderArtes();
         }
         
         // Limpiar logo
@@ -164,3 +140,6 @@ window.clearForm = function() {
         showStatus('Formulario limpiado', 'info');
     }
 };
+
+// Actualizar fecha/hora cada minuto
+setInterval(updateDateTime, 60000);
