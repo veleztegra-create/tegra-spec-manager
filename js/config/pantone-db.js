@@ -34,3 +34,16 @@ const CLIENT_LOGOS = {
     'PUMA': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png',
     'UNDER ARMOUR': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png'
 };
+
+const DESIGNERS = [
+    'ELMER VELEZ',
+    'DANIEL HERNANDEZ',
+    'CINDY PINEDA',
+    'FERNANDO FERRERA',
+    'NILDA CORDOBA',
+    'OTRO'
+];
+
+const INK_TYPES = ['WATER', 'PLASTISOL', 'SILICONE'];
+
+const GENDER_OPTIONS = ['MENS', 'WOMENS', 'YOUTH', 'UNISEX'];
