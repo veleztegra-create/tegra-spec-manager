@@ -1,0 +1,16 @@
+{
+  "name": "tegra-spec-manager",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de especificaciones técnicas para serigrafía",
+  "main": "index.html",
+  "scripts": {
+    "dev": "live-server --port=3000",
+    "build": "echo 'Build process not defined'",
+    "test": "echo 'No tests specified'"
+  },
+  "author": "Tu Nombre",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}
