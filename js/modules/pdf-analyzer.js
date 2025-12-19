@@ -1,15 +1,12 @@
 // js/modules/pdf-analyzer.js
-window.pdfAnalysisResults = [];
-window.originalPDFResults = [];
-
-export function initPDFAnalyzer() {
+function initPDFAnalyzer() {
     console.log("Inicializando PDF analyzer...");
     document.getElementById('pdf-file')?.addEventListener('change', function() {
         showStatus('PDF listo para análisis', 'info');
     });
 }
 
-export function startPDFAnalysis() {
+function startPDFAnalysis() {
     const fileInput = document.getElementById('pdf-file');
     const file = fileInput?.files[0];
     
@@ -18,7 +15,7 @@ export function startPDFAnalysis() {
         return;
     }
     
-    showStatus('Análisis de PDF iniciado (versión simulada)', 'info');
+    showStatus('⚠️ Análisis de PDF en desarrollo. Mostrando resultados simulados.', 'info');
     
     // Simulación de resultados
     window.pdfAnalysisResults = [
@@ -50,9 +47,6 @@ export function startPDFAnalysis() {
     document.getElementById('save-results-btn').style.display = 'inline-flex';
 }
 
-// Hacer global
-window.startPDFAnalysis = startPDFAnalysis;
-
 function displayPDFResults() {
     const container = document.getElementById('pdf-results-container');
     if (!container) return;
@@ -63,26 +57,24 @@ function displayPDFResults() {
     }
     
     let html = `
-        <div class="analysis-results-summary">
-            <h3 style="color:white;margin-bottom:15px;">
-                <i class="fas fa-chart-pie"></i> Resumen del Análisis
-            </h3>
-            <div class="summary-metrics">
-                <div class="summary-metric">
-                    <div class="summary-label">Total Páginas</div>
-                    <div class="summary-value">${window.pdfAnalysisResults.length}</div>
+        <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:white;padding:20px;border-radius:12px;margin-bottom:20px;">
+            <h3 style="color:white;margin-bottom:15px;"><i class="fas fa-chart-pie"></i> Resumen del Análisis</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:15px;">
+                <div style="text-align:center;padding:15px;background:rgba(255,255,255,0.2);border-radius:8px;">
+                    <div style="font-size:0.9rem;opacity:0.9;">Total Páginas</div>
+                    <div style="font-size:1.5rem;font-weight:bold;">${window.pdfAnalysisResults.length}</div>
                 </div>
-                <div class="summary-metric">
-                    <div class="summary-label">Píxeles Netos Totales</div>
-                    <div class="summary-value">${window.pdfAnalysisResults.reduce((sum, r) => sum + r.netBlackPixels, 0).toLocaleString()}</div>
+                <div style="text-align:center;padding:15px;background:rgba(255,255,255,0.2);border-radius:8px;">
+                    <div style="font-size:0.9rem;opacity:0.9;">Píxeles Netos</div>
+                    <div style="font-size:1.5rem;font-weight:bold;">${window.pdfAnalysisResults.reduce((sum, r) => sum + r.netBlackPixels, 0).toLocaleString()}</div>
                 </div>
             </div>
         </div>
-        <table class="sequence-table">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">
             <thead>
-                <tr>
-                    <th>Página</th><th>Color</th><th>Screen</th><th>Tipo</th><th>Ubicación</th>
-                    <th>Píxeles Netos</th><th>% Cobertura</th><th>Concuerda</th>
+                <tr style="background:linear-gradient(to right, var(--primary), var(--primary-dark));color:white;">
+                    <th style="padding:10px;text-align:left;">Página</th><th>Color</th><th>Screen</th><th>Tipo</th>
+                    <th>Ubicación</th><th>Píxeles Netos</th><th>% Cobertura</th><th>Concuerda</th>
                 </tr>
             </thead>
             <tbody>
@@ -90,8 +82,8 @@ function displayPDFResults() {
     
     window.pdfAnalysisResults.forEach(result => {
         html += `
-            <tr>
-                <td>${result.page}</td>
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:10px;">${result.page}</td>
                 <td>${result.colorName}</td>
                 <td>${result.screenLetter}</td>
                 <td>${result.colorType}</td>
@@ -107,8 +99,8 @@ function displayPDFResults() {
     container.innerHTML = html;
 }
 
-window.savePDFResults = function() {
-    if (window.pdfAnalysisResults.length === 0) {
+function savePDFResults() {
+    if (!window.pdfAnalysisResults || window.pdfAnalysisResults.length === 0) {
         showStatus('No hay resultados para guardar', 'warning');
         return;
     }
@@ -125,4 +117,9 @@ window.savePDFResults = function() {
     a.click();
     
     showStatus('✅ Resultados guardados como JSON');
-};
+}
+
+// Hacer globales
+window.initPDFAnalyzer = initPDFAnalyzer;
+window.startPDFAnalysis = startPDFAnalysis;
+window.savePDFResults = savePDFResults;
