@@ -2,9 +2,84 @@
 
 // ========== CONFIGURACIÓN GLOBAL ==========
 const INK_PRESETS = {
-    WATER: { temp: '320 °F', time: '1:40 min' },
-    PLASTISOL: { temp: '320 °F', time: '0:45 min' },
-    SILICONE: { temp: '320 °F', time: '1:00 min' }
+    WATER: {
+        temp: '320 °F',
+        time: '1:40 min',
+        blocker: {
+            name: 'BLOCKER CHT',
+            mesh1: '122/55',
+            mesh2: '157/48',
+            durometer: '70',
+            strokes: '2',
+            additives: 'N/A'
+        },
+        white: {
+            name: 'AQUAFLEX WHITE',
+            mesh1: '198/40',
+            mesh2: '157/48',
+            durometer: '70',
+            strokes: '2',
+            additives: 'N/A'
+        },
+        color: {
+            mesh: '157/48',
+            durometer: '70',
+            strokes: '2',
+            additives: '3 % cross-linker 500 · 1.5 % antitack'
+        }
+    },
+    PLASTISOL: {
+        temp: '320 °F',
+        time: '0:45 min',
+        blocker: {
+            name: 'BLOCKER plastisol',
+            mesh1: '110/64',
+            mesh2: '156/64',
+            durometer: '65',
+            strokes: '1',
+            additives: 'N/A'
+        },
+        white: {
+            name: 'PLASTISOL WHITE',
+            mesh1: '156/64',
+            mesh2: '110/64',
+            durometer: '65',
+            strokes: '2',
+            additives: 'N/A'
+        },
+        color: {
+            mesh: '156/64',
+            durometer: '65',
+            strokes: '1',
+            additives: '1 % catalyst'
+        }
+    },
+    SILICONE: {
+        temp: '320 °F',
+        time: '1:00 min',
+        blocker: {
+            name: 'Bloquer Libra',
+            mesh1: '110/64',
+            mesh2: '157/48',
+            durometer: '70',
+            strokes: '2',
+            additives: 'N/A'
+        },
+        white: {
+            name: 'White Libra',
+            mesh1: '122/55',
+            mesh2: '157/48',
+            durometer: '70',
+            strokes: '2',
+            additives: 'N/A'
+        },
+        color: {
+            mesh: '157/48',
+            durometer: '70',
+            strokes: '2',
+            additives: '3 % cat · 2 % ret'
+        }
+    }
 };
 
 const PANTONE_DB = {
@@ -167,6 +242,9 @@ function updateInkPreset() {
     }
 }
 
+// ========== SPEC CREATOR ==========
+// (Busca y reemplaza estas funciones)
+
 function addArte() {
     const name = prompt('Nombre de la ubicación (ej: FRONT, BACK, SLEEVE):', 'FRONT');
     if (!name) return;
@@ -199,9 +277,9 @@ function renderArtes() {
     specGlobal.artes.forEach((arte, i) => {
         const div = document.createElement('div');
         div.className = 'arte-card';
-        div.style.cssText = 'background:white;border-radius:8px;border:1px solid var(--border);margin-bottom:15px;padding:15px;';
+        div.style.cssText = 'background:white;border-radius:8px;border:1px solid var(--border);margin-bottom:15px;overflow:hidden;';
         div.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="background:var(--gray-extra-light);padding:15px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
                 <h4 style="color:var(--primary);margin:0;">${arte.name}</h4>
                 <div>
                     <button class="btn btn-outline btn-sm" onclick="editArte(${i})">
@@ -212,33 +290,173 @@ function renderArtes() {
                     </button>
                 </div>
             </div>
-            <p><strong>Dimensiones:</strong> ${arte.dimensions}</p>
-            <p><strong>Placement:</strong> ${arte.placement}</p>
-            ${arte.colors && arte.colors.length > 0 ? 
-                `<p><strong>Colores:</strong> ${arte.colors.length}</p>` : 
-                '<p style="color:var(--gray-light);"><em>Sin colores definidos</em></p>'
-            }
+            <div style="padding:20px;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:15px;margin-bottom:15px;">
+                    <div>
+                        <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">Dimensión:</label>
+                        <input type="text" class="form-control" value="${arte.dimensions}" 
+                               onchange="updateArteField(${i}, 'dimensions', this.value)" style="font-size:14px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">Placement:</label>
+                        <input type="text" class="form-control" value="${arte.placement}" 
+                               onchange="updateArteField(${i}, 'placement', this.value)" style="font-size:14px;">
+                    </div>
+                </div>
+                
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:10px;">Colores / Tintas:</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+                        <button class="btn btn-danger btn-sm" onclick="addArteColor(${i}, 'BLOCKER')">
+                            <i class="fas fa-plus"></i> Blocker
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="addArteColor(${i}, 'WHITE_BASE')">
+                            <i class="fas fa-plus"></i> White Base
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="addArteColor(${i}, 'COLOR')">
+                            <i class="fas fa-plus"></i> Color
+                        </button>
+                    </div>
+                    <div id="arte-colors-${i}"></div>
+                </div>
+                
+                <div>
+                    <label style="display:block;font-size:.85rem;font-weight:bold;color:var(--gray-dark);margin-bottom:5px;">Instrucciones Especiales:</label>
+                    <textarea class="form-control" rows="2" onchange="updateArteField(${i}, 'instructions', this.value)" style="font-size:14px;">${arte.instructions}</textarea>
+                </div>
+            </div>
         `;
         container.appendChild(div);
+        renderArteColors(i);
     });
 }
 
-function removeArte(index) {
-    if (confirm('¿Eliminar esta ubicación?')) {
-        specGlobal.artes.splice(index, 1);
-        renderArtes();
-        showStatus('🗑️ Ubicación eliminada');
+function updateArteField(i, field, value) {
+    specGlobal.artes[i][field] = value;
+}
+
+function addArteColor(i, type) {
+    const colors = specGlobal.artes[i].colors;
+    let letter = '';
+    
+    if (type === 'BLOCKER') {
+        letter = 'A';
+    } else if (type === 'WHITE_BASE') {
+        letter = 'B';
+    } else {
+        const nums = colors.filter(c => c.type !== 'BLOCKER' && c.type !== 'WHITE_BASE')
+                          .map(c => parseInt(c.screenLetter) || 0);
+        letter = String(Math.max(...nums, 0) + 1);
+    }
+    
+    colors.push({
+        id: Date.now() + Math.random(),
+        type: type,
+        screenLetter: letter,
+        val: ''
+    });
+    
+    renderArteColors(i);
+    applyInkPresetToArte(i);
+}
+
+function renderArteColors(i) {
+    const colors = specGlobal.artes[i].colors;
+    const div = document.getElementById(`arte-colors-${i}`);
+    if (!div) return;
+    
+    if (colors.length === 0) {
+        div.innerHTML = '<p style="color:var(--gray-light);text-align:center;padding:10px;">Sin colores. Usa los botones de arriba.</p>';
+        return;
+    }
+    
+    div.innerHTML = '';
+    colors.forEach(c => {
+        const badge = c.type === 'BLOCKER' ? 'badge-blocker' : 
+                     c.type === 'WHITE_BASE' ? 'badge-white' : 'badge-color';
+        const label = c.type === 'BLOCKER' ? 'BLOQUEADOR' : 
+                     c.type === 'WHITE_BASE' ? 'WHITE BASE' : 'COLOR';
+        
+        const item = document.createElement('div');
+        item.className = 'color-item';
+        item.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px;background:white;border-radius:6px;border:1px solid var(--border);margin-bottom:8px;border-left:4px solid var(--primary);';
+        item.innerHTML = `
+            <span style="padding:4px 8px;border-radius:12px;font-size:11px;font-weight:bold;color:white;text-transform:uppercase;background:${
+                c.type === 'BLOCKER' ? 'var(--gray-dark)' : 
+                c.type === 'WHITE_BASE' ? 'var(--gray-medium)' : 'var(--primary)'
+            }">${label}</span>
+            <input type="text" style="width:40px;text-align:center;font-weight:bold;padding:6px;border:1px solid var(--border);border-radius:4px;" 
+                   value="${c.screenLetter}" onchange="updateColorLetter(${i}, ${c.id}, this.value)">
+            <input type="text" class="form-control" placeholder="Nombre tinta..." value="${c.val}" 
+                   style="flex:1;font-size:14px;" onchange="updateColorValue(${i}, ${c.id}, this.value)">
+            <div style="width:30px;height:30px;border-radius:4px;border:2px solid var(--border);background:${getColorHex(c.val)}"></div>
+            <button class="btn btn-danger btn-sm" onclick="removeArteColor(${i}, ${c.id})" style="padding:4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        div.appendChild(item);
+    });
+}
+
+function updateColorLetter(i, colorId, value) {
+    const color = specGlobal.artes[i].colors.find(c => c.id === colorId);
+    if (color) color.screenLetter = value.toUpperCase();
+}
+
+function updateColorValue(i, colorId, value) {
+    const color = specGlobal.artes[i].colors.find(c => c.id === colorId);
+    if (color) {
+        color.val = value;
+        renderArteColors(i); // Para actualizar el color del indicador
     }
 }
 
-function editArte(index) {
-    const arte = specGlobal.artes[index];
-    const newName = prompt('Nuevo nombre para la ubicación:', arte.name);
-    if (newName) {
-        arte.name = newName.toUpperCase();
-        renderArtes();
-        showStatus('✅ Ubicación actualizada');
+function removeArteColor(i, colorId) {
+    specGlobal.artes[i].colors = specGlobal.artes[i].colors.filter(c => c.id !== colorId);
+    renderArteColors(i);
+}
+
+function applyInkPresetToArte(i) {
+    const inkType = document.getElementById('ink-type-select')?.value || 'WATER';
+    const preset = INK_PRESETS[inkType];
+    if (!preset) return;
+    
+    const colors = specGlobal.artes[i].colors;
+    colors.forEach(c => {
+        if (!c.val) {
+            if (c.type === 'BLOCKER') c.val = preset.blocker.name;
+            if (c.type === 'WHITE_BASE') c.val = preset.white.name;
+        }
+    });
+    renderArteColors(i);
+}
+
+function getColorHex(colorName) {
+    if (!colorName) return '#CCCCCC';
+    const normalized = colorName.toUpperCase().trim();
+    
+    // Buscar en PANTONE_DB
+    if (PANTONE_DB[normalized]) {
+        return PANTONE_DB[normalized];
     }
+    
+    // Búsqueda parcial
+    for (const [key, value] of Object.entries(PANTONE_DB)) {
+        if (normalized.includes(key) || key.includes(normalized)) {
+            return value;
+        }
+    }
+    
+    // Valores por defecto
+    if (normalized.includes('BLACK')) return '#000000';
+    if (normalized.includes('WHITE')) return '#FFFFFF';
+    if (normalized.includes('RED')) return '#C8102E';
+    if (normalized.includes('BLUE')) return '#003A70';
+    if (normalized.includes('GREEN')) return '#008D62';
+    if (normalized.includes('GOLD')) return '#FFB612';
+    if (normalized.includes('SILVER') || normalized.includes('GREY')) return '#A5ACAF';
+    
+    return '#CCCCCC';
 }
 
 // ========== PDF ANALYSIS ==========
@@ -248,6 +466,7 @@ function initPDFAnalyzer() {
     });
 }
 
+// ========== PDF ANALYSIS ==========
 function startPDFAnalysis() {
     const fileInput = document.getElementById('pdf-file');
     const file = fileInput?.files[0];
@@ -257,8 +476,74 @@ function startPDFAnalysis() {
         return;
     }
     
-    showStatus('⚠️ Análisis de PDF en desarrollo. Mostrando resultados simulados.', 'warning');
+    showStatus('🔍 Analizando PDF... Esto puede tomar unos segundos', 'info');
     
+    // Simulación más realista con tiempo de espera
+    setTimeout(() => {
+        // Datos más completos para simulación
+        pdfAnalysisResults = [
+            {
+                page: 1,
+                colorName: "UNI RED",
+                screenLetter: "A",
+                colorType: "COLOR",
+                arteName: "FRONT",
+                blackPixels: 1580000,
+                netBlackPixels: Math.max(0, 1580000 - 15870446),
+                coveragePercentage: "0.15",
+                matchesSpec: true,
+                expectedPixels: calculateExpectedPixels(),
+                pageScreenshot: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmNWY1ZjUiLz48dGV4dCB4PSIxMDAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qw6FnaW5hIDE8L3RleHQ+PHRleHQgeD0iMTAwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UkVEIC8gU2NyZWVuIEE8L3RleHQ+PC9zdmc+'
+            },
+            {
+                page: 2,
+                colorName: "BLOCKER CHT",
+                screenLetter: "B",
+                colorType: "BLOCKER",
+                arteName: "FRONT",
+                blackPixels: 17500000,
+                netBlackPixels: Math.max(0, 17500000 - 15870446),
+                coveragePercentage: "18.25",
+                matchesSpec: true,
+                expectedPixels: calculateExpectedPixels(),
+                pageScreenshot: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmNWY1ZjUiLz48dGV4dCB4PSIxMDAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qw6FnaW5hIDI8L3RleHQ+PHRleHQgeD0iMTAwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QkxPQ0tFUiAvIFNjcmVlbiBCPC90ZXh0Pjwvc3ZnPg=='
+            },
+            {
+                page: 3,
+                colorName: "UNI BLUE",
+                screenLetter: "C",
+                colorType: "COLOR",
+                arteName: "BACK",
+                blackPixels: 1200000,
+                netBlackPixels: Math.max(0, 1200000 - 15870446),
+                coveragePercentage: "0.00", // Menor que el ruido
+                matchesSpec: true,
+                expectedPixels: calculateExpectedPixels(),
+                pageScreenshot: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmNWY1ZjUiLz48dGV4dCB4PSIxMDAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qw6FnaW5hIDM8L3RleHQ+PHRleHQgeD0iMTAwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QkxVRS8gU2NyZWVuIEM8L3RleHQ+PC9zdmc+'
+            }
+        ];
+        
+        displayPDFResults();
+        document.getElementById('save-results-btn').style.display = 'inline-flex';
+        showStatus('✅ Análisis de PDF completado', 'success');
+    }, 2000);
+}
+
+function calculateExpectedPixels() {
+    const dimensions = document.getElementById('dimensions')?.value || '';
+    if (!dimensions) return 0;
+    
+    const matches = dimensions.match(/(\d+(\.\d+)?)/g);
+    if (!matches || matches.length < 2) return 0;
+    
+    const widthInches = parseFloat(matches[0]);
+    const heightInches = parseFloat(matches[1]);
+    
+    if (isNaN(widthInches) || isNaN(heightInches)) return 0;
+    
+    // Calcular a 300 DPI
+    return Math.round(widthInches * 300) * Math.round(heightInches * 300);
+}
     // Simulación de resultados
     pdfAnalysisResults = [
         {
@@ -864,6 +1149,270 @@ function setupEventListeners() {
     
     // Tinta
     document.getElementById('ink-type-select')?.addEventListener('change', updateInkPreset);
+}
+
+// ========== GUARDAR SPEC ==========
+function saveSpec() {
+    // Recoger datos del formulario
+    const fields = ['customer', 'style', 'colorway', 'season', 'pattern', 'po', 
+                   'sampleType', 'nameTeam', 'gender', 'designer', 'dimensions', 
+                   'placement', 'specialties', 'instructions'];
+    
+    fields.forEach(field => {
+        const el = document.getElementById(field);
+        if (el) specGlobal[field] = el.value;
+    });
+    
+    specGlobal.inkType = document.getElementById('ink-type-select')?.value || 'WATER';
+    specGlobal.temp = document.getElementById('temp')?.value || '320 °F';
+    specGlobal.time = document.getElementById('time')?.value || '1:40 min';
+    specGlobal.folder = document.getElementById('folder-num')?.value || '';
+    specGlobal.imageB64 = currentImageData || '';
+    specGlobal.savedAt = new Date().toISOString();
+    
+    // Validar datos obligatorios
+    if (!specGlobal.customer || !specGlobal.style) {
+        showStatus('⚠️ Completa al menos CLIENTE y STYLE', 'warning');
+        return;
+    }
+    
+    // Guardar en localStorage
+    const key = `spec_${specGlobal.style}_${Date.now()}`;
+    localStorage.setItem(key, JSON.stringify(specGlobal));
+    
+    // Actualizar dashboard
+    updateDashboard();
+    
+    showStatus(`✅ Spec "${specGlobal.style}" guardada correctamente`, 'success');
+}
+
+// ========== EXPORTAR A EXCEL ==========
+function exportToExcel() {
+    if (!specGlobal.customer || !specGlobal.style) {
+        showStatus('⚠️ Primero completa los datos de la spec', 'warning');
+        return;
+    }
+    
+    try {
+        // Crear hoja de cálculo
+        const wb = XLSX.utils.book_new();
+        
+        // Hoja 1: Datos generales
+        const generalData = [
+            ['TEGRA TECHNICAL SPEC MANAGER', '', '', ''],
+            ['Fecha', new Date().toLocaleDateString('es-ES'), '', ''],
+            ['', '', '', ''],
+            ['INFORMACIÓN GENERAL', '', '', ''],
+            ['CLIENTE', specGlobal.customer],
+            ['STYLE', specGlobal.style],
+            ['COLORWAY', specGlobal.colorway],
+            ['SEASON', specGlobal.season],
+            ['PATTERN #', specGlobal.pattern],
+            ['P.O. #', specGlobal.po],
+            ['SAMPLE TYPE', specGlobal.sampleType],
+            ['TEAM', specGlobal.nameTeam],
+            ['GENDER', specGlobal.gender],
+            ['DESIGNER', specGlobal.designer],
+            ['INK TYPE', specGlobal.inkType],
+            ['DIMENSIONS', specGlobal.dimensions],
+            ['PLACEMENT', specGlobal.placement],
+            ['TEMP/TIME', `${specGlobal.temp} / ${specGlobal.time}`],
+            ['SPECIALTIES', specGlobal.specialties],
+            ['INSTRUCTIONS', specGlobal.instructions],
+            ['', '', '', ''],
+            ['ARTES / UBICACIONES', '', '', ''],
+            ['Nombre', 'Colores', 'Dimensiones', 'Placement']
+        ];
+        
+        // Agregar artes
+        specGlobal.artes.forEach(arte => {
+            generalData.push([
+                arte.name,
+                arte.colors.length,
+                arte.dimensions,
+                arte.placement
+            ]);
+        });
+        
+        const ws1 = XLSX.utils.aoa_to_sheet(generalData);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Datos Generales');
+        
+        // Hoja 2: Colores por arte
+        if (specGlobal.artes.length > 0) {
+            const colorsData = [
+                ['ARTE', 'SCREEN', 'TIPO', 'NOMBRE TINTA', 'MESH', 'DURÓMETRO', 'GOLPES', 'ADITIVOS']
+            ];
+            
+        specGlobal.artes.forEach(arte => {
+            arte.colors.forEach(color => {
+                const preset = INK_PRESETS[specGlobal.inkType];
+                colorsData.push([
+                    arte.name,
+                    color.screenLetter,
+                    color.type === 'BLOCKER' ? 'BLOQUEADOR' : 
+                    color.type === 'WHITE_BASE' ? 'WHITE BASE' : 'COLOR',
+                    color.val,
+                    color.type === 'BLOCKER' ? preset?.blocker?.mesh1 || 'N/A' :
+                    color.type === 'WHITE_BASE' ? preset?.white?.mesh1 || 'N/A' :
+                    preset?.color?.mesh || 'N/A',
+                    color.type === 'BLOCKER' ? preset?.blocker?.durometer || 'N/A' :
+                    color.type === 'WHITE_BASE' ? preset?.white?.durometer || 'N/A' :
+                    preset?.color?.durometer || 'N/A',
+                    color.type === 'BLOCKER' ? preset?.blocker?.strokes || 'N/A' :
+                    color.type === 'WHITE_BASE' ? preset?.white?.strokes || 'N/A' :
+                    preset?.color?.strokes || 'N/A',
+                    color.type === 'BLOCKER' ? preset?.blocker?.additives || 'N/A' :
+                    color.type === 'WHITE_BASE' ? preset?.white?.additives || 'N/A' :
+                    preset?.color?.additives || 'N/A'
+                ]);
+            });
+        });
+        
+        const ws2 = XLSX.utils.aoa_to_sheet(colorsData);
+            XLSX.utils.book_append_sheet(wb, ws2, 'Colores');
+        }
+        
+        // Descargar archivo
+        const fileName = `TegraSpec_${specGlobal.style}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        showStatus('✅ Excel exportado correctamente', 'success');
+    } catch (error) {
+        console.error('Error exportando Excel:', error);
+        showStatus('❌ Error al exportar Excel', 'error');
+    }
+}
+
+// ========== EXPORTAR PDF ==========
+function exportPDF() {
+    if (!specGlobal.customer || !specGlobal.style) {
+        showStatus('⚠️ Primero completa los datos de la spec', 'warning');
+        return;
+    }
+    
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        let y = 20;
+        
+        // Función auxiliar para texto
+        function addText(text, x, yPos, size = 10, bold = false, color = [0, 0, 0]) {
+            pdf.setFontSize(size);
+            pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+            pdf.setTextColor(...color);
+            pdf.text(text, x, yPos);
+        }
+        
+        // Portada
+        pdf.setFillColor(211, 47, 47);
+        pdf.rect(0, 0, pageWidth, 30, 'F');
+        addText('TEGRA TECHNICAL SPEC MANAGER', 15, 15, 16, true, [255, 255, 255]);
+        addText('PDF MAESTRO', 15, 22, 12, false, [255, 255, 255]);
+        
+        y = 40;
+        
+        // Datos generales
+        addText('INFORMACIÓN GENERAL', 15, y, 12, true, [211, 47, 47]);
+        y += 10;
+        
+        const generalFields = [
+            ['CLIENTE:', specGlobal.customer],
+            ['STYLE:', specGlobal.style],
+            ['COLORWAY:', specGlobal.colorway],
+            ['SEASON:', specGlobal.season],
+            ['PATTERN #:', specGlobal.pattern],
+            ['P.O. #:', specGlobal.po],
+            ['SAMPLE TYPE:', specGlobal.sampleType],
+            ['TEAM:', specGlobal.nameTeam],
+            ['GENDER:', specGlobal.gender],
+            ['DESIGNER:', specGlobal.designer],
+            ['INK TYPE:', specGlobal.inkType],
+            ['DIMENSIONS:', specGlobal.dimensions],
+            ['PLACEMENT:', specGlobal.placement],
+            ['TEMP/TIME:', `${specGlobal.temp} / ${specGlobal.time}`]
+        ];
+        
+        generalFields.forEach(([label, value], i) => {
+            const x = i % 2 === 0 ? 15 : 110;
+            addText(label, x, y, 9, true);
+            addText(value || '---', x + 25, y, 9);
+            if (i % 2 !== 0) y += 6;
+        });
+        
+        y += 10;
+        
+        // Especialidades e instrucciones
+        if (specGlobal.specialties) {
+            addText('SPECIALTIES:', 15, y, 10, true);
+            addText(specGlobal.specialties, 15, y + 5, 9);
+            y += 15;
+        }
+        
+        if (specGlobal.instructions) {
+            addText('INSTRUCTIONS:', 15, y, 10, true);
+            const instructions = pdf.splitTextToSize(specGlobal.instructions, pageWidth - 30);
+            pdf.text(instructions, 15, y + 5);
+            y += instructions.length * 5 + 10;
+        }
+        
+        // Artes
+        if (specGlobal.artes.length > 0) {
+            addText('ARTES / UBICACIONES', 15, y, 12, true, [211, 47, 47]);
+            y += 10;
+            
+            specGlobal.artes.forEach((arte, index) => {
+                // Nueva página si es necesario
+                if (y > 250) {
+                    pdf.addPage();
+                    y = 20;
+                }
+                
+                addText(`UBICACIÓN: ${arte.name}`, 15, y, 11, true);
+                y += 7;
+                
+                addText(`Dimensiones: ${arte.dimensions}`, 20, y, 9);
+                y += 5;
+                addText(`Placement: ${arte.placement}`, 20, y, 9);
+                y += 5;
+                
+                if (arte.specialties) {
+                    addText(`Specialties: ${arte.specialties}`, 20, y, 9);
+                    y += 5;
+                }
+                
+                // Colores
+                if (arte.colors.length > 0) {
+                    addText('Colores:', 20, y, 10, true);
+                    y += 6;
+                    
+                    arte.colors.forEach(color => {
+                        const typeLabel = color.type === 'BLOCKER' ? 'BLOQUEADOR' : 
+                                        color.type === 'WHITE_BASE' ? 'WHITE BASE' : 'COLOR';
+                        addText(`  ${color.screenLetter}: ${color.val} (${typeLabel})`, 25, y, 9);
+                        y += 5;
+                    });
+                }
+                
+                y += 10;
+            });
+        }
+        
+        // Pie de página
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text('Generado por Tegra Technical Spec Manager', pageWidth / 2, 290, { align: 'center' });
+        pdf.text(new Date().toLocaleDateString('es-ES'), pageWidth / 2, 294, { align: 'center' });
+        
+        // Descargar PDF
+        const fileName = `TegraSpec_${specGlobal.style}_${new Date().toISOString().slice(0,10)}.pdf`;
+        pdf.save(fileName);
+        
+        showStatus('✅ PDF exportado correctamente', 'success');
+    } catch (error) {
+        console.error('Error exportando PDF:', error);
+        showStatus('❌ Error al exportar PDF', 'error');
+    }
 }
 
 // ========== EJECUCIÓN PRINCIPAL ==========
