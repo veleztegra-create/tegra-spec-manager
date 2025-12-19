@@ -79,5 +79,17 @@ const INK_PRESETS = {
     }
 };
 
-const DEFAULT_NOISE_PIXELS = 15870446;
-const ANALYSIS_DPI = 300;
+// Configuración de análisis PDF
+const PDF_ANALYSIS_CONFIG = {
+    DEFAULT_DPI: 300,
+    DEFAULT_NOISE_PIXELS: 15870446,
+    MIN_BLACK_THRESHOLD: 30, // Umbral para considerar negro (0-255)
+    MIN_WHITE_THRESHOLD: 230 // Umbral para considerar blanco (0-255)
+};
+
+// Formatos de dimensiones
+const DIMENSION_FORMATS = {
+    INCHES: /SIZE:\s*\(W\)\s*([\d\.]+)"\s*X\s*\(H\)\s*([\d\.]+)"/i,
+    CM: /SIZE:\s*\(W\)\s*([\d\.]+)\s*cm\s*X\s*\(H\)\s*([\d\.]+)\s*cm/i,
+    MM: /SIZE:\s*\(W\)\s*([\d\.]+)\s*mm\s*X\s*\(H\)\s*([\d\.]+)\s*mm/i
+};
