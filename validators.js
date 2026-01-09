@@ -1,4 +1,4 @@
-// validators.js
+// validators.js - VERSIÓN CORREGIDA
 class Validators {
     static validateHexColor(color) {
         if (!color) return false;
@@ -88,15 +88,15 @@ class Validators {
         return /[\d\.]+\s*°[FC]/.test(temp);
     }
     
-    static validateImageFile(file, maxSizeMB = Config.APP.MAX_IMAGE_SIZE_MB || 5) {
+    static validateImageFile(file, maxSizeMB = 5) {  // Valor por defecto
         const errors = [];
-        const maxSize = maxSizeMB * 1024 * 1024;
+        const maxSizeBytes = maxSizeMB * 1024 * 1024;  // Cambiar nombre a maxSizeBytes
         
         if (!file.type.match('image.*')) {
             errors.push('El archivo debe ser una imagen (JPG, PNG, GIF)');
         }
         
-        if (file.size > maxSize) {
+        if (file.size > maxSizeBytes) {
             errors.push(`La imagen no debe superar ${maxSizeMB}MB`);
         }
         
@@ -160,7 +160,7 @@ class Validators {
     }
     
     static validatePlacementCount(placements) {
-        const maxPlacements = Config.APP.MAX_PLACEMENTS || 20;
+        const maxPlacements = 20; // Valor por defecto
         
         if (placements.length > maxPlacements) {
             return {
@@ -175,7 +175,7 @@ class Validators {
     }
     
     static validateColorCount(colors) {
-        const maxColors = Config.APP.MAX_COLORS_PER_PLACEMENT || 15;
+        const maxColors = 15; // Valor por defecto
         
         if (colors.length > maxColors) {
             return {

@@ -254,40 +254,38 @@ class StateManager {
         return '';
     }
     
-    detectGenderFromText(text) {
-        if (!text) return '';
-        
-        const upperText = text.toUpperCase();
-        
-        // Detectar formato Gear for Sport (UM9002, UW9002, UY9002)
-        const gearForSportMatch = upperText.match(/^U([MWYBGKTIAN])\d+/);
-        if (gearForSportMatch && gearForSportMatch[1]) {
-            const genderCode = `U${gearForSportMatch[1]}`;
-            if (Config.GEARFORSPORT_GENDER_MAP[genderCode]) {
-                return Config.GEARFORSPORT_GENDER_MAP[genderCode];
-            }
+detectGenderFromText(text) {
+    if (!text) return '';
+    
+    const upperText = text.toUpperCase();
+    
+    // Detectar formato Gear for Sport (UM9002, UW9002, UY9002)
+    const gearForSportMatch = upperText.match(/^U([MWYBGKTIAN])\d+/);
+    if (gearForSportMatch && gearForSportMatch[1]) {
+        const genderCode = `U${gearForSportMatch[1]}`;
+        if (Config.GEARFORSPORT_GENDER_MAP && Config.GEARFORSPORT_GENDER_MAP[genderCode]) {
+            return Config.GEARFORSPORT_GENDER_MAP[genderCode];
         }
-        
-        // Buscar códigos de género en el texto
-        const parts = upperText.split(/[-_ ]/);
-        
-        for (const part of parts) {
-            if (Config.GENDER_MAP[part]) {
-                return Config.GENDER_MAP[part];
-            }
-        }
-        
-        // Verificar combinaciones comunes
-        if (upperText.includes(' MEN') || upperText.includes('_M') || upperText.endsWith('M')) return 'Men';
-        if (upperText.includes(' WOMEN') || upperText.includes('_W') || upperText.endsWith('W')) return 'Women';
-        if (upperText.includes(' YOUTH') || upperText.includes('_Y') || upperText.endsWith('Y')) return 'Youth';
-        if (upperText.includes(' KIDS') || upperText.includes('_K') || upperText.endsWith('K')) return 'Kids';
-        if (upperText.includes(' UNISEX') || upperText.includes('_U') || upperText.endsWith('U')) return 'Unisex';
-        if (upperText.includes(' BOYS') || upperText.includes('_B') || upperText.endsWith('B')) return 'Boys';
-        if (upperText.includes(' GIRLS') || upperText.includes('_G') || upperText.endsWith('G')) return 'Girls';
-        
-        return '';
     }
+    
+    // Buscar códigos de género en el texto
+    const parts = upperText.split(/[-_ ]/);
+    
+    for (const part of parts) {
+        if (Config.GENDER_MAP && Config.GENDER_MAP[part]) {
+            return Config.GENDER_MAP[part];
+        }
+    }
+    
+    // Verificar combinaciones comunes
+    if (upperText.includes(' MEN') || upperText.includes('_M') || upperText.endsWith('M')) return 'Men';
+    if (upperText.includes(' WOMEN') || upperText.includes('_W') || upperText.endsWith('W')) return 'Women';
+    if (upperText.includes(' YOUTH') || upperText.includes('_Y') || upperText.endsWith('Y')) return 'Youth';
+    if (upperText.includes(' KIDS') || upperText.includes('_K') || upperText.endsWith('K')) return 'Kids';
+    if (upperText.includes(' UNISEX') || upperText.includes('_U') || upperText.endsWith('U')) return 'Unisex';
+    
+    return '';
+}
     
     isMetallicColor(colorName) {
         if (!colorName) return false;

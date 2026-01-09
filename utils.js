@@ -401,6 +401,65 @@ const Utils = {
         return false;
     },
     
+    // Verificar si es FOIL
+    isFoilColor: function(colorName) {
+        if (!colorName) return false;
+        return colorName.toUpperCase().includes('FOIL');
+    },
+    
+    // Verificar si es HIGH DENSITY
+    isHighDensityColor: function(colorName) {
+        if (!colorName) return false;
+        const upperColor = colorName.toUpperCase();
+        return upperColor.includes('HD') || upperColor.includes('HIGH DENSITY');
+    },
+    
+    // Detectar todas las especialidades
+    detectSpecialties: function(colorName) {
+        const specialties = [];
+        
+        if (this.isMetallicColor(colorName)) {
+            specialties.push('METALLIC');
+        }
+        if (this.isFoilColor(colorName)) {
+            specialties.push('FOIL');
+        }
+        if (this.isHighDensityColor(colorName)) {
+            specialties.push('HIGH DENSITY');
+        }
+        
+        return specialties;
+    },
+    
+    // Obtener logo del cliente
+    getClientLogo: function(customerName) {
+        if (!customerName) return null;
+        
+        const upperCustomer = customerName.toUpperCase();
+        
+        const logoMap = {
+            'NIKE': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png',
+            'FANATICS': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png',
+            'ADIDAS': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png',
+            'PUMA': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png',
+            'UNDER ARMOUR': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png',
+            'UA': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png',
+            'GEAR FOR SPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
+            'GEARFORSPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
+            'GFS': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
+            'G.F.S.': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
+            'GEAR': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png'
+        };
+        
+        for (const [key, logoUrl] of Object.entries(logoMap)) {
+            if (upperCustomer.includes(key)) {
+                return logoUrl;
+            }
+        }
+        
+        return null;
+    },
+    
     // Delay/pausa
     delay: function(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
@@ -447,23 +506,23 @@ const Utils = {
             'WATER': { 
                 temp: '320 °F', 
                 time: '1:40 min',
-                blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', strokes: '2', additives: 'N/A' },
-                white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', strokes: '2', additives: 'N/A' },
-                color: { mesh: '157/48', durometer: '70', strokes: '2', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+                blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+                white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+                color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
             },
             'PLASTISOL': { 
                 temp: '320 °F', 
-                time: '1:00 min',  // ← TU CAMBIO AQUÍ
-                blocker: { name: 'BLOCKER plastisol', mesh1: '110/64', mesh2: '156/64', durometer: '65', strokes: '1', additives: 'N/A' },
-                white: { name: 'PLASTISOL WHITE', mesh1: '156/64', mesh2: '110/64', durometer: '65', strokes: '2', additives: 'N/A' },
-                color: { mesh: '156/64', durometer: '65', strokes: '1', additives: '1 % catalyst' }
+                time: '1:00 min',
+                blocker: { name: 'BLOCKER plastisol', mesh1: '110/64', mesh2: '156/64', durometer: '65', speed: '35', angle: '15', strokes: '1', pressure: '40', additives: 'N/A' },
+                white: { name: 'PLASTISOL WHITE', mesh1: '156/64', mesh2: '110/64', durometer: '65', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+                color: { mesh: '156/64', durometer: '65', speed: '35', angle: '15', strokes: '1', pressure: '40', additives: '1 % catalyst' }
             },
             'SILICONE': { 
                 temp: '320 °F', 
                 time: '1:00 min',
-                blocker: { name: 'Bloquer Libra', mesh1: '110/64', mesh2: '157/48', durometer: '70', strokes: '2', additives: 'N/A' },
-                white: { name: 'White Libra', mesh1: '122/55', mesh2: '157/48', durometer: '70', strokes: '2', additives: 'N/A' },
-                color: { mesh: '157/48', durometer: '70', strokes: '2', additives: '3 % cat · 2 % ret' }
+                blocker: { name: 'Bloquer Libra', mesh1: '110/64', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+                white: { name: 'White Libra', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+                color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cat · 2 % ret' }
             }
         };
         
@@ -513,7 +572,7 @@ const Utils = {
         return {
             id: this.generateId('placement_'),
             type: type,
-            name: `Placement - ${type}`,
+            name: type, // Solo el tipo, sin "Placement -"
             imageData: null,
             colors: [],
             placementDetails: '#.#" FROM COLLAR SEAM',
@@ -524,7 +583,17 @@ const Utils = {
             specialInstructions: '',
             inkType: 'WATER',
             placementSelect: type,
-            isActive: true
+            isActive: true,
+            // Parámetros de impresión
+            meshColor: inkPreset.color.mesh,
+            meshWhite: inkPreset.white.mesh1,
+            meshBlocker: inkPreset.blocker.mesh1,
+            durometer: inkPreset.color.durometer,
+            strokes: inkPreset.color.strokes,
+            angle: inkPreset.color.angle,
+            pressure: inkPreset.color.pressure,
+            speed: inkPreset.color.speed,
+            additives: inkPreset.color.additives
         };
     }
 };
@@ -532,16 +601,4 @@ const Utils = {
 // Hacer disponible globalmente
 if (typeof window !== 'undefined') {
     window.Utils = Utils;
-}
-
-// Métodos de conveniencia global (opcional)
-if (typeof window !== 'undefined') {
-    window.debounce = Utils.debounce;
-    window.throttle = Utils.throttle;
-    window.formatDate = Utils.formatDate;
-    window.copyToClipboard = Utils.copyToClipboard;
-    window.detectTeamFromStyle = Utils.detectTeamFromStyle;
-    window.extractGenderFromStyle = Utils.extractGenderFromStyle;
-    window.getColorHex = Utils.getColorHex;
-    window.isMetallicColor = Utils.isMetallicColor;
 }
