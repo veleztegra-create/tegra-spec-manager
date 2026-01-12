@@ -1,13 +1,15 @@
-// app.js - Código principal de Tegra Spec Manager
-
+// app.js - Código principal de Tegra Spec Manager (versión corregida y con mejoras)
+ 
 // ========== VARIABLES GLOBALES ==========
 let placements = [];
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
-
+// Contador único para generar IDs de placements sin colisiones
+let nextPlacementCounter = Date.now();
+ 
 // ========== FUNCIONES BÁSICAS ==========
-
+ 
 function stringToHash(str) {
     if (!str) return 0;
     let hash = 0;
@@ -18,7 +20,7 @@ function stringToHash(str) {
     }
     return Math.abs(hash);
 }
-
+ 
 function updateDateTime() {
     const now = new Date();
     const el = document.getElementById('current-datetime');
@@ -33,7 +35,7 @@ function updateDateTime() {
         });
     }
 }
-
+ 
 function showStatus(msg, type = 'success') {
     const el = document.getElementById('statusMessage');
     if (el) {
@@ -47,7 +49,7 @@ function showStatus(msg, type = 'success') {
         }, 4000);
     }
 }
-
+ 
 function toggleTheme() {
     isDarkMode = !isDarkMode;
     const body = document.body;
@@ -65,7 +67,7 @@ function toggleTheme() {
     
     localStorage.setItem('tegraspec-theme', isDarkMode ? 'dark' : 'light');
 }
-
+ 
 function showTab(tabName) {
     // Ocultar todos los tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -110,11 +112,13 @@ function showTab(tabName) {
             break;
     }
 }
-
+ 
 // ========== FUNCIONES DE CLIENTE ==========
-
+ 
 function updateClientLogo() {
-    const customer = document.getElementById('customer').value.toUpperCase().trim();
+    const customerEl = document.getElementById('customer');
+    if (!customerEl) return;
+    const customer = customerEl.value.toUpperCase().trim();
     const logoElement = document.getElementById('logoCliente');
     if (!logoElement) return;
     
@@ -134,9 +138,9 @@ function updateClientLogo() {
         logoElement.style.display = 'none';
     }
 }
-
+ 
 // ========== FUNCIONES DE DASHBOARD ==========
-
+ 
 function updateDashboard() {
     try {
         const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
@@ -163,7 +167,7 @@ function updateDashboard() {
             if (lastSpec) {
                 todayEl.innerHTML = `
                     <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
-                    <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
+                    <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${(lastSpec.style || 'Sin nombre')}</div>
                     <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
                 `;
             }
@@ -190,20 +194,21 @@ function updateDashboard() {
         console.error('Error en updateDashboard:', error);
     }
 }
-
+ 
 // ========== FUNCIONES BÁSICAS DE PLACEMENTS ==========
-
+ 
 function initializePlacements() {
+    placements = [];
     addNewPlacement('FRONT', true);
     if (placements.length > 0) {
         renderPlacementHTML(placements[0]);
+        showPlacement(placements[0].id);
     }
     updatePlacementsTabs();
-    showPlacement(placements[0].id);
 }
-
+ 
 function addNewPlacement(type = null, isFirst = false) {
-    const placementId = isFirst ? 1 : Date.now();
+    const placementId = isFirst ? 1 : ++nextPlacementCounter;
     const placementType = type || getNextPlacementType();
     
     const newPlacement = {
@@ -234,15 +239,14 @@ function addNewPlacement(type = null, isFirst = false) {
     if (!isFirst) placements.push(newPlacement);
     else placements = [newPlacement];
     
-    if (!isFirst) {
-        renderPlacementHTML(newPlacement);
-        showPlacement(placementId);
-        updatePlacementsTabs();
-    }
+    // Render y mostrar
+    renderPlacementHTML(newPlacement);
+    updatePlacementsTabs();
+    showPlacement(placementId);
     
     return placementId;
 }
-
+ 
 function getNextPlacementType() {
     const usedTypes = placements.map(p => p.type);
     const allTypes = ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'];
@@ -251,18 +255,73 @@ function getNextPlacementType() {
     }
     return 'CUSTOM';
 }
-
+ 
 function getNextPlacementNumber() {
     return placements.length + 1;
 }
-
+ 
 // ========== FUNCIONES DE UI DE PLACEMENTS ==========
-
+ 
 function renderPlacementHTML(placement) {
-    console.log('renderPlacementHTML llamado para:', placement.id);
-    // Esta función se implementará completamente
+    // Implementación mínima segura: crea una sección para el placement con campos básicos.
+    const container = document.getElementById('placements-container');
+    if (!container) return;
+ 
+    // Si ya existe, actualizar su contenido en vez de duplicar
+    const existing = document.getElementById(`placement-section-${placement.id}`);
+    let section;
+    if (existing) {
+        section = existing;
+        section.innerHTML = '';
+    } else {
+        section = document.createElement('section');
+        section.id = `placement-section-${placement.id}`;
+        section.className = 'placement-section';
+    }
+ 
+    const title = document.createElement('h4');
+    title.textContent = placement.name || `Placement ${placement.id}`;
+    section.appendChild(title);
+ 
+    // Campo nombre
+    const nameLabel = document.createElement('label');
+    nameLabel.textContent = 'Nombre:';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = placement.name || '';
+    nameInput.addEventListener('input', (e) => {
+        placement.name = e.target.value;
+        updatePlacementsTabs();
+    });
+    section.appendChild(nameLabel);
+    section.appendChild(nameInput);
+ 
+    // Campo tipo
+    const typeLabel = document.createElement('label');
+    typeLabel.textContent = 'Tipo:';
+    const typeInput = document.createElement('input');
+    typeInput.type = 'text';
+    typeInput.value = placement.type || '';
+    typeInput.addEventListener('input', (e) => {
+        placement.type = e.target.value;
+        updatePlacementsTabs();
+    });
+    section.appendChild(typeLabel);
+    section.appendChild(typeInput);
+ 
+    // Botón eliminar (si hay más de 1)
+    if (placements.length > 1) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-outline btn-sm';
+        removeBtn.textContent = 'Eliminar placement';
+        removeBtn.addEventListener('click', () => removePlacement(placement.id));
+        section.appendChild(removeBtn);
+    }
+ 
+    // Si fue nueva, añadir al container
+    if (!existing) container.appendChild(section);
 }
-
+ 
 function showPlacement(placementId) {
     document.querySelectorAll('.placement-section').forEach(section => {
         section.classList.remove('active');
@@ -276,7 +335,7 @@ function showPlacement(placementId) {
     
     currentPlacementId = placementId;
 }
-
+ 
 function updatePlacementsTabs() {
     const tabsContainer = document.getElementById('placements-tabs');
     if (!tabsContainer) return;
@@ -284,46 +343,54 @@ function updatePlacementsTabs() {
     tabsContainer.innerHTML = '';
     
     placements.forEach(placement => {
-        const displayType = placement.type.includes('CUSTOM:') 
+        const displayType = placement.type && placement.type.includes('CUSTOM:') 
             ? placement.type.replace('CUSTOM: ', '')
-            : placement.type;
+            : (placement.type || 'PLACEMENT');
             
         const tab = document.createElement('div');
         tab.className = `placement-tab ${placement.id === currentPlacementId ? 'active' : ''}`;
-        tab.setAttribute('data-placement-id', placement.id);
+        tab.setAttribute('data-placement-id', String(placement.id));
         tab.innerHTML = `
             <i class="fas fa-map-marker-alt"></i>
-            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
-            ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
+            <span class="placement-tab-text">${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}</span>
         `;
         
-        tab.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('remove-tab')) {
-                showPlacement(placement.id);
-            }
-        });
+        // Remove icon
+        if (placements.length > 1) {
+            const removeSpan = document.createElement('span');
+            removeSpan.className = 'remove-tab';
+            removeSpan.innerHTML = '&times;';
+            removeSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removePlacement(placement.id);
+            });
+            tab.appendChild(removeSpan);
+        }
+        
+        tab.addEventListener('click', () => showPlacement(placement.id));
         tabsContainer.appendChild(tab);
     });
 }
-
+ 
 function removePlacement(id) {
     if (placements.length > 1) {
         placements = placements.filter(p => p.id !== id);
-        const container = document.getElementById('placements-container');
         const section = document.getElementById(`placement-section-${id}`);
         if (section) section.remove();
         updatePlacementsTabs();
         if (placements.length > 0) showPlacement(placements[0].id);
     }
 }
-
+ 
 // ========== FUNCIONES DE GUARDADO ==========
-
+ 
 function saveCurrentSpec() {
     try {
         const data = collectData();
-        const style = data.style || 'SinEstilo_' + Date.now();
-        const storageKey = `spec_${style}_${Date.now()}`;
+        const style = data.style || 'SinEstilo';
+        // Sanear style para usar en la key
+        const styleSafe = style.replace(/[^a-z0-9_\-]/gi, '_');
+        const storageKey = `spec_${styleSafe}_${Date.now()}`;
         
         data.savedAt = new Date().toISOString();
         data.lastModified = new Date().toISOString();
@@ -336,23 +403,27 @@ function saveCurrentSpec() {
         
     } catch (error) {
         console.error('Error al guardar:', error);
-        showStatus('❌ Error al guardar: ' + error.message, 'error');
+        showStatus('❌ Error al guardar: ' + (error.message || error), 'error');
     }
 }
-
+ 
 function collectData() {
+    const safeGet = id => {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+    };
     const generalData = {
-        customer: document.getElementById('customer').value || '',
-        style: document.getElementById('style').value || '',
-        folder: document.getElementById('folder-num').value || '',
-        colorway: document.getElementById('colorway').value || '',
-        season: document.getElementById('season').value || '',
-        pattern: document.getElementById('pattern').value || '',
-        po: document.getElementById('po').value || '',
-        sampleType: document.getElementById('sample-type').value || '',
-        nameTeam: document.getElementById('name-team').value || '',
-        gender: document.getElementById('gender').value || '',
-        designer: document.getElementById('designer').value || ''
+        customer: safeGet('customer'),
+        style: safeGet('style'),
+        folder: safeGet('folder-num'),
+        colorway: safeGet('colorway'),
+        season: safeGet('season'),
+        pattern: safeGet('pattern'),
+        po: safeGet('po'),
+        sampleType: safeGet('sample-type'),
+        nameTeam: safeGet('name-team'),
+        gender: safeGet('gender'),
+        designer: safeGet('designer')
     };
     
     const placementsData = placements.map(placement => ({
@@ -375,15 +446,16 @@ function collectData() {
         placements: placementsData
     };
 }
-
+ 
 // ========== FUNCIONES DE LIMPIEZA ==========
-
+ 
 function clearForm() {
     if (confirm('¿Limpiar todo el formulario?')) {
         document.querySelectorAll('input:not(#folder-num), textarea, select').forEach(i => {
             if (i.type !== 'button' && i.type !== 'submit') i.value = '';
         });
-        document.getElementById('designer').value = '';
+        const designerEl = document.getElementById('designer');
+        if (designerEl) designerEl.value = '';
         
         placements = [];
         const container = document.getElementById('placements-container');
@@ -392,13 +464,14 @@ function clearForm() {
         if (tabs) tabs.innerHTML = '';
         
         initializePlacements();
-        document.getElementById('logoCliente').style.display = 'none';
+        const logo = document.getElementById('logoCliente');
+        if (logo) logo.style.display = 'none';
         showStatus('🧹 Formulario limpiado');
     }
 }
-
+ 
 // ========== FUNCIONES DE STORAGE ==========
-
+ 
 function loadSavedSpecsList() {
     const list = document.getElementById('saved-specs-list');
     if (!list) return;
@@ -418,20 +491,54 @@ function loadSavedSpecsList() {
     list.innerHTML = '';
     specs.forEach(key => {
         try {
-            const data = JSON.parse(localStorage.getItem(key));
+            const raw = localStorage.getItem(key);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+ 
             const div = document.createElement('div');
             div.style.cssText = "padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center;";
-            div.innerHTML = `
-                <div style="flex: 1;">
-                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
-                    <button class="btn btn-outline btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
+ 
+            const left = document.createElement('div');
+            left.style.flex = '1';
+            const title = document.createElement('div');
+            title.style.fontWeight = '700';
+            title.style.color = 'var(--primary)';
+            title.textContent = data.style || 'N/A';
+            const meta = document.createElement('div');
+            meta.style.fontSize = '0.85rem';
+            meta.style.color = 'var(--text-secondary)';
+            meta.textContent = `Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'}`;
+            const date = document.createElement('div');
+            date.style.fontSize = '0.75rem';
+            date.style.color = 'var(--text-muted)';
+            date.textContent = `Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}`;
+            left.appendChild(title);
+            left.appendChild(meta);
+            left.appendChild(date);
+ 
+            const right = document.createElement('div');
+            right.style.display = 'flex';
+            right.style.gap = '8px';
+ 
+            const loadBtn = document.createElement('button');
+            loadBtn.className = 'btn btn-primary btn-sm';
+            loadBtn.innerHTML = '<i class="fas fa-edit"></i> Cargar';
+            loadBtn.addEventListener('click', () => {
+                loadSpecData(data);
+            });
+ 
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn btn-outline btn-sm';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.addEventListener('click', () => {
+                deleteSpec(key);
+            });
+ 
+            right.appendChild(loadBtn);
+            right.appendChild(delBtn);
+ 
+            div.appendChild(left);
+            div.appendChild(right);
             list.appendChild(div);
         } catch (e) {
             console.error('Error al parsear spec:', key, e);
@@ -439,20 +546,24 @@ function loadSavedSpecsList() {
         }
     });
 }
-
+ 
 function loadSpecData(data) {
     // Cargar datos generales
-    document.getElementById('customer').value = data.customer || '';
-    document.getElementById('style').value = data.style || '';
-    document.getElementById('folder-num').value = data.folder || '';
-    document.getElementById('colorway').value = data.colorway || '';
-    document.getElementById('season').value = data.season || '';
-    document.getElementById('pattern').value = data.pattern || '';
-    document.getElementById('po').value = data.po || '';
-    document.getElementById('sample-type').value = data.sampleType || '';
-    document.getElementById('name-team').value = data.nameTeam || '';
-    document.getElementById('gender').value = data.gender || '';
-    document.getElementById('designer').value = data.designer || '';
+    const setVal = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value || '';
+    };
+    setVal('customer', data.customer || '');
+    setVal('style', data.style || '');
+    setVal('folder-num', data.folder || '');
+    setVal('colorway', data.colorway || '');
+    setVal('season', data.season || '');
+    setVal('pattern', data.pattern || '');
+    setVal('po', data.po || '');
+    setVal('sample-type', data.sampleType || '');
+    setVal('name-team', data.nameTeam || '');
+    setVal('gender', data.gender || '');
+    setVal('designer', data.designer || '');
     
     // Limpiar placements actuales
     placements = [];
@@ -464,27 +575,28 @@ function loadSpecData(data) {
     // Cargar placements
     if (data.placements && Array.isArray(data.placements)) {
         data.placements.forEach((placementData, index) => {
-            const placementId = index === 0 ? 1 : Date.now() + index;
+            const placementId = index === 0 ? 1 : ++nextPlacementCounter;
             const placement = {
                 ...placementData,
                 id: placementId
             };
             
-            if (index === 0) {
-                placements = [placement];
-            } else {
-                placements.push(placement);
-            }
+            placements.push(placement);
         });
     } else {
         initializePlacements();
     }
     
+    // Render de todos los placements
+    placements.forEach(p => renderPlacementHTML(p));
+    updatePlacementsTabs();
+    if (placements.length > 0) showPlacement(placements[0].id);
+    
     updateClientLogo();
     showTab('spec-creator');
     showStatus('📂 Spec cargada correctamente');
 }
-
+ 
 function deleteSpec(key) {
     if (confirm('¿Eliminar esta spec?')) {
         localStorage.removeItem(key);
@@ -493,7 +605,7 @@ function deleteSpec(key) {
         showStatus('🗑️ Spec eliminada');
     }
 }
-
+ 
 function clearAllSpecs() {
     if (confirm('¿Eliminar TODAS las specs?')) {
         Object.keys(localStorage).forEach(key => {
@@ -504,9 +616,9 @@ function clearAllSpecs() {
         showStatus('🗑️ Todas las specs eliminadas');
     }
 }
-
+ 
 // ========== FUNCIONES DE ERROR LOG ==========
-
+ 
 function loadErrorLog() {
     const container = document.getElementById('error-log-content');
     if (!container) return;
@@ -537,7 +649,7 @@ function loadErrorLog() {
     });
     container.innerHTML = html;
 }
-
+ 
 function clearErrorLog() {
     if (window.errorHandler) {
         errorHandler.clearErrors();
@@ -545,27 +657,27 @@ function clearErrorLog() {
         showStatus('Log limpiado');
     }
 }
-
+ 
 // ========== FUNCIONES DE EXPORTACIÓN (SIMPLIFICADAS POR AHORA) ==========
-
+ 
 function exportPDF() {
     showStatus('⚠️ Función PDF en desarrollo', 'warning');
 }
-
+ 
 function exportToExcel() {
     showStatus('⚠️ Función Excel en desarrollo', 'warning');
 }
-
+ 
 function downloadProjectZip() {
     showStatus('⚠️ Función ZIP en desarrollo', 'warning');
 }
-
+ 
 function exportErrorLog() {
     showStatus('⚠️ Función exportar log en desarrollo', 'warning');
 }
-
+ 
 // ========== INICIALIZACIÓN ==========
-
+ 
 document.addEventListener('DOMContentLoaded', function() {
     try {
         // Configurar eventos
