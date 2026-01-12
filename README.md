@@ -15,3 +15,4 @@ Sistema web para gestión de especificaciones técnicas de serigrafía.
 9. **Interfaz modular**: 4 pestañas principales
 
 ## Estructura de Carpetas
+ https://veleztegra-create.github.io/tegra-spec-manager/
