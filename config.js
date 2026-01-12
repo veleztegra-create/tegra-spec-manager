@@ -1,3 +1,4 @@
+// config.js (fragmento con correcciones en CLIENT_LOGOS y METALLIC_CODES)
 const Config = {
     // Base de datos de colores
     COLOR_DATABASES: {
@@ -246,34 +247,23 @@ const Config = {
         DEFAULT_INK_TYPE: 'WATER'
     },
     
-    // URLs de logos de clientes
+ // URLs de logos de clientes (corregidas: raw.githubusercontent.com/owner/repo/branch/path)
     CLIENT_LOGOS: {
-        'NIKE': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png',
-        'FANATICS': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png',
+        'NIKE': 'https://raw.githubusercontent.com/veleztegra-create/costos/main/Nike-Logotipo-PNG-Photo.png',
+        'FANATICS': 'https://raw.githubusercontent.com/veleztegra-create/costos/main/Fanatics_company_logo.svg.png',
         'ADIDAS': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png',
         'PUMA': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png',
         'UNDER ARMOUR': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png',
-        'GEAR FOR SPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png'
+        'GEAR FOR SPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/main/SVG.png'
     },
     
-    // Logo de Tegra para PDF (SVG en base64)
-    LOGOS: {
-        TEGRA: {
-            base64: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ2IiBoZWlnaHQ9IjM5IiB2aWV3Qm94PSIwIDAgMTQ1Ljk0IDM5LjA1IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik00Mi4yNCwxMi4zN3YxLjkzaDYuOTF2MTUuMjVoNC4yMXYtMTUuMjVoNi45MXYtMy44OGgtMTYuMWwtMS45MywxLjk1Wk05Mi4wNiwyMC4zMXYxLjg3aDQuMjR2Mi43M2MtMC41MywwLjM4LTEuMTMsMC42Ny0xLjgsMC44Ni0wLjY3LDAuMTktMS4zOSwwLjI5LTIuMTYsMC4yOS0wLjg0LDAtMS42MSwwLjE1LTIuMzItMC40NS0wLjcxLTAuMy0xLjMzLTAuNzItMS44NC0xLjI3LTAuNTItMC41NS0wLjkyLTEuMTktMS4yLTEuOTMtMC4yOC0wLjc0LTAuNDItMS41NC0wLjQyLTIuNDJ2LTAuMDVjMC0wLjgyLDAuMTQtMS41OSwwLjQyLTIuMzFjMC4yOC0wLjcyLDAuNjctMS4zNSwxLjE4LTEuODljMC41LTAuNTQsMS4wOC0wLjk3LDEuNzUtMS4yOGMwLjY2LTAuMzIsMS4zOC0wLjQ4LDIuMTUtMC40OGMwLjU1LDAsMS4wNSwwLjA1LDEuNSwwLjE0YzAuNDYsMC4wOSwwLjg4LDAuMjIsMS4yNywwLjM4YzAuMzksMC4xNiwwLjc3LDAuMzYsMS4xMywwLjZjMC4yNSwwLjE2LDAuNDksMC4zNCwwLjc0LDAuNTRsMi45NC0yLjk3Yy0wLjQ3LTAuNC0wLjk2LTAuNzUtMS40Ni0xLjA3Yy0wLjUzLTAuMzMtMS4wOS0wLjYtMS43LTAuODJjLTAuNi0wLjIyLTEuMjUtMC4zOS0xLjk1LTAuNTFjLTAuNy0wLjEyLTEuNDgtMC4xOC0yLjM0LTAuMThjLTEuNDQsMC0yLjc3LDAuMjYtNCwwLjc4Yy0xLjIzLDAuNTItMi4yOSwxLjIzLTMuMTgsMi4xM2MtMC44OSwwLjktMS41OSwxLjk1LTIuMDksMy4xNGMtMC41LDEuMTktMC43NSwyLjQ3LTAuNzUsMy44NHYtMC4wNWMwLDEuNDIsMC4yNSwyLjczLDAuNzQsMy45NGMwLjQ5LDEuMiwxLjE4LDIuMjQsMi4wNiwzLjEyYzAuODgsMC44NywxLjk0LDEuNTYsMy4xNywyLjA1YzEuMjMsMC40OSwyLjU5LDAuNzQsNC4wOSwwLjc0YzEuNzUsMCwzLjMtMC4zLDQuNjYtMC44OWMxLjM2LTAuNTksMi41My0xLjMxLDMuNTEtMi4xNXYtOC4zMWgtNi41NmwtMS43NCwxLjc2Wk02OC4xNSwyMS44aDkuMDJ2LTMuNzRoLTkuMDJ2LTMuODhoMTAuMjV2LTMuNzRoLTEyLjU1bDAuMTQsMC4xNHYxNy4xMmgxNC41NHYtMy43NGgtMTAuNTN2LTQuMDJaTTExNC4yNCwxMC40M2gtOC43NXYxOS4xM2g0LjIxdi02LjEyaDMuMzFsNC4xMCw2LjEyaDIuNTdsMS4zOS0xLjQwLTMuNzEtNS40M2MxLjIyLTAuNDYsMi4yMS0xLjE3LDIuOTctMi4xNWMwLjc2LTAuOTcsMS4xMy0yLjI0LDEuMTMtMy43OXYtMC4wNWMwLTEuODItMC41NS0zLjI4LTEuNjQtNC4zN2MtMS4yOS0xLjI5LTMuMTUtMS45NC01LjU4LTEuOTRaTTExNy4xOSwxNy4wM2MwLDAuODItMC4yOCwxLjQ4LTAuODMsMS45OGMtMC41NiwwLjQ5LTEuMzUsMC43NC0yLjM5LDAuNzRoLTQuMjZ2LTUuNTJoNC4xOGMxLjA0LDAsMS44NSwwLjIzLDIuNDMsMC42OWMwLjU4LDAuNDYsMC44NywxLjE0LDAuODcsMi4wNnYwLjA1Wk0xMzYuNywxMC4yOWgtMy44OGwtOC4yMCwxOS4yN2g0LjI5bDEuNzUtNC4yOWg4LjA5bDEuNzUsNC4yOWgxLjk3bDEuNzAtMS43Mi03LjQ3LTE3LjU1Wk0xMzIuMTYsMjEuNThsMi41NC02LjIwLDIuNTQsNi4yMGgtNS4wOFoiLz48Zz48cG9seWdvbiBwb2ludHM9IjcuNDQgMzEuMzggNi41OSAzMi4yNCA2Ljg4IDMzLjM5IDguMDMgMzMuNjggOC44OSAzMi44MyA4LjU5IDMxLjY4IDcuNDQgMzEuMzgiLz48cG9seWdvbiBwb2ludHM9IjYuNzkgMjguNjcgNy45NCAyOC45NyAxMC40MSAyNi41IDEwLjExIDI1LjM1IDguOTYgMjUuMDUgNi40OSAyNy41MiA2Ljc5IDI4LjY3Ii8+PHBvbHlnb24gcG9pbnRzPSIxMC41NCAxNC42MSA5LjQgMTQuMzEgNi45MyAxNi43OCA3LjIzIDE3LjkzIDguMzcgMTguMjMgMTAuODUgMTUuNzYgMTAuNTQgMTQuNjEiLz48cG9seWdvbiBwb2ludHM9IjI2LjM4IDIyLjc5IDI1LjA2IDI0LjExIDI1LjM2IDI1LjI2IDI2LjUgMjUuNTYgMjcuODIgMjQuMjQgMjcuNTIgMjMuMDkgMjYuMzggMjIuNzkiLz48cGF0aCBkPSJNMjEuOSwzNi45M2wwLjMwLDEuMTUsMS4xNSwwLjMwLDAuODUtMC44NS0wLjMwLTEuMTUtMS4xNS0wLjMwLTAuODUsMC44NVpNMTguMDEsMjkuMjFsLTAuMzAtMS4xNSwwLjg1LTAuODUsMS4xNSwwLjMwLDAuMzAsMS4xNS0wLjg1LDAuODUtMS4xNS0wLjMwWk0xOC44MywxOS41NmwtMC4zMC0xLjE1LDEuNTAtMS41MCwxLjE1LDAuMzAsMC4zMCwxLjE1LTEuNTAsMS41MC0xLjE1LTAuMzBaTTIwLjg1LDE0LjYxbC0wLjMwLTEuMTUsMS41MC0xLjUwLDEuMTUsMC4zMCwwLjMwLDEuMTUtMS41MCwxLjUwLTEuMTUtMC4zMFpNMTQuMzMsMTUuMzRsLTAuMzAtMS4xNCwzLjc4LTMuNjgsMS4xNCwwLjMwLDAuMzAsMS4xNC0zLjc4LDMuNjgtMS4xNS0wLjMwWk0yNC4yMSwxMC42OGwtMC4zMC0xLjE1LDIuMTctMi4xNywxLjE0LDAuMzAsMC4zMCwxLjE0LTIuMTcsMi4xNy0xLjE0LTAuMzBaTTIwLjU5LDkuMTJsLTAuMzAtMS4xNSwwLjg1LTAuODUsMS4xNSwwLjMwLDAuMzAsMS4xNS0wLjg1LDAuODUtMS4xNS0wLjMwWk0xNS4wNiw4LjgybC0wLjMwLTEuMTUsMS41MC0xLjUwLDEuMTUsMC4zMCwwLjMwLDEuMTUtMS41MCwxLjUwLTEuMTUtMC4zMFpNMjUuNTEsMGwtNC45MCw0LjkwLTEuMTQtMC4zMC0wLjMwLTEuMTQsMy40Ni0zLjQ2SDB2OS41NWg0LjU0bC0xLjY3LDEuNjcsMC4zMCwxLjE0LDEuMTUsMC4zMCwzLjEyLTMuMTJoMC4wMmwyLjU5LTIuNTksMS4xNCwwLjMwLDAuMzAsMS4xNC0wLjU3LDAuNTctMS44MSwxLjc4LDAuMzAsMS4xNSwxLjE1LDAuMzAsMi41MC0yLjQ1djguNDFsLTMuOTksMy45OSwwLjMwLDEuMTUsMS4xNSwwLjMwLDQuNjItNC42MiwxLjA3LDAuMjgsMC4zMCwxLjE1LTEuNDIsMS40Mi0wLjkzLDAuOTMtMC44NCwwLjg0LTEuNzgsMS43OCwwLjMwLDEuMTUsMS4xNCwwLjMwLDMuNTYtMy41NiwwLjI3LTAuMjcsMS4xNCwwLjMwLDAuMzAsMS4xNC00LjY0LDQuNjRoLTAuMDNzLTIuNTIsMi41MS0yLjUyLDIuNTFsMC4zMSwxLjE2LDEuMTcsMC4zMSwyLjUyLTIuNTJoMHMwLjMwLTAuMzIsMC4zMC0wLjMybDEuMTQsMC4zMCwwLjMwLDEuMTUtMy43NSwzLjc1aDBzLTIuMTcsMi4xOC0yLjE3LDIuMThsMC4zMCwxLjE0LDEuMTUsMC4zMCw2LjM1LTYuMzUsMS4xNCwwLjMwLDAuMzAsMS4xNS0yLjgyLDIuNzcsMC4zMCwxLjE0LDEuMTUsMC4zMCw1LjE1LTUuMTB2LTIuODloMHMtMS4yNCwxLjI0LTEuMjQsMS4yNGwtMS4xNS0wLjMwLTAuMzAtMS4xNCwzLjQzLTMuNDEtMC4zMC0xLjE1LTAuNDUtMC4xMi0wLjcxLTAuMTktMS4wNSwxLjA1LTEuMTQtMC4zMC0wLjMwLTEuMTQsNi4xNi02LjMxLTAuMzAtMS4xNS0xLjE0LTAuMzAtMS41MSwxLjUxdi00LjM0bDUuMjUtNC43Nmg3LjI4VjBoLTEwLjkyWiIvPjwvZz48L3N2Zz4=',
-            width: 146,
-            height: 39,
-            alt: 'Tegra Logo'
-        }
-    },
-
-    // Códigos de metálicos para detección
+    // Códigos de metálicos para detección (añadidas variantes sin tilde y correcciones)
     METALLIC_CODES: [
         "871C", "872C", "873C", "874C", "875C", "876C", "877C",
-        "METALLIC", "GOLD", "SILVER", "BRONZE", "METÁLICO", "METALIC"
+        "METALLIC", "GOLD", "SILVER", "BRONZE", "METALICO", "METALIC", "METALICO", "METALICO"
     ]
 };
-
-// Asegurarse de que Config esté disponible globalmente
+ 
 if (typeof window !== 'undefined') {
     window.Config = Config;
 }
