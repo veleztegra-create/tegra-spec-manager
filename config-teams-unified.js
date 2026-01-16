@@ -1,4 +1,4 @@
-// config-teams-unified.js - VERSIÓN CORREGIDA
+// config-teams-unified.js - VERSIÓN CORREGIDA Y COMPLETA
 const TeamsConfig = {
     NCAA: {
         teams: {
@@ -120,7 +120,6 @@ const TeamsConfig = {
                         "aliases": ["GRAY"]
                     }
                 },
-                // ... (todos los demás equipos NCAA)
                 "Wisconsin Badgers": {
                     "primary": {
                         "name": "Red",
@@ -243,7 +242,6 @@ const TeamsConfig = {
                         "aliases": ["BLACK"]
                     }
                 },
-                // ... (todos los demás equipos NBA)
                 "Washington Wizards": {
                     "primary": {
                         "name": "Navy",
@@ -399,9 +397,156 @@ const Config = {
         INSTITUCIONAL: {}
     },
     
-    GEARFORSPORT_TEAM_MAP: {},
-    TEAM_CODE_MAP: {},
-    GEARFORSPORT_GENDER_MAP: {},
+    // MAPAS DE EQUIPOS MEJORADOS - ESTOS SON CRÍTICOS PARA LA DETECCIÓN
+    GEARFORSPORT_TEAM_MAP: {
+        // Mapeo de códigos de estilo de Gear for Sport a equipos
+        "UM9110-PMD0": "Maryland Terrapins",
+        "UM9110-N042": "Notre Dame Fighting Irish", 
+        "UM9111-PWI0": "Wisconsin Badgers",
+        "UY9112-PGT1": "Georgia Tech Yellow Jackets",
+        "UM9110": "Generic Team",
+        "UM9111": "Generic Team",
+        "UY9112": "Generic Team",
+        
+        // Códigos abreviados comunes en estilos
+        "MD0": "Maryland",
+        "N042": "Notre Dame",
+        "PWI0": "Wisconsin",
+        "PGT1": "Georgia Tech",
+        "MD": "Maryland",
+        "ND": "Notre Dame",
+        "WIS": "Wisconsin",
+        "GT": "Georgia Tech"
+    },
+    
+    TEAM_CODE_MAP: {
+        // NCAA
+        "ALA": "Alabama Crimson Tide",
+        "ARI": "Arizona Wildcats",
+        "AUB": "Auburn Tigers",
+        "BAY": "Baylor Bears",
+        "CLE": "Clemson Tigers",
+        "DUK": "Duke Blue Devils",
+        "FLA": "Florida Gators",
+        "FSU": "Florida State Seminoles",
+        "GEO": "Georgia Bulldogs",
+        "IND": "Indiana Hoosiers",
+        "IOW": "Iowa Hawkeyes",
+        "KAN": "Kansas Jayhawks",
+        "KEN": "Kentucky Wildcats",
+        "LSU": "LSU Tigers",
+        "MRY": "Maryland Terrapins",
+        "MIC": "Michigan Wolverines",
+        "MSU": "Michigan State Spartans",
+        "NDM": "Notre Dame Fighting Irish",
+        "UNC": "North Carolina Tar Heels",
+        "OSU": "Ohio State Buckeyes",
+        "OKL": "Oklahoma Sooners",
+        "ORE": "Oregon Ducks",
+        "PSU": "Penn State Nittany Lions",
+        "SYR": "Syracuse Orange",
+        "TAM": "Texas A&M Aggies",
+        "TEX": "Texas Longhorns",
+        "TEN": "Tennessee Volunteers",
+        "UCLA": "UCLA Bruins",
+        "USC": "USC Trojans",
+        "UVA": "Virginia Cavaliers",
+        "WAS": "Washington Huskies",
+        "WIS": "Wisconsin Badgers",
+        
+        // NBA
+        "ATL": "Atlanta Hawks",
+        "BOS": "Boston Celtics",
+        "BRK": "Brooklyn Nets",
+        "CHA": "Charlotte Hornets",
+        "CHI": "Chicago Bulls",
+        "CLE": "Cleveland Cavaliers",
+        "DAL": "Dallas Mavericks",
+        "DEN": "Denver Nuggets",
+        "DET": "Detroit Pistons",
+        "GSW": "Golden State Warriors",
+        "HOU": "Houston Rockets",
+        "IND": "Indiana Pacers",
+        "LAC": "Los Angeles Clippers",
+        "LAL": "Los Angeles Lakers",
+        "MEM": "Memphis Grizzlies",
+        "MIA": "Miami Heat",
+        "MIL": "Milwaukee Bucks",
+        "MIN": "Minnesota Timberwolves",
+        "NOP": "New Orleans Pelicans",
+        "NYK": "New York Knicks",
+        "OKC": "Oklahoma City Thunder",
+        "ORL": "Orlando Magic",
+        "PHI": "Philadelphia 76ers",
+        "PHX": "Phoenix Suns",
+        "POR": "Portland Trail Blazers",
+        "SAC": "Sacramento Kings",
+        "SAS": "San Antonio Spurs",
+        "TOR": "Toronto Raptors",
+        "UTA": "Utah Jazz",
+        "WAS": "Washington Wizards",
+        
+        // NFL
+        "ARI": "Arizona Cardinals",
+        "ATL": "Atlanta Falcons",
+        "BAL": "Baltimore Ravens",
+        "BUF": "Buffalo Bills",
+        "CAR": "Carolina Panthers",
+        "CHI": "Chicago Bears",
+        "CIN": "Cincinnati Bengals",
+        "CLE": "Cleveland Browns",
+        "DAL": "Dallas Cowboys",
+        "DEN": "Denver Broncos",
+        "DET": "Detroit Lions",
+        "GBP": "Green Bay Packers",
+        "HOU": "Houston Texans",
+        "IND": "Indianapolis Colts",
+        "JAG": "Jacksonville Jaguars",
+        "KCC": "Kansas City Chiefs",
+        "LAC": "Los Angeles Chargers",
+        "LVR": "Las Vegas Raiders",
+        "MIA": "Miami Dolphins",
+        "MIN": "Minnesota Vikings",
+        "NEP": "New England Patriots",
+        "NOS": "New Orleans Saints",
+        "NYG": "New York Giants",
+        "NYJ": "New York Jets",
+        "PHI": "Philadelphia Eagles",
+        "PIT": "Pittsburgh Steelers",
+        "RAM": "Los Angeles Rams",
+        "SEA": "Seattle Seahawks",
+        "SF9": "San Francisco 49ers",
+        "TBB": "Tampa Bay Buccaneers",
+        "TEN": "Tennessee Titans",
+        "WAS": "Washington Commanders"
+    },
+    
+    GEARFORSPORT_GENDER_MAP: {
+        // Mapeo de códigos de género de Gear for Sport
+        "UM": "Men",
+        "UW": "Women",
+        "UY": "Youth",
+        "UB": "Boys",
+        "UG": "Girls",
+        "UK": "Kids",
+        "UT": "Toddler",
+        "UI": "Infant",
+        "UA": "Adult",
+        "UN": "Unisex",
+        
+        // Códigos de una letra
+        "M": "Men",
+        "W": "Women",
+        "Y": "Youth",
+        "B": "Boys",
+        "G": "Girls",
+        "K": "Kids",
+        "T": "Toddler",
+        "I": "Infant",
+        "A": "Adult",
+        "N": "Unisex"
+    },
+    
     GENDER_MAP: {
         'M': 'Men',
         'W': 'Women', 
@@ -435,6 +580,13 @@ const Config = {
             color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cat · 2 % ret' }
         }
     },
+    
+    // Códigos de colores metálicos para detección
+    METALLIC_CODES: [
+        "871C", "872C", "873C", "874C", "875C", "876C", "877C",
+        "METALLIC", "GOLD", "SILVER", "BRONZE", "METÁLICO", "METALIC",
+        "METALLIC GOLD", "METALLIC SILVER", "GOLD METALLIC", "SILVER METALLIC"
+    ],
     
     // Incluir TeamsConfig como parte de Config
     TEAMS: TeamsConfig
