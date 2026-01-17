@@ -2516,15 +2516,15 @@ function updateAllPlacementTitles(placementId) {
           }
       }
 
-      async function generatePDFBlob() {
+   async function generatePDFBlob() {
     return new Promise(async (resolve, reject) => {
         try {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'letter');
             const pageW = pdf.internal.pageSize.getWidth();
             const pageH = pdf.internal.pageSize.getHeight();
-            const margin = 15; // Márgenes uniformes
-            let y = margin; // Posición Y inicial
+            const margin = 15;
+            let y = margin;
             
             const primaryColor = [255, 82, 82];
             const accentColor = [255, 138, 128];
@@ -2541,34 +2541,32 @@ function updateAllPlacementTitles(placementId) {
                 return false;
             };
             
-            // Función para agregar texto con control de altura
-            const addText = (str, x, y, size = 10, bold = false, color = [0, 0, 0], align = 'left', maxWidth = null) => {
+            // Función para agregar texto
+            const addText = (str, x, yPos, size = 10, bold = false, color = [0, 0, 0], align = 'left', maxWidth = null) => {
                 pdf.setTextColor(...color);
                 pdf.setFontSize(size);
                 pdf.setFont('helvetica', bold ? 'bold' : 'normal');
                 const textStr = String(str || '');
                 
-                let lines = 1;
                 if (maxWidth) {
                     const splitLines = pdf.splitTextToSize(textStr, maxWidth);
-                    pdf.text(splitLines, x, y, { align: align });
-                    lines = splitLines.length;
+                    pdf.text(splitLines, x, yPos, { align: align });
+                    return splitLines.length * (size * 0.35);
                 } else {
-                    pdf.text(textStr, x, y, { align: align });
+                    pdf.text(textStr, x, yPos, { align: align });
+                    return size * 0.35;
                 }
-                
-                return lines * (size * 0.35); // Retorna altura aproximada usada
             };
             
             // Función para dibujar rectángulo
-            const drawRect = (x, y, width, height, fillColor = null, strokeColor = [0, 0, 0], lineWidth = 0.2) => {
+            const drawRect = (x, yPos, width, height, fillColor = null, strokeColor = [0, 0, 0], lineWidth = 0.2) => {
                 if (fillColor) {
                     pdf.setFillColor(...fillColor);
-                    pdf.rect(x, y, width, height, 'F');
+                    pdf.rect(x, yPos, width, height, 'F');
                 }
                 pdf.setDrawColor(...strokeColor);
                 pdf.setLineWidth(lineWidth);
-                pdf.rect(x, y, width, height);
+                pdf.rect(x, yPos, width, height);
                 return height;
             };
             
@@ -2592,14 +2590,13 @@ function updateAllPlacementTitles(placementId) {
             pdf.setFontSize(11);
             pdf.text("TECHNICAL SPEC MANAGER", margin, 20);
             
-            // Número de folder
             const folderNum = document.getElementById('folder-num').value || '#####';
             pdf.setFontSize(8);
             pdf.text('FOLDER', pageW - margin, 14, { align: 'right' });
             pdf.setFontSize(16);
             pdf.text(`#${folderNum}`, pageW - margin, 20, { align: 'right' });
             
-            y = 30; // Espacio después del header
+            y = 30;
             
             // ===== INFORMACIÓN GENERAL =====
             checkPageBreak(45);
@@ -2631,17 +2628,22 @@ function updateAllPlacementTitles(placementId) {
             y += infoHeight + 10;
             
             // ===== PLACEMENTS =====
-            for (let pIndex = 0; pIndex < placements.length; pIndex++) {
-                const placement = placements[pIndex];
+            // Asegurarnos que placements está definido
+            const placementsToExport = placements || [];
+            
+            for (let pIndex = 0; pIndex < placementsToExport.length; pIndex++) {
+                const placement = placementsToExport[pIndex];
+                
+                if (!placement) continue;
                 
                 if (pIndex > 0) {
                     pdf.addPage();
                     y = margin;
                 }
                 
-                const displayType = placement.type.includes('CUSTOM:') 
+                const displayType = placement.type && placement.type.includes('CUSTOM:') 
                     ? placement.type.replace('CUSTOM: ', '')
-                    : placement.type;
+                    : (placement.type || 'N/A');
                 
                 // Header del placement
                 checkPageBreak(15);
@@ -2650,20 +2652,18 @@ function updateAllPlacementTitles(placementId) {
                 addText(`PLACEMENT: ${displayType}`, margin + 5, y + 6, 11, true, [255, 255, 255]);
                 y += 15;
                 
-                // Imagen del placement (si existe)
+                // Imagen del placement
                 if (placement.imageData && placement.imageData.startsWith('data:')) {
                     try {
-                        checkPageBreak(75); // Altura para imagen + márgenes
+                        checkPageBreak(75);
                         
                         const imgHeight = 70;
                         const imgWidth = 90;
                         
                         drawRect(margin + 5, y, imgWidth, imgHeight, [245, 245, 245], grayLight);
                         
-                        // Intentar cargar la imagen con dimensiones adecuadas
                         pdf.addImage(placement.imageData, 'JPEG', margin + 7, y + 2, imgWidth - 4, imgHeight - 4);
                         
-                        // Detalles junto a la imagen
                         const detailsX = margin + imgWidth + 15;
                         const detailsWidth = pageW - detailsX - margin;
                         
@@ -2699,15 +2699,15 @@ function updateAllPlacementTitles(placementId) {
                 const uniqueColors = [];
                 const seenColors = new Set();
                 
-                if (placement.colors && placement.colors.length > 0) {
+                if (placement.colors && Array.isArray(placement.colors)) {
                     placement.colors.forEach(color => {
-                        if (color.type === 'COLOR' || color.type === 'METALLIC') {
+                        if (color && (color.type === 'COLOR' || color.type === 'METALLIC') && color.val) {
                             const colorVal = color.val.toUpperCase().trim();
                             if (colorVal && !seenColors.has(colorVal)) {
                                 seenColors.add(colorVal);
                                 uniqueColors.push({
                                     val: colorVal,
-                                    screenLetter: color.screenLetter
+                                    screenLetter: color.screenLetter || ''
                                 });
                             }
                         }
@@ -2724,18 +2724,16 @@ function updateAllPlacementTitles(placementId) {
                         let colorX = margin + 10;
                         let colorsInRow = 0;
                         
-                        uniqueColors.forEach((color, idx) => {
+                        uniqueColors.forEach((color) => {
                             const colorHex = getColorHex(color.val) || '#cccccc';
                             const rgb = hexToRgb(colorHex);
                             
-                            // Cuadro de color
                             pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
                             pdf.rect(colorX, colorY, 8, 8, 'F');
                             pdf.setDrawColor(0, 0, 0);
                             pdf.setLineWidth(0.1);
                             pdf.rect(colorX, colorY, 8, 8);
                             
-                            // Texto del color
                             addText(`${color.screenLetter}: ${color.val}`, colorX + 10, colorY + 5, 7);
                             
                             colorX += 70;
@@ -2753,10 +2751,15 @@ function updateAllPlacementTitles(placementId) {
                 }
                 
                 // SECUENCIA DE IMPRESIÓN
-                const stationsData = updatePlacementStations(placement.id, true);
+                let stationsData = [];
+                try {
+                    stationsData = updatePlacementStations(placement.id, true) || [];
+                } catch (e) {
+                    console.warn('Error obteniendo stations data:', e);
+                }
                 
                 if (stationsData.length > 0) {
-                    checkPageBreak(150); // Reservar espacio para la tabla
+                    checkPageBreak(150);
                     
                     addText(`SECUENCIA DE IMPRESIÓN - ${displayType}`, margin, y, 12, true, primaryColor);
                     y += 8;
@@ -2782,42 +2785,38 @@ function updateAllPlacementTitles(placementId) {
                     y += headerHeight + 1;
                     decorativeLine(margin, y - 1, pageW - margin, y - 1, grayDark, 0.3);
                     
-                    // Filas de la tabla
                     pdf.setTextColor(0, 0, 0);
                     pdf.setFont('helvetica', 'normal');
                     pdf.setFontSize(8);
                     
                     let rowY = y;
                     stationsData.forEach((row, idx) => {
-                        // Verificar si necesitamos nueva página para la siguiente fila
                         if (rowY > pageH - 20) {
                             pdf.addPage();
                             rowY = margin;
                         }
                         
-                        // Alternar colores de fondo
                         if (idx % 2 === 0 && row.screenCombined !== 'FLASH' && row.screenCombined !== 'COOL') {
                             pdf.setFillColor(248, 248, 248);
                             pdf.rect(margin, rowY - 3, pageW - 2 * margin, 6, 'F');
                         }
                         
-                        // Dibujar línea para FLASH/COOL
                         if (row.screenCombined === 'FLASH' || row.screenCombined === 'COOL') {
                             decorativeLine(margin, rowY + 1, pageW - margin, rowY + 1, [220, 220, 220], 0.1);
                         }
                         
                         x = margin;
                         const data = [
-                            row.st, 
-                            row.screenLetter, 
-                            row.screenCombined, 
-                            row.add, 
-                            row.mesh, 
-                            row.strokes,
-                            row.angle,
-                            row.pressure,
-                            row.speed,
-                            row.duro
+                            row.st || '', 
+                            row.screenLetter || '', 
+                            row.screenCombined || '', 
+                            row.add || '', 
+                            row.mesh || '', 
+                            row.strokes || '',
+                            row.angle || '',
+                            row.pressure || '',
+                            row.speed || '',
+                            row.duro || ''
                         ];
                         
                         data.forEach((d, i) => {
@@ -2840,7 +2839,6 @@ function updateAllPlacementTitles(placementId) {
                             pdf.text(safeText, x + 2, rowY);
                             x += pdfColW[i];
                             
-                            // Resetear estilos
                             if (i === 1) pdf.setFont('helvetica', 'normal');
                             if (i === 3) {
                                 pdf.setTextColor(0, 0, 0);
@@ -2911,8 +2909,8 @@ function updateAllPlacementTitles(placementId) {
             
             addText(`Generado: ${dateStr}`, margin, footerY);
             
-            if (placements.length > 0) {
-                addText(`Total de placements: ${placements.length}`, pageW / 2, footerY, 8, false, [150, 150, 150], 'center');
+            if (placementsToExport.length > 0) {
+                addText(`Total de placements: ${placementsToExport.length}`, pageW / 2, footerY, 8, false, [150, 150, 150], 'center');
             }
             
             pdf.setFont('helvetica', 'bold');
