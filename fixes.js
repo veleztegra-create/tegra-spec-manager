@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 3. Mejorar checkForSpecialtiesInColors
     if (typeof window.checkForSpecialtiesInColors === 'function') {
         const originalCheckForSpecialties = window.checkForSpecialtiesInColors;
-        window.checkForSpecialtiesInColors = function(placementId) {
+        window.checkForSpecialtiesInColors = function checkForSpecialtiesInColors(placementId) {
             const placement = window.placements.find(p => p.id === placementId);
             if (!placement) return [];
             
