@@ -2517,370 +2517,417 @@ function updateAllPlacementTitles(placementId) {
       }
 
       async function generatePDFBlob() {
-          return new Promise(async (resolve, reject) => {
-              try {
-                  const { jsPDF } = window.jspdf;
-                  const pdf = new jsPDF('p', 'mm', 'letter');
-                  const pageW = pdf.internal.pageSize.getWidth();
-                  const pageH = pdf.internal.pageSize.getHeight();
-                  
-                  const primaryColor = [255, 82, 82];
-                  const accentColor = [255, 138, 128];
-                  const grayLight = [240, 240, 240];
-                  const grayDark = [100, 100, 100];
-                  
-                  const text = (str, x, y, size = 10, bold = false, color = [0, 0, 0], align = 'left', maxWidth = null) => {
-                      pdf.setTextColor(...color);
-                      pdf.setFontSize(size);
-                      pdf.setFont('helvetica', bold ? 'bold' : 'normal');
-                      const textStr = String(str || '');
-                      
-                      if (maxWidth) {
-                          const lines = pdf.splitTextToSize(textStr, maxWidth);
-                          pdf.text(lines, x, y, { align: align });
-                          return lines.length;
-                      } else {
-                          pdf.text(textStr, x, y, { align: align });
-                          return 1;
-                      }
-                  };
-
-                  const drawRect = (x, y, width, height, fillColor = null, strokeColor = [0, 0, 0], lineWidth = 0.2) => {
-                      if (fillColor) {
-                          pdf.setFillColor(...fillColor);
-                          pdf.rect(x, y, width, height, 'F');
-                      }
-                      pdf.setDrawColor(...strokeColor);
-                      pdf.setLineWidth(lineWidth);
-                      pdf.rect(x, y, width, height);
-                  };
-
-                  const decorativeLine = (x1, y1, x2, y2, color = grayLight, width = 0.2) => {
-                      pdf.setDrawColor(...color);
-                      pdf.setLineWidth(width);
-                      pdf.line(x1, y1, x2, y2);
-                  };
-
-                  // CABECERA - ESPACIO REDUCIDO
-                  pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                  pdf.rect(0, 0, pageW, 18, 'F'); // Reducido de 20 a 18
-                  
-                  pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(20);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text("TEGRA", 15, 16); // Ajustado
-                  
-                  pdf.setFontSize(11);
-                  pdf.text("TECHNICAL SPEC MANAGER", 15, 22); // Ajustado
-                  
-                  const folderNum = document.getElementById('folder-num').value || '#####';
-                  
-                  // FOLDER SUBIDO 3 PUNTOS
-                  pdf.setFontSize(7);
-                  pdf.text('FOLDER', pageW - 25, 15, { align: 'right' }); // Subido de 18 a 15
-                  
-                  pdf.setFontSize(16);
-                  pdf.text(`#${folderNum}`, pageW - 25, 19, { align: 'right' }); // Ajustado
-                  
-                  let y = 42; // Reducido de 45
-                  
-                  if (placements.length > 0) {
-                      drawRect(10, y, pageW - 20, 40, [250, 250, 250], grayLight);
-                      text('INFORMACIÓN GENERAL', 15, y + 8, 12, true, primaryColor);
-                      
-                      y += 5;
-                      
-                      const fields = [
-                          { l: 'CLIENTE:', v: document.getElementById('customer').value },
-                          { l: 'STYLE:', v: document.getElementById('style').value },
-                          { l: 'COLORWAY:', v: document.getElementById('colorway').value },
-                          { l: 'SEASON:', v: document.getElementById('season').value },
-                          { l: 'PATTERN #:', v: document.getElementById('pattern').value },
-                          { l: 'P.O. #:', v: document.getElementById('po').value },
-                          { l: 'SAMPLE TYPE:', v: document.getElementById('sample-type').value },
-                          { l: 'TEAM:', v: document.getElementById('name-team').value },
-                          { l: 'GENDER:', v: document.getElementById('gender').value },
-                          { l: 'DESIGNER:', v: document.getElementById('designer').value },
-                      ];
-                      
-                      let fieldY = y + 12;
-                      fields.forEach((f, i) => {
-                          const xPos = i % 2 === 0 ? 15 : 115;
-                          text(f.l, xPos, fieldY, 9, true);
-                          text(f.v || '---', xPos + 25, fieldY, 9, false);
-                          if (i % 2 !== 0) fieldY += 5;
-                      });
-                      y += 45;
-                  }
-                  
-                  placements.forEach((placement, index) => {
-                      if (index > 0) {
-                          pdf.addPage();
-                          y = 25;
-                      }
-                      
-                      const displayType = placement.type.includes('CUSTOM:') 
-                          ? placement.type.replace('CUSTOM: ', '')
-                          : placement.type;
-                      
-                      pdf.setFillColor(...primaryColor);
-                      drawRect(10, y, pageW - 20, 10, primaryColor, primaryColor, 0);
-                      text(`PLACEMENT: ${displayType}`, 15, y + 6, 11, true, [255, 255, 255]);
-                      y += 15;
-                      
-                      if (placement.imageData && placement.imageData.startsWith('data:')) {
-                          try {
-                              const imgH = 70;
-                              const imgW = 90;
-                              
-                              drawRect(15, y, imgW, imgH, [245, 245, 245], grayLight);
-                              pdf.addImage(placement.imageData, 'JPEG', 17, y + 2, imgW - 4, imgH - 4);
-                              
-                              const detailsX = 110;
-                              drawRect(detailsX, y, pageW - detailsX - 15, imgH, [250, 250, 250], grayLight);
-                              
-                              let detailY = y + 10;
-                              text('DETALLES DEL PLACEMENT', detailsX + 5, detailY, 10, true, primaryColor);
-                              detailY += 7;
-                              
-                              const details = [
-                                  `Tipo de tinta: ${placement.inkType || '---'}`,
-                                  `Dimensiones: ${placement.width || '##'}" X ${placement.height || '##'}"`,
-                                  `Ubicación: ${displayType || '---'}`,
-                                  `Placement: ${placement.placementDetails || '---'}`,
-                                  `Especialidades: ${placement.specialties || '---'}`
-                              ];
-                              
-                              details.forEach(detail => {
-                                  text(detail, detailsX + 5, detailY, 8);
-                                  detailY += 5;
-                              });
-                              
-                              y += imgH + 12;
-                          } catch (e) {
-                              console.warn('No se pudo agregar imagen al PDF:', e);
-                              y += 10;
-                          }
-                      } else {
-                          y += 10;
-                      }
-                      
-                      if (placement.colors && placement.colors.length > 0) {
-                          const uniqueColors = [];
-                          const seenColors = new Set();
-                          
-                          placement.colors.forEach(color => {
-                              if (color.type === 'COLOR' || color.type === 'METALLIC') {
-                                  const colorVal = color.val.toUpperCase().trim();
-                                  if (colorVal && !seenColors.has(colorVal)) {
-                                      seenColors.add(colorVal);
-                                      uniqueColors.push({
-                                          val: colorVal,
-                                          screenLetter: color.screenLetter
-                                      });
-                                  }
-                              }
-                          });
-                          
-                          if (uniqueColors.length > 0) {
-                              drawRect(10, y, pageW - 20, 35, [250, 250, 250], grayLight);
-                              text('COLORES Y TINTAS', 15, y + 8, 11, true, primaryColor);
-                              y += 10;
-                              
-                              let xPos = 15;
-                              let rowY = y + 10;
-                              let colorsInRow = 0;
-                              
-                              uniqueColors.forEach((color, idx) => {
-                                  const colorHex = getColorHex(color.val) || '#cccccc';
-                                  const rgb = hexToRgb(colorHex);
-                                  
-                                  const colorBoxSize = 8;
-                                  pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
-                                  pdf.rect(xPos, rowY, colorBoxSize, colorBoxSize, 'F');
-                                  pdf.setDrawColor(0, 0, 0);
-                                  pdf.setLineWidth(0.1);
-                                  pdf.rect(xPos, rowY, colorBoxSize, colorBoxSize);
-                                  
-                                  text(`${color.screenLetter}: ${color.val}`, xPos + colorBoxSize + 4, rowY + 5, 7);
-                                  
-                                  xPos += 70;
-                                  colorsInRow++;
-                                  
-                                  if (colorsInRow >= 3) {
-                                      xPos = 15;
-                                      rowY += 15;
-                                      colorsInRow = 0;
-                                  }
-                              });
-                              
-                              y += 40;
-                          } else {
-                              y += 5;
-                          }
-                      } else {
-                          y += 5;
-                      }
-                      
-                      const stationsData = updatePlacementStations(placement.id, true);
-                      
-                      if (stationsData.length > 0) {
-                          // SECUENCIA SUBIDA
-                          text(`SECUENCIA DE IMPRESIÓN - ${displayType}`, 15, y - 5, 12, true, primaryColor); // Subido 5 puntos
-                          y += 6; // Reducido espacio
-                          
-                          pdf.setFillColor(...primaryColor);
-                          drawRect(15, y, pageW - 30, 8, primaryColor, primaryColor, 0);
-                          
-                          const pdfHeaders = ['Est', 'Scr.', 'Screen (Tinta/Proceso)', 'Aditivos', 'Malla', 'Strokes', 'Angle', 'Pressure', 'Speed', 'Duro'];
-                          const pdfColW = [10, 12, 60, 55, 15, 15, 15, 15, 15, 15];
-                          let x = 15;
-                          
-                          pdf.setTextColor(255, 255, 255);
-                          pdf.setFontSize(8);
-                          pdf.setFont('helvetica', 'bold');
-                          
-                          pdfHeaders.forEach((h, i) => {
-                              pdf.text(h, x + 2, y + 5);
-                              x += pdfColW[i];
-                          });
-                          y += 9;
-                          
-                          decorativeLine(15, y - 1, pageW - 15, y - 1, grayDark, 0.3);
-                          
-                          pdf.setTextColor(0, 0, 0);
-                          pdf.setFont('helvetica', 'normal');
-                          pdf.setFontSize(8);
-                          
-                          let rowCount = 0;
-                          stationsData.forEach((row, idx) => {
-                              if (y > 240) {
-                                  pdf.addPage();
-                                  y = 25;
-                              }
-                              
-                              if (row.screenCombined !== 'FLASH' && row.screenCombined !== 'COOL') {
-                                  if (rowCount % 2 === 0) {
-                                      pdf.setFillColor(248, 248, 248);
-                                      pdf.rect(15, y - 3, pageW - 30, 6, 'F');
-                                  }
-                                  rowCount++;
-                              }
-                              
-                              if (rowCount > 0 && (row.screenCombined === 'FLASH' || row.screenCombined === 'COOL')) {
-                                  decorativeLine(15, y + 1.5, pageW - 15, y + 1.5, [240, 240, 240], 0.1);
-                              }
-                              
-                              x = 15;
-                              const data = [
-                                  row.st, 
-                                  row.screenLetter, 
-                                  row.screenCombined, 
-                                  row.add, 
-                                  row.mesh, 
-                                  row.strokes,
-                                  row.angle,
-                                  row.pressure,
-                                  row.speed,
-                                  row.duro
-                              ];
-                              
-                              data.forEach((d, i) => {
-                                  let safeText = String(d || '');
-                                  
-                                  if (i === 3 && safeText.length > 35) {
-                                      safeText = safeText.substring(0, 22) + '...';
-                                  }
-                                  
-                                  if (i === 1) {
-                                      pdf.setFont('helvetica', 'bold');
-                                      pdf.setTextColor(...primaryColor);
-                                  }
-                                  if (i === 3) {
-                                      pdf.setTextColor(...accentColor);
-                                      pdf.setFontSize(7);
-                                  }
-                                  
-                                  pdf.text(safeText, x + 2, y);
-                                  x += pdfColW[i];
-                                  
-                                  if (i === 1) pdf.setFont('helvetica', 'normal');
-                                  if (i === 3) {
-                                      pdf.setTextColor(0, 0, 0);
-                                      pdf.setFontSize(8);
-                                  }
-                              });
-                              y += 6;
-                          });
-                          
-                          y += 8;
-                          
-                          const timeTempY = y;
-                          const timeTempHeight = 22;
-                          
-                          pdf.setFillColor(245, 245, 245);
-                          drawRect(15, timeTempY, pageW - 30, timeTempHeight, [245, 245, 245], grayLight);
-                          decorativeLine(15, timeTempY, pageW - 15, timeTempY, grayDark, 0.3);
-                          
-                          text('CONDICIONES DE CURADO', 20, timeTempY + 8, 10, true, primaryColor);
-                          
-                          const temp = placement.temp || '320 °F';
-                          const time = placement.time || '1:40 min';
-                          
-                          text(`Temp: ${temp}`, 25, timeTempY + 16, 9, true);
-                          text(`Tiempo: ${time}`, 90, timeTempY + 16, 9, true);
-                          text(`Tinta: ${placement.inkType || 'WATER'}`, 150, timeTempY + 16, 9, true);
-                          
-                          y += timeTempHeight + 8;
-                      }
-                      
-                      if (placement.specialInstructions && placement.specialInstructions.trim()) {
-                          if (y > 230) {
-                              pdf.addPage();
-                              y = 25;
-                          }
-                          
-                          drawRect(15, y, pageW - 30, 30, [255, 253, 231], [255, 193, 7]);
-                          
-                          text('INSTRUCCIONES ESPECIALES:', 25, y + 8, 9, true, [255, 193, 7]);
-                          
-                          const splitText = pdf.splitTextToSize(placement.specialInstructions, pageW - 50);
-                          pdf.setFontSize(8);
-                          pdf.setTextColor(66, 66, 66);
-                          pdf.text(splitText, 25, y + 15);
-                          
-                          y += 35;
-                      }
-                      
-                      const footerY = pageH - 15;
-                      decorativeLine(15, footerY - 5, pageW - 15, footerY - 5, grayLight, 0.3);
-                      
-                      pdf.setFontSize(8);
-                      pdf.setTextColor(150, 150, 150);
-                      
-                      const dateStr = new Date().toLocaleDateString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                      });
-                      text(`Generado: ${dateStr}`, 15, footerY);
-                      text(`Placement ${index + 1} de ${placements.length}`, pageW / 2, footerY, 8, false, [150, 150, 150], 'center');
-                      pdf.setFont('helvetica', 'bold');
-                      pdf.setTextColor(...primaryColor);
-                      text('TEGRA Spec Manager', pageW - 15, footerY, 8, true, primaryColor, 'right');
-                  });
-                  
-                  const pdfBlob = pdf.output('blob');
-                  resolve(pdfBlob);
-                  
-              } catch (error) {
-                  console.error('Error al generar PDF:', error);
-                  reject(error);
-              }
-          });
-      }
+    return new Promise(async (resolve, reject) => {
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'letter');
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 15; // Márgenes uniformes
+            let y = margin; // Posición Y inicial
+            
+            const primaryColor = [255, 82, 82];
+            const accentColor = [255, 138, 128];
+            const grayLight = [240, 240, 240];
+            const grayDark = [100, 100, 100];
+            
+            // Función para verificar si necesitamos nueva página
+            const checkPageBreak = (neededHeight) => {
+                if (y + neededHeight > pageH - margin) {
+                    pdf.addPage();
+                    y = margin;
+                    return true;
+                }
+                return false;
+            };
+            
+            // Función para agregar texto con control de altura
+            const addText = (str, x, y, size = 10, bold = false, color = [0, 0, 0], align = 'left', maxWidth = null) => {
+                pdf.setTextColor(...color);
+                pdf.setFontSize(size);
+                pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+                const textStr = String(str || '');
+                
+                let lines = 1;
+                if (maxWidth) {
+                    const splitLines = pdf.splitTextToSize(textStr, maxWidth);
+                    pdf.text(splitLines, x, y, { align: align });
+                    lines = splitLines.length;
+                } else {
+                    pdf.text(textStr, x, y, { align: align });
+                }
+                
+                return lines * (size * 0.35); // Retorna altura aproximada usada
+            };
+            
+            // Función para dibujar rectángulo
+            const drawRect = (x, y, width, height, fillColor = null, strokeColor = [0, 0, 0], lineWidth = 0.2) => {
+                if (fillColor) {
+                    pdf.setFillColor(...fillColor);
+                    pdf.rect(x, y, width, height, 'F');
+                }
+                pdf.setDrawColor(...strokeColor);
+                pdf.setLineWidth(lineWidth);
+                pdf.rect(x, y, width, height);
+                return height;
+            };
+            
+            // Función para línea decorativa
+            const decorativeLine = (x1, y1, x2, y2, color = grayLight, width = 0.2) => {
+                pdf.setDrawColor(...color);
+                pdf.setLineWidth(width);
+                pdf.line(x1, y1, x2, y2);
+            };
+            
+            // ===== CABECERA =====
+            pdf.setFillColor(...primaryColor);
+            const headerHeight = 20;
+            drawRect(0, 0, pageW, headerHeight, primaryColor);
+            
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(20);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("TEGRA", margin, 14);
+            
+            pdf.setFontSize(11);
+            pdf.text("TECHNICAL SPEC MANAGER", margin, 20);
+            
+            // Número de folder
+            const folderNum = document.getElementById('folder-num').value || '#####';
+            pdf.setFontSize(8);
+            pdf.text('FOLDER', pageW - margin, 14, { align: 'right' });
+            pdf.setFontSize(16);
+            pdf.text(`#${folderNum}`, pageW - margin, 20, { align: 'right' });
+            
+            y = 30; // Espacio después del header
+            
+            // ===== INFORMACIÓN GENERAL =====
+            checkPageBreak(45);
+            const infoHeight = 45;
+            drawRect(margin, y, pageW - 2 * margin, infoHeight, [250, 250, 250], grayLight);
+            addText('INFORMACIÓN GENERAL', margin + 5, y + 8, 12, true, primaryColor);
+            
+            const generalData = [
+                { label: 'CLIENTE:', value: document.getElementById('customer').value || '---' },
+                { label: 'STYLE:', value: document.getElementById('style').value || '---' },
+                { label: 'COLORWAY:', value: document.getElementById('colorway').value || '---' },
+                { label: 'SEASON:', value: document.getElementById('season').value || '---' },
+                { label: 'PATTERN #:', value: document.getElementById('pattern').value || '---' },
+                { label: 'P.O. #:', value: document.getElementById('po').value || '---' },
+                { label: 'SAMPLE TYPE:', value: document.getElementById('sample-type').value || '---' },
+                { label: 'TEAM:', value: document.getElementById('name-team').value || '---' },
+                { label: 'GENDER:', value: document.getElementById('gender').value || '---' },
+                { label: 'DESIGNER:', value: document.getElementById('designer').value || '---' }
+            ];
+            
+            let infoY = y + 15;
+            generalData.forEach((item, i) => {
+                const xPos = i % 2 === 0 ? margin + 10 : margin + 110;
+                addText(item.label, xPos, infoY, 9, true);
+                addText(item.value, xPos + 25, infoY, 9, false);
+                if (i % 2 !== 0) infoY += 6;
+            });
+            
+            y += infoHeight + 10;
+            
+            // ===== PLACEMENTS =====
+            for (let pIndex = 0; pIndex < placements.length; pIndex++) {
+                const placement = placements[pIndex];
+                
+                if (pIndex > 0) {
+                    pdf.addPage();
+                    y = margin;
+                }
+                
+                const displayType = placement.type.includes('CUSTOM:') 
+                    ? placement.type.replace('CUSTOM: ', '')
+                    : placement.type;
+                
+                // Header del placement
+                checkPageBreak(15);
+                pdf.setFillColor(...primaryColor);
+                drawRect(margin, y, pageW - 2 * margin, 10, primaryColor, primaryColor, 0);
+                addText(`PLACEMENT: ${displayType}`, margin + 5, y + 6, 11, true, [255, 255, 255]);
+                y += 15;
+                
+                // Imagen del placement (si existe)
+                if (placement.imageData && placement.imageData.startsWith('data:')) {
+                    try {
+                        checkPageBreak(75); // Altura para imagen + márgenes
+                        
+                        const imgHeight = 70;
+                        const imgWidth = 90;
+                        
+                        drawRect(margin + 5, y, imgWidth, imgHeight, [245, 245, 245], grayLight);
+                        
+                        // Intentar cargar la imagen con dimensiones adecuadas
+                        pdf.addImage(placement.imageData, 'JPEG', margin + 7, y + 2, imgWidth - 4, imgHeight - 4);
+                        
+                        // Detalles junto a la imagen
+                        const detailsX = margin + imgWidth + 15;
+                        const detailsWidth = pageW - detailsX - margin;
+                        
+                        drawRect(detailsX, y, detailsWidth, imgHeight, [250, 250, 250], grayLight);
+                        
+                        let detailY = y + 10;
+                        addText('DETALLES DEL PLACEMENT', detailsX + 5, detailY, 10, true, primaryColor);
+                        detailY += 8;
+                        
+                        const details = [
+                            `Tipo de tinta: ${placement.inkType || '---'}`,
+                            `Dimensiones: ${placement.width || '##'}" X ${placement.height || '##'}"`,
+                            `Ubicación: ${displayType || '---'}`,
+                            `Placement: ${placement.placementDetails || '---'}`,
+                            `Especialidades: ${placement.specialties || '---'}`
+                        ];
+                        
+                        details.forEach(detail => {
+                            addText(detail, detailsX + 5, detailY, 8);
+                            detailY += 5;
+                        });
+                        
+                        y += imgHeight + 12;
+                    } catch (e) {
+                        console.warn('No se pudo agregar imagen al PDF:', e);
+                        y += 10;
+                    }
+                } else {
+                    y += 5;
+                }
+                
+                // Colores del placement
+                const uniqueColors = [];
+                const seenColors = new Set();
+                
+                if (placement.colors && placement.colors.length > 0) {
+                    placement.colors.forEach(color => {
+                        if (color.type === 'COLOR' || color.type === 'METALLIC') {
+                            const colorVal = color.val.toUpperCase().trim();
+                            if (colorVal && !seenColors.has(colorVal)) {
+                                seenColors.add(colorVal);
+                                uniqueColors.push({
+                                    val: colorVal,
+                                    screenLetter: color.screenLetter
+                                });
+                            }
+                        }
+                    });
+                    
+                    if (uniqueColors.length > 0) {
+                        checkPageBreak(40);
+                        
+                        const colorsHeight = 40;
+                        drawRect(margin, y, pageW - 2 * margin, colorsHeight, [250, 250, 250], grayLight);
+                        addText('COLORES Y TINTAS', margin + 5, y + 8, 11, true, primaryColor);
+                        
+                        let colorY = y + 15;
+                        let colorX = margin + 10;
+                        let colorsInRow = 0;
+                        
+                        uniqueColors.forEach((color, idx) => {
+                            const colorHex = getColorHex(color.val) || '#cccccc';
+                            const rgb = hexToRgb(colorHex);
+                            
+                            // Cuadro de color
+                            pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
+                            pdf.rect(colorX, colorY, 8, 8, 'F');
+                            pdf.setDrawColor(0, 0, 0);
+                            pdf.setLineWidth(0.1);
+                            pdf.rect(colorX, colorY, 8, 8);
+                            
+                            // Texto del color
+                            addText(`${color.screenLetter}: ${color.val}`, colorX + 10, colorY + 5, 7);
+                            
+                            colorX += 70;
+                            colorsInRow++;
+                            
+                            if (colorsInRow >= 3 || colorX > pageW - 70) {
+                                colorX = margin + 10;
+                                colorY += 15;
+                                colorsInRow = 0;
+                            }
+                        });
+                        
+                        y += colorsHeight + 10;
+                    }
+                }
+                
+                // SECUENCIA DE IMPRESIÓN
+                const stationsData = updatePlacementStations(placement.id, true);
+                
+                if (stationsData.length > 0) {
+                    checkPageBreak(150); // Reservar espacio para la tabla
+                    
+                    addText(`SECUENCIA DE IMPRESIÓN - ${displayType}`, margin, y, 12, true, primaryColor);
+                    y += 8;
+                    
+                    // Header de la tabla
+                    pdf.setFillColor(...primaryColor);
+                    const headerHeight = 8;
+                    drawRect(margin, y, pageW - 2 * margin, headerHeight, primaryColor, primaryColor, 0);
+                    
+                    const pdfHeaders = ['Est', 'Scr.', 'Screen (Tinta/Proceso)', 'Aditivos', 'Malla', 'Strokes', 'Angle', 'Pressure', 'Speed', 'Duro'];
+                    const pdfColW = [10, 12, 60, 55, 15, 15, 15, 15, 15, 15];
+                    let x = margin;
+                    
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFontSize(8);
+                    pdf.setFont('helvetica', 'bold');
+                    
+                    pdfHeaders.forEach((h, i) => {
+                        pdf.text(h, x + 2, y + 5);
+                        x += pdfColW[i];
+                    });
+                    
+                    y += headerHeight + 1;
+                    decorativeLine(margin, y - 1, pageW - margin, y - 1, grayDark, 0.3);
+                    
+                    // Filas de la tabla
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(8);
+                    
+                    let rowY = y;
+                    stationsData.forEach((row, idx) => {
+                        // Verificar si necesitamos nueva página para la siguiente fila
+                        if (rowY > pageH - 20) {
+                            pdf.addPage();
+                            rowY = margin;
+                        }
+                        
+                        // Alternar colores de fondo
+                        if (idx % 2 === 0 && row.screenCombined !== 'FLASH' && row.screenCombined !== 'COOL') {
+                            pdf.setFillColor(248, 248, 248);
+                            pdf.rect(margin, rowY - 3, pageW - 2 * margin, 6, 'F');
+                        }
+                        
+                        // Dibujar línea para FLASH/COOL
+                        if (row.screenCombined === 'FLASH' || row.screenCombined === 'COOL') {
+                            decorativeLine(margin, rowY + 1, pageW - margin, rowY + 1, [220, 220, 220], 0.1);
+                        }
+                        
+                        x = margin;
+                        const data = [
+                            row.st, 
+                            row.screenLetter, 
+                            row.screenCombined, 
+                            row.add, 
+                            row.mesh, 
+                            row.strokes,
+                            row.angle,
+                            row.pressure,
+                            row.speed,
+                            row.duro
+                        ];
+                        
+                        data.forEach((d, i) => {
+                            let safeText = String(d || '');
+                            
+                            if (i === 3 && safeText.length > 35) {
+                                safeText = safeText.substring(0, 22) + '...';
+                            }
+                            
+                            if (i === 1) {
+                                pdf.setFont('helvetica', 'bold');
+                                pdf.setTextColor(...primaryColor);
+                            }
+                            
+                            if (i === 3) {
+                                pdf.setTextColor(...accentColor);
+                                pdf.setFontSize(7);
+                            }
+                            
+                            pdf.text(safeText, x + 2, rowY);
+                            x += pdfColW[i];
+                            
+                            // Resetear estilos
+                            if (i === 1) pdf.setFont('helvetica', 'normal');
+                            if (i === 3) {
+                                pdf.setTextColor(0, 0, 0);
+                                pdf.setFontSize(8);
+                            }
+                        });
+                        
+                        rowY += 6;
+                    });
+                    
+                    y = rowY + 8;
+                }
+                
+                // CONDICIONES DE CURADO
+                checkPageBreak(25);
+                
+                const cureHeight = 25;
+                pdf.setFillColor(245, 245, 245);
+                drawRect(margin, y, pageW - 2 * margin, cureHeight, [245, 245, 245], grayLight);
+                decorativeLine(margin, y, pageW - margin, y, grayDark, 0.3);
+                
+                addText('CONDICIONES DE CURADO', margin + 5, y + 8, 10, true, primaryColor);
+                
+                const temp = placement.temp || '320 °F';
+                const time = placement.time || '1:40 min';
+                
+                addText(`Temp: ${temp}`, margin + 10, y + 16, 9, true);
+                addText(`Tiempo: ${time}`, margin + 50, y + 16, 9, true);
+                addText(`Tinta: ${placement.inkType || 'WATER'}`, margin + 100, y + 16, 9, true);
+                
+                y += cureHeight + 10;
+                
+                // INSTRUCCIONES ESPECIALES
+                if (placement.specialInstructions && placement.specialInstructions.trim()) {
+                    checkPageBreak(35);
+                    
+                    const instructionsHeight = 35;
+                    pdf.setFillColor(255, 253, 231);
+                    drawRect(margin, y, pageW - 2 * margin, instructionsHeight, [255, 253, 231], [255, 193, 7]);
+                    
+                    addText('INSTRUCCIONES ESPECIALES:', margin + 5, y + 8, 9, true, [255, 193, 7]);
+                    
+                    const instructions = placement.specialInstructions;
+                    const splitText = pdf.splitTextToSize(instructions, pageW - 2 * margin - 10);
+                    
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(66, 66, 66);
+                    pdf.text(splitText, margin + 5, y + 15);
+                    
+                    y += instructionsHeight + 10;
+                }
+            }
+            
+            // FOOTER FINAL
+            const footerY = pageH - 15;
+            decorativeLine(margin, footerY - 5, pageW - margin, footerY - 5, grayLight, 0.3);
+            
+            pdf.setFontSize(8);
+            pdf.setTextColor(150, 150, 150);
+            
+            const dateStr = new Date().toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            addText(`Generado: ${dateStr}`, margin, footerY);
+            
+            if (placements.length > 0) {
+                addText(`Total de placements: ${placements.length}`, pageW / 2, footerY, 8, false, [150, 150, 150], 'center');
+            }
+            
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(...primaryColor);
+            pdf.text('TEGRA Spec Manager', pageW - margin, footerY, 8, true, primaryColor, 'right');
+            
+            const pdfBlob = pdf.output('blob');
+            resolve(pdfBlob);
+            
+        } catch (error) {
+            console.error('Error al generar PDF:', error);
+            reject(error);
+        }
+    });
+}
 
       function exportToExcel() {
           try {
