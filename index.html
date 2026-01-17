@@ -345,12 +345,12 @@
 
   <!-- JavaScript principal con todas las correcciones -->
   <script>
-      // ========== VARIABLES GLOBALES ==========
-      const stateManager = new StateManager();
-      let placements = [];
-      let currentPlacementId = 1;
-      let clientLogoCache = {};
-      let isDarkMode = true;
+     // ========== VARIABLES GLOBALES ==========
+const stateManager = new StateManager();
+window.placements = [];  // Variable global
+let currentPlacementId = 1;
+let clientLogoCache = {};
+let isDarkMode = true;
 
       // ========== FUNCIONES AUXILIARES ==========
       function stringToHash(str) {
@@ -527,68 +527,67 @@
           }
       }
 
-      // ========== FUNCIONES PARA MÚLTIPLES PLACEMENTS ==========
-      function initializePlacements() {
-          const firstPlacementId = addNewPlacement('FRONT', true);
-          
-          if (placements.length > 0) {
-              renderPlacementHTML(placements[0]);
-          }
-          
-          updatePlacementsTabs();
-          showPlacement(firstPlacementId);
-      }
+    // ========== FUNCIONES PARA MÚLTIPLES PLACEMENTS ==========
+function initializePlacements() {
+    const firstPlacementId = addNewPlacement('FRONT', true);
+    
+    if (window.placements.length > 0) {
+        renderPlacementHTML(window.placements[0]);
+    }
+    
+    updatePlacementsTabs();
+    showPlacement(firstPlacementId);
+}
 
-      function addNewPlacement(type = null, isFirst = false) {
-          const placementId = isFirst ? 1 : Date.now();
-          const placementType = type || getNextPlacementType();
-          
-          const preset = Utils ? Utils.getInkPreset('WATER') : {
-              temp: '320 °F', 
-              time: '1:40 min',
-              blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-              white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-              color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
-          };
-          
-          const newPlacement = {
-              id: placementId,
-              type: placementType,
-              name: placementType, // Solo el tipo, sin "Placement -"
-              imageData: null,
-              colors: [],
-              placementDetails: '#.#" FROM COLLAR SEAM',
-              dimensions: 'SIZE: (W) ##" X (H) ##"',
-              temp: preset.temp,
-              time: preset.time,
-              specialties: '',
-              specialInstructions: '',
-              inkType: 'WATER',
-              placementSelect: 'FRONT',
-              isActive: true,
-              // Parámetros de impresión
-              meshColor: preset.color.mesh,
-              meshWhite: preset.white.mesh1,
-              meshBlocker: preset.blocker.mesh1,
-              durometer: preset.color.durometer,
-              strokes: preset.color.strokes,
-              angle: preset.color.angle,
-              pressure: preset.color.pressure,
-              speed: preset.color.speed,
-              additives: preset.color.additives,
-              width: '',
-              height: ''
-          };
-          
-          if (!isFirst) {
-              placements.push(newPlacement);
-          } else {
-              placements = [newPlacement];
-          }
-          
-          if (!isFirst) {
-              renderPlacementHTML(newPlacement);
-              showPlacement(placementId);
+function addNewPlacement(type = null, isFirst = false) {
+    const placementId = isFirst ? 1 : Date.now();
+    const placementType = type || getNextPlacementType();
+    
+    const preset = Utils ? Utils.getInkPreset('WATER') : {
+        temp: '320 °F', 
+        time: '1:40 min',
+        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+    };
+    
+    const newPlacement = {
+        id: placementId,
+        type: placementType,
+        name: placementType,
+        imageData: null,
+        colors: [],
+        placementDetails: '#.#" FROM COLLAR SEAM',
+        dimensions: 'SIZE: (W) ##" X (H) ##"',
+        temp: preset.temp,
+        time: preset.time,
+        specialties: '',
+        specialInstructions: '',
+        inkType: 'WATER',
+        placementSelect: 'FRONT',
+        isActive: true,
+        meshColor: preset.color.mesh,
+        meshWhite: preset.white.mesh1,
+        meshBlocker: preset.blocker.mesh1,
+        durometer: preset.color.durometer,
+        strokes: preset.color.strokes,
+        angle: preset.color.angle,
+        pressure: preset.color.pressure,
+        speed: preset.color.speed,
+        additives: preset.color.additives,
+        width: '',
+        height: ''
+    };
+    
+    if (!isFirst) {
+        window.placements.push(newPlacement);
+    } else {
+        window.placements = [newPlacement];
+    }
+    
+    if (!isFirst) {
+        renderPlacementHTML(newPlacement);
+        showPlacement(placementId);
               updatePlacementsTabs();
           }
           
