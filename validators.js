@@ -188,7 +188,60 @@ class Validators {
             isValid: true
         };
     }
+    
+    static validateDate(dateString) {
+        if (!dateString) return { isValid: true };
+        
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return {
+                isValid: false,
+                error: 'Fecha inválida'
+            };
+        }
+        
+        return {
+            isValid: true
+        };
+    }
+    
+    static validateNumeric(value, min = 0, max = null) {
+        if (value === undefined || value === null || value === '') {
+            return {
+                isValid: false,
+                error: 'Valor requerido'
+            };
+        }
+        
+        const num = parseFloat(value);
+        if (isNaN(num)) {
+            return {
+                isValid: false,
+                error: 'Debe ser un número'
+            };
+        }
+        
+        if (num < min) {
+            return {
+                isValid: false,
+                error: `Debe ser mayor o igual a ${min}`
+            };
+        }
+        
+        if (max !== null && num > max) {
+            return {
+                isValid: false,
+                error: `Debe ser menor o igual a ${max}`
+            };
+        }
+        
+        return {
+            isValid: true
+        };
+    }
 }
 
 // Hacer disponible globalmente
-window.Validators = Validators;
+if (typeof window !== 'undefined') {
+    window.Validators = Validators;
+}
