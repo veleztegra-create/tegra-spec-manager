@@ -1,6 +1,5 @@
 // config-teams-unified.js - VERSIÓN COMPLETA CON COLORES UNI/ALT/COLOR RUSH
 const TeamsConfig = {
-    NCAA: {
         teams: {
             "ALA": { "name": "Alabama Crimson Tide" },
             "ARI": { "name": "Arizona Wildcats" },
