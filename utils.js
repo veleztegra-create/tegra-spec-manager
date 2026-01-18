@@ -1,4 +1,4 @@
-// utils.js - Utilidades generales CORREGIDO Y COMPLETO
+// utils.js - Versión corregida sin errores de sintaxis
 const Utils = {
     // Debounce para mejorar rendimiento
     debounce: function(func, wait, immediate = false) {
@@ -245,87 +245,27 @@ const Utils = {
         return `hsl(${hue}, 70%, 60%)`;
     },
     
-    // ========== FUNCIÓN MEJORADA detectTeamFromStyle ==========
+    // DETECCIÓN DE EQUIPO - VERSIÓN SIMPLIFICADA
     detectTeamFromStyle: function(style) {
         if (!style) return '';
         
         const styleStr = style.toString().toUpperCase().trim();
         console.log('🔍 Detectando equipo para estilo:', styleStr);
         
-        // 1. Buscar en Gear for Sport primero (coincidencia exacta)
-        if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
-            console.log('Buscando en GEARFORSPORT_TEAM_MAP...');
-            for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
-                // Coincidencia exacta o parcial
-                if (styleStr === code || styleStr.includes(code)) {
-                    console.log(`✓ Encontrado en GEARFORSPORT_TEAM_MAP: ${code} -> ${teamName}`);
-                    return teamName;
-                }
-            }
-        }
-        
-        // 2. Buscar en códigos de equipo generales (TEAM_CODE_MAP)
-        if (window.Config && window.Config.TEAM_CODE_MAP) {
-            console.log('Buscando en TEAM_CODE_MAP...');
-            for (const [code, teamName] of Object.entries(window.Config.TEAM_CODE_MAP)) {
-                // Buscar el código en el estilo
+        // Buscar en mapa simple de equipos
+        if (window.TeamMap) {
+            for (const [code, teamName] of Object.entries(window.TeamMap)) {
                 if (styleStr.includes(code)) {
-                    console.log(`✓ Encontrado en TEAM_CODE_MAP: ${code} -> ${teamName}`);
+                    console.log(`✓ Equipo encontrado: ${code} -> ${teamName}`);
                     return teamName;
                 }
             }
         }
         
-        // 3. Buscar directamente en TeamsConfig (NCAA, NBA, NFL)
-        if (window.TeamsConfig) {
-            console.log('Buscando en TeamsConfig...');
-            const leagues = ['NCAA', 'NBA', 'NFL'];
-            
-            for (const league of leagues) {
-                if (window.TeamsConfig[league] && window.TeamsConfig[league].teams) {
-                    for (const [code, teamData] of Object.entries(window.TeamsConfig[league].teams)) {
-                        // Buscar por código (ej: "WIS" en "UM9111-PWI0")
-                        if (styleStr.includes(code)) {
-                            console.log(`✓ Encontrado en TeamsConfig.${league}: ${code} -> ${teamData.name}`);
-                            return teamData.name;
-                        }
-                        
-                        // También buscar por nombre del equipo (palabras clave)
-                        const teamNameUpper = teamData.name.toUpperCase();
-                        const teamWords = teamNameUpper.split(' ');
-                        
-                        // Verificar si alguna palabra del nombre del equipo está en el estilo
-                        for (const word of teamWords) {
-                            if (word.length > 3 && styleStr.includes(word)) {
-                                console.log(`✓ Encontrado por palabra clave en ${league}: ${word} -> ${teamData.name}`);
-                                return teamData.name;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 4. Si no se encuentra, intentar extraer del estilo usando patrones comunes
-        console.log('Intentando extraer con patrones...');
-        
-        // Patrón para Gear for Sport: UM9111-PWI0 -> "PWI0" podría contener "WIS"
-        const patternMatch = styleStr.match(/[_-]([A-Z]{2,4}\d*)/);
-        if (patternMatch && patternMatch[1]) {
-            const potentialCode = patternMatch[1].substring(0, 3); // Tomar primeros 3 caracteres
-            
-            // Buscar este código en TEAM_CODE_MAP
-            if (window.Config && window.Config.TEAM_CODE_MAP[potentialCode]) {
-                console.log(`✓ Encontrado por patrón: ${potentialCode} -> ${window.Config.TEAM_CODE_MAP[potentialCode]}`);
-                return window.Config.TEAM_CODE_MAP[potentialCode];
-            }
-        }
-        
-        console.log('❌ No se detectó equipo para:', styleStr);
         return '';
     },
     
-    // ========== FUNCIÓN MEJORADA extractGenderFromStyle ==========
+    // DETECCIÓN DE GÉNERO - VERSIÓN SIMPLIFICADA
     extractGenderFromStyle: function(style) {
         if (!style) return '';
         
@@ -342,12 +282,9 @@ const Utils = {
             if (window.Config && window.Config.GEARFORSPORT_GENDER_MAP) {
                 const fullCode = `U${genderCode}`;
                 if (window.Config.GEARFORSPORT_GENDER_MAP[fullCode]) {
-                    console.log(`✓ Género encontrado en GEARFORSPORT_GENDER_MAP: ${fullCode} -> ${window.Config.GEARFORSPORT_GENDER_MAP[fullCode]}`);
                     return window.Config.GEARFORSPORT_GENDER_MAP[fullCode];
                 }
-                // También probar con solo la letra
                 if (window.Config.GEARFORSPORT_GENDER_MAP[genderCode]) {
-                    console.log(`✓ Género encontrado en GEARFORSPORT_GENDER_MAP: ${genderCode} -> ${window.Config.GEARFORSPORT_GENDER_MAP[genderCode]}`);
                     return window.Config.GEARFORSPORT_GENDER_MAP[genderCode];
                 }
             }
@@ -359,175 +296,91 @@ const Utils = {
         if (window.Config && window.Config.GENDER_MAP) {
             for (const part of parts) {
                 if (window.Config.GENDER_MAP[part]) {
-                    console.log(`✓ Género encontrado en GENDER_MAP: ${part} -> ${window.Config.GENDER_MAP[part]}`);
                     return window.Config.GENDER_MAP[part];
                 }
             }
         }
         
-        // Verificar combinaciones comunes
-        if (styleStr.includes(' MEN') || styleStr.includes('_M') || styleStr.endsWith('M')) {
-            console.log('✓ Género detectado por patrón: Men');
-            return 'Men';
-        }
-        if (styleStr.includes(' WOMEN') || styleStr.includes('_W') || styleStr.endsWith('W')) {
-            console.log('✓ Género detectado por patrón: Women');
-            return 'Women';
-        }
-        if (styleStr.includes(' YOUTH') || styleStr.includes('_Y') || styleStr.endsWith('Y')) {
-            console.log('✓ Género detectado por patrón: Youth');
-            return 'Youth';
-        }
-        if (styleStr.includes(' KIDS') || styleStr.includes('_K') || styleStr.endsWith('K')) {
-            console.log('✓ Género detectado por patrón: Kids');
-            return 'Kids';
-        }
-        if (styleStr.includes(' UNISEX') || styleStr.includes('_U') || styleStr.endsWith('U')) {
-            console.log('✓ Género detectado por patrón: Unisex');
-            return 'Unisex';
-        }
-        if (styleStr.includes(' BOYS') || styleStr.includes('_B') || styleStr.endsWith('B')) {
-            console.log('✓ Género detectado por patrón: Boys');
-            return 'Boys';
-        }
-        if (styleStr.includes(' GIRLS') || styleStr.includes('_G') || styleStr.endsWith('G')) {
-            console.log('✓ Género detectado por patrón: Girls');
-            return 'Girls';
-        }
-        
-        console.log('❌ No se detectó género para:', styleStr);
         return '';
     },
     
-    // Normalizar color Gear for Sport
-    normalizeGearForSportColor: function(colorName) {
-        if (!colorName) return colorName;
+    // OBTENER HEX DE COLOR - VERSIÓN SIMPLIFICADA
+    getColorHex: function(colorName) {
+        if (!colorName) return null;
         
-        const upperColor = colorName.toUpperCase().trim();
+        const name = colorName.toUpperCase().trim();
+        console.log('🎨 Buscando color:', name);
         
-        if (window.Config && window.Config.COLOR_DATABASES && window.Config.COLOR_DATABASES.GEARFORSPORT) {
-            for (const [key, data] of Object.entries(window.Config.COLOR_DATABASES.GEARFORSPORT)) {
-                const keyUpper = key.toUpperCase();
-                
-                // Coincidencia exacta
-                if (upperColor === keyUpper) {
-                    return key;
-                }
-                
-                // Coincidencia parcial
-                if (keyUpper.includes(upperColor) || upperColor.includes(keyUpper)) {
-                    return key;
-                }
-                
-                // Coincidencia con número
-                const numberMatch = upperColor.match(/(\d{3,4})/);
-                if (numberMatch) {
-                    const number = numberMatch[1];
-                    if (keyUpper.includes(number)) {
-                        return key;
-                    }
+        // 1. Buscar en base de datos de colores simplificada
+        if (window.ColorDatabase && window.ColorDatabase.institutional) {
+            for (const [key, data] of Object.entries(window.ColorDatabase.institutional)) {
+                if (name === key || name.includes(key)) {
+                    console.log('✓ Color encontrado:', key, '->', data.hex);
+                    return data.hex;
                 }
             }
         }
         
-        return colorName;
-    },
-    
-    // Obtener hex de color
-    // Reemplazar la función getColorHex con esta versión simplificada:
-getColorHex: function(colorName) {
-    if (!colorName) return null;
-    
-    const name = colorName.toUpperCase().trim();
-    console.log('🎨 Buscando color:', name);
-    
-    // 1. Buscar en base de datos de colores
-    if (window.ColorDatabase) {
-        // Buscar en colores institucionales
-        for (const [key, data] of Object.entries(window.ColorDatabase.institutional)) {
-            if (name === key || name.includes(key)) {
-                console.log('✓ Color encontrado en institutional:', key, '->', data.hex);
-                return data.hex;
-            }
-        }
-        
-        // Buscar en metálicos
-        for (const [key, data] of Object.entries(window.ColorDatabase.metallic)) {
-            if (name === key || name.includes(key)) {
-                console.log('✓ Color encontrado en metallic:', key, '->', data.hex);
-                return data.hex;
-            }
-        }
-    }
-    
-    // 2. Buscar código hex directo
-    const hexMatch = name.match(/#([0-9A-F]{6})/i);
-    if (hexMatch) {
-        const hex = `#${hexMatch[1]}`;
-        console.log('✓ Código hex directo encontrado:', hex);
-        return hex;
-    }
-    
-    // 3. Fallback para colores básicos si no hay base de datos
-    const basicColors = {
-        'WHITE': '#FFFFFF',
-        'BLACK': '#000000',
-        'RED': '#FF0000',
-        'BLUE': '#0000FF',
-        'GREEN': '#00FF00',
-        'YELLOW': '#FFFF00',
-        'ORANGE': '#FFA500',
-        'PURPLE': '#800080',
-        'PINK': '#FFC0CB',
-        'BROWN': '#A52A2A',
-        'GRAY': '#808080',
-        'GREY': '#808080',
-        'SILVER': '#C0C0C0',
-        'GOLD': '#FFD700',
-        'BRONZE': '#CD7F32',
-        'NAVY': '#001F3F',
-        'MAROON': '#800000',
-        'TEAL': '#008080',
-        'LIME': '#00FF00',
-        'INDIGO': '#4B0082',
-        'VIOLET': '#EE82EE',
-        'TURQUOISE': '#40E0D0',
-        'MAGENTA': '#FF00FF',
-        'CYAN': '#00FFFF'
-    };
-    
-    if (basicColors[name]) {
-        console.log('✓ Color básico encontrado:', name, '->', basicColors[name]);
-        return basicColors[name];
-    }
-    
-    console.log('❌ Color no encontrado:', name);
-    return null;
-}
-        // Buscar código hex directo
+        // 2. Buscar código hex directo
         const hexMatch = name.match(/#([0-9A-F]{6})/i);
         if (hexMatch) {
-            return `#${hexMatch[1]}`;
+            const hex = `#${hexMatch[1]}`;
+            console.log('✓ Código hex directo encontrado:', hex);
+            return hex;
         }
         
+        // 3. Fallback para colores básicos
+        const basicColors = {
+            'WHITE': '#FFFFFF',
+            'BLACK': '#000000',
+            'RED': '#FF0000',
+            'BLUE': '#0000FF',
+            'GREEN': '#00FF00',
+            'YELLOW': '#FFFF00',
+            'ORANGE': '#FFA500',
+            'PURPLE': '#800080',
+            'PINK': '#FFC0CB',
+            'BROWN': '#A52A2A',
+            'GRAY': '#808080',
+            'GREY': '#808080',
+            'SILVER': '#C0C0C0',
+            'GOLD': '#FFD700',
+            'BRONZE': '#CD7F32',
+            'NAVY': '#001F3F',
+            'MAROON': '#800000',
+            'TEAL': '#008080',
+            'LIME': '#00FF00',
+            'INDIGO': '#4B0082',
+            'VIOLET': '#EE82EE',
+            'TURQUOISE': '#40E0D0',
+            'MAGENTA': '#FF00FF',
+            'CYAN': '#00FFFF'
+        };
+        
+        if (basicColors[name]) {
+            console.log('✓ Color básico encontrado:', name, '->', basicColors[name]);
+            return basicColors[name];
+        }
+        
+        console.log('❌ Color no encontrado:', name);
         return null;
     },
     
-    // Verificar si es color metálico
+    // VERIFICAR SI ES COLOR METÁLICO
     isMetallicColor: function(colorName) {
         if (!colorName) return false;
         
         const upperColor = colorName.toUpperCase();
         
-        // Detectar códigos Pantone metálicos (871C-877C)
+        // Códigos Pantone metálicos
         if (upperColor.match(/(8[7-9][0-9]\s*C?)/i)) {
             return true;
         }
         
-        // Detectar palabras clave metálicas
-        const metallicCodes = (window.Config && window.Config.METALLIC_CODES) || [
-            "871C", "872C", "873C", "874C", "875C", "876C", "877C",
-            "METALLIC", "GOLD", "SILVER", "BRONZE", "METÁLICO", "METALIC"
+        // Palabras clave metálicas
+        const metallicCodes = [
+            "METALLIC", "GOLD", "SILVER", "BRONZE", "COPPER",
+            "METÁLICO", "METALIC"
         ];
         
         for (const metallicCode of metallicCodes) {
@@ -539,107 +392,13 @@ getColorHex: function(colorName) {
         return false;
     },
     
-    // Verificar si es FOIL
-    isFoilColor: function(colorName) {
-        if (!colorName) return false;
-        return colorName.toUpperCase().includes('FOIL');
-    },
-    
-    // Verificar si es HIGH DENSITY
-    isHighDensityColor: function(colorName) {
-        if (!colorName) return false;
-        const upperColor = colorName.toUpperCase();
-        return upperColor.includes('HD') || upperColor.includes('HIGH DENSITY');
-    },
-    
-    // Detectar todas las especialidades
-    detectSpecialties: function(colorName) {
-        const specialties = [];
-        
-        if (this.isMetallicColor(colorName)) {
-            specialties.push('METALLIC');
-        }
-        if (this.isFoilColor(colorName)) {
-            specialties.push('FOIL');
-        }
-        if (this.isHighDensityColor(colorName)) {
-            specialties.push('HIGH DENSITY');
-        }
-        
-        return specialties;
-    },
-    
-    // Obtener logo del cliente
-    getClientLogo: function(customerName) {
-        if (!customerName) return null;
-        
-        const upperCustomer = customerName.toUpperCase();
-        
-        const logoMap = {
-            'NIKE': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png',
-            'FANATICS': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png',
-            'ADIDAS': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png',
-            'PUMA': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png',
-            'UNDER ARMOUR': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png',
-            'UA': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png',
-            'GEAR FOR SPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
-            'GEARFORSPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
-            'GFS': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
-            'G.F.S.': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
-            'GEAR': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png'
-        };
-        
-        for (const [key, logoUrl] of Object.entries(logoMap)) {
-            if (upperCustomer.includes(key)) {
-                return logoUrl;
-            }
-        }
-        
-        return null;
-    },
-    
-    // Delay/pausa
-    delay: function(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    },
-    
-    // Filtrar objetos duplicados por propiedad
-    removeDuplicates: function(array, property) {
-        const seen = new Set();
-        return array.filter(item => {
-            const value = item[property];
-            if (seen.has(value)) {
-                return false;
-            }
-            seen.add(value);
-            return true;
-        });
-    },
-    
-    // Ordenar array por propiedad
-    sortBy: function(array, property, ascending = true) {
-        return [...array].sort((a, b) => {
-            let aValue = a[property];
-            let bValue = b[property];
-            
-            // Convertir a string si es necesario
-            if (typeof aValue === 'string') aValue = aValue.toLowerCase();
-            if (typeof bValue === 'string') bValue = bValue.toLowerCase();
-            
-            if (aValue < bValue) return ascending ? -1 : 1;
-            if (aValue > bValue) return ascending ? 1 : -1;
-            return 0;
-        });
-    },
-    
-    // Obtener preset de tinta
+    // OBTENER PRESET DE TINTA
     getInkPreset: function(inkType = 'WATER') {
-        // Primero intentar desde Config
         if (window.Config && window.Config.INK_PRESETS && window.Config.INK_PRESETS[inkType]) {
             return window.Config.INK_PRESETS[inkType];
         }
         
-        // Valores por defecto si Config no está cargado
+        // Valores por defecto
         const defaults = {
             'WATER': { 
                 temp: '320 °F', 
@@ -664,163 +423,8 @@ getColorHex: function(colorName) {
             }
         };
         
-        return defaults[inkType] || defaults.WATER;
-    },
-    
-    // Convertir hex a RGB
-    hexToRgb: function(hex) {
-        if (!hex) return [0, 0, 0];
-        hex = hex.replace('#', '');
-        
-        // Expandir formato corto (3 dígitos) a largo (6 dígitos)
-        if (hex.length === 3) {
-            hex = hex.split('').map(char => char + char).join('');
-        }
-        
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        
-        return [r, g, b];
-    },
-    
-    // Validar si un archivo es imagen
-    isImageFile: function(file) {
-        if (!file || !file.type) return false;
-        return file.type.startsWith('image/');
-    },
-    
-    // Validar si un archivo es Excel
-    isExcelFile: function(file) {
-        if (!file || !file.type) return false;
-        const excelTypes = [
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.oasis.opendocument.spreadsheet'
-        ];
-        return excelTypes.includes(file.type) || 
-               file.name.toLowerCase().endsWith('.xlsx') || 
-               file.name.toLowerCase().endsWith('.xls');
-    },
-    
-    // Crear objeto placement por defecto
-    createDefaultPlacement: function(type = 'FRONT') {
-        const inkPreset = this.getInkPreset('WATER');
-        
-        return {
-            id: this.generateId('placement_'),
-            type: type,
-            name: type, // Solo el tipo, sin "Placement -"
-            imageData: null,
-            colors: [],
-            placementDetails: '#.#" FROM COLLAR SEAM',
-            dimensions: 'SIZE: (W) ##" X (H) ##"',
-            temp: inkPreset.temp,
-            time: inkPreset.time,
-            specialties: '',
-            specialInstructions: '',
-            inkType: 'WATER',
-            placementSelect: type,
-            isActive: true,
-            // Parámetros de impresión
-            meshColor: inkPreset.color.mesh,
-            meshWhite: inkPreset.white.mesh1,
-            meshBlocker: inkPreset.blocker.mesh1,
-            durometer: inkPreset.color.durometer,
-            strokes: inkPreset.color.strokes,
-            angle: inkPreset.color.angle,
-            pressure: inkPreset.color.pressure,
-            speed: inkPreset.color.speed,
-            additives: inkPreset.color.additives
-        };
-    },
-    
-    // ========== FUNCIONES DE DEBUG ==========
-    debugTeamDetection: function(style) {
-        console.log('=== DEBUG TEAM DETECTION ===');
-        console.log('Input:', style);
-        
-        const styleStr = style.toString().toUpperCase().trim();
-        
-        // 1. Verificar Gear for Sport
-        console.log('\n1. Buscando en GEARFORSPORT_TEAM_MAP:');
-        if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
-            for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
-                if (styleStr.includes(code)) {
-                    console.log(`   ✓ "${code}" -> "${teamName}"`);
-                }
-            }
-        }
-        
-        // 2. Verificar TEAM_CODE_MAP
-        console.log('\n2. Buscando en TEAM_CODE_MAP:');
-        if (window.Config && window.Config.TEAM_CODE_MAP) {
-            for (const [code, teamName] of Object.entries(window.Config.TEAM_CODE_MAP)) {
-                if (styleStr.includes(code)) {
-                    console.log(`   ✓ "${code}" -> "${teamName}"`);
-                }
-            }
-        }
-        
-        // 3. Verificar TeamsConfig
-        console.log('\n3. Buscando en TeamsConfig:');
-        if (window.TeamsConfig) {
-            const leagues = ['NCAA', 'NBA', 'NFL'];
-            leagues.forEach(league => {
-                if (window.TeamsConfig[league] && window.TeamsConfig[league].teams) {
-                    for (const [code, teamData] of Object.entries(window.TeamsConfig[league].teams)) {
-                        if (styleStr.includes(code)) {
-                            console.log(`   ✓ "${code}" -> "${teamData.name}" (${league})`);
-                        }
-                    }
-                }
-            });
-        }
-        
-        // 4. Ejecutar la función real
-        console.log('\n4. Resultado de detectTeamFromStyle:');
-        const result = this.detectTeamFromStyle(style);
-        console.log(`   Resultado: "${result}"`);
-        
-        return result;
-    },
-    
-    debugGenderDetection: function(style) {
-        console.log('=== DEBUG GENDER DETECTION ===');
-        console.log('Input:', style);
-        
-        const styleStr = style.toString().toUpperCase().trim();
-        
-        // Verificar patrones
-        console.log('\nPatrones encontrados:');
-        
-        // Gear for Sport pattern
-        const gearForSportMatch = styleStr.match(/U([MWYBGKTIAN])\d+/);
-        if (gearForSportMatch) {
-            console.log(`   Gear for Sport pattern: ${gearForSportMatch[0]} -> ${gearForSportMatch[1]}`);
-        }
-        
-        // Buscar en partes del estilo
-        const parts = styleStr.split(/[-_ ]/);
-        console.log(`   Partes del estilo: ${parts.join(', ')}`);
-        
-        // Verificar GENDER_MAP
-        if (window.Config && window.Config.GENDER_MAP) {
-            console.log('\nBuscando en GENDER_MAP:');
-            for (const part of parts) {
-                if (window.Config.GENDER_MAP[part]) {
-                    console.log(`   ✓ "${part}" -> "${window.Config.GENDER_MAP[part]}"`);
-                }
-            }
-        }
-        
-        // Ejecutar la función real
-        console.log('\nResultado de extractGenderFromStyle:');
-        const result = this.extractGenderFromStyle(style);
-        console.log(`   Resultado: "${result}"`);
-        
-        return result;
-    }
+        return defaults[inkType] || defaults.WATER];
+    } // ← AQUÍ ESTABA EL ERROR: sobraba un corchete
 };
 
 // Hacer disponible globalmente
