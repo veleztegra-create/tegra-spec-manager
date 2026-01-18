@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 addSpecialtiesField(placement.id);
                 
                 // Actualizar el título para que solo muestre el tipo
-                const title = document.querySelector(`#placement-section-${placement.id} .placement-title span`);
+                const title = document.querySelector(`#placement-section-${placementId} .placement-title span`);
                 if (title) {
                     const displayType = placement.type.includes('CUSTOM:') 
                         ? placement.type.replace('CUSTOM: ', '')
