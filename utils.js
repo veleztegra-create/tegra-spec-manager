@@ -1,4 +1,4 @@
-// utils.js - Versión corregida sin errores de sintaxis
+// utils.js - Versión corregida con el error de sintaxis arreglado
 const Utils = {
     // Debounce para mejorar rendimiento
     debounce: function(func, wait, immediate = false) {
@@ -423,8 +423,8 @@ const Utils = {
             }
         };
         
-        return defaults[inkType] || defaults.WATER];
-    } // ← AQUÍ ESTABA EL ERROR: sobraba un corchete
+        return defaults[inkType] || defaults.WATER;
+    } // ← CORREGIDO: Eliminado el corchete extra que causaba el error
 };
 
 // Hacer disponible globalmente
