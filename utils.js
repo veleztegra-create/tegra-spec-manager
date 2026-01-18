@@ -401,65 +401,71 @@ const Utils = {
     
     // Normalizar color Gear for Sport
     normalizeGearForSportColor: function(colorName) {
-        if (!colorName) return colorName;
+    if (!colorName) return colorName;
+    
+    const upperColor = colorName.toUpperCase().trim();
         
-        const upperColor = colorName.toUpperCase().trim();
-        
-        if (window.Config && window.Config.COLOR_DATABASES && window.Config.COLOR_DATABASES.GEARFORSPORT) {
-            for (const [key, data] of Object.entries(window.Config.COLOR_DATABASES.GEARFORSPORT)) {
-                const keyUpper = key.toUpperCase();
+           if (!window.Config || !window.Config.COLOR_DATABASES || !window.Config.COLOR_DATABASES.GEARFORSPORT) {
+        console.warn('Config.COLOR_DATABASES.GEARFORSPORT no está cargado');
+        return colorName;
+    }
+    
+    for (const [key, data] of Object.entries(window.Config.COLOR_DATABASES.GEARFORSPORT)) {
+        const keyUpper = key.toUpperCase();
                 
                 // Coincidencia exacta
-                if (upperColor === keyUpper) {
-                    return key;
-                }
-                
-                // Coincidencia parcial
-                if (keyUpper.includes(upperColor) || upperColor.includes(keyUpper)) {
-                    return key;
-                }
-                
-                // Coincidencia con número
-                const numberMatch = upperColor.match(/(\d{3,4})/);
-                if (numberMatch) {
-                    const number = numberMatch[1];
-                    if (keyUpper.includes(number)) {
-                        return key;
-                    }
-                }
-            }
+        if (upperColor === keyUpper) {
+            return key;
         }
         
-        return colorName;
-    },
+        // Coincidencia parcial
+        if (keyUpper.includes(upperColor) || upperColor.includes(keyUpper)) {
+            return key;
+        }
+        
+        // Coincidencia con número
+        const numberMatch = upperColor.match(/(\d{3,4})/);
+        if (numberMatch) {
+            const number = numberMatch[1];
+            if (keyUpper.includes(number)) {
+                return key;
+            }
+        }
+    }
     
-    // Obtener hex de color
-    getColorHex: function(colorName) {
-        if (!colorName) return null;
-        
-        const name = colorName.toUpperCase().trim();
-        
-        // Buscar en todas las bases de datos
-        if (window.Config && window.Config.COLOR_DATABASES) {
-            for (const db of Object.values(window.Config.COLOR_DATABASES)) {
-                for (const [key, data] of Object.entries(db)) {
-                    if (name === key.toUpperCase() || 
-                        name.includes(key.toUpperCase()) || 
-                        key.toUpperCase().includes(name)) {
-                        return data.hex;
-                    }
-                }
+    return colorName;
+},
+
+getColorHex: function(colorName) {
+    if (!colorName) return null;
+    
+    const name = colorName.toUpperCase().trim();
+    
+    // VERIFICAR SI CONFIG ESTÁ DEFINIDO
+    if (!window.Config || !window.Config.COLOR_DATABASES) {
+        console.warn('Config.COLOR_DATABASES no está cargado');
+        return null;
+    }
+    
+    // Buscar en todas las bases de datos
+    for (const db of Object.values(window.Config.COLOR_DATABASES)) {
+        for (const [key, data] of Object.entries(db)) {
+            if (name === key.toUpperCase() || 
+                name.includes(key.toUpperCase()) || 
+                key.toUpperCase().includes(name)) {
+                return data.hex;
             }
         }
-        
-        // Buscar código hex directo
-        const hexMatch = name.match(/#([0-9A-F]{6})/i);
-        if (hexMatch) {
-            return `#${hexMatch[1]}`;
-        }
-        
-        return null;
-    },
+    }
+    
+    // Buscar código hex directo
+    const hexMatch = name.match(/#([0-9A-F]{6})/i);
+    if (hexMatch) {
+        return `#${hexMatch[1]}`;
+    }
+    
+    return null;
+},
     
     // Verificar si es color metálico
     isMetallicColor: function(colorName) {
