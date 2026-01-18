@@ -232,6 +232,42 @@ const TeamMap = {
     "UTA": "Utah Jazz",
     "WAS": "Washington Wizards"
 };
+//NFL: {
+        teams: {
+            "ARI": { "name": "Arizona Cardinals" },
+            "ATL": { "name": "Atlanta Falcons" },
+            "BAL": { "name": "Baltimore Ravens" },
+            "BUF": { "name": "Buffalo Bills" },
+            "CAR": { "name": "Carolina Panthers" },
+            "CHI": { "name": "Chicago Bears" },
+            "CIN": { "name": "Cincinnati Bengals" },
+            "CLE": { "name": "Cleveland Browns" },
+            "DAL": { "name": "Dallas Cowboys" },
+            "DEN": { "name": "Denver Broncos" },
+            "DET": { "name": "Detroit Lions" },
+            "GBP": { "name": "Green Bay Packers" },
+            "HOU": { "name": "Houston Texans" },
+            "IND": { "name": "Indianapolis Colts" },
+            "JAG": { "name": "Jacksonville Jaguars" },
+            "KCC": { "name": "Kansas City Chiefs" },
+            "LAC": { "name": "Los Angeles Chargers" },
+            "LVR": { "name": "Las Vegas Raiders" },
+            "MIA": { "name": "Miami Dolphins" },
+            "MIN": { "name": "Minnesota Vikings" },
+            "NEP": { "name": "New England Patriots" },
+            "NOS": { "name": "New Orleans Saints" },
+            "NYG": { "name": "New York Giants" },
+            "NYJ": { "name": "New York Jets" },
+            "PHI": { "name": "Philadelphia Eagles" },
+            "PIT": { "name": "Pittsburgh Steelers" },
+            "RAM": { "name": "Los Angeles Rams" },
+            "SEA": { "name": "Seattle Seahawks" },
+            "SF9": { "name": "San Francisco 49ers" },
+            "TBB": { "name": "Tampa Bay Buccaneers" },
+            "TEN": { "name": "Tennessee Titans" },
+            "WAS": { "name": "Washington Commanders" }
+        },
+
 
 // CONFIGURACIÓN MÍNIMA
 const Config = {
