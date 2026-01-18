@@ -1,4 +1,41 @@
 // config-teams-unified.js - VERSIÓN COMPLETA CON COLORES UNI/ALT/COLOR RUSH
+const TeamsConfig = {
+    NCAA: {
+        teams: {
+            "ALA": { "name": "Alabama Crimson Tide" },
+            "ARI": { "name": "Arizona Wildcats" },
+            "AUB": { "name": "Auburn Tigers" },
+            "BAY": { "name": "Baylor Bears" },
+            "CLE": { "name": "Clemson Tigers" },
+            "DUK": { "name": "Duke Blue Devils" },
+            "FLA": { "name": "Florida Gators" },
+            "FSU": { "name": "Florida State Seminoles" },
+            "GEO": { "name": "Georgia Bulldogs" },
+            "IND": { "name": "Indiana Hoosiers" },
+            "IOW": { "name": "Iowa Hawkeyes" },
+            "KAN": { "name": "Kansas Jayhawks" },
+            "KEN": { "name": "Kentucky Wildcats" },
+            "LSU": { "name": "LSU Tigers" },
+            "MRY": { "name": "Maryland Terrapins" },
+            "MIC": { "name": "Michigan Wolverines" },
+            "MSU": { "name": "Michigan State Spartans" },
+            "NDM": { "name": "Notre Dame Fighting Irish" },
+            "UNC": { "name": "North Carolina Tar Heels" },
+            "OSU": { "name": "Ohio State Buckeyes" },
+            "OKL": { "name": "Oklahoma Sooners" },
+            "ORE": { "name": "Oregon Ducks" },
+            "PSU": { "name": "Penn State Nittany Lions" },
+            "SYR": { "name": "Syracuse Orange" },
+            "TAM": { "name": "Texas A&M Aggies" },
+            "TEX": { "name": "Texas Longhorns" },
+            "TEN": { "name": "Tennessee Volunteers" },
+            "UCLA": { "name": "UCLA Bruins" },
+            "USC": { "name": "USC Trojans" },
+            "UVA": { "name": "Virginia Cavaliers" },
+            "WAS": { "name": "Washington Huskies" },
+            "WIS": { "name": "Wisconsin Badgers" }
+        },
+        
 const ColorDatabase = {
     // COLORES POR NOMBRE - Simplificado
     institutional: {
