@@ -19,29 +19,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
   <!-- 3. NUESTROS MÓDULOS - ORDEN CRÍTICO -->
-  <!-- PRIMERO: Configuración base -->
-  <script src="config-teams-unified.js"></script>
-  
-  <!-- SEGUNDO: Utils (necesita Config) -->
-  <script src="utils.js"></script>
-  
-  <!-- TERCERO: State Manager (usa Config y Utils) -->
-  <script src="state-manager.js"></script>
-  
-  <!-- CUARTO: Validators (usa Config) -->
-  <script src="validators.js"></script>
-  
-  <!-- QUINTO: Error Handler (independiente) -->
-  <script src="error-handler.js"></script>
-  
-  <!-- SEXTO: Specialties Detector (usa Config) -->
-  <script src="specialties-detector.js"></script>
-  
-  <!-- SÉPTIMO: Render Helpers (usa todo lo anterior) -->
-  <script src="render-helpers.js"></script>
-  
-  <!-- OCTAVO: Fixes (debe ir ÚLTIMO, corrige todo) -->
-  <script src="fixes.js"></script>
+ <script src="config-teams.js"></script>
+<script src="config-app.js"></script>
+<script src="utils.js"></script>
+<script src="state-manager.js"></script>
+<script src="validators.js"></script>
+<script src="error-handler.js"></script>
+<script src="specialties-detector.js"></script>
+<script src="render-helpers.js"></script>
+<script src="fixes.js"></script>
 </head>
 <body>
   <div class="app-container">
