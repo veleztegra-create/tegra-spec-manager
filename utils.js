@@ -434,24 +434,76 @@ const Utils = {
     },
     
     // Obtener hex de color
-    getColorHex: function(colorName) {
-        if (!colorName) return null;
-        
-        const name = colorName.toUpperCase().trim();
-        
-        // Buscar en todas las bases de datos
-        if (window.Config && window.Config.COLOR_DATABASES) {
-            for (const db of Object.values(window.Config.COLOR_DATABASES)) {
-                for (const [key, data] of Object.entries(db)) {
-                    if (name === key.toUpperCase() || 
-                        name.includes(key.toUpperCase()) || 
-                        key.toUpperCase().includes(name)) {
-                        return data.hex;
-                    }
-                }
+    // Reemplazar la función getColorHex con esta versión simplificada:
+getColorHex: function(colorName) {
+    if (!colorName) return null;
+    
+    const name = colorName.toUpperCase().trim();
+    console.log('🎨 Buscando color:', name);
+    
+    // 1. Buscar en base de datos de colores
+    if (window.ColorDatabase) {
+        // Buscar en colores institucionales
+        for (const [key, data] of Object.entries(window.ColorDatabase.institutional)) {
+            if (name === key || name.includes(key)) {
+                console.log('✓ Color encontrado en institutional:', key, '->', data.hex);
+                return data.hex;
             }
         }
         
+        // Buscar en metálicos
+        for (const [key, data] of Object.entries(window.ColorDatabase.metallic)) {
+            if (name === key || name.includes(key)) {
+                console.log('✓ Color encontrado en metallic:', key, '->', data.hex);
+                return data.hex;
+            }
+        }
+    }
+    
+    // 2. Buscar código hex directo
+    const hexMatch = name.match(/#([0-9A-F]{6})/i);
+    if (hexMatch) {
+        const hex = `#${hexMatch[1]}`;
+        console.log('✓ Código hex directo encontrado:', hex);
+        return hex;
+    }
+    
+    // 3. Fallback para colores básicos si no hay base de datos
+    const basicColors = {
+        'WHITE': '#FFFFFF',
+        'BLACK': '#000000',
+        'RED': '#FF0000',
+        'BLUE': '#0000FF',
+        'GREEN': '#00FF00',
+        'YELLOW': '#FFFF00',
+        'ORANGE': '#FFA500',
+        'PURPLE': '#800080',
+        'PINK': '#FFC0CB',
+        'BROWN': '#A52A2A',
+        'GRAY': '#808080',
+        'GREY': '#808080',
+        'SILVER': '#C0C0C0',
+        'GOLD': '#FFD700',
+        'BRONZE': '#CD7F32',
+        'NAVY': '#001F3F',
+        'MAROON': '#800000',
+        'TEAL': '#008080',
+        'LIME': '#00FF00',
+        'INDIGO': '#4B0082',
+        'VIOLET': '#EE82EE',
+        'TURQUOISE': '#40E0D0',
+        'MAGENTA': '#FF00FF',
+        'CYAN': '#00FFFF'
+    };
+    
+    if (basicColors[name]) {
+        console.log('✓ Color básico encontrado:', name, '->', basicColors[name]);
+        return basicColors[name];
+    }
+    
+    console.log('❌ Color no encontrado:', name);
+    return null;
+}
         // Buscar código hex directo
         const hexMatch = name.match(/#([0-9A-F]{6})/i);
         if (hexMatch) {
