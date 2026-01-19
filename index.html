@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tegra - Technical Spec Manager (Versión Corregida)</title>
+    <title>Tegra Technical Spec Manager - V3 Final</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -21,7 +21,7 @@
             </div>
             <div class="header-actions">
                 <button class="btn-export" onclick="exportToPDF()">
-                    <i class="fas fa-file-pdf"></i> Descargar PDF
+                    <i class="fas fa-file-pdf"></i> GENERATE PDF
                 </button>
             </div>
         </header>
@@ -29,27 +29,27 @@
         <section class="general-info card">
             <div class="grid-3-cols">
                 <div class="input-group">
-                    <label>CLIENTE</label>
-                    <select id="client-select" onchange="updateClient(this.value)">
+                    <label>CUSTOMER</label>
+                    <select id="client-select" onchange="if(typeof updateClient === 'function') updateClient(this.value)">
                         <option value="FANATICS">FANATICS</option>
                         <option value="GEAR FOR SPORT">GEAR FOR SPORT</option>
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>EQUIPO</label>
-                    <input type="text" id="team-name" placeholder="Escriba el nombre del equipo...">
+                    <label>TEAM NAME</label>
+                    <input type="text" id="team-name" placeholder="Search team...">
                 </div>
                 <div class="input-group">
-                    <label>GÉNERO</label>
-                    <input type="text" id="gender-input" readonly placeholder="Automático">
+                    <label>GENDER</label>
+                    <input type="text" id="gender-input" readonly placeholder="Auto-detected">
                 </div>
             </div>
         </section>
 
         <nav class="placements-nav">
             <div id="tabs-container" class="tabs-scroll"></div>
-            <button class="btn-add" onclick="addNewPlacement()">
-                <i class="fas fa-plus"></i> Add Placement
+            <button class="btn-add-placement" onclick="addNewPlacement()">
+                <i class="fas fa-plus"></i> ADD PLACEMENT
             </button>
         </nav>
 
@@ -62,9 +62,10 @@
     <script src="validators.js"></script>
 
     <script>
+        // --- VARIABLES GLOBALES ---
         let placements = [];
 
-        // 1. GESTIÓN DE NOMBRES
+        // --- 1. LÓGICA DE NOMBRES ---
         function getPlacementDisplayName(placement) {
             if (placement.type === 'CUSTOM' && placement.customType) {
                 return placement.customType.toUpperCase();
@@ -72,50 +73,19 @@
             return placement.type || 'PLACEMENT';
         }
 
-        // 2. ACTUALIZACIÓN DE TÍTULOS DINÁMICOS
-        function updateAllPlacementTitles(placementId) {
-            const placement = placements.find(p => p.id === placementId);
-            if (!placement) return;
-            
-            const displayType = getPlacementDisplayName(placement);
-            const section = document.getElementById(`placement-section-${placementId}`);
-            if (!section) return;
-            
-            // Título Principal
-            const title = section.querySelector('.placement-title span');
-            if (title) title.textContent = displayType;
-            
-            // Títulos de Cards (Colores para..., Imagen para...)
-            const cardTitles = section.querySelectorAll('.card-title');
-            cardTitles.forEach(cardTitle => {
-                const text = cardTitle.textContent;
-                if (text.includes('Colores')) cardTitle.textContent = `Colores para ${displayType}`;
-                else if (text.includes('Imagen')) cardTitle.textContent = `Imagen para ${displayType}`;
-                else if (text.includes('Condiciones')) cardTitle.textContent = `Condiciones para ${displayType}`;
-            });
-
-            // Título de Secuencia
-            const sequenceTitle = section.querySelector('.sequence-main-title');
-            if (sequenceTitle) sequenceTitle.textContent = `Secuencia de ${displayType}`;
-            
-            // Actualizar Tab
-            const tab = document.querySelector(`.placement-tab[data-placement-id="${placementId}"]`);
-            if (tab) {
-                const labelNode = Array.from(tab.childNodes).find(node => node.nodeType === 3 && node.textContent.trim() !== "");
-                if (labelNode) labelNode.textContent = ` ${displayType.substring(0, 15)} `;
-            }
-        }
-
-        // 3. RENDERIZADO DEL PLACEMENT
+        // --- 2. RENDERIZADO (CORREGIDO: ERROR SECTION IS NOT DEFINED) ---
         function renderPlacementHTML(placement) {
             const container = document.getElementById('placements-container');
+            if (!container) return;
+
             const pId = placement.id;
             const displayType = getPlacementDisplayName(placement);
 
+            // Crear el elemento section correctamente
             const section = document.createElement('div');
             section.id = `placement-section-${pId}`;
             section.className = 'placement-section';
-            section.style.display = 'none'; 
+            section.style.display = 'none';
 
             section.innerHTML = `
                 <div class="placement-card">
@@ -129,8 +99,10 @@
                                 <option value="CUSTOM" ${placement.type === 'CUSTOM' ? 'selected' : ''}>CUSTOM...</option>
                             </select>
                             <input type="text" id="custom-placement-input-${pId}" class="custom-type-input" 
-                                placeholder="Escriba nombre (ej. SHORT)..." style="display: ${placement.type === 'CUSTOM' ? 'block' : 'none'}"
-                                value="${placement.customType || ''}" oninput="updateCustomPlacement(${pId}, this.value)">
+                                placeholder="Name (e.g. SHORT)..." 
+                                style="display: ${placement.type === 'CUSTOM' ? 'block' : 'none'}"
+                                value="${placement.customType || ''}" 
+                                oninput="updateCustomPlacement(${pId}, this.value)">
                         </div>
                     </div>
 
@@ -139,7 +111,7 @@
                             <div class="card-header"><h3 class="card-title">Colores para ${displayType}</h3></div>
                             <div class="card-body">
                                 <table class="colors-table">
-                                    <thead><tr><th>Color / Pantone</th><th>Ink</th><th>Hex</th><th></th></tr></thead>
+                                    <thead><tr><th>Color Name / Pantone</th><th>Ink Type</th><th>Hex</th><th></th></tr></thead>
                                     <tbody id="colors-body-${pId}"></tbody>
                                 </table>
                                 <button class="btn-add-row" onclick="addColorRow(${pId})">+ Add Color</button>
@@ -149,7 +121,7 @@
                             <div class="card-header"><h3 class="card-title">Imagen para ${displayType}</h3></div>
                             <div class="card-body">
                                 <div class="image-upload-zone" onclick="document.getElementById('file-${pId}').click()">
-                                    ${placement.image ? `<img src="${placement.image}" class="preview-img">` : '<p>Subir Arte</p>'}
+                                    ${placement.image ? `<img src="${placement.image}" class="preview-img">` : '<i class="fas fa-cloud-upload-alt"></i><p>Upload Art</p>'}
                                 </div>
                                 <input type="file" id="file-${pId}" style="display:none" onchange="handleImageUpload(event, ${pId})">
                             </div>
@@ -162,61 +134,99 @@
                     </div>
                 </div>
             `;
+            
             container.appendChild(section);
+
+            // Inicializar sub-componentes
             if (typeof renderColorRows === 'function') renderColorRows(pId);
             if (typeof updatePlacementStations === 'function') updatePlacementStations(pId);
         }
 
-        // 4. FUNCIONES DE CAMBIO DE ESTADO
+        // --- 3. GESTIÓN DE PLACEMENTS ---
         function updatePlacementType(placementId, type) {
             const p = placements.find(p => p.id === placementId);
             if (!p) return;
             const customInput = document.getElementById(`custom-placement-input-${placementId}`);
+            
             if (type === 'CUSTOM') {
                 if (customInput) customInput.style.display = 'block';
                 p.type = 'CUSTOM';
             } else {
                 if (customInput) customInput.style.display = 'none';
-                p.type = type; p.customType = '';
+                p.type = type;
+                p.customType = '';
             }
             setTimeout(() => updateAllPlacementTitles(placementId), 50);
         }
 
-        function updateCustomPlacement(placementId, customName) {
+        function updateCustomPlacement(placementId, name) {
             const p = placements.find(p => p.id === placementId);
             if (p) {
-                p.customType = customName.toUpperCase();
+                p.customType = name.toUpperCase();
                 updateAllPlacementTitles(placementId);
             }
         }
 
-        // 5. EXPORTAR PDF (CORREGIDO ANCHO)
+        function updateAllPlacementTitles(placementId) {
+            const p = placements.find(p => p.id === placementId);
+            if (!p) return;
+            const display = getPlacementDisplayName(p);
+            const container = document.getElementById(`placement-section-${placementId}`);
+            if (!container) return;
+
+            container.querySelector('.placement-title span').textContent = display;
+            container.querySelectorAll('.card-title').forEach(t => {
+                if (t.innerText.includes('Colores')) t.innerText = `Colores para ${display}`;
+                if (t.innerText.includes('Imagen')) t.innerText = `Imagen para ${display}`;
+            });
+            const seqTitle = container.querySelector('.sequence-main-title');
+            if (seqTitle) seqTitle.innerText = `Secuencia de ${display}`;
+        }
+
+        // --- 4. EXPORTAR PDF (ANCHO CORREGIDO) ---
         async function exportToPDF() {
             const element = document.querySelector('.app-container');
             const originalStyle = element.style.cssText;
-            element.style.width = '1024px'; // Evita que el texto se salga del PDF
-            element.style.minWidth = '1024px';
-            
+            element.style.width = '1050px'; 
+            element.style.minWidth = '1050px';
+
             try {
                 const canvas = await html2canvas(element, { scale: 2, useCORS: true });
                 const imgData = canvas.toDataURL('image/png');
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'mm', 'a4');
-                const width = pdf.internal.pageSize.getWidth();
-                const height = (canvas.height * width) / canvas.width;
-                pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+                const w = pdf.internal.pageSize.getWidth();
+                const h = (canvas.height * w) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, w, h);
                 pdf.save(`Tegra-Spec-${Date.now()}.pdf`);
             } catch (e) {
-                console.error("Error PDF:", e);
+                console.error("PDF Error:", e);
             } finally {
                 element.style.cssText = originalStyle;
             }
         }
 
-        // INICIALIZACIÓN
+        // --- 5. FUNCIONES DE NAVEGACIÓN (SHOWTAB) ---
+        function showPlacement(id) {
+            document.querySelectorAll('.placement-section').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.placement-tab').forEach(t => t.classList.remove('active'));
+            const target = document.getElementById(`placement-section-${id}`);
+            if (target) target.style.display = 'block';
+            const tab = document.querySelector(`.placement-tab[data-placement-id="${id}"]`);
+            if (tab) tab.classList.add('active');
+        }
+
+        function addNewPlacement() {
+            const id = Date.now();
+            const newP = { id, type: 'FRONT', customType: '', colors: [], image: null };
+            placements.push(newP);
+            renderPlacementHTML(newP);
+            if (typeof updatePlacementsTabs === 'function') updatePlacementsTabs();
+            showPlacement(id);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("Sistema Tegra cargado.");
-            // Aquí puedes llamar a una función para crear el primer placement vacío
+            console.log("Tegra Spec Manager Ready");
         });
     </script>
     <script src="fixes.js"></script>
