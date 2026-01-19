@@ -1055,71 +1055,7 @@ function renderPlacementHTML(placement) {
         }
     }
     
-    // Asegurar que los títulos se actualicen después de un breve delay
-    setTimeout(() => {
-        updateAllPlacementTitles(placement.id);
-    }, 50);
-}
-
-function updatePlacementsTabs() {
-    const tabsContainer = document.getElementById('placements-tabs');
-    tabsContainer.innerHTML = '';
-    
-    placements.forEach(placement => {
-        const displayType = getPlacementDisplayName(placement);
-            
-        const tab = document.createElement('div');
-        tab.className = `placement-tab ${placement.id === currentPlacementId ? 'active' : ''}`;
-        tab.setAttribute('data-placement-id', placement.id);
-        tab.innerHTML = `
-            <i class="fas fa-${getPlacementIcon(placement.type)}"></i>
-            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
-            ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
-        `;
-        
-        tab.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('remove-tab')) {
-                showPlacement(placement.id);
-            }
-        });
-        tabsContainer.appendChild(tab);
-    });
-}
-
-function showPlacement(placementId) {
-    document.querySelectorAll('.placement-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    const section = document.getElementById(`placement-section-${placementId}`);
-    if (section) {
-        section.classList.add('active');
-    }
-    
-    document.querySelectorAll('.placement-tab').forEach(tab => {
-        tab.classList.toggle('active', parseInt(tab.dataset.placementId) === placementId);
-    });
-    
-    currentPlacementId = placementId;
-}
-
-function getPlacementIcon(type) {
-    const icons = {
-        'FRONT': 'tshirt',
-        'BACK': 'tshirt',
-        'SLEEVE': 'hat-cowboy',
-        'CHEST': 'heart',
-        'TV. NUMBERS': 'hashtag',
-        'SHOULDER': 'user',
-        'COLLAR': 'circle',
-        'CUSTOM': 'star'
-    };
-    
-    if (type.includes('CUSTOM:')) {
-        return 'star';
-    }
-    return icons[type] || 'map-marker-alt';
-}
+   
 
 // ========== FUNCIONES DE GESTIÓN DE PLACEMENTS (CORREGIDAS) ==========
 
