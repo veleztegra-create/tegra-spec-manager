@@ -1121,7 +1121,8 @@ function getPlacementIcon(type) {
     return icons[type] || 'map-marker-alt';
 }
 
-// ========== FUNCIONES DE GESTIÓN DE PLACEMENTS ==========
+// ========== FUNCIONES DE GESTIÓN DE PLACEMENTS (CORREGIDAS) ==========
+
 function updatePlacementType(placementId, type) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
@@ -1129,109 +1130,121 @@ function updatePlacementType(placementId, type) {
     const customInput = document.getElementById(`custom-placement-input-${placementId}`);
     
     if (type === 'CUSTOM') {
-        if (customInput) customInput.style.display = 'block';
-        if (!placement.type.startsWith('CUSTOM:')) {
-            placement.type = 'CUSTOM:';
+        if (customInput) {
+            customInput.style.display = 'block';
+            customInput.focus(); // Mejora: dar foco al input automáticamente
+        }
+        // Solo reseteamos si no era ya un CUSTOM para no borrar lo escrito
+        if (!placement.type.startsWith('CUSTOM')) {
+            placement.type = 'CUSTOM';
+            placement.customType = ''; // Limpiamos el nombre personalizado previo
         }
     } else {
         if (customInput) customInput.style.display = 'none';
         placement.type = type;
+        placement.customType = ''; // No es custom, borramos cualquier rastro
         placement.name = type;
     }
     
-    // Actualizar todos los títulos
+    // Actualizar todos los títulos con un pequeño delay para asegurar que el DOM esté listo
     setTimeout(() => {
         updateAllPlacementTitles(placementId);
-    }, 100);
+    }, 50);
     
     showStatus(`✅ Tipo de placement cambiado a ${type}`);
 }
 
 function updateCustomPlacement(placementId, customName) {
     const placement = placements.find(p => p.id === placementId);
-    if (placement && customName.trim()) {
-        placement.type = `CUSTOM: ${customName}`;
-        placement.name = customName;
+    if (!placement) return;
+
+    if (customName.trim()) {
+        // Guardamos el tipo como CUSTOM y el nombre específico en customType
+        placement.type = 'CUSTOM'; 
+        placement.customType = customName.trim().toUpperCase();
+        placement.name = placement.customType;
         
-        // Actualizar todos los títulos
+        // Actualizar todos los títulos (ahora leerán el customType correctamente)
         updateAllPlacementTitles(placementId);
         
-        showStatus(`✅ Placement personalizado: ${customName}`);
+        // Opcional: actualizar tabs en tiempo real mientras escribes
+        updatePlacementsTabs(); 
+        
+        showStatus(`✅ Placement personalizado: ${placement.customType}`);
     }
 }
 
-// ========== FUNCIÓN PARA ACTUALIZAR TODOS LOS TÍTULOS ==========
+// ========== FUNCIÓN PARA ACTUALIZAR TODOS LOS TÍTULOS (CORREGIDA) ==========
 function updateAllPlacementTitles(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
     
+    // Obtenemos el nombre real (si es CUSTOM usa el nombre escrito por el usuario)
     const displayType = getPlacementDisplayName(placement);
     
     const section = document.getElementById(`placement-section-${placementId}`);
     if (!section) return;
     
-    // 1. Actualizar título principal del placement
+    // 1. Actualizar título principal del placement (el que está arriba en la card)
     const title = section.querySelector('.placement-title span');
     if (title) {
         title.textContent = displayType;
     }
     
-    // 2. Actualizar "Colores para X"
-    const colorTitle = section.querySelector('.card-title');
-    if (colorTitle && colorTitle.textContent.includes('Colores para')) {
-        colorTitle.textContent = `Colores para ${displayType}`;
-    }
-    
-    // 3. Actualizar "Imagen para X"
-    const imageTitle = section.querySelectorAll('.card-title');
-    imageTitle.forEach(title => {
-        if (title.textContent.includes('Imagen para')) {
-            title.textContent = `Imagen para ${displayType}`;
+    // 2. Actualizar dinámicamente todas las etiquetas de las secciones
+    // Buscamos todas las card-titles dentro de esta sección específica
+    const cardTitles = section.querySelectorAll('.card-title');
+    cardTitles.forEach(cardTitle => {
+        const currentText = cardTitle.textContent;
+        
+        if (currentText.includes('Colores para')) {
+            cardTitle.textContent = `Colores para ${displayType}`;
+        } 
+        else if (currentText.includes('Imagen para')) {
+            cardTitle.textContent = `Imagen para ${displayType}`;
+        } 
+        else if (currentText.includes('Condiciones para')) {
+            cardTitle.textContent = `Condiciones para ${displayType}`;
         }
     });
     
-    // 4. Actualizar "Condiciones para X"
-    const conditionsTitle = section.querySelectorAll('.card-title');
-    conditionsTitle.forEach(title => {
-        if (title.textContent.includes('Condiciones para')) {
-            title.textContent = `Condiciones para ${displayType}`;
-        }
-    });
-    
-    // 5. Actualizar "Parámetros de Impresión" (se mantiene igual)
-    
-    // 6. Actualizar "Secuencia de X"
-    const sequenceTitle = section.querySelector('h4');
-    if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
+    // 3. Actualizar "Secuencia de X" (Tabla de estaciones)
+    const sequenceTitle = section.querySelector('.stations-table-container h4, h4');
+    if (sequenceTitle && (sequenceTitle.textContent.includes('Secuencia de') || sequenceTitle.textContent.includes('Sequence'))) {
         sequenceTitle.textContent = `Secuencia de ${displayType}`;
     }
     
-    // 7. Actualizar tab si existe
+    // 4. Actualizar el Tab (Pestaña superior)
     const tab = document.querySelector(`.placement-tab[data-placement-id="${placementId}"]`);
     if (tab) {
-        const icon = tab.querySelector('i').className;
-        tab.innerHTML = `
-            <i class="${icon}"></i>
-            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
-            ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placementId})">&times;</span>` : ''}
-        `;
+        const shortName = displayType.length > 15 ? displayType.substring(0, 15) + '...' : displayType;
+        // Buscamos el nodo de texto para no borrar el icono <i> ni el botón de cerrar
+        const labelNode = Array.from(tab.childNodes).find(node => node.nodeType === 3 && node.textContent.trim() !== "");
+        if (labelNode) {
+            labelNode.textContent = ` ${shortName} `;
+        } else {
+            // Fallback si la estructura del tab es distinta
+            const icon = tab.querySelector('i') ? tab.querySelector('i').outerHTML : '';
+            const removeBtn = tab.querySelector('.remove-tab') ? tab.querySelector('.remove-tab').outerHTML : '';
+            tab.innerHTML = `${icon} ${shortName} ${removeBtn}`;
+        }
     }
 }
 
+// ========== ACTUALIZAR TIPO DE TINTA Y PRESETS ==========
 function updatePlacementInkType(placementId, inkType) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
     
     placement.inkType = inkType;
     
-    // Obtener valores de la configuración
+    // Obtener valores de la configuración (con fallback por si Utils no carga)
     const preset = window.Utils ? window.Utils.getInkPreset(inkType) : 
         (inkType === 'PLASTISOL' ? 
             { temp: '320 °F', time: '1:00 min', color: { mesh: '156/64', durometer: '65', speed: '35', angle: '15', strokes: '1', pressure: '40' } } : 
             { temp: '320 °F', time: '1:40 min', color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40' } }
         );
     
-    // Actualizar en el objeto placement
     placement.temp = preset.temp;
     placement.time = preset.time;
     
@@ -1241,24 +1254,24 @@ function updatePlacementInkType(placementId, inkType) {
     
     if (tempField) {
         tempField.value = preset.temp;
-        tempField.setAttribute('readonly', true);
-        tempField.title = `Temperatura para tinta ${inkType}`;
+        tempField.removeAttribute('readonly'); // Permitir edición si es necesario, o setAttribute si prefieres bloqueo
     }
     
     if (timeField) {
         timeField.value = preset.time;
-        timeField.setAttribute('readonly', true);
-        timeField.title = `Tiempo de curado para tinta ${inkType}`;
+        timeField.removeAttribute('readonly');
     }
     
-    // Actualizar valores por defecto de parámetros
+    // Actualizar parámetros técnicos y estaciones
     updateDefaultParameters(placementId, inkType);
-    
-    // Actualizar estaciones y mostrar mensaje
     updatePlacementStations(placementId);
-    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
+    
+    if (typeof showStatus === 'function') {
+        showStatus(`✅ Tinta: ${inkType} configurada.`);
+    }
 }
 
+// ========== ACTUALIZAR PARÁMETROS POR DEFECTO ==========
 function updateDefaultParameters(placementId, inkType) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
@@ -1268,88 +1281,70 @@ function updateDefaultParameters(placementId, inkType) {
         time: '1:40 min',
         blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
         white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500' }
     };
     
-    // Actualizar campos si están vacíos
-    if (!placement.meshColor) {
-        const meshColorField = document.getElementById(`mesh-color-${placementId}`);
-        if (meshColorField) meshColorField.value = preset.color.mesh;
-    }
-    
-    if (!placement.meshWhite) {
-        const meshWhiteField = document.getElementById(`mesh-white-${placementId}`);
-        if (meshWhiteField) meshWhiteField.value = preset.white.mesh1;
-    }
-    
-    if (!placement.meshBlocker) {
-        const meshBlockerField = document.getElementById(`mesh-blocker-${placementId}`);
-        if (meshBlockerField) meshBlockerField.value = preset.blocker.mesh1;
-    }
-    
-    if (!placement.durometer) {
-        const durometerField = document.getElementById(`durometer-${placementId}`);
-        if (durometerField) durometerField.value = preset.color.durometer;
-    }
-    
-    if (!placement.strokes) {
-        const strokesField = document.getElementById(`strokes-${placementId}`);
-        if (strokesField) strokesField.value = preset.color.strokes;
-    }
-    
-    if (!placement.angle) {
-        const angleField = document.getElementById(`angle-${placementId}`);
-        if (angleField) angleField.value = preset.color.angle;
-    }
-    
-    if (!placement.pressure) {
-        const pressureField = document.getElementById(`pressure-${placementId}`);
-        if (pressureField) pressureField.value = preset.color.pressure;
-    }
-    
-    if (!placement.speed) {
-        const speedField = document.getElementById(`speed-${placementId}`);
-        if (speedField) speedField.value = preset.color.speed;
-    }
-    
-    if (!placement.additives) {
-        const additivesField = document.getElementById(`additives-${placementId}`);
-        if (additivesField) additivesField.value = preset.color.additives;
+    // Mapeo de campos para actualizar la UI automáticamente
+    const fields = {
+        [`mesh-color-${placementId}`]: preset.color.mesh,
+        [`mesh-white-${placementId}`]: preset.white.mesh1,
+        [`mesh-blocker-${placementId}`]: preset.blocker.mesh1,
+        [`durometer-${placementId}`]: preset.color.durometer,
+        [`strokes-${placementId}`]: preset.color.strokes,
+        [`angle-${placementId}`]: preset.color.angle,
+        [`pressure-${placementId}`]: preset.color.pressure,
+        [`speed-${placementId}`]: preset.color.speed,
+        [`additives-${placementId}`]: preset.color.additives
+    };
+
+    for (let id in fields) {
+        const el = document.getElementById(id);
+        if (el) el.value = fields[id];
     }
 }
 
+// ========== DUPLICAR PLACEMENT (CORREGIDA) ==========
 function duplicatePlacement(placementId) {
     const original = placements.find(p => p.id === placementId);
     if (!original) return;
 
     const newId = Date.now();
-    const displayType = getPlacementDisplayName(original);
-
-    // Crear copia
+    
+    // Clonación profunda del objeto
     const duplicate = JSON.parse(JSON.stringify(original));
     duplicate.id = newId;
-    duplicate.name = displayType;
-
-    // Asegurar que specialties esté definido
-    if (!duplicate.specialties) duplicate.specialties = '';
+    
+    // Aseguramos que el nombre del duplicado sea coherente
+    const originalName = getPlacementDisplayName(original);
+    duplicate.name = `${originalName} (Copy)`;
+    if (duplicate.type === 'CUSTOM') {
+        duplicate.customType = original.customType;
+    }
 
     placements.push(duplicate);
 
-    // Renderizar
+    // 1. Crear el HTML
     renderPlacementHTML(duplicate);
+    
+    // 2. Actualizar pestañas
     updatePlacementsTabs();
-    showPlacement(newId);
-
-    // Actualizar títulos
+    
+    // 3. Mostrar el nuevo y forzar actualización de títulos
     setTimeout(() => {
+        showPlacement(newId);
         updateAllPlacementTitles(newId);
-    }, 100);
+        // Forzamos actualización de estaciones para que la secuencia diga el nombre correcto
+        if (typeof updatePlacementStations === 'function') {
+            updatePlacementStations(newId);
+        }
+    }, 150);
 
-    showStatus('✅ Placement duplicado correctamente');
+    if (typeof showStatus === 'function') {
+        showStatus('✅ Placement duplicado correctamente');
+    }
 
     return newId;
 }
-
 // ========== FUNCIONES PARA PARÁMETROS EDITABLES ==========
 function updatePlacementParam(placementId, param, value) {
     const placement = placements.find(p => p.id === placementId);
