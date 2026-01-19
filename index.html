@@ -677,11 +677,37 @@ function getNextPlacementType() {
 function getPlacementDisplayName(placement) {
     if (!placement) return 'N/A';
     
-    if (placement.type.includes('CUSTOM:')) {
+    if (placement.type && placement.type.includes('CUSTOM:')) {
         return placement.type.replace('CUSTOM: ', '');
     }
     
-    return placement.type;
+    return placement.type || placement.name || 'N/A';
+}
+
+// ========== FUNCIÓN CORREGIDA updateCustomPlacement ==========
+function updateCustomPlacement(placementId, customName) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    if (customName.trim()) {
+        placement.type = `CUSTOM: ${customName.trim()}`;
+        placement.name = customName.trim();
+        
+        // Actualizar todos los títulos
+        updateAllPlacementTitles(placementId);
+        
+        // Actualizar el select para que muestre CUSTOM
+        const typeSelect = document.querySelector(`.placement-type-select[data-placement-id="${placementId}"]`);
+        if (typeSelect) {
+            typeSelect.value = 'CUSTOM';
+        }
+        
+        showStatus(`✅ Placement personalizado: ${customName.trim()}`);
+    } else {
+        placement.type = 'CUSTOM';
+        placement.name = '';
+        updateAllPlacementTitles(placementId);
+    }
 }
 
 // ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
@@ -695,7 +721,7 @@ function renderPlacementHTML(placement) {
     }
     
     const sectionId = `placement-section-${placement.id}`;
-    const isCustom = placement.type.includes('CUSTOM:');
+    const isCustom = placement.type && placement.type.includes('CUSTOM:');
     const displayType = getPlacementDisplayName(placement);
     const customName = isCustom ? displayType : '';
     
@@ -1104,6 +1130,8 @@ function showPlacement(placementId) {
 }
 
 function getPlacementIcon(type) {
+    if (!type) return 'map-marker-alt';
+    
     const icons = {
         'FRONT': 'tshirt',
         'BACK': 'tshirt',
@@ -1132,6 +1160,7 @@ function updatePlacementType(placementId, type) {
         if (customInput) customInput.style.display = 'block';
         if (!placement.type.startsWith('CUSTOM:')) {
             placement.type = 'CUSTOM:';
+            placement.name = '';
         }
     } else {
         if (customInput) customInput.style.display = 'none';
@@ -1147,20 +1176,6 @@ function updatePlacementType(placementId, type) {
     showStatus(`✅ Tipo de placement cambiado a ${type}`);
 }
 
-function updateCustomPlacement(placementId, customName) {
-    const placement = placements.find(p => p.id === placementId);
-    if (placement && customName.trim()) {
-        placement.type = `CUSTOM: ${customName}`;
-        placement.name = customName;
-        
-        // Actualizar todos los títulos
-        updateAllPlacementTitles(placementId);
-        
-        showStatus(`✅ Placement personalizado: ${customName}`);
-    }
-}
-
-// ========== FUNCIÓN PARA ACTUALIZAR TODOS LOS TÍTULOS ==========
 function updateAllPlacementTitles(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
@@ -1198,15 +1213,13 @@ function updateAllPlacementTitles(placementId) {
         }
     });
     
-    // 5. Actualizar "Parámetros de Impresión" (se mantiene igual)
-    
-    // 6. Actualizar "Secuencia de X"
+    // 5. Actualizar "Secuencia de X"
     const sequenceTitle = section.querySelector('h4');
     if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
         sequenceTitle.textContent = `Secuencia de ${displayType}`;
     }
     
-    // 7. Actualizar tab si existe
+    // 6. Actualizar tab si existe
     const tab = document.querySelector(`.placement-tab[data-placement-id="${placementId}"]`);
     if (tab) {
         const icon = tab.querySelector('i').className;
@@ -1348,30 +1361,6 @@ function duplicatePlacement(placementId) {
     showStatus('✅ Placement duplicado correctamente');
 
     return newId;
-}
-    // ESTA ES LA FUNCIÓN QUE TE FALTA O QUE VAMOS A REEMPLAZAR
-function updateAllPlacementTitles(pId, newName) {
-    const section = document.getElementById(`placement-section-${pId}`);
-    if (!section) return;
-
-    // 1. Cambia el título principal
-    const mainTitle = section.querySelector('.placement-title span');
-    if (mainTitle) mainTitle.textContent = newName;
-
-    // 2. Cambia los títulos internos (Colores, Secuencia, etc.)
-    const subTitles = section.querySelectorAll('h3, h4');
-    subTitles.forEach(title => {
-        if (title.innerText.includes('Colores de') || title.innerText.includes('Colores para')) {
-            title.innerHTML = `<i class="fas fa-palette"></i> Colores de ${newName}`;
-        }
-        if (title.innerText.includes('Secuencia de')) {
-            title.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${newName}`;
-        }
-    });
-
-    // 3. Cambia el nombre en la pestaña de arriba
-    const tab = document.querySelector(`.tab-btn[onclick*="${pId}"]`);
-    if (tab) tab.innerText = newName;
 }
 
 // ========== FUNCIONES PARA PARÁMETROS EDITABLES ==========
@@ -2715,7 +2704,7 @@ async function generatePDFBlob() {
                 return false;
             };
             
-            // Función para agregar texto
+            // Función para agregar texto - CORREGIDA LA FIRMA DE LA FUNCIÓN
             const addText = (str, x, yPos, size = 10, bold = false, color = [0, 0, 0], align = 'left', maxWidth = null) => {
                 pdf.setTextColor(...color);
                 pdf.setFontSize(size);
@@ -3050,7 +3039,7 @@ async function generatePDFBlob() {
                 }
             }
             
-            // FOOTER FINAL
+            // FOOTER FINAL - CORREGIDO EL ERROR DE ALINEACIÓN
             const footerY = pageH - 15;
             
             pdf.setFontSize(8);
@@ -3064,15 +3053,15 @@ async function generatePDFBlob() {
                 minute: '2-digit'
             });
             
-            addText(`Generado: ${dateStr}`, margin, footerY);
+            pdf.text(`Generado: ${dateStr}`, margin, footerY);
             
             if (placementsToExport.length > 0) {
-                addText(`Total de placements: ${placementsToExport.length}`, pageW / 2, footerY, 8, false, [150, 150, 150], 'center');
+                pdf.text(`Total de placements: ${placementsToExport.length}`, pageW / 2, footerY, { align: 'center' });
             }
             
             pdf.setFont('helvetica', 'bold');
             pdf.setTextColor(...primaryColor);
-            pdf.text('TEGRA Spec Manager', pageW - margin, footerY, 8, true, primaryColor, 'right');
+            pdf.text('TEGRA Spec Manager', pageW - margin, footerY, { align: 'right' });
             
             const pdfBlob = pdf.output('blob');
             resolve(pdfBlob);
@@ -3669,6 +3658,7 @@ window.removePlacementColorItem = removePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
 window.updateAllPlacementTitles = updateAllPlacementTitles;
+window.updateCustomPlacement = updateCustomPlacement; // AÑADIDA ESTA LÍNEA
 
 // FUNCIONES DE DETECCIÓN
 window.detectTeamFromStyle = detectTeamFromStyle;
@@ -3676,3 +3666,4 @@ window.extractGenderFromStyle = extractGenderFromStyle;
   </script>
 </body>
 </html>
+[file content end]
