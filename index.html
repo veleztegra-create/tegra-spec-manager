@@ -1,234 +1,3654 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tegra Technical Spec Manager - V3 Final</title>
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tegra - Technical Spec Manager</title>
+  
+  <!-- 1. ESTILOS PRIMERO -->
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  
+  <!-- 2. LIBRERÍAS EXTERNAS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  
+  <!-- 3. NUESTROS MÓDULOS - ORDEN CRÍTICO CORREGIDO -->
+  <script src="config-teams.js"></script>
+  <script src="config-app.js"></script>
+  <script src="utils.js"></script>
+  <script src="state-manager.js"></script>
+  <script src="validators.js"></script>
+  <script src="error-handler.js"></script>
+  <script src="specialties-detector.js"></script>
+  <script src="render-helpers.js"></script>
+  <script src="fixes.js"></script>
 </head>
 <body>
+  <div class="app-container">
+      <!-- ========================================================= -->
+      <!-- HEADER -->
+      <!-- ========================================================= -->
+      <header class="app-header">
+          <div class="logo-section">
+              <div class="app-logo">
+                  <svg viewBox="0 0 145.94 39.05" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M42.24,12.37v1.93h6.91v15.25h4.21v-15.25h6.91v-3.88h-16.1l-1.93,1.95ZM92.06,20.31v1.87h4.24v2.73c-.53.38-1.13.67-1.8.86-.67.19-1.39.29-2.16.29-.84,0-1.61.15-2.32-.45-.71-.3-1.33-.72-1.84-1.27-.52-.55-.92-1.19-1.2-1.93-.28-.74-.42-1.54-.42-2.42v-.05c0-.82.14-1.59.42-2.31.28-.72.67-1.35,1.18-1.89.5-.54,1.08-.97,1.75-1.28.66-.32,1.38-.48,2.15-.48.55,0,1.05.05,1.5.14.46.09.88.22,1.27.38.39.16.77.36,1.13.60.25.16.49.34.74.54l2.94-2.97c-.47-.4-.96-.75-1.46-1.07-.53-.33-1.09-.60-1.70-.82-.60-.22-1.25-.39-1.95-.51-.70-.12-1.48-.18-2.34-.18-1.44,0-2.77.26-4,.78-1.23.52-2.29,1.23-3.18,2.13-.89.90-1.59,1.95-2.09,3.14-.50,1.19-.75,2.47-.75,3.84v-.05c0,1.42.25,2.73.74,3.94.49,1.20,1.18,2.24,2.06,3.12.88.87,1.94,1.56,3.17,2.05,1.23.49,2.59.74,4.09.74,1.75,0,3.30-.30,4.66-.89,1.36-.59,2.53-1.31,3.51-2.15v-8.31h-6.56l-1.74,1.76ZM68.15,21.8h9.02v-3.74h-9.02v-3.88h10.25v-3.74h-12.55l0.14,0.14v17.12h14.54v-3.74h-10.53v-4.02ZM114.24,10.43h-8.75v19.13h4.21v-6.12h3.31l4.10,6.12h2.57l1.39-1.40-3.71-5.43c1.22-.46,2.21-1.17,2.97-2.15.76-.97,1.13-2.24,1.13-3.79v-.05c0-1.82-.55-3.28-1.64-4.37-1.29-1.29-3.15-1.94-5.58-1.94ZM117.19,17.03c0,.82-.28,1.48-.83,1.98-.56.49-1.35.74-2.39.74h-4.26v-5.52h4.18c1.04,0,1.85.23,2.43.69.58.46.87,1.14.87,2.06v.05ZM136.7,10.29h-3.88l-8.20,19.27h4.29l1.75-4.29h8.09l1.75,4.29h1.97l1.70-1.72-7.47-17.55ZM132.16,21.58l2.54-6.20,2.54,6.20h-5.08Z"/>
+                      <g><polygon points="7.44 31.38 6.59 32.24 6.88 33.39 8.03 33.68 8.89 32.83 8.59 31.68 7.44 31.38"/><polygon points="6.79 28.67 7.94 28.97 10.41 26.5 10.11 25.35 8.96 25.05 6.49 27.52 6.79 28.67"/><polygon points="10.54 14.61 9.4 14.31 6.93 16.78 7.23 17.93 8.37 18.23 10.85 15.76 10.54 14.61"/><polygon points="26.38 22.79 25.06 24.11 25.36 25.26 26.5 25.56 27.82 24.24 27.52 23.09 26.38 22.79"/><path d="M21.9,36.93l.30,1.15,1.15.30.85-.85-.30-1.15-1.15-.30-.85.85ZM18.01,29.21l-.30-1.15.85-.85,1.15.30.30,1.15-.85.85-1.15-.30ZM18.83,19.56l-.30-1.15,1.50-1.50,1.15.30.30,1.15-1.50,1.50-1.15-.30ZM20.85,14.61l-.30-1.15,1.50-1.50,1.15.30.30,1.15-1.50,1.50-1.15-.30ZM14.33,15.34l-.30-1.14,3.78-3.68,1.14.30.30,1.14-3.78,3.68-1.15-.30ZM24.21,10.68l-.30-1.15,2.17-2.17,1.14.30.30,1.14-2.17,2.17-1.14-.30ZM20.59,9.12l-.30-1.15.85-.85,1.15.30.30,1.15-.85.85-1.15-.30ZM15.06,8.82l-.30-1.15,1.50-1.50,1.15.30.30,1.15-1.50,1.50-1.15-.30ZM25.51,0l-4.90,4.90-1.14-.30-.30-1.14,3.46-3.46H0v9.55h4.54l-1.67,1.67.30,1.14,1.15.30,3.12-3.12h.02l2.59-2.59,1.14.30.30,1.14-.57.57-1.81,1.78.30,1.15,1.15.30,2.50-2.45v8.41l-3.99,3.99.30,1.15,1.15.30,4.62-4.62,1.07.28.30,1.15-1.42,1.42-.93.93-.84.84-1.78,1.78.30,1.15,1.14.30,3.56-3.56.27-.27,1.14.30.30,1.14-4.64,4.64h-.03s-2.52,2.51-2.52,2.51l.31,1.16,1.17.31,2.52-2.52h0s.30-.32.30-.32l1.14.30.30,1.15-3.75,3.75h0s-2.17,2.18-2.17,2.18l.30,1.14,1.15.30,6.35-6.35,1.14.30.30,1.15-2.82,2.77.30,1.14,1.15.30,5.15-5.10v-2.89h0s-1.24,1.24-1.24,1.24l-1.15-.30-.30-1.14,3.43-3.41-.30-1.15-.45-.12-.71-.19-1.05,1.05-1.14-.30-.30-1.14,6.16-6.31-.30-1.15-1.14-.30-1.51,1.51v-4.34l5.25-4.76h7.28V0h-10.92Z"/></g>
+                  </svg>
+              </div>
+              <div>
+                  <h1 class="app-title">Technical Spec Manager</h1>
+                  <p class="app-subtitle">Sistema de gestión de especificaciones técnicas</p>
+              </div>
+              <div class="theme-toggle">
+                  <button id="themeToggle" class="theme-toggle-btn">
+                      <i class="fas fa-sun"></i> Modo Claro
+                  </button>
+              </div>
+          </div>
 
-    <div class="app-container">
-        <header class="main-header">
-            <div class="logo-container">
-                <img src="https://raw.githubusercontent.com/veleztegra-create/tegra-spec-manager/main/assets/tegra-logo.png" alt="Tegra Logo" class="main-logo">
-                <h1>Technical Spec Manager</h1>
-            </div>
-            <div class="header-actions">
-                <button class="btn-export" onclick="exportToPDF()">
-                    <i class="fas fa-file-pdf"></i> GENERATE PDF
-                </button>
-            </div>
-        </header>
+          <div class="client-section">
+              <span class="client-label">CUSTOMER / CLIENTE:</span>
+              <div class="client-logo-wrapper">
+                  <img id="logoCliente" alt="Logo del cliente" style="max-height: 35px; max-width: 120px; display: none;">
+              </div>
+          </div>
 
-        <section class="general-info card">
-            <div class="grid-3-cols">
-                <div class="input-group">
-                    <label>CUSTOMER</label>
-                    <select id="client-select" onchange="if(typeof updateClient === 'function') updateClient(this.value)">
-                        <option value="FANATICS">FANATICS</option>
-                        <option value="GEAR FOR SPORT">GEAR FOR SPORT</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>TEAM NAME</label>
-                    <input type="text" id="team-name" placeholder="Search team...">
-                </div>
-                <div class="input-group">
-                    <label>GENDER</label>
-                    <input type="text" id="gender-input" readonly placeholder="Auto-detected">
-                </div>
-            </div>
-        </section>
+          <div class="header-actions">
+              <div class="folder-input-container">
+                  <span class="client-label" style="font-size: 0.9rem; color: White;"># FOLDER:</span>
+                  <input type="text" id="folder-num" class="form-control" placeholder="#####">
+              </div>
+              <div id="current-datetime"></div>
+          </div>
+      </header>
 
-        <nav class="placements-nav">
-            <div id="tabs-container" class="tabs-scroll"></div>
-            <button class="btn-add-placement" onclick="addNewPlacement()">
-                <i class="fas fa-plus"></i> ADD PLACEMENT
-            </button>
-        </nav>
+      <!-- ========================================================= -->
+      <!-- NAVIGATION -->
+      <!-- ========================================================= -->
+      <nav class="app-nav no-print">
+          <ul class="nav-tabs">
+              <li class="nav-tab active" onclick="showTab('dashboard')">
+                  <i class="fas fa-tachometer-alt"></i> Dashboard
+              </li>
+              <li class="nav-tab" onclick="showTab('spec-creator')">
+                  <i class="fas fa-file-alt"></i> Crear Spec
+              </li>
+              <li class="nav-tab" onclick="showTab('saved-specs')">
+                  <i class="fas fa-database"></i> Guardadas
+              </li>
+              <li class="nav-tab" onclick="showTab('error-log')">
+                  <i class="fas fa-exclamation-triangle"></i> Log de Errores
+              </li>
+          </ul>
+      </nav>
 
-        <main id="placements-container"></main>
-    </div>
+      <!-- ========================================================= -->
+      <!-- MAIN CONTENT -->
+      <!-- ========================================================= -->
+      <main class="app-main">
 
-    <script src="config.js"></script>
-    <script src="config-teams-unified.js"></script>
-    <script src="utils.js"></script>
-    <script src="validators.js"></script>
+          <!-- ===================================================== -->
+          <!-- TAB: DASHBOARD -->
+          <!-- ===================================================== -->
+          <div id="dashboard" class="tab-content active">
+              <div class="dashboard-grid">
+                  <div class="stat-card">
+                      <div class="stat-number" id="total-specs">0</div>
+                      <div class="stat-label">Specs Totales</div>
+                  </div>
+                  <div class="stat-card">
+                      <div id="today-specs">
+                          <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
+                          <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">Ninguna</div>
+                          <div style="font-size:0.8rem; color:var(--text-secondary);">-</div>
+                      </div>
+                      <div class="stat-label">Última Creación</div>
+                  </div>
+                  <div class="stat-card">
+                      <div class="stat-number" id="active-projects">0</div>
+                      <div class="stat-label">Proyectos Activos</div>
+                  </div>
+                  <div class="stat-card">
+                      <div id="completion-rate">
+                          <div style="font-size:0.9rem; color:var(--text-secondary);">Placements totales:</div>
+                          <div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">0</div>
+                      </div>
+                      <div class="stat-label">Placements Totales</div>
+                  </div>
+              </div>
 
-    <script>
-        // --- VARIABLES GLOBALES ---
-        let placements = [];
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-rocket"></i> Acciones Rápidas</h2>
+                      <div class="no-print">
+                          <button class="btn btn-outline btn-sm" onclick="clearErrorLog()">
+                              <i class="fas fa-trash"></i> Limpiar Log
+                          </button>
+                      </div>
+                  </div>
+                  <div class="card-body" style="text-align:center;">
+                      <div style="margin-top:20px; display:flex; gap:15px; justify-content:center; flex-wrap:wrap;">
+                          <button class="btn btn-primary btn-lg" onclick="showTab('spec-creator')">
+                              <i class="fas fa-plus"></i> Nueva Spec
+                          </button>
+                          <button class="btn btn-warning btn-lg" onclick="document.getElementById('excelFile').click()">
+                              <i class="fas fa-folder-open"></i> Cargar Spec
+                          </button>
+                          <button class="btn btn-success btn-lg" onclick="document.getElementById('excelFile').click()">
+                              <i class="fas fa-file-excel"></i> Cargar SWO
+                          </button>
+                          <button class="btn btn-outline btn-lg" onclick="loadSavedSpecsList(); showTab('saved-specs')">
+                              <i class="fas fa-history"></i> Ver Historial
+                          </button>
+                          <button class="btn btn-danger btn-lg" onclick="showTab('error-log')">
+                              <i class="fas fa-bug"></i> Ver Errores
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
 
-        // --- 1. LÓGICA DE NOMBRES ---
-        function getPlacementDisplayName(placement) {
-            if (placement.type === 'CUSTOM' && placement.customType) {
-                return placement.customType.toUpperCase();
-            }
-            return placement.type || 'PLACEMENT';
+          <!-- ===================================================== -->
+          <!-- TAB: SPEC CREATOR -->
+          <!-- ===================================================== -->
+          <div id="spec-creator" class="tab-content">
+              <!-- INFORMACIÓN GENERAL -->
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-info-circle"></i> Información General</h2>
+                      <div class="no-print">
+                          <button class="btn btn-warning btn-sm" onclick="document.getElementById('excelFile').click()">
+                              <i class="fas fa-folder-open"></i> Cargar SWO
+                          </button>
+                          <button class="btn btn-outline btn-sm" onclick="clearForm()" style="margin-left: 10px;">
+                              <i class="fas fa-broom"></i> Limpiar
+                          </button>
+                      </div>
+                  </div>
+                  <div class="card-body">
+                      <div class="form-grid">
+                          <div class="form-group">
+                              <label class="form-label">CLIENTE:</label>
+                              <input type="text" id="customer" class="form-control" oninput="updateClientLogo()">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">STYLE:</label>
+                              <input type="text" id="style" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">COLORWAY:</label>
+                              <input type="text" id="colorway" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">SEASON:</label>
+                              <input type="text" id="season" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">PATTERN #:</label>
+                              <input type="text" id="pattern" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">P.O. #:</label>
+                              <input type="text" id="po" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">SAMPLE TYPE:</label>
+                              <input type="text" id="sample-type" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">NAME / TEAM:</label>
+                              <input type="text" id="name-team" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">GENDER:</label>
+                              <input type="text" id="gender" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label class="form-label">DISEÑADOR:</label>
+                              <select id="designer" class="form-control">
+                                  <option value="">Seleccionar...</option>
+                                  <option value="ELMER VELEZ">ELMER VELEZ</option>
+                                  <option value="DANIEL HERNANDEZ">DANIEL HERNANDEZ</option>
+                                  <option value="CINDY PINEDA">CINDY PINEDA</option>
+                                  <option value="FERNANDO FERRERA">FERNANDO FERRERA</option>
+                                  <option value="NILDA CORDOBA">NILDA CORDOBA</option>
+                                  <option value="OTRO">OTRO</option>
+                              </select>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- SISTEMA DE MÚLTIPLES PLACEMENTS -->
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-layer-group"></i> Ubicaciones (Placements)</h2>
+                      <div class="no-print">
+                          <button class="btn btn-primary btn-sm" onclick="addNewPlacement()">
+                              <i class="fas fa-plus"></i> Agregar Placement
+                          </button>
+                      </div>
+                  </div>
+                  <div class="card-body">
+                      <!-- Contenedor de tabs para placements -->
+                      <div id="placements-tabs" class="placement-tabs">
+                          <!-- Tabs se generarán dinámicamente -->
+                      </div>
+                      
+                      <!-- Contenedor principal de placements -->
+                      <div id="placements-container">
+                          <!-- Cada placement será una sección dentro de este contenedor -->
+                      </div>
+                  </div>
+              </div>
+
+              <!-- BOTONES DE ACCIÓN -->
+              <div class="card no-print">
+                  <div class="card-body" style="display:flex; gap:15px; flex-wrap:wrap; justify-content:center;">
+                      <button class="btn btn-primary btn-lg" onclick="exportToExcel()">
+                          <i class="fas fa-file-excel"></i> Descargar Spec
+                      </button>
+                      <button class="btn btn-success btn-lg" onclick="exportPDF()">
+                          <i class="fas fa-file-pdf"></i> Exportar PDF
+                      </button>
+                      <button class="btn btn-warning btn-lg" onclick="downloadProjectZip()">
+                          <i class="fas fa-file-archive"></i> Descargar ZIP
+                      </button>
+                      <button class="btn btn-primary btn-lg" onclick="saveCurrentSpec()">
+                          <i class="fas fa-save"></i> Guardar Spec
+                      </button>
+                      <button class="btn btn-outline btn-lg" onclick="clearForm()">
+                          <i class="fas fa-broom"></i> Limpiar
+                      </button>
+                  </div>
+              </div>
+          </div>
+
+          <!-- ===================================================== -->
+          <!-- TAB: SPECS GUARDADAS -->
+          <!-- ===================================================== -->
+          <div id="saved-specs" class="tab-content">
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-database"></i> Specs Guardadas (Browser)</h2>
+                      <button class="btn btn-outline btn-sm" onclick="clearAllSpecs()">
+                          <i class="fas fa-trash"></i> Limpiar Todo
+                      </button>
+                  </div>
+                  <div class="card-body" id="saved-specs-list">
+                      <p style="text-align:center; color:var(--text-secondary); padding:20px;">
+                          <i class="fas fa-database" style="font-size:2rem; margin-bottom:10px; display:block;"></i>
+                          No hay specs guardadas. Crea una nueva spec para verla aquí.
+                      </p>
+                  </div>
+              </div>
+          </div>
+
+          <!-- ===================================================== -->
+          <!-- TAB: LOG DE ERRORES -->
+          <!-- ===================================================== -->
+          <div id="error-log" class="tab-content">
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-exclamation-triangle"></i> Log de Errores</h2>
+                      <div class="no-print">
+                          <button class="btn btn-outline btn-sm" onclick="clearErrorLog()">
+                              <i class="fas fa-trash"></i> Limpiar Log
+                          </button>
+                          <button class="btn btn-warning btn-sm" onclick="exportErrorLog()" style="margin-left: 10px;">
+                              <i class="fas fa-download"></i> Exportar
+                          </button>
+                      </div>
+                  </div>
+                  <div class="card-body">
+                      <div id="error-log-content">
+                          <!-- Los errores se cargarán aquí dinámicamente -->
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </main>
+
+      <div class="logos-container">
+          <svg width="150" height="40" viewBox="0 0 145.94 39.05" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#ffffff" d="M42.24,12.37v1.93h6.91v15.25h4.21v-15.25h6.91v-3.88h-16.1l-1.93,1.95ZM92.06,20.31v1.87h4.24v2.73c-.53.38-1.13.67-1.8.86-.67.19-1.39.29-2.16.29-.84,0-1.61.15-2.32-.45-.71-.3-1.33-.72-1.84-1.27-.52-.55-.92-1.19-1.2-1.93-.28-.74-.42-1.54-.42-2.42v-.05c0-.82.14-1.59.42-2.31.28-.72.67-1.35,1.18-1.89.5-.54,1.08-.97,1.75-1.28.66-.32,1.38-.48,2.15-.48.55,0,1.05.05,1.5.14.46.09.88.22,1.27.38.39.16.77.36,1.13.60.25.16.49.34.74.54l2.94-2.97c-.47-.4-.96-.75-1.46-1.07-.53-.33-1.09-.60-1.70-.82-.60-.22-1.25-.39-1.95-.51-.70-.12-1.48-.18-2.34-.18-1.44,0-2.77.26-4,.78-1.23.52-2.29,1.23-3.18,2.13-.89.90-1.59,1.95-2.09,3.14-.50,1.19-.75,2.47-.75,3.84v-.05c0,1.42.25,2.73.74,3.94.49,1.20,1.18,2.24,2.06,3.12.88.87,1.94,1.56,3.17,2.05,1.23.49,2.59.74,4.09.74,1.75,0,3.30-.30,4.66-.89,1.36-.59,2.53-1.31,3.51-2.15v-8.31h-6.56l-1.74,1.76ZM68.15,21.8h9.02v-3.74h-9.02v-3.88h10.25v-3.74h-12.55l0.14,0.14v17.12h14.54v-3.74h-10.53v-4.02ZM114.24,10.43h-8.75v19.13h4.21v-6.12h3.31l4.10,6.12h2.57l1.39-1.40-3.71-5.43c1.22-.46,2.21-1.17,2.97-2.15.76-.97,1.13-2.24,1.13-3.79v-.05c0-1.82-.55-3.28-1.64-4.37-1.29-1.29-3.15-1.94-5.58-1.94ZM117.19,17.03c0,.82-.28,1.48-.83,1.98-.56.49-1.35.74-2.39.74h-4.26v-5.52h4.18c1.04,0,1.85.23,2.43.69.58.46.87,1.14.87,2.06v.05ZM136.7,10.29h-3.88l-8.20,19.27h4.29l1.75-4.29h8.09l1.75,4.29h1.97l1.70-1.72-7.47-17.55ZM132.16,21.58l2.54-6.20,2.54,6.20h-5.08Z"/>
+              <g><polygon fill="#ffffff" points="7.44 31.38 6.59 32.24 6.88 33.39 8.03 33.68 8.89 32.83 8.59 31.68 7.44 31.38"/><polygon fill="#ffffff" points="6.79 28.67 7.94 28.97 10.41 26.5 10.11 25.35 8.96 25.05 6.49 27.52 6.79 28.67"/><polygon fill="#ffffff" points="10.54 14.61 9.4 14.31 6.93 16.78 7.23 17.93 8.37 18.23 10.85 15.76 10.54 14.61"/><polygon fill="#ffffff" points="26.38 22.79 25.06 24.11 25.36 25.26 26.5 25.56 27.82 24.24 27.52 23.09 26.38 22.79"/><path fill="#ffffff" d="M21.9,36.93l.30,1.15,1.15.30.85-.85-.30-1.15-1.15-.30-.85.85ZM18.01,29.21l-.30-1.15.85-.85,1.15.30.30,1.15-.85.85-1.15-.30ZM18.83,19.56l-.30-1.15,1.50-1.50,1.15.30.30,1.15-1.50,1.50-1.15-.30ZM20.85,14.61l-.30-1.15,1.50-1.50,1.15.30.30,1.15-1.50,1.50-1.15-.30ZM14.33,15.34l-.30-1.14,3.78-3.68,1.14.30.30,1.14-3.78,3.68-1.15-.30ZM24.21,10.68l-.30-1.15,2.17-2.17,1.14.30.30,1.14-2.17,2.17-1.14-.30ZM20.59,9.12l-.30-1.15.85-.85,1.15.30.30,1.15-.85.85-1.15-.30ZM15.06,8.82l-.30-1.15,1.50-1.50,1.15.30.30,1.15-1.50,1.50-1.15-.30ZM25.51,0l-4.90,4.90-1.14-.30-.30-1.14,3.46-3.46H0v9.55h4.54l-1.67,1.67.30,1.14,1.15.30,3.12-3.12h.02l2.59-2.59,1.14.30.30,1.14-.57.57-1.81,1.78.30,1.15,1.15.30,2.50-2.45v8.41l-3.99,3.99.30,1.15,1.15.30,4.62-4.62,1.07.28.30,1.15-1.42,1.42-.93.93-.84.84-1.78,1.78.30,1.15,1.14.30,3.56-3.56.27-.27,1.14.30.30,1.14-4.64,4.64h-.03s-2.52,2.51-2.52,2.51l.31,1.16,1.17.31,2.52-2.52h0s.30-.32.30-.32l1.14.30.30,1.15-3.75,3.75h0s-2.17,2.18-2.17,2.18l.30,1.14,1.15.30,6.35-6.35,1.14.30.30,1.15-2.82,2.77.30,1.14,1.15.30,5.15-5.10v-2.89h0s-1.24,1.24-1.24,1.24l-1.15-.30-.30-1.14,3.43-3.41-.30-1.15-.45-.12-.71-.19-1.05,1.05-1.14-.30-.30-1.14,6.16-6.31-.30-1.15-1.14-.30-1.51,1.51v-4.34l5.25-4.76h7.28V0h-10.92Z"/></g>
+          </svg>
+      </div>
+
+      <div id="statusMessage" class="status-message"></div>
+  </div>
+
+  <!-- Inputs ocultos -->
+  <input type="file" id="excelFile" accept=".xlsx, .xls, .json, .zip" style="display: none;">
+  <input type="file" id="imageInput" accept="image/*" style="display: none;">
+  <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
+
+  <!-- JavaScript principal con todas las correcciones -->
+  <script>
+// ========== VARIABLES GLOBALES ==========
+const stateManager = new StateManager();
+window.placements = [];  // Inicializar aquí
+let currentPlacementId = 1;
+let clientLogoCache = {};
+let isDarkMode = true;
+
+// ========== VERIFICACIÓN DE MÓDULOS ==========
+function checkModulesLoaded() {
+    console.log('🔍 Verificando módulos cargados:');
+    console.log('- TeamsConfig:', typeof window.TeamsConfig !== 'undefined' ? '✅' : '❌');
+    console.log('- Config:', typeof window.Config !== 'undefined' ? '✅' : '❌');
+    console.log('- Utils:', typeof window.Utils !== 'undefined' ? '✅' : '❌');
+    console.log('- Config.COLOR_DATABASES:', window.Config && window.Config.COLOR_DATABASES ? '✅' : '❌');
+    console.log('- Config.GEARFORSPORT_TEAM_MAP:', window.Config && window.Config.GEARFORSPORT_TEAM_MAP ? '✅' : '❌');
+    console.log('- Config.TEAM_CODE_MAP:', window.Config && window.Config.TEAM_CODE_MAP ? '✅' : '❌');
+}
+
+// ========== FUNCIONES AUXILIARES ==========
+function stringToHash(str) {
+    if (!str) return 0;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash);
+}
+
+function updateDateTime() {
+    const now = new Date();
+    const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    };
+    document.getElementById('current-datetime').textContent = 
+        now.toLocaleDateString('es-ES', options);
+}
+
+function showStatus(msg, type = 'success') {
+    const el = document.getElementById('statusMessage');
+    el.textContent = msg;
+    el.className = `status-message status-${type}`;
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 4000);
+}
+
+// ========== FUNCIONES DE TEMA ==========
+function toggleTheme() {
+    isDarkMode = !isDarkMode;
+    const body = document.body;
+    const themeToggle = document.getElementById('themeToggle');
+    
+    if (isDarkMode) {
+        body.classList.remove('light-mode');
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
+        showStatus('🌙 Modo oscuro activado');
+    } else {
+        body.classList.add('light-mode');
+        themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
+        showStatus('☀️ Modo claro activado');
+    }
+    
+    localStorage.setItem('tegraspec-theme', isDarkMode ? 'dark' : 'light');
+}
+
+function loadThemePreference() {
+    const savedTheme = localStorage.getItem('tegraspec-theme');
+    const themeToggle = document.getElementById('themeToggle');
+    
+    if (savedTheme === 'light') {
+        isDarkMode = false;
+        document.body.classList.add('light-mode');
+        themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
+    } else {
+        isDarkMode = true;
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
+    }
+}
+
+// ========== FUNCIONES DE NAVEGACIÓN ==========
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(tabName).classList.add('active');
+    
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab => {
+        if (tab.innerText.toLowerCase().includes(tabName.replace('-', ' '))) {
+            tab.classList.add('active');
         }
+    });
+    
+    if (tabName === 'saved-specs') loadSavedSpecsList();
+    if (tabName === 'dashboard') updateDashboard();
+    if (tabName === 'error-log') loadErrorLog();
+    if (tabName === 'spec-creator') {
+        if (placements.length === 0) {
+            initializePlacements();
+        }
+    }
+}
 
-        // --- 2. RENDERIZADO (CORREGIDO: ERROR SECTION IS NOT DEFINED) ---
-        function renderPlacementHTML(placement) {
-            const container = document.getElementById('placements-container');
-            if (!container) return;
+// ========== FUNCIÓN SETUP PASTE HANDLER ==========
+function setupPasteHandler() {
+    document.addEventListener('paste', function(e) {
+        const activePlacement = document.querySelector('.placement-section.active');
+        if (!activePlacement) return;
+        
+        const items = e.clipboardData.items;
+        
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    const placementId = activePlacement.dataset.placementId;
+                    const placement = placements.find(p => p.id === parseInt(placementId));
+                    
+                    if (placement) {
+                        placement.imageData = event.target.result;
+                        
+                        const img = document.getElementById(`placement-image-preview-${placementId}`);
+                        const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+                        
+                        if (img && imageActions) {
+                            img.src = event.target.result;
+                            img.style.display = 'block';
+                            imageActions.style.display = 'flex';
+                        }
+                        
+                        showStatus(`✅ Imagen pegada en ${placement.type}`);
+                    }
+                };
+                
+                reader.readAsDataURL(blob);
+                e.preventDefault();
+                break;
+            }
+        }
+    });
+}
 
-            const pId = placement.id;
-            const displayType = getPlacementDisplayName(placement);
+// ========== FUNCIONES DE DETECCIÓN ==========
+function detectTeamFromStyle(style) {
+    if (!style) return '';
+    
+    try {
+        // Usar Utils si está disponible
+        if (window.Utils && window.Utils.detectTeamFromStyle) {
+            return window.Utils.detectTeamFromStyle(style);
+        }
+        
+        // Fallback: búsqueda manual
+        const styleStr = style.toString().toUpperCase().trim();
+        
+        // 1. Buscar en Gear for Sport
+        if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
+            for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
+                if (styleStr.includes(code)) {
+                    return teamName;
+                }
+            }
+        }
+        
+        // 2. Buscar en el mapa general
+        if (window.Config && window.Config.TEAM_CODE_MAP) {
+            const teamMap = window.Config.TEAM_CODE_MAP;
+            for (const [code, teamName] of Object.entries(teamMap)) {
+                if (styleStr.includes(code)) {
+                    return teamName;
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.warn('Error en detectTeamFromStyle:', error);
+    }
+    
+    return '';
+}
 
-            // Crear el elemento section correctamente
-            const section = document.createElement('div');
-            section.id = `placement-section-${pId}`;
-            section.className = 'placement-section';
-            section.style.display = 'none';
+function extractGenderFromStyle(style) {
+    if (!style) return '';
+    
+    try {
+        // Usar Utils si está disponible
+        if (window.Utils && window.Utils.extractGenderFromStyle) {
+            return window.Utils.extractGenderFromStyle(style);
+        }
+        
+        // Fallback: búsqueda manual
+        const styleStr = style.toString().toUpperCase().trim();
+        
+        // Detectar formato Gear for Sport
+        const gearForSportMatch = styleStr.match(/U([MWYBGKTIAN])\d+/);
+        if (gearForSportMatch && gearForSportMatch[1]) {
+            const genderCode = gearForSportMatch[1];
+            
+            if (window.Config && window.Config.GEARFORSPORT_GENDER_MAP) {
+                const fullCode = `U${genderCode}`;
+                if (window.Config.GEARFORSPORT_GENDER_MAP[fullCode]) {
+                    return window.Config.GEARFORSPORT_GENDER_MAP[fullCode];
+                }
+                if (window.Config.GEARFORSPORT_GENDER_MAP[genderCode]) {
+                    return window.Config.GEARFORSPORT_GENDER_MAP[genderCode];
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.warn('Error en extractGenderFromStyle:', error);
+    }
+    
+    return '';
+}
 
-            section.innerHTML = `
-                <div class="placement-card">
-                    <div class="placement-header-main">
-                        <h2 class="placement-title"><i class="fas fa-print"></i> <span>${displayType}</span></h2>
-                        <div class="placement-controls">
-                            <select onchange="updatePlacementType(${pId}, this.value)" class="placement-type-select">
-                                <option value="FRONT" ${placement.type === 'FRONT' ? 'selected' : ''}>FRONT</option>
-                                <option value="BACK" ${placement.type === 'BACK' ? 'selected' : ''}>BACK</option>
-                                <option value="LEFT CHEST" ${placement.type === 'LEFT CHEST' ? 'selected' : ''}>LEFT CHEST</option>
-                                <option value="CUSTOM" ${placement.type === 'CUSTOM' ? 'selected' : ''}>CUSTOM...</option>
-                            </select>
-                            <input type="text" id="custom-placement-input-${pId}" class="custom-type-input" 
-                                placeholder="Name (e.g. SHORT)..." 
-                                style="display: ${placement.type === 'CUSTOM' ? 'block' : 'none'}"
-                                value="${placement.customType || ''}" 
-                                oninput="updateCustomPlacement(${pId}, this.value)">
-                        </div>
+// ========== FUNCIÓN ACTUALIZADA updateClientLogo ==========
+function updateClientLogo() {
+    const customer = document.getElementById('customer').value.toUpperCase().trim();
+    const logoElement = document.getElementById('logoCliente');
+    if (!logoElement) return;
+    
+    let logoUrl = '';
+    
+    // Usar Utils si está disponible
+    if (window.Utils && window.Utils.getClientLogo) {
+        logoUrl = window.Utils.getClientLogo(customer);
+    } else {
+        // Fallback manual
+        const gfsVariations = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S', 'GEAR', 'G-F-S'];
+        const isGFS = gfsVariations.some(variation => customer.includes(variation));
+        
+        if (customer.includes('NIKE') || customer.includes('NIQUE')) {
+            logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png';
+        } else if (customer.includes('FANATICS') || customer.includes('FANATIC')) {
+            logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png';
+        } else if (customer.includes('ADIDAS')) {
+            logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png';
+        } else if (customer.includes('PUMA')) {
+            logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png';
+        } else if (customer.includes('UNDER ARMOUR') || customer.includes('UA')) {
+            logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png';
+        } else if (isGFS) {
+            logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png';
+        }
+    }
+    
+    if (logoUrl) {
+        logoElement.src = logoUrl;
+        logoElement.style.display = 'block';
+        clientLogoCache[customer] = logoUrl;
+    } else {
+        logoElement.style.display = 'none';
+    }
+}
+
+// ========== FUNCIONES PARA MÚLTIPLES PLACEMENTS ==========
+function initializePlacements() {
+    const firstPlacementId = addNewPlacement('FRONT', true);
+    
+    if (window.placements.length > 0) {
+        renderPlacementHTML(window.placements[0]);
+    }
+    
+    updatePlacementsTabs();
+    showPlacement(firstPlacementId);
+}
+
+function addNewPlacement(type = null, isFirst = false) {
+    const placementId = isFirst ? 1 : Date.now();
+    const placementType = type || getNextPlacementType();
+    
+    const preset = window.Utils ? window.Utils.getInkPreset('WATER') : {
+        temp: '320 °F', 
+        time: '1:40 min',
+        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+    };
+    
+    const newPlacement = {
+        id: placementId,
+        type: placementType,
+        name: placementType,
+        imageData: null,
+        colors: [],
+        placementDetails: '#.#" FROM COLLAR SEAM',
+        dimensions: 'SIZE: (W) ##" X (H) ##"',
+        temp: preset.temp,
+        time: preset.time,
+        specialties: '',
+        specialInstructions: '',
+        inkType: 'WATER',
+        placementSelect: 'FRONT',
+        isActive: true,
+        meshColor: preset.color.mesh,
+        meshWhite: preset.white.mesh1,
+        meshBlocker: preset.blocker.mesh1,
+        durometer: preset.color.durometer,
+        strokes: preset.color.strokes,
+        angle: preset.color.angle,
+        pressure: preset.color.pressure,
+        speed: preset.color.speed,
+        additives: preset.color.additives,
+        width: '',
+        height: ''
+    };
+    
+    if (!isFirst) {
+        window.placements.push(newPlacement);
+    } else {
+        window.placements = [newPlacement];
+    }
+    
+    if (!isFirst) {
+        renderPlacementHTML(newPlacement);
+        showPlacement(placementId);
+        updatePlacementsTabs();
+    }
+    
+    return placementId;
+}
+
+function getNextPlacementType() {
+    const usedTypes = placements.map(p => p.type);
+    const allTypes = ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'];
+    
+    for (const type of allTypes) {
+        if (!usedTypes.includes(type)) {
+            return type;
+        }
+    }
+    return 'CUSTOM';
+}
+
+// ========== FUNCIÓN PARA OBTENER NOMBRE DE DISPLAY CORRECTO ==========
+function getPlacementDisplayName(placement) {
+    if (!placement) return 'N/A';
+    
+    if (placement.type.includes('CUSTOM:')) {
+        return placement.type.replace('CUSTOM: ', '');
+    }
+    
+    return placement.type;
+}
+
+// ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
+function renderPlacementHTML(placement) {
+    const container = document.getElementById('placements-container');
+    
+    if (document.getElementById(`placement-section-${placement.id}`)) {
+        // Actualizar los títulos si ya existe
+        updateAllPlacementTitles(placement.id);
+        return;
+    }
+    
+    const sectionId = `placement-section-${placement.id}`;
+    const isCustom = placement.type.includes('CUSTOM:');
+    const displayType = getPlacementDisplayName(placement);
+    const customName = isCustom ? displayType : '';
+    
+    // Obtener valores por defecto
+    const preset = window.Utils ? window.Utils.getInkPreset(placement.inkType || 'WATER') : {
+        temp: '320 °F', 
+        time: '1:40 min',
+        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+    };
+    
+    const defaultMeshColor = preset.color.mesh || '157/48';
+    const defaultMeshWhite = preset.white.mesh1 || '198/40';
+    const defaultMeshBlocker = preset.blocker.mesh1 || '122/55';
+    const defaultDurometer = preset.color.durometer || '70';
+    const defaultStrokes = preset.color.strokes || '2';
+    const defaultAngle = preset.color.angle || '15';
+    const defaultPressure = preset.color.pressure || '40';
+    const defaultSpeed = preset.color.speed || '35';
+    const defaultAdditives = preset.color.additives || '3 % cross-linker 500 · 1.5 % antitack';
+    
+    // Extraer dimensiones
+    const dimensions = extractDimensions(placement.dimensions);
+    
+    const sectionHTML = `
+        <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
+            <div class="placement-header">
+                <div class="placement-title">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>${displayType}</span>
+                </div>
+                <div class="placement-actions">
+                    <button class="btn btn-outline btn-sm" onclick="duplicatePlacement(${placement.id})">
+                        <i class="fas fa-copy"></i> Duplicar
+                    </button>
+                    ${placements.length > 1 ? `
+                    <button class="btn btn-danger btn-sm" onclick="removePlacement(${placement.id})">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+            
+            <div class="placement-grid">
+                <div class="placement-left-column">
+                    <!-- Tipo de Placement -->
+                    <div class="form-group">
+                        <label class="form-label">TIPO DE PLACEMENT:</label>
+                        <select class="form-control placement-type-select" 
+                                data-placement-id="${placement.id}"
+                                onchange="updatePlacementType(${placement.id}, this.value)">
+                            <option value="FRONT" ${placement.type === 'FRONT' || displayType === 'FRONT' ? 'selected' : ''}>FRONT (Frente)</option>
+                            <option value="BACK" ${placement.type === 'BACK' || displayType === 'BACK' ? 'selected' : ''}>BACK (Espalda)</option>
+                            <option value="SLEEVE" ${placement.type === 'SLEEVE' || displayType === 'SLEEVE' ? 'selected' : ''}>SLEEVE (Manga)</option>
+                            <option value="CHEST" ${placement.type === 'CHEST' || displayType === 'CHEST' ? 'selected' : ''}>CHEST (Pecho)</option>
+                            <option value="TV. NUMBERS" ${placement.type === 'TV. NUMBERS' || displayType === 'TV. NUMBERS' ? 'selected' : ''}>TV. NUMBERS (Números TV)</option>
+                            <option value="SHOULDER" ${placement.type === 'SHOULDER' || displayType === 'SHOULDER' ? 'selected' : ''}>SHOULDER (Hombro)</option>
+                            <option value="COLLAR" ${placement.type === 'COLLAR' || displayType === 'COLLAR' ? 'selected' : ''}>COLLAR (Cuello)</option>
+                            <option value="CUSTOM" ${isCustom ? 'selected' : ''}>CUSTOM (Personalizado)</option>
+                        </select>
                     </div>
-
-                    <div class="placement-grid">
-                        <div class="card">
-                            <div class="card-header"><h3 class="card-title">Colores para ${displayType}</h3></div>
-                            <div class="card-body">
-                                <table class="colors-table">
-                                    <thead><tr><th>Color Name / Pantone</th><th>Ink Type</th><th>Hex</th><th></th></tr></thead>
-                                    <tbody id="colors-body-${pId}"></tbody>
-                                </table>
-                                <button class="btn-add-row" onclick="addColorRow(${pId})">+ Add Color</button>
-                            </div>
+                    
+                    <!-- Input para custom placement -->
+                    <div id="custom-placement-input-${placement.id}" style="display:${isCustom ? 'block' : 'none'}; margin-top:10px;">
+                        <label class="form-label">NOMBRE DEL PLACEMENT:</label>
+                        <input type="text" 
+                               class="form-control custom-placement-name"
+                               data-placement-id="${placement.id}"
+                               placeholder="Escribe el nombre del placement personalizado..."
+                               value="${customName}"
+                               oninput="updateCustomPlacement(${placement.id}, this.value)">
+                    </div>
+                    
+                    <!-- Imagen de Referencia -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-image"></i> Imagen para ${displayType}
+                            </h3>
                         </div>
-                        <div class="card">
-                            <div class="card-header"><h3 class="card-title">Imagen para ${displayType}</h3></div>
-                            <div class="card-body">
-                                <div class="image-upload-zone" onclick="document.getElementById('file-${pId}').click()">
-                                    ${placement.image ? `<img src="${placement.image}" class="preview-img">` : '<i class="fas fa-cloud-upload-alt"></i><p>Upload Art</p>'}
+                        <div class="card-body">
+                            <div class="file-upload-area" onclick="openImagePickerForPlacement(${placement.id})">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Haz clic para subir una imagen para este placement</p>
+                                <p style="font-size:0.8rem; color:var(--text-secondary);">Ctrl+V para pegar</p>
+                            </div>
+                            <div class="image-preview-container">
+                                <img id="placement-image-preview-${placement.id}" 
+                                     class="image-preview placement-image" 
+                                     alt="Vista previa"
+                                     style="display: none;">
+                                <div class="image-actions" id="placement-image-actions-${placement.id}" style="display:none;">
+                                    <button class="btn btn-danger btn-sm" onclick="removePlacementImage(${placement.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
-                                <input type="file" id="file-${pId}" style="display:none" onchange="handleImageUpload(event, ${pId})">
                             </div>
                         </div>
                     </div>
-
-                    <div class="card mt-20">
-                        <div class="card-header"><h4 class="sequence-main-title">Secuencia de ${displayType}</h4></div>
-                        <div id="stations-container-${pId}" class="stations-table-container"></div>
+                    
+                    <!-- Condiciones de Impresión -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-print"></i> Condiciones para ${displayType}
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label">DETALLES DE UBICACIÓN:</label>
+                                    <input type="text" 
+                                           id="placement-details-${placement.id}"
+                                           class="form-control placement-details"
+                                           value="${placement.placementDetails}"
+                                           oninput="updatePlacementField(${placement.id}, 'placementDetails', this.value)">
+                                </div>
+                                
+                                <!-- Dimensiones separadas -->
+                                <div class="form-group">
+                                    <label class="form-label">DIMENSIONES:</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <input type="text" 
+                                               id="dimension-w-${placement.id}"
+                                               class="form-control placement-dimension-w"
+                                               placeholder="Ancho"
+                                               value="${placement.width || dimensions.width.replace('"', '')}"
+                                               oninput="updatePlacementDimension(${placement.id}, 'width', this.value)"
+                                               style="width: 100px;">
+                                        <span style="color: var(--text-secondary);">X</span>
+                                        <input type="text" 
+                                               id="dimension-h-${placement.id}"
+                                               class="form-control placement-dimension-h"
+                                               placeholder="Alto"
+                                               value="${placement.height || dimensions.height.replace('"', '')}"
+                                               oninput="updatePlacementDimension(${placement.id}, 'height', this.value)"
+                                               style="width: 100px;">
+                                        <span style="color: var(--text-secondary);">pulgadas</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Campos de temperatura y tiempo -->
+                                <div class="form-group">
+                                    <label class="form-label">TEMPERATURA:</label>
+                                    <input type="text" 
+                                           id="temp-${placement.id}"
+                                           class="form-control placement-temp"
+                                           value="${placement.temp}"
+                                           readonly
+                                           title="Determinado por el tipo de tinta seleccionado">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">TIEMPO:</label>
+                                    <input type="text" 
+                                           id="time-${placement.id}"
+                                           class="form-control placement-time"
+                                           value="${placement.time}"
+                                           readonly
+                                           title="Determinado por el tipo de tinta seleccionado">
+                                </div>
+                                
+                                <!-- CAMPO SPECIALTIES -->
+                                <div class="form-group">
+                                    <label class="form-label">SPECIALTIES:</label>
+                                    <input type="text" 
+                                           id="specialties-${placement.id}"
+                                           class="form-control placement-specialties"
+                                           placeholder="Detectado automáticamente..."
+                                           value="${placement.specialties || ''}"
+                                           readonly
+                                           title="Detectado automáticamente de los colores">
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                    
+                    <!-- Parámetros de Impresión Editables -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-sliders-h"></i> Parámetros de Impresión
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label">MALLA COLORES:</label>
+                                    <input type="text" 
+                                           id="mesh-color-${placement.id}"
+                                           class="form-control placement-mesh-color"
+                                           value="${placement.meshColor || defaultMeshColor}"
+                                           oninput="updatePlacementParam(${placement.id}, 'meshColor', this.value)"
+                                           title="Malla para colores regulares">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">MALLA WHITE BASE:</label>
+                                    <input type="text" 
+                                           id="mesh-white-${placement.id}"
+                                           class="form-control placement-mesh-white"
+                                           value="${placement.meshWhite || defaultMeshWhite}"
+                                           oninput="updatePlacementParam(${placement.id}, 'meshWhite', this.value)"
+                                           title="Malla para White Base">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">MALLA BLOCKER:</label>
+                                    <input type="text" 
+                                           id="mesh-blocker-${placement.id}"
+                                           class="form-control placement-mesh-blocker"
+                                           value="${placement.meshBlocker || defaultMeshBlocker}"
+                                           oninput="updatePlacementParam(${placement.id}, 'meshBlocker', this.value)"
+                                           title="Malla para Blocker">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">DURÓMETRO:</label>
+                                    <input type="text" 
+                                           id="durometer-${placement.id}"
+                                           class="form-control placement-durometer"
+                                           value="${placement.durometer || defaultDurometer}"
+                                           oninput="updatePlacementParam(${placement.id}, 'durometer', this.value)"
+                                           title="Durometer (dureza de la racleta)">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">STROKES:</label>
+                                    <input type="text" 
+                                           id="strokes-${placement.id}"
+                                           class="form-control placement-strokes"
+                                           value="${placement.strokes || defaultStrokes}"
+                                           oninput="updatePlacementParam(${placement.id}, 'strokes', this.value)"
+                                           title="Número de strokes">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">ANGLE:</label>
+                                    <input type="text" 
+                                           id="angle-${placement.id}"
+                                           class="form-control placement-angle"
+                                           value="${placement.angle || defaultAngle}"
+                                           oninput="updatePlacementParam(${placement.id}, 'angle', this.value)"
+                                           title="Ángulo de la racleta">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">PRESSURE:</label>
+                                    <input type="text" 
+                                           id="pressure-${placement.id}"
+                                           class="form-control placement-pressure"
+                                           value="${placement.pressure || defaultPressure}"
+                                           oninput="updatePlacementParam(${placement.id}, 'pressure', this.value)"
+                                           title="Presión de impresión">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">SPEED:</label>
+                                    <input type="text" 
+                                           id="speed-${placement.id}"
+                                           class="form-control placement-speed"
+                                           value="${placement.speed || defaultSpeed}"
+                                           oninput="updatePlacementParam(${placement.id}, 'speed', this.value)"
+                                           title="Velocidad de impresión">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">ADITIVOS:</label>
+                                    <input type="text" 
+                                           id="additives-${placement.id}"
+                                           class="form-control placement-additives"
+                                           value="${placement.additives || defaultAdditives}"
+                                           oninput="updatePlacementParam(${placement.id}, 'additives', this.value)"
+                                           title="Aditivos para la tinta">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="placement-right-column">
+                    <!-- Tipo de Tinta -->
+                    <div class="form-group">
+                        <label class="form-label">TIPO DE TINTA:</label>
+                        <select class="form-control placement-ink-type"
+                                data-placement-id="${placement.id}"
+                                onchange="updatePlacementInkType(${placement.id}, this.value)">
+                            <option value="WATER" ${placement.inkType === 'WATER' ? 'selected' : ''}>Water-base</option>
+                            <option value="PLASTISOL" ${placement.inkType === 'PLASTISOL' ? 'selected' : ''}>Plastisol</option>
+                            <option value="SILICONE" ${placement.inkType === 'SILICONE' ? 'selected' : ''}>Silicone</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Colores y Tintas -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-palette"></i> Colores para ${displayType}
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="no-print" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+                                <button class="btn btn-danger btn-sm" onclick="addPlacementColorItem(${placement.id}, 'BLOCKER')">
+                                    <i class="fas fa-plus"></i> Blocker
+                                </button>
+                                <button class="btn btn-white-base btn-sm" onclick="addPlacementColorItem(${placement.id}, 'WHITE_BASE')">
+                                    <i class="fas fa-plus"></i> White Base
+                                </button>
+                                <button class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
+                                    <i class="fas fa-plus"></i> Color
+                                </button>
+                                <button class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')">
+                                    <i class="fas fa-star"></i> Metálico
+                                </button>
+                            </div>
+                            <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Instrucciones Especiales -->
+                    <div class="form-group">
+                        <label class="form-label">INSTRUCCIONES ESPECIALES:</label>
+                        <textarea id="special-instructions-${placement.id}"
+                                  class="form-control placement-special-instructions"
+                                  rows="3"
+                                  placeholder="Instrucciones especiales para este placement..."
+                                  oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${placement.specialInstructions}</textarea>
+                    </div>
+                    
+                    <!-- Vista previa de colores -->
+                    <div id="placement-colors-preview-${placement.id}" class="color-legend"></div>
+                    
+                    <!-- Secuencia de Estaciones -->
+                    <h4 style="margin:15px 0 10px; font-size:0.9rem; color:var(--primary);">
+                        <i class="fas fa-list-ol"></i> Secuencia de ${displayType}
+                    </h4>
+                    <div id="placement-sequence-table-${placement.id}"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML += sectionHTML;
+    
+    renderPlacementColors(placement.id);
+    updatePlacementStations(placement.id);
+    updatePlacementColorsPreview(placement.id);
+    
+    if (placement.imageData) {
+        const img = document.getElementById(`placement-image-preview-${placement.id}`);
+        const imageActions = document.getElementById(`placement-image-actions-${placement.id}`);
+        
+        if (img && imageActions) {
+            img.src = placement.imageData;
+            img.style.display = 'block';
+            imageActions.style.display = 'flex';
+        }
+    }
+    
+    // Asegurar que los títulos se actualicen después de un breve delay
+    setTimeout(() => {
+        updateAllPlacementTitles(placement.id);
+    }, 50);
+}
+
+function updatePlacementsTabs() {
+    const tabsContainer = document.getElementById('placements-tabs');
+    tabsContainer.innerHTML = '';
+    
+    placements.forEach(placement => {
+        const displayType = getPlacementDisplayName(placement);
+            
+        const tab = document.createElement('div');
+        tab.className = `placement-tab ${placement.id === currentPlacementId ? 'active' : ''}`;
+        tab.setAttribute('data-placement-id', placement.id);
+        tab.innerHTML = `
+            <i class="fas fa-${getPlacementIcon(placement.type)}"></i>
+            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
+            ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
+        `;
+        
+        tab.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('remove-tab')) {
+                showPlacement(placement.id);
+            }
+        });
+        tabsContainer.appendChild(tab);
+    });
+}
+
+function showPlacement(placementId) {
+    document.querySelectorAll('.placement-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (section) {
+        section.classList.add('active');
+    }
+    
+    document.querySelectorAll('.placement-tab').forEach(tab => {
+        tab.classList.toggle('active', parseInt(tab.dataset.placementId) === placementId);
+    });
+    
+    currentPlacementId = placementId;
+}
+
+function getPlacementIcon(type) {
+    const icons = {
+        'FRONT': 'tshirt',
+        'BACK': 'tshirt',
+        'SLEEVE': 'hat-cowboy',
+        'CHEST': 'heart',
+        'TV. NUMBERS': 'hashtag',
+        'SHOULDER': 'user',
+        'COLLAR': 'circle',
+        'CUSTOM': 'star'
+    };
+    
+    if (type.includes('CUSTOM:')) {
+        return 'star';
+    }
+    return icons[type] || 'map-marker-alt';
+}
+
+// ========== FUNCIONES DE GESTIÓN DE PLACEMENTS ==========
+function updatePlacementType(placementId, type) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const customInput = document.getElementById(`custom-placement-input-${placementId}`);
+    
+    if (type === 'CUSTOM') {
+        if (customInput) customInput.style.display = 'block';
+        if (!placement.type.startsWith('CUSTOM:')) {
+            placement.type = 'CUSTOM:';
+        }
+    } else {
+        if (customInput) customInput.style.display = 'none';
+        placement.type = type;
+        placement.name = type;
+    }
+    
+    // Actualizar todos los títulos
+    setTimeout(() => {
+        updateAllPlacementTitles(placementId);
+    }, 100);
+    
+    showStatus(`✅ Tipo de placement cambiado a ${type}`);
+}
+
+function updateCustomPlacement(placementId, customName) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement && customName.trim()) {
+        placement.type = `CUSTOM: ${customName}`;
+        placement.name = customName;
+        
+        // Actualizar todos los títulos
+        updateAllPlacementTitles(placementId);
+        
+        showStatus(`✅ Placement personalizado: ${customName}`);
+    }
+}
+
+// ========== FUNCIÓN PARA ACTUALIZAR TODOS LOS TÍTULOS ==========
+function updateAllPlacementTitles(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const displayType = getPlacementDisplayName(placement);
+    
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (!section) return;
+    
+    // 1. Actualizar título principal del placement
+    const title = section.querySelector('.placement-title span');
+    if (title) {
+        title.textContent = displayType;
+    }
+    
+    // 2. Actualizar "Colores para X"
+    const colorTitle = section.querySelector('.card-title');
+    if (colorTitle && colorTitle.textContent.includes('Colores para')) {
+        colorTitle.textContent = `Colores para ${displayType}`;
+    }
+    
+    // 3. Actualizar "Imagen para X"
+    const imageTitle = section.querySelectorAll('.card-title');
+    imageTitle.forEach(title => {
+        if (title.textContent.includes('Imagen para')) {
+            title.textContent = `Imagen para ${displayType}`;
+        }
+    });
+    
+    // 4. Actualizar "Condiciones para X"
+    const conditionsTitle = section.querySelectorAll('.card-title');
+    conditionsTitle.forEach(title => {
+        if (title.textContent.includes('Condiciones para')) {
+            title.textContent = `Condiciones para ${displayType}`;
+        }
+    });
+    
+    // 5. Actualizar "Parámetros de Impresión" (se mantiene igual)
+    
+    // 6. Actualizar "Secuencia de X"
+    const sequenceTitle = section.querySelector('h4');
+    if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
+        sequenceTitle.textContent = `Secuencia de ${displayType}`;
+    }
+    
+    // 7. Actualizar tab si existe
+    const tab = document.querySelector(`.placement-tab[data-placement-id="${placementId}"]`);
+    if (tab) {
+        const icon = tab.querySelector('i').className;
+        tab.innerHTML = `
+            <i class="${icon}"></i>
+            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
+            ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placementId})">&times;</span>` : ''}
+        `;
+    }
+}
+
+function updatePlacementInkType(placementId, inkType) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    placement.inkType = inkType;
+    
+    // Obtener valores de la configuración
+    const preset = window.Utils ? window.Utils.getInkPreset(inkType) : 
+        (inkType === 'PLASTISOL' ? 
+            { temp: '320 °F', time: '1:00 min', color: { mesh: '156/64', durometer: '65', speed: '35', angle: '15', strokes: '1', pressure: '40' } } : 
+            { temp: '320 °F', time: '1:40 min', color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40' } }
+        );
+    
+    // Actualizar en el objeto placement
+    placement.temp = preset.temp;
+    placement.time = preset.time;
+    
+    // Actualizar en la UI
+    const tempField = document.getElementById(`temp-${placementId}`);
+    const timeField = document.getElementById(`time-${placementId}`);
+    
+    if (tempField) {
+        tempField.value = preset.temp;
+        tempField.setAttribute('readonly', true);
+        tempField.title = `Temperatura para tinta ${inkType}`;
+    }
+    
+    if (timeField) {
+        timeField.value = preset.time;
+        timeField.setAttribute('readonly', true);
+        timeField.title = `Tiempo de curado para tinta ${inkType}`;
+    }
+    
+    // Actualizar valores por defecto de parámetros
+    updateDefaultParameters(placementId, inkType);
+    
+    // Actualizar estaciones y mostrar mensaje
+    updatePlacementStations(placementId);
+    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
+}
+
+function updateDefaultParameters(placementId, inkType) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const preset = window.Utils ? window.Utils.getInkPreset(inkType) : {
+        temp: '320 °F', 
+        time: '1:40 min',
+        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+    };
+    
+    // Actualizar campos si están vacíos
+    if (!placement.meshColor) {
+        const meshColorField = document.getElementById(`mesh-color-${placementId}`);
+        if (meshColorField) meshColorField.value = preset.color.mesh;
+    }
+    
+    if (!placement.meshWhite) {
+        const meshWhiteField = document.getElementById(`mesh-white-${placementId}`);
+        if (meshWhiteField) meshWhiteField.value = preset.white.mesh1;
+    }
+    
+    if (!placement.meshBlocker) {
+        const meshBlockerField = document.getElementById(`mesh-blocker-${placementId}`);
+        if (meshBlockerField) meshBlockerField.value = preset.blocker.mesh1;
+    }
+    
+    if (!placement.durometer) {
+        const durometerField = document.getElementById(`durometer-${placementId}`);
+        if (durometerField) durometerField.value = preset.color.durometer;
+    }
+    
+    if (!placement.strokes) {
+        const strokesField = document.getElementById(`strokes-${placementId}`);
+        if (strokesField) strokesField.value = preset.color.strokes;
+    }
+    
+    if (!placement.angle) {
+        const angleField = document.getElementById(`angle-${placementId}`);
+        if (angleField) angleField.value = preset.color.angle;
+    }
+    
+    if (!placement.pressure) {
+        const pressureField = document.getElementById(`pressure-${placementId}`);
+        if (pressureField) pressureField.value = preset.color.pressure;
+    }
+    
+    if (!placement.speed) {
+        const speedField = document.getElementById(`speed-${placementId}`);
+        if (speedField) speedField.value = preset.color.speed;
+    }
+    
+    if (!placement.additives) {
+        const additivesField = document.getElementById(`additives-${placementId}`);
+        if (additivesField) additivesField.value = preset.color.additives;
+    }
+}
+
+function duplicatePlacement(placementId) {
+    const original = placements.find(p => p.id === placementId);
+    if (!original) return;
+
+    const newId = Date.now();
+    const displayType = getPlacementDisplayName(original);
+
+    // Crear copia
+    const duplicate = JSON.parse(JSON.stringify(original));
+    duplicate.id = newId;
+    duplicate.name = displayType;
+
+    // Asegurar que specialties esté definido
+    if (!duplicate.specialties) duplicate.specialties = '';
+
+    placements.push(duplicate);
+
+    // Renderizar
+    renderPlacementHTML(duplicate);
+    updatePlacementsTabs();
+    showPlacement(newId);
+
+    // Actualizar títulos
+    setTimeout(() => {
+        updateAllPlacementTitles(newId);
+    }, 100);
+
+    showStatus('✅ Placement duplicado correctamente');
+
+    return newId;
+}
+
+// ========== FUNCIONES PARA PARÁMETROS EDITABLES ==========
+function updatePlacementParam(placementId, param, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement) {
+        placement[param] = value;
+        updatePlacementStations(placementId);
+        showStatus(`✅ ${param} actualizado`);
+    }
+}
+
+// ========== FUNCIONES PARA DIMENSIONES ==========
+function extractDimensions(dimensionsText) {
+    if (!dimensionsText) return { width: '15.34', height: '12' };
+    
+    // Intentar diferentes patrones
+    const patterns = [
+        /SIZE:\s*\(W\)\s*([\d\.]+)\s*["']?\s*X\s*\(H\)\s*([\d\.]+)/i,
+        /([\d\.]+)\s*["']?\s*[xX×]\s*([\d\.]+)/,
+        /W\s*:\s*([\d\.]+).*H\s*:\s*([\d\.]+)/i,
+        /ANCHO\s*:\s*([\d\.]+).*ALTO\s*:\s*([\d\.]+)/i,
+        /(\d+)\s*["']?\s*[xX]\s*(\d+)/
+    ];
+    
+    for (const pattern of patterns) {
+        const match = dimensionsText.match(pattern);
+        if (match) {
+            return {
+                width: match[1],
+                height: match[2]
+            };
+        }
+    }
+    
+    // Si no encuentra patrón, usar valores por defecto
+    return { width: '15.34', height: '12' };
+}
+
+function updatePlacementDimension(placementId, type, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement) {
+        const wField = document.getElementById(`dimension-w-${placementId}`);
+        const hField = document.getElementById(`dimension-h-${placementId}`);
+        
+        const width = type === 'width' ? value : (wField ? wField.value : '');
+        const height = type === 'height' ? value : (hField ? hField.value : '');
+        
+        // Guardar valores separados
+        placement.width = width;
+        placement.height = height;
+        
+        // Actualizar el campo de dimensiones combinado
+        placement.dimensions = `SIZE: (W) ${width || '##'}" X (H) ${height || '##'}"`;
+        
+        showStatus(`✅ Dimensión ${type === 'width' ? 'ancho' : 'alto'} actualizada`);
+    }
+}
+
+// ========== FUNCIONES PARA COLORS DE PLACEMENTS ==========
+function addPlacementColorItem(placementId, type) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    let initialLetter = '';
+    let initialVal = '';
+    
+    if (type === 'BLOCKER') {
+        initialLetter = 'A';
+        initialVal = 'BLOCKER CHT';
+    } else if (type === 'WHITE_BASE') {
+        initialLetter = 'B';
+        initialVal = 'AQUAFLEX WHITE';
+    } else if (type === 'METALLIC') {
+        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        initialLetter = String(colorItems.length + 1);
+        initialVal = 'METALLIC GOLD';
+    } else {
+        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        initialLetter = String(colorItems.length + 1);
+    }
+    
+    const colorId = Date.now() + Math.random();
+    placement.colors.push({
+        id: colorId,
+        type: type,
+        screenLetter: initialLetter,
+        val: initialVal
+    });
+    
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    
+    checkForSpecialtiesInColors(placementId);
+}
+
+function renderPlacementColors(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const container = document.getElementById(`placement-colors-container-${placementId}`);
+    if (!container) return;
+    
+    if (placement.colors.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                <i class="fas fa-palette" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i>
+                <p>No hay colores agregados para este placement.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    placement.colors.forEach(color => {
+        let badgeClass = 'badge-color';
+        let label = 'COLOR';
+        
+        if (color.type === 'BLOCKER') {
+            badgeClass = 'badge-blocker';
+            label = 'BLOQUEADOR';
+        } else if (color.type === 'WHITE_BASE') {
+            badgeClass = 'badge-white';
+            label = 'WHITE BASE';
+        } else if (color.type === 'METALLIC') {
+            badgeClass = 'badge-warning';
+            label = 'METÁLICO';
+        }
+        
+        const div = document.createElement('div');
+        div.className = 'color-item';
+        div.innerHTML = `
+            <span class="badge ${badgeClass}">${label}</span>
+            <input type="text" 
+                   style="width: 60px; text-align: center; font-weight: bold;" 
+                   value="${color.screenLetter}" 
+                   class="form-control placement-screen-letter"
+                   data-color-id="${color.id}"
+                   data-placement-id="${placementId}"
+                   oninput="updatePlacementScreenLetter(${placementId}, ${color.id}, this.value)"
+                   title="Letra/Número de Pantalla">
+            <input type="text" 
+                   class="form-control placement-ink-input"
+                   data-color-id="${color.id}"
+                   data-placement-id="${placementId}"
+                   placeholder="Nombre de la tinta..." 
+                   value="${color.val}"
+                   oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)">
+            <div class="color-preview" 
+                 id="placement-color-preview-${placementId}-${color.id}" 
+                 title="Vista previa del color"></div>
+            <button class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${placementId}, ${color.id})">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(div);
+        
+        setTimeout(() => updatePlacementColorPreview(placementId, color.id), 10);
+    });
+}
+
+function updatePlacementColorValue(placementId, colorId, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (color) {
+        color.val = value;
+        updatePlacementColorPreview(placementId, colorId);
+        updatePlacementStations(placementId);
+        updatePlacementColorsPreview(placementId);
+        
+        checkForSpecialtiesInColors(placementId);
+    }
+}
+
+function updatePlacementScreenLetter(placementId, colorId, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (color) {
+        color.screenLetter = value.toUpperCase();
+        updatePlacementStations(placementId);
+    }
+}
+
+function removePlacementColorItem(placementId, colorId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    placement.colors = placement.colors.filter(c => c.id !== colorId);
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    
+    checkForSpecialtiesInColors(placementId);
+}
+
+// ========== FUNCIÓN ACTUALIZADA updatePlacementColorPreview ==========
+function updatePlacementColorPreview(placementId, colorId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (!color) return;
+    
+    const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
+    if (!preview) return;
+    
+    const colorName = color.val.toUpperCase().trim();
+    let colorHex = null;
+    
+    // 1. Usar Utils.getColorHex si está disponible
+    if (window.Utils && window.Utils.getColorHex) {
+        colorHex = window.Utils.getColorHex(colorName);
+    }
+    
+    // 2. Si no se obtuvo color, buscar en Config manualmente (con verificación)
+    if (!colorHex && window.Config && window.Config.COLOR_DATABASES) {
+        try {
+            // Buscar en Gear for Sport
+            if (window.Config.COLOR_DATABASES.GEARFORSPORT) {
+                const normalizedGFSColor = normalizeGearForSportColor(colorName);
+                if (window.Config.COLOR_DATABASES.GEARFORSPORT[normalizedGFSColor]) {
+                    colorHex = window.Config.COLOR_DATABASES.GEARFORSPORT[normalizedGFSColor].hex;
+                }
+            }
+            
+            // Buscar en Pantone
+            if (!colorHex && window.Config.COLOR_DATABASES.PANTONE) {
+                for (const [key, data] of Object.entries(window.Config.COLOR_DATABASES.PANTONE)) {
+                    if (colorName === key || colorName.includes(key) || key.includes(colorName)) {
+                        colorHex = data.hex;
+                        break;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('Error buscando color en Config:', error);
+        }
+    }
+    
+    // 3. Buscar código hex directo
+    if (!colorHex) {
+        const hexMatch = colorName.match(/#([0-9A-F]{6})/i);
+        if (hexMatch) {
+            colorHex = `#${hexMatch[1]}`;
+        }
+    }
+    
+    // Aplicar el color al preview
+    if (colorHex) {
+        preview.style.background = colorHex;
+        preview.style.backgroundImage = 'none';
+        preview.title = `${color.val} - ${colorHex}`;
+    } else if (colorName) {
+        const hash = stringToHash(colorName);
+        const randomColor = `hsl(${hash % 360}, 70%, 60%)`;
+        preview.style.background = randomColor;
+        preview.title = colorName;
+    } else {
+        preview.style.background = 'var(--gray-dark)';
+        preview.style.backgroundImage = 'linear-gradient(45deg, var(--gray-medium) 25%, transparent 25%, transparent 75%, var(--gray-medium) 75%, var(--gray-medium)), linear-gradient(45deg, var(--gray-medium) 25%, transparent 25%, transparent 75%, var(--gray-medium) 75%, var(--gray-medium))';
+        preview.style.backgroundSize = '10px 10px';
+        preview.style.backgroundPosition = '0 0, 5px 5px';
+        preview.title = 'Color no especificado';
+    }
+}
+
+// ========== FUNCIÓN CORREGIDA normalizeGearForSportColor ==========
+function normalizeGearForSportColor(colorName) {
+    if (!colorName) return colorName;
+    
+    try {
+        const upperColor = colorName.toUpperCase().trim();
+        
+        // Usar Utils si está disponible
+        if (window.Utils && window.Utils.normalizeGearForSportColor) {
+            return window.Utils.normalizeGearForSportColor(colorName);
+        }
+        
+        // Verificar si Config y COLOR_DATABASES existen
+        if (!window.Config || !window.Config.COLOR_DATABASES || !window.Config.COLOR_DATABASES.GEARFORSPORT) {
+            return upperColor; // Retornar el nombre original si no hay base de datos
+        }
+        
+        const gearForSportDB = window.Config.COLOR_DATABASES.GEARFORSPORT;
+        
+        // Buscar coincidencia exacta
+        if (gearForSportDB[upperColor]) {
+            return upperColor;
+        }
+        
+        // Buscar coincidencia parcial
+        for (const [key] of Object.entries(gearForSportDB)) {
+            const keyUpper = key.toUpperCase();
+            if (keyUpper.includes(upperColor) || upperColor.includes(keyUpper)) {
+                return key;
+            }
+        }
+        
+        // Buscar por número
+        const numberMatch = upperColor.match(/(\d{3,4})/);
+        if (numberMatch) {
+            const number = numberMatch[1];
+            for (const [key] of Object.entries(gearForSportDB)) {
+                if (key.includes(number)) {
+                    return key;
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.warn('Error en normalizeGearForSportColor:', error);
+    }
+    
+    return colorName;
+}
+
+// ========== FUNCIÓN CORREGIDA getColorHex ==========
+function getColorHex(colorName) {
+    if (!colorName) return null;
+    
+    try {
+        const name = colorName.toUpperCase().trim();
+        
+        // 1. Usar Utils si está disponible
+        if (window.Utils && window.Utils.getColorHex) {
+            return window.Utils.getColorHex(colorName);
+        }
+        
+        // 2. Verificar si Config está disponible
+        if (!window.Config || !window.Config.COLOR_DATABASES) {
+            // Fallback a colores básicos
+            return getBasicColorHex(name);
+        }
+        
+        // 3. Buscar en todas las bases de datos
+        for (const db of Object.values(window.Config.COLOR_DATABASES)) {
+            for (const [key, data] of Object.entries(db)) {
+                if (key && data && data.hex) {
+                    if (name === key.toUpperCase() || 
+                        name.includes(key.toUpperCase()) || 
+                        key.toUpperCase().includes(name)) {
+                        return data.hex;
+                    }
+                }
+            }
+        }
+        
+        // 4. Buscar código hex directo
+        const hexMatch = name.match(/#([0-9A-F]{6})/i);
+        if (hexMatch) {
+            return `#${hexMatch[1]}`;
+        }
+        
+        // 5. Último recurso: colores básicos
+        return getBasicColorHex(name);
+        
+    } catch (error) {
+        console.warn('Error en getColorHex:', error);
+        return null;
+    }
+}
+
+function getBasicColorHex(colorName) {
+    const basicColors = {
+        'RED': '#FF0000',
+        'GREEN': '#00FF00',
+        'BLUE': '#0000FF',
+        'BLACK': '#000000',
+        'WHITE': '#FFFFFF',
+        'YELLOW': '#FFFF00',
+        'PURPLE': '#800080',
+        'ORANGE': '#FFA500',
+        'GRAY': '#808080',
+        'GREY': '#808080',
+        'GOLD': '#FFD700',
+        'SILVER': '#C0C0C0',
+        'BROWN': '#A52A2A',
+        'PINK': '#FFC0CB',
+        'CYAN': '#00FFFF',
+        'MAGENTA': '#FF00FF',
+        'MAROON': '#800000',
+        'OLIVE': '#808000',
+        'NAVY': '#000080',
+        'TEAL': '#008080',
+        'LIME': '#00FF00',
+        'AQUA': '#00FFFF',
+        'FUCHSIA': '#FF00FF'
+    };
+    
+    if (basicColors[colorName]) {
+        return basicColors[colorName];
+    }
+    
+    // Buscar coincidencia parcial
+    for (const [color, hex] of Object.entries(basicColors)) {
+        if (colorName.includes(color) || color.includes(colorName)) {
+            return hex;
+        }
+    }
+    
+    return null;
+}
+
+// ========== DETECCIÓN DE ESPECIALIDADES ==========
+function checkForSpecialtiesInColors(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    let specialties = [];
+    
+    placement.colors.forEach(color => {
+        if (color.val) {
+            const colorVal = color.val.toUpperCase();
+            
+            // Detectar HIGH DENSITY
+            if (colorVal.includes('HD') || colorVal.includes('HIGH DENSITY')) {
+                if (!specialties.includes('HIGH DENSITY')) {
+                    specialties.push('HIGH DENSITY');
+                }
+            }
+            
+            // Detectar metálicos usando Utils
+            if (window.Utils && window.Utils.isMetallicColor) {
+                if (window.Utils.isMetallicColor(colorVal)) {
+                    if (!specialties.includes('METALLIC')) {
+                        specialties.push('METALLIC');
+                    }
+                }
+            } else if (isMetallicColor(colorVal)) {
+                // Fallback manual
+                if (!specialties.includes('METALLIC')) {
+                    specialties.push('METALLIC');
+                }
+            }
+            
+            // Detectar FOIL
+            if (colorVal.includes('FOIL')) {
+                if (!specialties.includes('FOIL')) {
+                    specialties.push('FOIL');
+                }
+            }
+        }
+    });
+    
+    // Actualizar el campo de specialties
+    const specialtiesField = document.getElementById(`specialties-${placementId}`);
+    if (specialtiesField) {
+        specialtiesField.value = specialties.join(', ');
+        updatePlacementField(placementId, 'specialties', specialtiesField.value);
+    }
+    
+    return specialties;
+}
+
+function isMetallicColor(colorName) {
+    if (!colorName) return false;
+    
+    const upperColor = colorName.toUpperCase();
+    
+    // Detectar códigos Pantone metálicos (871C-877C)
+    if (upperColor.match(/(8[7-9][0-9]\s*C?)/i)) {
+        return true;
+    }
+    
+    // Detectar palabras clave metálicas
+    const metallicCodes = [
+        "871C", "872C", "873C", "874C", "875C", "876C", "877C",
+        "METALLIC", "GOLD", "SILVER", "BRONZE", "METÁLICO", "METALIC"
+    ];
+    
+    for (const metallicCode of metallicCodes) {
+        if (upperColor.includes(metallicCode)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+function updatePlacementColorsPreview(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const container = document.getElementById(`placement-colors-preview-${placementId}`);
+    if (!container) return;
+    
+    const uniqueColors = [];
+    const seenColors = new Set();
+    
+    placement.colors.forEach(color => {
+        if (color.type === 'COLOR' || color.type === 'METALLIC') {
+            const colorVal = color.val.toUpperCase().trim();
+            if (colorVal && !seenColors.has(colorVal)) {
+                seenColors.add(colorVal);
+                uniqueColors.push({
+                    val: colorVal,
+                    screenLetter: color.screenLetter
+                });
+            }
+        }
+    });
+    
+    if (uniqueColors.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div><strong>Leyenda de Colores:</strong></div><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px;">';
+    
+    uniqueColors.forEach(color => {
+        const colorHex = getColorHex(color.val) || '#cccccc';
+        html += `
+            <div class="color-legend-item" style="display: flex; align-items: center; margin-bottom: 5px;">
+                <div class="color-legend-swatch" style="background-color: ${colorHex}; border: 1px solid #666; width: 15px; height: 15px; margin-right: 5px;"></div>
+                <span style="font-size: 11px;">${color.screenLetter}: ${color.val}</span>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// ========== FUNCIONES DE SECUENCIA DE PLACEMENTS ==========
+function updatePlacementStations(placementId, returnOnly = false) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return [];
+    
+    const preset = window.Utils ? window.Utils.getInkPreset(placement.inkType || 'WATER') : {
+        temp: '320 °F', 
+        time: '1:40 min',
+        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+    };
+    
+    const stationsData = [];
+    let stNum = 1;
+    
+    // Usar valores personalizados si existen
+    const meshColor = placement.meshColor || preset.color.mesh;
+    const meshWhite = placement.meshWhite || preset.white.mesh1;
+    const meshBlocker = placement.meshBlocker || preset.blocker.mesh1;
+    const durometer = placement.durometer || preset.color.durometer;
+    const strokes = placement.strokes || preset.color.strokes;
+    const angle = placement.angle || preset.color.angle;
+    const pressure = placement.pressure || preset.color.pressure;
+    const speed = placement.speed || preset.color.speed;
+    const additives = placement.additives || preset.color.additives;
+    
+    placement.colors.forEach((item, idx) => {
+        let mesh, strokesVal, duro, ang, press, spd, add, screenLetter, screenTypeLabel;
+        
+        screenLetter = item.screenLetter || 'N/A';
+        
+        if (item.type === 'BLOCKER') {
+            screenTypeLabel = preset.blocker.name;
+            mesh = stNum <= 3 ? meshBlocker : (placement.meshBlocker || preset.blocker.mesh2);
+            strokesVal = strokes;
+            duro = durometer;
+            ang = angle;
+            press = pressure;
+            spd = speed;
+            add = placement.additives || preset.blocker.additives;
+        } else if (item.type === 'WHITE_BASE') {
+            screenTypeLabel = preset.white.name;
+            mesh = stNum <= 9 ? meshWhite : (placement.meshWhite || preset.white.mesh2);
+            strokesVal = strokes;
+            duro = durometer;
+            ang = angle;
+            press = pressure;
+            spd = speed;
+            add = placement.additives || preset.white.additives;
+        } else if (item.type === 'METALLIC') {
+            screenTypeLabel = item.val || '---';
+            mesh = '110/64';
+            strokesVal = '1';
+            duro = '70';
+            ang = '15';
+            press = '40';
+            spd = '35';
+            add = 'Catalizador especial para metálicos';
+        } else {
+            screenTypeLabel = item.val || '---';
+            mesh = meshColor;
+            strokesVal = strokes;
+            duro = durometer;
+            ang = angle;
+            press = pressure;
+            spd = speed;
+            add = additives;
+        }
+        
+        const screenCombined = (item.type === 'BLOCKER' || item.type === 'WHITE_BASE' || item.type === 'METALLIC') 
+                         ? screenTypeLabel
+                         : item.val || '---';
+        
+        stationsData.push({ 
+            st: stNum++, 
+            screenLetter: screenLetter,
+            screenCombined: screenCombined,
+            mesh: mesh, 
+            ink: item.val || '---',
+            strokes: strokesVal, 
+            duro: duro,
+            angle: ang,
+            pressure: press,
+            speed: spd,
+            add: add 
+        });
+        
+        if (idx < placement.colors.length - 1) {
+            stationsData.push({ 
+                st: stNum++, 
+                screenLetter: '', 
+                screenCombined: 'FLASH', 
+                mesh: '-', 
+                ink: '-', 
+                strokes: '-', 
+                duro: '-',
+                angle: '-',
+                pressure: '-',
+                speed: '-',
+                add: '' 
+            });
+            
+            stationsData.push({ 
+                st: stNum++, 
+                screenLetter: '', 
+                screenCombined: 'COOL', 
+                mesh: '-', 
+                ink: '-', 
+                strokes: '-', 
+                duro: '-',
+                angle: '-',
+                pressure: '-',
+                speed: '-',
+                add: '' 
+            });
+        }
+    });
+    
+    if (returnOnly) return stationsData;
+    
+    renderPlacementStationsTable(placementId, stationsData);
+}
+
+function renderPlacementStationsTable(placementId, data) {
+    const div = document.getElementById(`placement-sequence-table-${placementId}`);
+    if (!div) return;
+    
+    if (data.length === 0) {
+        div.innerHTML = '<p style="color:var(--text-secondary); font-style:italic; text-align:center; padding:15px; background:var(--gray-dark); border-radius:var(--radius);">Agrega colores para generar la secuencia de impresión.</p>';
+        return;
+    }
+    
+    let html = `<table class="sequence-table">
+        <thead><tr>
+            <th>Est</th>
+            <th>Screen Letter</th>
+            <th>Screen (Tinta/Proceso)</th>
+            <th>Aditivos</th>
+            <th>Malla</th>
+            <th>Strokes</th>
+            <th>Angle</th>
+            <th>Pressure</th>
+            <th>Speed</th>
+            <th>Duro</th>
+        </tr></thead><tbody>`;
+    
+    data.forEach((row, idx) => {
+        const isMetallic = row.screenCombined && (
+            row.screenCombined.includes('METALLIC') || 
+            row.screenCombined.includes('GOLD') || 
+            row.screenCombined.includes('SILVER') ||
+            row.screenCombined.match(/(8[7-9][0-9])\s*C?/i)
+        );
+        
+        html += `<tr ${isMetallic ? 'style="background: linear-gradient(90deg, rgba(255,215,0,0.1) 0%, var(--bg-card) 100%);"' : ''}>
+            <td><strong>${row.st}</strong></td>
+            <td><b style="color: var(--primary);">${row.screenLetter}</b></td>
+            <td>${row.screenCombined}</td>
+            <td style="font-size:11px; color:var(--primary); font-weight:600;">${row.add}</td>
+            <td>${row.mesh}</td>
+            <td>${row.strokes}</td>
+            <td>${row.angle}</td>
+            <td>${row.pressure}</td>
+            <td>${row.speed}</td>
+            <td>${row.duro}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    div.innerHTML = html;
+}
+
+// ========== FUNCIONES DE IMÁGENES ==========
+function openImagePickerForPlacement(placementId) {
+    currentPlacementId = placementId;
+    document.getElementById('placementImageInput').click();
+}
+
+document.getElementById('placementImageInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const placementId = currentPlacementId;
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    if (!file.type.match('image.*')) {
+        showStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const img = document.getElementById(`placement-image-preview-${placementId}`);
+        const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+        
+        if (img) {
+            img.src = ev.target.result;
+            img.style.display = 'block';
+        }
+        
+        if (imageActions) {
+            imageActions.style.display = 'flex';
+        }
+        
+        placement.imageData = ev.target.result;
+        showStatus(`✅ Imagen cargada para ${placement.type}`);
+    };
+    reader.readAsDataURL(file);
+    
+    e.target.value = '';
+});
+
+function removePlacementImage(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const img = document.getElementById(`placement-image-preview-${placementId}`);
+    const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+    
+    if (img) {
+        img.src = '';
+        img.style.display = 'none';
+    }
+    
+    if (imageActions) {
+        imageActions.style.display = 'none';
+    }
+    
+    placement.imageData = null;
+    showStatus('🗑️ Imagen eliminada del placement');
+}
+
+// ========== FUNCIONES DE ACTUALIZACIÓN ==========
+function updatePlacementField(placementId, field, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement) {
+        if (field === 'specialties') {
+            let specialties = value.toUpperCase();
+            
+            if (specialties.includes('HD') && !specialties.includes('HIGH DENSITY')) {
+                specialties = specialties.replace(/\bHD\b/g, 'HIGH DENSITY');
+            }
+            
+            placement[field] = specialties;
+            
+            const specialtiesField = document.getElementById(`specialties-${placementId}`);
+            if (specialtiesField && specialtiesField.value !== specialties) {
+                specialtiesField.value = specialties;
+            }
+        } else {
+            placement[field] = value;
+        }
+    }
+}
+
+// ========== FUNCIÓN CORREGIDA processExcelData ==========
+function processExcelData(worksheet, sheetName = '') {
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    const extracted = {};
+
+    const isSWOSheet = sheetName.includes('SWO');
+    const isPPSSheet = sheetName.includes('PPS');
+    const isProtoSheet = sheetName.includes('Proto');
+
+    if (isSWOSheet || isPPSSheet) {
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            if (!row || row.length < 2) continue;
+
+            const label = String(row[1] || '').trim();
+            const val = String(row[2] || '').trim();
+
+            if (label && val) {
+                if (label.includes('CUSTOMER:')) {
+                    extracted.customer = val;
+                }
+                else if (label.includes('STYLE:')) {
+                    extracted.style = val;
+                    // Detectar equipo automáticamente
+                    extracted.team = detectTeamFromStyle(val);
+                    console.log('Equipo detectado:', extracted.team);
+                    
+                    // Detectar género automáticamente
+                    extracted.gender = extractGenderFromStyle(val);
+                    console.log('Género detectado:', extracted.gender);
+                }
+                else if (label.includes('COLORWAY')) {
+                    extracted.colorway = val;
+                }
+                else if (label.includes('SEASON:')) extracted.season = val;
+                else if (label.includes('PATTERN')) extracted.pattern = val;
+                else if (label.includes('P.O.')) extracted.po = val;
+                else if (label.includes('SAMPLE TYPE')) extracted.sample = val;
+                else if (label.includes('DATE:')) extracted.date = val;
+                else if (label.includes('REQUESTED BY:')) extracted.requestedBy = val;
+                else if (label.includes('TEAM:')) {
+                    // Si ya hay equipo detectado, mantenerlo, si no, usar este
+                    if (!extracted.team) extracted.team = val;
+                }
+                else if (label.includes('GENDER:')) extracted.gender = val;
+            }
+        }
+    } else {
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            if (!row) continue;
+            
+            for (let j = 0; j < row.length; j++) {
+                const cell = String(row[j] || '').trim();
+                
+                if (cell.includes('CUSTOMER:')) {
+                    extracted.customer = String(row[j + 1] || '').trim();
+                } else if (cell.includes('STYLE:')) {
+                    extracted.style = String(row[j + 1] || '').trim();
+                    extracted.team = detectTeamFromStyle(extracted.style);
+                } else if (cell.includes('COLORWAY')) {
+                    extracted.colorway = String(row[j + 1] || '').trim();
+                } else if (cell.includes('SEASON:')) {
+                    extracted.season = String(row[j + 1] || '').trim();
+                } else if (cell.includes('PATTERN')) {
+                    extracted.pattern = String(row[j + 1] || '').trim();
+                } else if (cell.includes('P.O.')) {
+                    extracted.po = String(row[j + 1] || '').trim();
+                } else if (cell.includes('SAMPLE TYPE') || cell.includes('SAMPLE:')) {
+                    extracted.sample = String(row[j + 1] || '').trim();
+                } else if (cell.includes('TEAM:')) {
+                    if (!extracted.team) {
+                        extracted.team = String(row[j + 1] || '').trim();
+                    }
+                } else if (cell.includes('GENDER:')) {
+                    extracted.gender = String(row[j + 1] || '').trim();
+                }
+            }
+        }
+    }
+
+    // Establecer valores en el formulario
+    if (extracted.customer) document.getElementById('customer').value = extracted.customer;
+    if (extracted.style) document.getElementById('style').value = extracted.style;
+    if (extracted.colorway) document.getElementById('colorway').value = extracted.colorway;
+    if (extracted.season) document.getElementById('season').value = extracted.season;
+    if (extracted.pattern) document.getElementById('pattern').value = extracted.pattern;
+    if (extracted.po) document.getElementById('po').value = extracted.po;
+    if (extracted.sample) document.getElementById('sample-type').value = extracted.sample;
+    
+    // Establecer equipo y género
+    if (extracted.team) {
+        document.getElementById('name-team').value = extracted.team;
+    }
+    if (extracted.gender) {
+        document.getElementById('gender').value = extracted.gender;
+    }
+
+    updateClientLogo();
+    
+    const teamMessage = extracted.team ? `Equipo: ${extracted.team}` : 'Equipo: No detectado';
+    const genderMessage = extracted.gender ? `Género: ${extracted.gender}` : 'Género: No detectado';
+    
+    showStatus(`✅ "${sheetName || 'hoja'}" procesado - ${teamMessage} - ${genderMessage}`, 'success');
+}
+
+document.getElementById('excelFile').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    
+    if (file.name.toLowerCase().endsWith('.zip')) {
+        await loadProjectZip(file);
+    } else if (file.name.toLowerCase().endsWith('.json')) {
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                loadSpecData(data);
+                showStatus('✅ JSON cargado correctamente', 'success');
+            } catch (err) {
+                console.error('Error al cargar JSON:', err);
+                showStatus('❌ Error leyendo el archivo JSON', 'error');
+            }
+        };
+        reader.readAsText(file);
+    } else {
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                const sheetPriority = ['SWO', 'PPS', 'Proto 1', 'Proto 2', 'Proto 3', 'Proto 4', 'Sheet1'];
+                let worksheet = null;
+                let sheetUsed = '';
+                
+                for (const sheetName of sheetPriority) {
+                    if (workbook.SheetNames.includes(sheetName)) {
+                        worksheet = workbook.Sheets[sheetName];
+                        sheetUsed = sheetName;
+                        break;
+                    }
+                }
+                
+                if (!worksheet) {
+                    worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    sheetUsed = workbook.SheetNames[0];
+                }
+
+                showStatus(`🔍 Procesando archivo: ${sheetUsed}`, 'warning');
+                processExcelData(worksheet, sheetUsed);
+                
+            } catch (err) { 
+                console.error('Error al cargar SWO:', err); 
+                showStatus('❌ Error leyendo el archivo', 'error'); 
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    
+    e.target.value = '';
+});
+
+// ========== FUNCIONES DE DASHBOARD ==========
+function updateDashboard() {
+    try {
+        const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
+        const total = specs.length;
+        document.getElementById('total-specs').textContent = total;
+        
+        let lastSpec = null;
+        let lastSpecDate = null;
+        
+        specs.forEach(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                const specDate = new Date(data.savedAt || 0);
+                
+                if (!lastSpecDate || specDate > lastSpecDate) {
+                    lastSpecDate = specDate;
+                    lastSpec = data;
+                }
+            } catch(e) {
+                console.warn('Error al parsear spec:', key, e);
+            }
+        });
+        
+        if (lastSpec) {
+            document.getElementById('today-specs').innerHTML = `
+                <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
+                <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
+            `;
+        } else {
+            document.getElementById('today-specs').innerHTML = `
+                <div style="font-size:0.9rem; color:var(--text-secondary);">Sin specs creadas</div>
+            `;
+        }
+        
+        let activeCount = 0;
+        specs.forEach(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                if (data.placements && data.placements.length > 0) {
+                    activeCount++;
+                }
+            } catch(e) {
+                // Ignorar errores
+            }
+        });
+        
+        document.getElementById('active-projects').textContent = activeCount;
+        
+        const totalPlacements = specs.reduce((total, key) => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                return total + (data.placements?.length || 0);
+            } catch(e) {
+                return total;
+            }
+        }, 0);
+        
+        document.getElementById('completion-rate').innerHTML = `
+            <div style="font-size:0.9rem; color:var(--text-secondary);">Placements totales:</div>
+            <div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${totalPlacements}</div>
+        `;
+        
+    } catch (error) {
+        console.error('Error en updateDashboard:', error);
+    }
+}
+
+// ========== FUNCIONES DE STORAGE ==========
+function loadSavedSpecsList() {
+    const list = document.getElementById('saved-specs-list');
+    const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
+    
+    if (specs.length === 0) {
+        list.innerHTML = `
+            <p style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                <i class="fas fa-database" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                No hay specs guardadas. Crea una nueva spec para verla aquí.
+            </p>
+        `;
+        return;
+    }
+    
+    list.innerHTML = '';
+    specs.forEach(key => {
+        try {
+            const data = JSON.parse(localStorage.getItem(key));
+            const div = document.createElement('div');
+            div.style.cssText = "padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition);";
+            div.innerHTML = `
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
+                    <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
                 </div>
             `;
-            
-            container.appendChild(section);
-
-            // Inicializar sub-componentes
-            if (typeof renderColorRows === 'function') renderColorRows(pId);
-            if (typeof updatePlacementStations === 'function') updatePlacementStations(pId);
+            list.appendChild(div);
+        } catch (e) {
+            console.error('Error al parsear spec guardada:', key, e);
+            localStorage.removeItem(key);
         }
+    });
+}
 
-        // --- 3. GESTIÓN DE PLACEMENTS ---
-        function updatePlacementType(placementId, type) {
-            const p = placements.find(p => p.id === placementId);
-            if (!p) return;
-            const customInput = document.getElementById(`custom-placement-input-${placementId}`);
+function loadSpecData(data) {
+    document.getElementById('customer').value = data.customer || '';
+    document.getElementById('style').value = data.style || '';
+    document.getElementById('folder-num').value = data.folder || ''; 
+    document.getElementById('colorway').value = data.colorway || '';
+    document.getElementById('season').value = data.season || '';
+    document.getElementById('pattern').value = data.pattern || '';
+    document.getElementById('po').value = data.po || '';
+    document.getElementById('sample-type').value = data.sampleType || '';
+    document.getElementById('name-team').value = data.nameTeam || '';
+    document.getElementById('gender').value = data.gender || '';
+    document.getElementById('designer').value = data.designer || '';
+    
+    document.getElementById('placements-container').innerHTML = '';
+    placements = [];
+    
+    if (data.placements && Array.isArray(data.placements)) {
+        data.placements.forEach((placementData, index) => {
+            const placementId = index === 0 ? 1 : Date.now() + index;
+            const placement = {
+                ...placementData,
+                id: placementId
+            };
             
-            if (type === 'CUSTOM') {
-                if (customInput) customInput.style.display = 'block';
-                p.type = 'CUSTOM';
+            if (index === 0) {
+                placements = [placement];
             } else {
-                if (customInput) customInput.style.display = 'none';
-                p.type = type;
-                p.customType = '';
+                placements.push(placement);
             }
-            setTimeout(() => updateAllPlacementTitles(placementId), 50);
-        }
-
-        function updateCustomPlacement(placementId, name) {
-            const p = placements.find(p => p.id === placementId);
-            if (p) {
-                p.customType = name.toUpperCase();
-                updateAllPlacementTitles(placementId);
+            
+            renderPlacementHTML(placement);
+            
+            if (placement.imageData) {
+                const img = document.getElementById(`placement-image-preview-${placementId}`);
+                const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+                
+                if (img && imageActions) {
+                    img.src = placement.imageData;
+                    img.style.display = 'block';
+                    imageActions.style.display = 'flex';
+                }
             }
-        }
-
-        function updateAllPlacementTitles(placementId) {
-            const p = placements.find(p => p.id === placementId);
-            if (!p) return;
-            const display = getPlacementDisplayName(p);
-            const container = document.getElementById(`placement-section-${placementId}`);
-            if (!container) return;
-
-            container.querySelector('.placement-title span').textContent = display;
-            container.querySelectorAll('.card-title').forEach(t => {
-                if (t.innerText.includes('Colores')) t.innerText = `Colores para ${display}`;
-                if (t.innerText.includes('Imagen')) t.innerText = `Imagen para ${display}`;
-            });
-            const seqTitle = container.querySelector('.sequence-main-title');
-            if (seqTitle) seqTitle.innerText = `Secuencia de ${display}`;
-        }
-
-        // --- 4. EXPORTAR PDF (ANCHO CORREGIDO) ---
-        async function exportToPDF() {
-            const element = document.querySelector('.app-container');
-            const originalStyle = element.style.cssText;
-            element.style.width = '1050px'; 
-            element.style.minWidth = '1050px';
-
-            try {
-                const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-                const imgData = canvas.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const w = pdf.internal.pageSize.getWidth();
-                const h = (canvas.height * w) / canvas.width;
-                pdf.addImage(imgData, 'PNG', 0, 0, w, h);
-                pdf.save(`Tegra-Spec-${Date.now()}.pdf`);
-            } catch (e) {
-                console.error("PDF Error:", e);
-            } finally {
-                element.style.cssText = originalStyle;
-            }
-        }
-
-        // --- 5. FUNCIONES DE NAVEGACIÓN (SHOWTAB) ---
-        function showPlacement(id) {
-            document.querySelectorAll('.placement-section').forEach(s => s.style.display = 'none');
-            document.querySelectorAll('.placement-tab').forEach(t => t.classList.remove('active'));
-            const target = document.getElementById(`placement-section-${id}`);
-            if (target) target.style.display = 'block';
-            const tab = document.querySelector(`.placement-tab[data-placement-id="${id}"]`);
-            if (tab) tab.classList.add('active');
-        }
-
-        function addNewPlacement() {
-            const id = Date.now();
-            const newP = { id, type: 'FRONT', customType: '', colors: [], image: null };
-            placements.push(newP);
-            renderPlacementHTML(newP);
-            if (typeof updatePlacementsTabs === 'function') updatePlacementsTabs();
-            showPlacement(id);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("Tegra Spec Manager Ready");
+            
+            renderPlacementColors(placementId);
+            updatePlacementStations(placementId);
+            updatePlacementColorsPreview(placementId);
         });
-    </script>
-    <script src="fixes.js"></script>
+    } else {
+        initializePlacements();
+    }
+    
+    updatePlacementsTabs();
+    showPlacement(1);
+    updateClientLogo();
+    
+    showTab('spec-creator');
+    showStatus('📂 Spec cargada correctamente');
+}
+
+function downloadSingleSpec(key) {
+    try {
+        const data = JSON.parse(localStorage.getItem(key));
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `TegraSpec_${data.style || 'Backup'}.json`);
+        document.body.appendChild(downloadAnchorNode); 
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        showStatus('✅ Spec descargada como JSON', 'success');
+    } catch (e) {
+        showStatus('❌ Error al descargar la spec', 'error');
+    }
+}
+
+function deleteSpec(key) {
+    if (confirm('¿Estás seguro de que quieres eliminar esta spec?')) {
+        localStorage.removeItem(key);
+        loadSavedSpecsList();
+        updateDashboard();
+        showStatus('🗑️ Spec eliminada', 'success');
+    }
+}
+
+function clearAllSpecs() {
+    if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?\n\nEsta acción no se puede deshacer y se perderán todos los datos.')) {
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('spec_')) {
+                localStorage.removeItem(key);
+            }
+        });
+        loadSavedSpecsList();
+        updateDashboard();
+        showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
+    }
+}
+
+// ========== FUNCIONES DE GUARDADO ==========
+function saveCurrentSpec() {
+    try {
+        const data = collectData();
+        const style = data.style || 'SinEstilo_' + Date.now();
+        const storageKey = `spec_${style}_${Date.now()}`;
+        
+        placements.forEach(placement => {
+            const specialtiesField = document.getElementById(`specialties-${placement.id}`);
+            if (specialtiesField) {
+                placement.specialties = specialtiesField.value;
+            }
+            
+            const instructionsField = document.getElementById(`special-instructions-${placement.id}`);
+            if (instructionsField) {
+                placement.specialInstructions = instructionsField.value;
+            }
+        });
+        
+        data.savedAt = new Date().toISOString();
+        data.lastModified = new Date().toISOString();
+        
+        localStorage.setItem(storageKey, JSON.stringify(data));
+        
+        updateDashboard();
+        loadSavedSpecsList();
+        
+        showStatus('✅ Spec guardada correctamente', 'success');
+        
+        setTimeout(() => {
+            if (confirm('¿Deseas ver todas las specs guardadas?')) {
+                showTab('saved-specs');
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error al guardar:', error);
+        showStatus('❌ Error al guardar: ' + error.message, 'error');
+    }
+}
+
+function collectData() {
+    const generalData = {
+        customer: document.getElementById('customer').value,
+        style: document.getElementById('style').value,
+        folder: document.getElementById('folder-num').value,
+        colorway: document.getElementById('colorway').value,
+        season: document.getElementById('season').value,
+        pattern: document.getElementById('pattern').value,
+        po: document.getElementById('po').value,
+        sampleType: document.getElementById('sample-type').value,
+        nameTeam: document.getElementById('name-team').value,
+        gender: document.getElementById('gender').value,
+        designer: document.getElementById('designer').value,
+        savedAt: new Date().toISOString()
+    };
+    
+    const placementsData = placements.map(placement => ({
+        id: placement.id,
+        type: placement.type,
+        name: placement.name,
+        imageData: placement.imageData,
+        colors: placement.colors.map(c => ({
+            id: c.id,
+            type: c.type,
+            val: c.val,
+            screenLetter: c.screenLetter
+        })),
+        placementDetails: placement.placementDetails,
+        dimensions: placement.dimensions,
+        width: placement.width,
+        height: placement.height,
+        temp: placement.temp,
+        time: placement.time,
+        specialties: placement.specialties,
+        specialInstructions: placement.specialInstructions,
+        inkType: placement.inkType,
+        placementSelect: placement.placementSelect,
+        // Parámetros de impresión
+        meshColor: placement.meshColor,
+        meshWhite: placement.meshWhite,
+        meshBlocker: placement.meshBlocker,
+        durometer: placement.durometer,
+        strokes: placement.strokes,
+        angle: placement.angle,
+        pressure: placement.pressure,
+        speed: placement.speed,
+        additives: placement.additives
+    }));
+    
+    return {
+        ...generalData,
+        placements: placementsData
+    };
+}
+
+// ========== FUNCIONES DE LIMPIEZA ==========
+function clearForm() {
+    if (confirm('⚠️ ¿Estás seguro de que quieres limpiar todo el formulario?\n\nSe perderán todos los datos no guardados.\n\n¿Continuar?')) {
+        document.querySelectorAll('input:not(#folder-num), textarea, select').forEach(i => {
+            if (i.type !== 'button' && i.type !== 'submit') {
+                i.value = '';
+            }
+        });
+        document.getElementById('designer').value = '';
+        
+        placements = [];
+        document.getElementById('placements-container').innerHTML = '';
+        document.getElementById('placements-tabs').innerHTML = '';
+        
+        initializePlacements();
+        
+        const logoElement = document.getElementById('logoCliente');
+        if (logoElement) {
+            logoElement.style.display = 'none';
+        }
+        
+        showStatus('🧹 Formulario limpiado correctamente');
+    }
+}
+
+// ========== FUNCIONES DE EXPORTACIÓN ==========
+function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return [r, g, b];
+}
+
+async function exportPDF() {
+    try {
+        if (typeof window.jspdf === 'undefined') {
+            showStatus('❌ jsPDF no está cargado', 'error');
+            return;
+        }
+
+        showStatus('📄 Generando PDF...', 'warning');
+        
+        const pdfBlob = await generatePDFBlob();
+        
+        const style = document.getElementById('style').value || 'SinEstilo';
+        const folderNum = document.getElementById('folder-num').value || '00000';
+        const fileName = `TegraSpec_${style}_${folderNum}.pdf`;
+        
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showStatus('✅ PDF generado correctamente', 'success');
+        
+    } catch (error) {
+        console.error('Error al exportar PDF:', error);
+        showStatus('❌ Error al generar PDF: ' + error.message, 'error');
+    }
+}
+
+async function generatePDFBlob() {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'letter');
+            
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 10;
+            let y = margin;
+            
+            const primaryColor = [255, 82, 82];
+            const accentColor = [255, 138, 128];
+            const grayLight = [240, 240, 240];
+            const grayDark = [100, 100, 100];
+            
+            // Función para verificar si necesitamos nueva página
+            const checkPageBreak = (neededHeight) => {
+                if (y + neededHeight > pageH - margin) {
+                    pdf.addPage();
+                    y = margin;
+                    return true;
+                }
+                return false;
+            };
+            
+            // Función para agregar texto
+            const addText = (str, x, yPos, size = 10, bold = false, color = [0, 0, 0], align = 'left', maxWidth = null) => {
+                pdf.setTextColor(...color);
+                pdf.setFontSize(size);
+                pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+                const textStr = String(str || '');
+                
+                if (maxWidth) {
+                    const splitLines = pdf.splitTextToSize(textStr, maxWidth);
+                    pdf.text(splitLines, x, yPos, { align: align });
+                    return splitLines.length * (size * 0.35);
+                } else {
+                    pdf.text(textStr, x, yPos, { align: align });
+                    return size * 0.35;
+                }
+            };
+            
+            // Función para dibujar rectángulo
+            const drawRect = (x, yPos, width, height, fillColor = null, strokeColor = [0, 0, 0], lineWidth = 0.2) => {
+                if (fillColor) {
+                    pdf.setFillColor(...fillColor);
+                    pdf.rect(x, yPos, width, height, 'F');
+                }
+                pdf.setDrawColor(...strokeColor);
+                pdf.setLineWidth(lineWidth);
+                pdf.rect(x, yPos, width, height);
+                return height;
+            };
+            
+            // ===== CABECERA =====
+            pdf.setFillColor(...primaryColor);
+            const headerHeight = 20;
+            drawRect(0, 0, pageW, headerHeight, primaryColor);
+            
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(20);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("TEGRA", margin, 14);
+            
+            pdf.setFontSize(11);
+            pdf.text("TECHNICAL SPEC MANAGER", margin, 20);
+            
+            const folderNum = document.getElementById('folder-num').value || '#####';
+            pdf.setFontSize(8);
+            pdf.text('FOLDER', pageW - margin, 14, { align: 'right' });
+            pdf.setFontSize(16);
+            pdf.text(`#${folderNum}`, pageW - margin, 20, { align: 'right' });
+            
+            y = 30;
+            
+            // ===== INFORMACIÓN GENERAL =====
+            checkPageBreak(45);
+            const infoHeight = 45;
+            drawRect(margin, y, pageW - 2 * margin, infoHeight, [250, 250, 250], grayLight);
+            addText('INFORMACIÓN GENERAL', margin + 5, y + 8, 12, true, primaryColor);
+            
+            const generalData = [
+                { label: 'CLIENTE:', value: document.getElementById('customer').value || '---' },
+                { label: 'STYLE:', value: document.getElementById('style').value || '---' },
+                { label: 'COLORWAY:', value: document.getElementById('colorway').value || '---' },
+                { label: 'SEASON:', value: document.getElementById('season').value || '---' },
+                { label: 'PATTERN #:', value: document.getElementById('pattern').value || '---' },
+                { label: 'P.O. #:', value: document.getElementById('po').value || '---' },
+                { label: 'SAMPLE TYPE:', value: document.getElementById('sample-type').value || '---' },
+                { label: 'TEAM:', value: document.getElementById('name-team').value || '---' },
+                { label: 'GENDER:', value: document.getElementById('gender').value || '---' },
+                { label: 'DESIGNER:', value: document.getElementById('designer').value || '---' }
+            ];
+            
+            let infoY = y + 15;
+            generalData.forEach((item, i) => {
+                const xPos = i % 2 === 0 ? margin + 10 : margin + 110;
+                addText(item.label, xPos, infoY, 9, true);
+                addText(item.value, xPos + 25, infoY, 9, false);
+                if (i % 2 !== 0) infoY += 6;
+            });
+            
+            y += infoHeight + 10;
+            
+            // ===== PLACEMENTS =====
+            const placementsToExport = placements || [];
+            
+            for (let pIndex = 0; pIndex < placementsToExport.length; pIndex++) {
+                const placement = placementsToExport[pIndex];
+                
+                if (!placement) continue;
+                
+                if (pIndex > 0) {
+                    pdf.addPage();
+                    y = margin;
+                }
+                
+                const displayType = getPlacementDisplayName(placement);
+                
+                // Header del placement
+                checkPageBreak(15);
+                pdf.setFillColor(...primaryColor);
+                drawRect(margin, y, pageW - 2 * margin, 10, primaryColor, primaryColor, 0);
+                addText(`PLACEMENT: ${displayType}`, margin + 5, y + 6, 11, true, [255, 255, 255]);
+                y += 15;
+                
+                // Imagen del placement
+                if (placement.imageData && placement.imageData.startsWith('data:')) {
+                    try {
+                        checkPageBreak(75);
+                        
+                        const imgHeight = 70;
+                        const imgWidth = 90;
+                        
+                        drawRect(margin + 5, y, imgWidth, imgHeight, [245, 245, 245], grayLight);
+                        
+                        pdf.addImage(placement.imageData, 'JPEG', margin + 7, y + 2, imgWidth - 4, imgHeight - 4);
+                        
+                        const detailsWidth = pageW - imgWidth - 3 * margin;
+                        const detailsX = margin + imgWidth + 10;
+                        
+                        drawRect(detailsX, y, detailsWidth, imgHeight, [250, 250, 250], grayLight);
+                        
+                        let detailY = y + 10;
+                        addText('DETALLES DEL PLACEMENT', detailsX + 5, detailY, 10, true, primaryColor);
+                        detailY += 8;
+                        
+                        const details = [
+                            `Tipo de tinta: ${placement.inkType || '---'}`,
+                            `Dimensiones: ${placement.width || '##'}" X ${placement.height || '##'}"`,
+                            `Ubicación: ${displayType || '---'}`,
+                            `Placement: ${placement.placementDetails || '---'}`,
+                            `Especialidades: ${placement.specialties || '---'}`
+                        ];
+                        
+                        details.forEach(detail => {
+                            addText(detail, detailsX + 5, detailY, 8);
+                            detailY += 5;
+                        });
+                        
+                        y += imgHeight + 12;
+                    } catch (e) {
+                        console.warn('No se pudo agregar imagen al PDF:', e);
+                        y += 10;
+                    }
+                } else {
+                    y += 5;
+                }
+                
+                // Colores del placement
+                const uniqueColors = [];
+                const seenColors = new Set();
+                
+                if (placement.colors && Array.isArray(placement.colors)) {
+                    placement.colors.forEach(color => {
+                        if (color && (color.type === 'COLOR' || color.type === 'METALLIC') && color.val) {
+                            const colorVal = color.val.toUpperCase().trim();
+                            if (colorVal && !seenColors.has(colorVal)) {
+                                seenColors.add(colorVal);
+                                uniqueColors.push({
+                                    val: colorVal,
+                                    screenLetter: color.screenLetter || ''
+                                });
+                            }
+                        }
+                    });
+                    
+                    if (uniqueColors.length > 0) {
+                        checkPageBreak(40);
+                        
+                        const colorsHeight = 40;
+                        drawRect(margin, y, pageW - 2 * margin, colorsHeight, [250, 250, 250], grayLight);
+                        addText('COLORES Y TINTAS', margin + 5, y + 8, 11, true, primaryColor);
+                        
+                        let colorY = y + 15;
+                        let colorX = margin + 10;
+                        let colorsInRow = 0;
+                        
+                        uniqueColors.forEach((color) => {
+                            const colorHex = getColorHex(color.val) || '#cccccc';
+                            const rgb = hexToRgb(colorHex);
+                            
+                            pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
+                            pdf.rect(colorX, colorY, 8, 8, 'F');
+                            pdf.setDrawColor(0, 0, 0);
+                            pdf.setLineWidth(0.1);
+                            pdf.rect(colorX, colorY, 8, 8);
+                            
+                            addText(`${color.screenLetter}: ${color.val}`, colorX + 10, colorY + 5, 7);
+                            
+                            colorX += 70;
+                            colorsInRow++;
+                            
+                            if (colorsInRow >= 3 || colorX > pageW - 70) {
+                                colorX = margin + 10;
+                                colorY += 15;
+                                colorsInRow = 0;
+                            }
+                        });
+                        
+                        y += colorsHeight + 10;
+                    }
+                }
+                
+                // SECUENCIA DE IMPRESIÓN
+                let stationsData = [];
+                try {
+                    stationsData = updatePlacementStations(placement.id, true) || [];
+                } catch (e) {
+                    console.warn('Error obteniendo stations data:', e);
+                }
+                
+                if (stationsData.length > 0) {
+                    checkPageBreak(150);
+                    
+                    addText(`SECUENCIA DE IMPRESIÓN - ${displayType}`, margin, y, 12, true, primaryColor);
+                    y += 8;
+                    
+                    // Header de la tabla
+                    pdf.setFillColor(...primaryColor);
+                    const headerHeight = 8;
+                    drawRect(margin, y, pageW - 2 * margin, headerHeight, primaryColor, primaryColor, 0);
+                    
+                    const pdfHeaders = ['Est', 'Scr.', 'Screen (Tinta/Proceso)', 'Aditivos', 'Malla', 'Strokes', 'Angle', 'Pressure', 'Speed', 'Duro'];
+                    const pdfColW = [10, 12, 60, 55, 15, 15, 15, 15, 15, 15];
+                    let x = margin;
+                    
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFontSize(8);
+                    pdf.setFont('helvetica', 'bold');
+                    
+                    pdfHeaders.forEach((h, i) => {
+                        pdf.text(h, x + 2, y + 5);
+                        x += pdfColW[i];
+                    });
+                    
+                    y += headerHeight + 1;
+                    
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(8);
+                    
+                    let rowY = y;
+                    stationsData.forEach((row, idx) => {
+                        if (rowY > pageH - 20) {
+                            pdf.addPage();
+                            rowY = margin;
+                        }
+                        
+                        if (idx % 2 === 0 && row.screenCombined !== 'FLASH' && row.screenCombined !== 'COOL') {
+                            pdf.setFillColor(248, 248, 248);
+                            pdf.rect(margin, rowY - 3, pageW - 2 * margin, 6, 'F');
+                        }
+                        
+                        x = margin;
+                        const data = [
+                            row.st || '', 
+                            row.screenLetter || '', 
+                            row.screenCombined || '', 
+                            row.add || '', 
+                            row.mesh || '', 
+                            row.strokes || '',
+                            row.angle || '',
+                            row.pressure || '',
+                            row.speed || '',
+                            row.duro || ''
+                        ];
+                        
+                        data.forEach((d, i) => {
+                            let safeText = String(d || '');
+                            
+                            if (i === 3 && safeText.length > 35) {
+                                safeText = safeText.substring(0, 22) + '...';
+                            }
+                            
+                            if (i === 1) {
+                                pdf.setFont('helvetica', 'bold');
+                                pdf.setTextColor(...primaryColor);
+                            }
+                            
+                            if (i === 3) {
+                                pdf.setTextColor(...accentColor);
+                                pdf.setFontSize(7);
+                            }
+                            
+                            pdf.text(safeText, x + 2, rowY);
+                            x += pdfColW[i];
+                            
+                            if (i === 1) pdf.setFont('helvetica', 'normal');
+                            if (i === 3) {
+                                pdf.setTextColor(0, 0, 0);
+                                pdf.setFontSize(8);
+                            }
+                        });
+                        
+                        rowY += 6;
+                    });
+                    
+                    y = rowY + 8;
+                }
+                
+                // CONDICIONES DE CURADO
+                checkPageBreak(25);
+                
+                const cureHeight = 25;
+                pdf.setFillColor(245, 245, 245);
+                drawRect(margin, y, pageW - 2 * margin, cureHeight, [245, 245, 245], grayLight);
+                
+                addText('CONDICIONES DE CURADO', margin + 5, y + 8, 10, true, primaryColor);
+                
+                const temp = placement.temp || '320 °F';
+                const time = placement.time || '1:40 min';
+                
+                addText(`Temp: ${temp}`, margin + 10, y + 16, 9, true);
+                addText(`Tiempo: ${time}`, margin + 50, y + 16, 9, true);
+                addText(`Tinta: ${placement.inkType || 'WATER'}`, margin + 100, y + 16, 9, true);
+                
+                y += cureHeight + 10;
+                
+                // INSTRUCCIONES ESPECIALES
+                if (placement.specialInstructions && placement.specialInstructions.trim()) {
+                    checkPageBreak(35);
+                    
+                    const instructionsHeight = 35;
+                    pdf.setFillColor(255, 253, 231);
+                    drawRect(margin, y, pageW - 2 * margin, instructionsHeight, [255, 253, 231], [255, 193, 7]);
+                    
+                    addText('INSTRUCCIONES ESPECIALES:', margin + 5, y + 8, 9, true, [255, 193, 7]);
+                    
+                    const instructions = placement.specialInstructions;
+                    const splitText = pdf.splitTextToSize(instructions, pageW - 2 * margin - 10);
+                    
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(66, 66, 66);
+                    pdf.text(splitText, margin + 5, y + 15);
+                    
+                    y += instructionsHeight + 10;
+                }
+            }
+            
+            // FOOTER FINAL
+            const footerY = pageH - 15;
+            
+            pdf.setFontSize(8);
+            pdf.setTextColor(150, 150, 150);
+            
+            const dateStr = new Date().toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            addText(`Generado: ${dateStr}`, margin, footerY);
+            
+            if (placementsToExport.length > 0) {
+                addText(`Total de placements: ${placementsToExport.length}`, pageW / 2, footerY, 8, false, [150, 150, 150], 'center');
+            }
+            
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(...primaryColor);
+            pdf.text('TEGRA Spec Manager', pageW - margin, footerY, 8, true, primaryColor, 'right');
+            
+            const pdfBlob = pdf.output('blob');
+            resolve(pdfBlob);
+            
+        } catch (error) {
+            console.error('Error al generar PDF:', error);
+            reject(error);
+        }
+    });
+}
+
+function exportToExcel() {
+    try {
+        if (typeof XLSX === 'undefined') {
+            showStatus('❌ Error: Biblioteca Excel no cargada', 'error');
+            return;
+        }
+        
+        const data = {
+            designer: document.getElementById('designer').value || '',
+            customer: document.getElementById('customer').value || '',
+            season: document.getElementById('season').value || '',
+            folder: document.getElementById('folder-num').value || '',
+            nameTeam: document.getElementById('name-team').value || '',
+            colorway: document.getElementById('colorway').value || '',
+            style: document.getElementById('style').value || ''
+        };
+        
+        const wb = XLSX.utils.book_new();
+        
+        const headers = [
+            'Area', 'Designer', 'Customer', 'Division', 'SEASON',
+            '', '#Folder/SPEC', '', '', '', '', '', '', '', '', '', '', '', '',
+            'TEAM', '', '', 'COLORWAY', '', 'PLACEMENTS', '', 'SPEC #', '#SCREEEN', 
+            'NO. COLORES', 'Stations', 'setup', 'size', 'W', 'H', 'TYPE OF ART', 'INK TYPE'
+        ];
+        
+        const rows = [];
+        
+        if (placements && Array.isArray(placements) && placements.length > 0) {
+            placements.forEach((placement, index) => {
+                const placementType = getPlacementDisplayName(placement).toLowerCase();
+                
+                const screenCount = placement.colors ? placement.colors.length : 0;
+                const colorCount = screenCount;
+                const stationCount = colorCount > 0 ? (colorCount * 3 - 2) : 0;
+                const artType = 'Vector';
+                
+                let inkType = 'WB MAGNA';
+                if (placement.inkType === 'WATER') inkType = 'WB MAGNA';
+                if (placement.inkType === 'PLASTISOL') inkType = 'PLASTISOL';
+                if (placement.inkType === 'SILICONE') inkType = 'SILICONE';
+                
+                // Obtener dimensiones
+                const width = placement.width || extractDimensions(placement.dimensions).width;
+                const height = placement.height || extractDimensions(placement.dimensions).height;
+                
+                const row = [
+                    'Development',                            
+                    data.designer,                          
+                    data.customer,                          
+                    'NFL / jersey',                         
+                    data.season,                            
+                    '',                                     
+                    data.folder,                            
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', 
+                    data.nameTeam,                          
+                    '', '',                                 
+                    data.colorway,                          
+                    '',                                     
+                    placementType,                          
+                    '',                                     
+                    `SPEC ${index + 1}`,  // SPEC consecutivo                   
+                    screenCount,                            
+                    colorCount,                             
+                    stationCount,                           
+                    1,                                      
+                    'L',                                    
+                    `${width}"`,  // Ancho real                      
+                    `${height}"`, // Alto real                       
+                    artType,                                
+                    inkType                                 
+                ];
+                
+                rows.push(row);
+            });
+        } else {
+            const defaultRow = [
+                'Development',      
+                data.designer,      
+                data.customer,      
+                'NFL / jersey',     
+                data.season,        
+                '',                 
+                data.folder,        
+                '', '', '', '', '', '', '', '', '', '', '', '', '', 
+                data.nameTeam,      
+                '', '',             
+                data.colorway,      
+                '',                 
+                'front',            
+                '',                 
+                'SPEC 1',           
+                0,                  
+                0,                  
+                0,                  
+                1,                  
+                'L',                
+                '15.34"',           
+                '12"',              
+                'Vector',           
+                'WB MAGNA'          
+            ];
+            
+            rows.push(defaultRow);
+        }
+        
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        
+        const colWidths = [];
+        for (let i = 0; i < headers.length; i++) {
+            if (i === 0) colWidths.push({ wch: 12 });
+            else if (i === 1) colWidths.push({ wch: 12 });
+            else if (i === 2) colWidths.push({ wch: 15 });
+            else if (i === 3) colWidths.push({ wch: 15 });
+            else if (i === 4) colWidths.push({ wch: 8 });
+            else if (i === 6) colWidths.push({ wch: 12 });
+            else if (i === 20) colWidths.push({ wch: 25 });
+            else if (i === 23) colWidths.push({ wch: 15 });
+            else if (i === 25) colWidths.push({ wch: 12 });
+            else if (i === 27) colWidths.push({ wch: 8 });
+            else if (i === 28) colWidths.push({ wch: 10 });
+            else if (i === 29) colWidths.push({ wch: 12 });
+            else if (i === 30) colWidths.push({ wch: 10 });
+            else if (i === 34) colWidths.push({ wch: 10 });
+            else if (i === 35) colWidths.push({ wch: 12 });
+            else colWidths.push({ wch: 3 });
+        }
+        ws['!cols'] = colWidths;
+        
+        const headerRange = XLSX.utils.decode_range(ws['!ref']);
+        for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+            if (!ws[cellAddress]) continue;
+            
+            if (headers[C] && headers[C] !== '') {
+                ws[cellAddress].s = {
+                    font: { bold: true, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "4472C4" } },
+                    alignment: { horizontal: "center", vertical: "center" }
+                };
+            }
+        }
+        
+        XLSX.utils.book_append_sheet(wb, ws, 'Hoja1');
+        
+        const fileName = `Calculadora_${data.style || 'Spec'}_${data.folder || '00000'}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        showStatus('📊 Spec Excel generada correctamente', 'success');
+        
+    } catch (error) {
+        console.error('Error al exportar Excel:', error);
+        showStatus('❌ Error al generar Spec Excel: ' + error.message, 'error');
+    }
+}
+
+async function downloadProjectZip() {
+    try {
+        if (typeof JSZip === 'undefined') {
+            showStatus('❌ Error: La biblioteca JSZip no está cargada', 'error');
+            return;
+        }
+
+        const style = document.getElementById('style').value || 'SinEstilo';
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+        const projectName = `TegraSpec_${style}_${timestamp}`;
+        
+        const zip = new JSZip();
+        
+        const jsonData = collectData();
+        zip.file(`${projectName}.json`, JSON.stringify(jsonData, null, 2));
+        
+        try {
+            const pdfBlob = await generatePDFBlob();
+            zip.file(`${projectName}.pdf`, pdfBlob);
+        } catch (pdfError) {
+            console.warn('No se pudo generar PDF para ZIP:', pdfError);
+            zip.file(`${projectName}_PDF_ERROR.txt`, 'No se pudo generar el archivo PDF');
+        }
+        
+        placements.forEach((placement, index) => {
+            if (placement.imageData && placement.imageData.startsWith('data:')) {
+                try {
+                    const imageBlob = dataURLToBlob(placement.imageData);
+                    const displayType = getPlacementDisplayName(placement);
+                    zip.file(`${projectName}_placement${index + 1}_${displayType}.jpg`, imageBlob);
+                } catch (imgError) {
+                    console.warn(`No se pudo procesar imagen para placement ${placement.type}:`, imgError);
+                }
+            }
+        });
+        
+        const readmeContent = `PROYECTO TEGRA SPEC MANAGER ================================
+
+Archivos incluidos:
+- ${projectName}.json: Datos de la especificación técnica
+- ${projectName}.pdf: Documento PDF listo para imprimir
+${placements.some(p => p.imageData) ? `- Imágenes de placements: ${placements.filter(p => p.imageData).length} archivo(s) de imagen` : ''}
+
+Total de Placements: ${placements.length}
+Generado: ${new Date().toLocaleString('es-ES')}
+Cliente: ${document.getElementById('customer').value || 'N/A'}
+Estilo: ${document.getElementById('style').value || 'N/A'}
+
+Para cargar este proyecto:
+1. Descomprime el archivo ZIP
+2. En Tegra Spec Manager, ve a "Crear Spec"
+3. Haz clic en "Cargar Spec" y selecciona el archivo .json
+4. Las imágenes de placements se cargarán automáticamente
+
+Placements incluidos: ${placements.map(p => getPlacementDisplayName(p)).join(', ')}`;
+        
+        zip.file('LEEME.txt', readmeContent);
+        
+        showStatus('📦 Generando archivo ZIP...', 'warning');
+        
+        const zipBlob = await zip.generateAsync({
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        
+        saveAs(zipBlob, `${projectName}.zip`);
+        
+        showStatus('📦 Proyecto ZIP descargado correctamente');
+        
+    } catch (error) {
+        console.error('Error al generar ZIP:', error);
+        showStatus('❌ Error al generar proyecto ZIP: ' + error.message, 'error');
+    }
+}
+
+function dataURLToBlob(dataURL) {
+    try {
+        if (!dataURL.startsWith('data:')) {
+            throw new Error('No es una data URL válida');
+        }
+        
+        const arr = dataURL.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        
+        if (!mimeMatch) {
+            throw new Error('No se pudo determinar el tipo MIME');
+        }
+        
+        const mime = mimeMatch[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        
+        return new Blob([u8arr], { type: mime });
+    } catch (error) {
+        console.error('Error en dataURLToBlob:', error);
+        throw error;
+    }
+}
+
+async function loadProjectZip(file) {
+    try {
+        showStatus('📦 Cargando proyecto ZIP...', 'warning');
+        
+        const zip = new JSZip();
+        const zipData = await zip.loadAsync(file);
+        
+        let jsonData = null;
+        const imageFiles = [];
+        
+        for (const [filename, zipEntry] of Object.entries(zipData.files)) {
+            if (!zipEntry.dir) {
+                if (filename.endsWith('.json')) {
+                    const jsonContent = await zipEntry.async('text');
+                    jsonData = JSON.parse(jsonContent);
+                } else if (filename.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                    const imageBlob = await zipEntry.async('blob');
+                    const imageData = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(imageBlob);
+                    });
+                    imageFiles.push({ filename, imageData });
+                }
+            }
+        }
+        
+        if (jsonData) {
+            loadSpecData(jsonData);
+            
+            imageFiles.forEach((imageFile, index) => {
+                const placementIndex = parseInt(imageFile.filename.match(/placement(\d+)/)?.[1]) - 1;
+                if (placementIndex >= 0 && placements[placementIndex]) {
+                    placements[placementIndex].imageData = imageFile.imageData;
+                    
+                    const img = document.getElementById(`placement-image-preview-${placements[placementIndex].id}`);
+                    const imageActions = document.getElementById(`placement-image-actions-${placements[placementIndex].id}`);
+                    
+                    if (img && imageActions) {
+                        img.src = imageFile.imageData;
+                        img.style.display = 'block';
+                        imageActions.style.display = 'flex';
+                    }
+                }
+            });
+            
+            showStatus('✅ Proyecto ZIP cargado correctamente');
+            showTab('spec-creator');
+        } else {
+            throw new Error('No se encontró archivo JSON en el ZIP');
+        }
+        
+    } catch (error) {
+        console.error('Error al cargar ZIP:', error);
+        showStatus('❌ Error al cargar proyecto ZIP: ' + error.message, 'error');
+    }
+}
+
+// ========== FUNCIONES PARA LOG DE ERRORES ==========
+function loadErrorLog() {
+    const container = document.getElementById('error-log-content');
+    if (!container) return;
+    
+    const errors = errorHandler ? errorHandler.getErrors() : [];
+    
+    if (errors.length === 0) {
+        container.innerHTML = `
+            <p style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 10px; display: block; color: var(--success);"></i>
+                No hay errores registrados en el log.
+            </p>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div style="margin-bottom: 20px;">
+            <p>Total de errores: <strong>${errors.length}</strong></p>
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                Última actualización: ${new Date().toLocaleString('es-ES')}
+            </p>
+        </div>
+    `;
+    
+    errors.forEach((error, index) => {
+        html += `
+            <div class="card" style="margin-bottom: 15px; border-left: 4px solid var(--error);">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div>
+                            <strong style="color: var(--error);">${error.context}</strong>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                ${new Date(error.timestamp).toLocaleString('es-ES')}
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline" onclick="copyErrorDetails(${index})">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                    <div style="background: var(--gray-dark); padding: 10px; border-radius: var(--radius); margin-bottom: 10px;">
+                        <code style="color: var(--text-primary); font-size: 0.85rem;">
+                            ${error.error.message || 'Sin mensaje'}
+                        </code>
+                    </div>
+                    ${error.extraData && Object.keys(error.extraData).length > 0 ? `
+                    <div style="font-size: 0.8rem;">
+                        <strong>Datos adicionales:</strong>
+                        <pre style="background: var(--gray-dark); padding: 8px; border-radius: var(--radius); margin-top: 5px; font-size: 0.75rem; max-height: 100px; overflow: auto;">
+${JSON.stringify(error.extraData, null, 2)}
+                        </pre>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function copyErrorDetails(index) {
+    const errors = errorHandler ? errorHandler.getErrors() : [];
+    if (index < 0 || index >= errors.length) return;
+    
+    const error = errors[index];
+    const text = `Error: ${error.error.message}\nContexto: ${error.context}\nFecha: ${error.timestamp}\nStack: ${error.error.stack || 'No disponible'}`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        showStatus('✅ Detalles del error copiados al portapapeles', 'success');
+    }).catch(err => {
+        showStatus('❌ Error al copiar al portapapeles', 'error');
+    });
+}
+
+function clearErrorLog() {
+    if (confirm('¿Estás seguro de que quieres limpiar el log de errores?')) {
+        if (errorHandler) {
+            errorHandler.clearErrors();
+        }
+        loadErrorLog();
+        showStatus('🗑️ Log de errores limpiado', 'success');
+    }
+}
+
+function exportErrorLog() {
+    try {
+        const errors = errorHandler ? errorHandler.getErrors() : [];
+        const exportData = {
+            app: 'Tegra Spec Manager',
+            version: window.Config && window.Config.APP ? window.Config.APP.VERSION || '1.0.0' : '1.0.0',
+            exportDate: new Date().toISOString(),
+            totalErrors: errors.length,
+            errors: errors
+        };
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `TegraSpec_ErrorLog_${new Date().toISOString().slice(0, 10)}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        
+        showStatus('✅ Log de errores exportado', 'success');
+    } catch (error) {
+        console.error('Error al exportar log:', error);
+        showStatus('❌ Error al exportar log de errores', 'error');
+    }
+}
+
+// ========== FUNCIONES DE INICIALIZACIÓN ==========
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        // Verificar módulos cargados
+        checkModulesLoaded();
+        
+        updateDateTime();
+        updateDashboard();
+        loadSavedSpecsList();
+        setupPasteHandler();
+        loadThemePreference();
+        
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        
+        setInterval(updateDateTime, 60000);
+        
+        setTimeout(() => {
+            if (placements.length === 0) {
+                initializePlacements();
+            }
+        }, 100);
+        
+        // Cargar configuración inicial del state manager
+        if (stateManager) {
+            stateManager.loadFromLocalStorage();
+        }
+        
+        // Reordenar botones automáticamente
+        setTimeout(() => {
+            const actionButtons = document.querySelector('.card.no-print .card-body');
+            if (actionButtons) {
+                const buttons = actionButtons.querySelectorAll('button');
+                const specButton = Array.from(buttons).find(btn => 
+                    btn.textContent.includes('Descargar Spec')
+                );
+                const pdfButton = Array.from(buttons).find(btn => 
+                    btn.textContent.includes('Exportar PDF')
+                );
+                
+                if (specButton && pdfButton) {
+                    specButton.textContent = ' Descargar Spec';
+                    specButton.classList.remove('btn-warning');
+                    specButton.classList.add('btn-primary');
+                    specButton.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
+                    specButton.style.borderColor = '#0056b3';
+                    
+                    pdfButton.textContent = ' Exportar PDF';
+                    pdfButton.classList.remove('btn-warning');
+                    pdfButton.classList.add('btn-success');
+                    
+                    pdfButton.parentNode.insertBefore(pdfButton, specButton.nextSibling);
+                }
+            }
+        }, 2000);
+        
+        showStatus('✅ Aplicación cargada correctamente', 'success');
+        
+    } catch (error) {
+        console.error('Error en inicialización:', error);
+        showStatus('❌ Error al iniciar la aplicación', 'error');
+        
+        if (errorHandler) {
+            errorHandler.log('app_initialization', error);
+        }
+    }
+});
+
+// ========== FUNCIONES DE UTILIDAD ==========
+
+// ========== FUNCIONES DE DEBUG ==========
+window.debugConfig = function() {
+    console.log('=== DEBUG CONFIG ===');
+    console.log('TeamsConfig:', window.TeamsConfig);
+    console.log('Config:', window.Config);
+    console.log('Utils:', window.Utils);
+    console.log('GEARFORSPORT_TEAM_MAP:', window.Config?.GEARFORSPORT_TEAM_MAP);
+    console.log('TEAM_CODE_MAP:', window.Config?.TEAM_CODE_MAP);
+    
+    const style = document.getElementById('style').value;
+    const detectedTeam = detectTeamFromStyle(style);
+    console.log('Style actual:', style);
+    console.log('Equipo detectado:', detectedTeam);
+    
+    alert(`Configuración cargada:\n- TeamsConfig: ${window.TeamsConfig ? 'SÍ' : 'NO'}\n- Config: ${window.Config ? 'SÍ' : 'NO'}\n- Utils: ${window.Utils ? 'SÍ' : 'NO'}\n\nEquipo detectado para "${style}":\n${detectedTeam || 'No detectado'}`);
+};
+
+window.testTeamDetection = function(testStyle) {
+    const styleInput = testStyle || document.getElementById('style').value;
+    if (!styleInput && !testStyle) {
+        const testStyle = prompt('Ingresa un estilo para probar (ej: UM9111-PWI0):');
+        if (!testStyle) return;
+        styleInput = testStyle;
+    }
+    
+    const detectedTeam = detectTeamFromStyle(styleInput);
+    const detectedGender = extractGenderFromStyle(styleInput);
+    
+    console.log('=== TEST TEAM DETECTION ===');
+    console.log('Input:', styleInput);
+    console.log('Equipo detectado:', detectedTeam);
+    console.log('Género detectado:', detectedGender);
+    
+    alert(`Resultado de detección:\n\nEstilo: ${styleInput}\n\nEquipo: ${detectedTeam || '❌ No detectado'}\nGénero: ${detectedGender || '❌ No detectado'}`);
+};
+
+// ========== EXPORTAR FUNCIONES AL CONTEXTO GLOBAL ==========
+window.showTab = showTab;
+window.loadSavedSpecsList = loadSavedSpecsList;
+window.clearErrorLog = clearErrorLog;
+window.exportErrorLog = exportErrorLog;
+window.clearAllSpecs = clearAllSpecs;
+window.addNewPlacement = addNewPlacement;
+window.saveCurrentSpec = saveCurrentSpec;
+window.clearForm = clearForm;
+window.exportToExcel = exportToExcel;
+window.exportPDF = exportPDF;
+window.downloadProjectZip = downloadProjectZip;
+
+// FUNCIONES PARA PLACEMENTS:
+window.removePlacement = function(placementId) {
+    if (placements.length <= 1) {
+        showStatus('❌ No puedes eliminar el último placement', 'error');
+        return;
+    }
+    
+    if (confirm('¿Estás seguro de que quieres eliminar este placement?')) {
+        placements = placements.filter(p => p.id !== placementId);
+        
+        // Eliminar del DOM
+        const section = document.getElementById(`placement-section-${placementId}`);
+        if (section) section.remove();
+        
+        // Actualizar tabs
+        updatePlacementsTabs();
+        
+        // Mostrar el primer placement disponible
+        if (placements.length > 0) {
+            showPlacement(placements[0].id);
+        }
+        
+        showStatus('🗑️ Placement eliminado');
+    }
+};
+
+window.duplicatePlacement = duplicatePlacement;
+window.updatePlacementType = updatePlacementType;
+window.updatePlacementInkType = updatePlacementInkType;
+window.openImagePickerForPlacement = openImagePickerForPlacement;
+window.removePlacementImage = removePlacementImage;
+window.addPlacementColorItem = addPlacementColorItem;
+window.removePlacementColorItem = removePlacementColorItem;
+window.updatePlacementColorValue = updatePlacementColorValue;
+window.updatePlacementScreenLetter = updatePlacementScreenLetter;
+window.updateAllPlacementTitles = updateAllPlacementTitles;
+
+// FUNCIONES DE DETECCIÓN
+window.detectTeamFromStyle = detectTeamFromStyle;
+window.extractGenderFromStyle = extractGenderFromStyle;
+  </script>
 </body>
 </html>
