@@ -1110,23 +1110,84 @@ function updateCustomPlacement(placementId, customName) {
     }
 }
 
-// ========== FUNCIÓN PARA ACTUALIZAR TODOS LOS TÍTULOS (CORREGIDA) ==========
+/// ========== FUNCIONES DE GESTIÓN DE PLACEMENTS (VERIFICADAS) ==========
+
+function updatePlacementType(placementId, type) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const customInput = document.getElementById(`custom-placement-input-${placementId}`);
+    
+    if (type === 'CUSTOM') {
+        if (customInput) {
+            customInput.style.display = 'block';
+            customInput.focus();
+        }
+        if (!placement.type.startsWith('CUSTOM')) {
+            placement.type = 'CUSTOM';
+            placement.customType = '';
+        }
+    } else {
+        if (customInput) customInput.style.display = 'none';
+        placement.type = type;
+        placement.customType = '';
+        placement.name = type;
+    }
+    
+    setTimeout(() => {
+        updateAllPlacementTitles(placementId);
+    }, 100);
+    
+    if (typeof showStatus === 'function') showStatus(`✅ Tipo: ${type}`);
+}
+
+function updateCustomPlacement(placementId, customName) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement && customName.trim()) {
+        placement.type = 'CUSTOM'; 
+        placement.customType = customName.trim().toUpperCase();
+        placement.name = placement.customType;
+        
+        updateAllPlacementTitles(placementId);
+        if (typeof updatePlacementsTabs === 'function') updatePlacementsTabs();
+    }
+}
+
+function getPlacementDisplayName(placement) {
+    if (placement.type === 'CUSTOM' && placement.customType) {
+        return placement.customType;
+    }
+    return placement.type || 'PLACEMENT';
+}
+
 function updateAllPlacementTitles(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
     
-    // Obtenemos el nombre real (si es CUSTOM usa el nombre escrito por el usuario)
     const displayType = getPlacementDisplayName(placement);
-    
     const section = document.getElementById(`placement-section-${placementId}`);
     if (!section) return;
     
-    // 1. Actualizar título principal del placement (el que está arriba en la card)
+    // Título Principal
     const title = section.querySelector('.placement-title span');
-    if (title) {
-        title.textContent = displayType;
-    }
+    if (title) title.textContent = displayType;
     
+    // Títulos de Secciones Internas
+    const cardTitles = section.querySelectorAll('.card-title');
+    cardTitles.forEach(cardTitle => {
+        const text = cardTitle.textContent;
+        if (text.includes('Colores')) cardTitle.textContent = `Colores para ${displayType}`;
+        else if (text.includes('Imagen')) cardTitle.textContent = `Imagen para ${displayType}`;
+        else if (text.includes('Condiciones')) cardTitle.textContent = `Condiciones para ${displayType}`;
+    });
+
+    // Secuencia
+    const sequenceTitle = section.querySelector('h4');
+    if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia')) {
+        sequenceTitle.textContent = `Secuencia de ${displayType}`;
+    }
+}
+
     // 2. Actualizar dinámicamente todas las etiquetas de las secciones
     // Buscamos todas las card-titles dentro de esta sección específica
     const cardTitles = section.querySelectorAll('.card-title');
