@@ -686,15 +686,13 @@ function getPlacementDisplayName(placement) {
 
 // ========== FUNCIÓN CORREGIDA updateCustomPlacement ==========
 function updateCustomPlacement(placementId, customName) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = placements.find(p => p.id === parseInt(placementId));
     if (!placement) return;
     
-    if (customName.trim()) {
-        placement.type = `CUSTOM: ${customName.trim()}`;
-        placement.name = customName.trim();
-        
-        // Actualizar todos los títulos
-        updateAllPlacementTitles(placementId);
+    if (customName && customName.trim()) {
+        const trimmedName = customName.trim();
+        placement.type = `CUSTOM: ${trimmedName}`;
+        placement.name = trimmedName;
         
         // Actualizar el select para que muestre CUSTOM
         const typeSelect = document.querySelector(`.placement-type-select[data-placement-id="${placementId}"]`);
@@ -702,7 +700,13 @@ function updateCustomPlacement(placementId, customName) {
             typeSelect.value = 'CUSTOM';
         }
         
-        showStatus(`✅ Placement personalizado: ${customName.trim()}`);
+        // Actualizar todos los títulos
+        updateAllPlacementTitles(placementId);
+        
+        // Actualizar las pestañas
+        updatePlacementsTabs();
+        
+        showStatus(`✅ Placement personalizado: ${trimmedName}`);
     } else {
         placement.type = 'CUSTOM';
         placement.name = '';
@@ -710,21 +714,197 @@ function updateCustomPlacement(placementId, customName) {
     }
 }
 
-// ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
-function renderPlacementHTML(placement) {
-    const container = document.getElementById('placements-container');
+// ========== FUNCIÓN CORREGIDA updatePlacementType ==========
+function updatePlacementType(placementId, type) {
+    const placement = placements.find(p => p.id === parseInt(placementId));
+    if (!placement) return;
     
-    if (document.getElementById(`placement-section-${placement.id}`)) {
-        // Actualizar los títulos si ya existe
-        updateAllPlacementTitles(placement.id);
-        return;
+    const customInput = document.getElementById(`custom-placement-input-${placementId}`);
+    
+    if (type === 'CUSTOM') {
+        if (customInput) customInput.style.display = 'block';
+        if (!placement.type.startsWith('CUSTOM:')) {
+            placement.type = 'CUSTOM:';
+            placement.name = '';
+        }
+    } else {
+        if (customInput) customInput.style.display = 'none';
+        placement.type = type;
+        placement.name = type;
+        
+        // Si estaba en modo CUSTOM, limpiar el nombre personalizado
+        if (placement.type.startsWith('CUSTOM:')) {
+            placement.type = type;
+            placement.name = type;
+            
+            // Limpiar el input si existe
+            const customNameInput = document.querySelector(`.custom-placement-name[data-placement-id="${placementId}"]`);
+            if (customNameInput) {
+                customNameInput.value = '';
+            }
+        }
     }
     
-    const sectionId = `placement-section-${placement.id}`;
-    const isCustom = placement.type && placement.type.includes('CUSTOM:');
-    const displayType = getPlacementDisplayName(placement);
-    const customName = isCustom ? displayType : '';
+    // Actualizar todos los títulos
+    updateAllPlacementTitles(placementId);
     
+    // Actualizar las pestañas
+    updatePlacementsTabs();
+    
+    showStatus(`✅ Tipo de placement cambiado a ${type}`);
+}
+
+// ========== FUNCIÓN CORREGIDA PARA OBTENER NOMBRE DE DISPLAY ==========
+function getPlacementDisplayName(placement) {
+    if (!placement) return 'N/A';
+    
+    // Si es un placement personalizado con prefijo "CUSTOM:"
+    if (placement.type && placement.type.startsWith('CUSTOM:')) {
+        return placement.type.replace('CUSTOM: ', '');
+    }
+    
+    // Si no, usar el tipo normal
+    return placement.type || placement.name || 'N/A';
+}
+
+// ========== FUNCIÓN CORREGIDA updateAllPlacementTitles ==========
+function updateAllPlacementTitles(placementId) {
+    const placement = placements.find(p => p.id === parseInt(placementId));
+    if (!placement) return;
+    
+    const displayType = getPlacementDisplayName(placement);
+    
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (!section) return;
+    
+    // 1. Actualizar título principal del placement
+    const title = section.querySelector('.placement-title span');
+    if (title) {
+        title.textContent = displayType;
+    }
+    
+    // 2. Actualizar "Colores para X"
+    const colorTitle = section.querySelector('.card-title');
+    if (colorTitle && colorTitle.textContent.includes('Colores para')) {
+        colorTitle.textContent = `Colores para ${displayType}`;
+    }
+    
+    // 3. Actualizar "Imagen para X"
+    const imageTitles = section.querySelectorAll('.card-title');
+    imageTitles.forEach(title => {
+        if (title.textContent.includes('Imagen para')) {
+            title.textContent = `Imagen para ${displayType}`;
+        }
+    });
+    
+    // 4. Actualizar "Condiciones para X"
+    const conditionsTitles = section.querySelectorAll('.card-title');
+    conditionsTitles.forEach(title => {
+        if (title.textContent.includes('Condiciones para')) {
+            title.textContent = `Condiciones para ${displayType}`;
+        }
+    });
+    
+    // 5. Actualizar "Secuencia de X"
+    const sequenceTitle = section.querySelector('h4');
+    if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
+        sequenceTitle.textContent = `Secuencia de ${displayType}`;
+    }
+    
+    // 6. Actualizar tab si existe
+    updatePlacementTabName(placementId, displayType);
+}
+
+// ========== NUEVA FUNCIÓN PARA ACTUALIZAR NOMBRE DE TAB ==========
+function updatePlacementTabName(placementId, displayName) {
+    const tab = document.querySelector(`.placement-tab[data-placement-id="${placementId}"]`);
+    if (!tab) return;
+    
+    const icon = tab.querySelector('i').className;
+    tab.innerHTML = `
+        <i class="${icon}"></i>
+        ${displayName.substring(0, 15)}${displayName.length > 15 ? '...' : ''}
+        ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placementId})">&times;</span>` : ''}
+    `;
+}
+
+// ========== FUNCIÓN CORREGIDA updatePlacementsTabs ==========
+function updatePlacementsTabs() {
+    const tabsContainer = document.getElementById('placements-tabs');
+    if (!tabsContainer) return;
+    
+    tabsContainer.innerHTML = '';
+    
+    placements.forEach(placement => {
+        const displayType = getPlacementDisplayName(placement);
+        const icon = getPlacementIcon(placement.type);
+        
+        const tab = document.createElement('div');
+        tab.className = `placement-tab ${placement.id === currentPlacementId ? 'active' : ''}`;
+        tab.setAttribute('data-placement-id', placement.id);
+        tab.innerHTML = `
+            <i class="fas fa-${icon}"></i>
+            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
+            ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
+        `;
+        
+        tab.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('remove-tab')) {
+                showPlacement(placement.id);
+            }
+        });
+        tabsContainer.appendChild(tab);
+    });
+}
+
+// ========== FUNCIÓN CORREGIDA PARA EL PROBLEMA DEL SEGUNDO TAB ==========
+// El segundo tab muestra "SHOULDER" pero el select muestra "BACK"
+// Esto puede ser porque al crear el placement se seleccionó SHOULDER pero luego se cambió
+// Necesitamos asegurar que el estado sea consistente
+
+function fixInconsistentPlacementState(placementId) {
+    const placement = placements.find(p => p.id === parseInt(placementId));
+    if (!placement) return;
+    
+    // Verificar si hay inconsistencia entre type y lo que muestra el select
+    const typeSelect = document.querySelector(`.placement-type-select[data-placement-id="${placementId}"]`);
+    if (typeSelect && placement.type) {
+        // Si el type del placement no coincide con el valor del select, corregirlo
+        const displayType = getPlacementDisplayName(placement);
+        const selectValue = typeSelect.value;
+        
+        if (displayType !== selectValue && !placement.type.startsWith('CUSTOM:')) {
+            // Actualizar el select para que coincida con el type real
+            if (placement.type === 'SHOULDER') {
+                typeSelect.value = 'SHOULDER';
+            } else if (placement.type === 'BACK') {
+                typeSelect.value = 'BACK';
+            }
+        }
+    }
+}
+
+// ========== MODIFICAR LA FUNCIÓN showPlacement PARA INCLUIR LA CORRECCIÓN ==========
+function showPlacement(placementId) {
+    document.querySelectorAll('.placement-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (section) {
+        section.classList.add('active');
+    }
+    
+    document.querySelectorAll('.placement-tab').forEach(tab => {
+        tab.classList.toggle('active', parseInt(tab.dataset.placementId) === placementId);
+    });
+    
+    currentPlacementId = placementId;
+    
+    // Corregir cualquier inconsistencia de estado al mostrar el placement
+    fixInconsistentPlacementState(placementId);
+}
+
     // Obtener valores por defecto
     const preset = window.Utils ? window.Utils.getInkPreset(placement.inkType || 'WATER') : {
         temp: '320 °F', 
@@ -3663,6 +3843,9 @@ window.updateCustomPlacement = updateCustomPlacement; // AÑADIDA ESTA LÍNEA
 // FUNCIONES DE DETECCIÓN
 window.detectTeamFromStyle = detectTeamFromStyle;
 window.extractGenderFromStyle = extractGenderFromStyle;
+    // ========== AGREGAR ESTA FUNCIÓN AL FINAL DEL ARCHIVO ==========
+// Añadir al final con las otras funciones exportadas
+window.fixInconsistentPlacementState = fixInconsistentPlacementState;
   </script>
 </body>
 </html>
