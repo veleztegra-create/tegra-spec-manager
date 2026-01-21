@@ -48,23 +48,51 @@
     <input type="file" id="imageInput" accept="image/*" style="display: none;">
     <div id="statusMessage" class="status-message"></div>
 
-    <template id="tpl-reference-tables">
-        </template>
-
-    <template id="tpl-static-footer">
-        <footer class="app-footer no-print">
-            <div class="footer-logos">
-                </div>
-            <p>Tegra Global &copy; 2024 - Confidential Technical Data</p>
-        </footer>
-    </template>
-
-    <template id="tpl-system-ui">
-        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-            <div class="spinner"></div>
-            <p>Procesando Especificaciones...</p>
+   <template id="tpl-reference-tables">
+    <div class="reference-container">
         </div>
-    </template>
+</template>
+
+<template id="tpl-art-guides">
+    <div class="art-instructions-static">
+        </div>
+</template>
+
+<template id="tpl-help-modals">
+    <div id="helpModal" class="modal">
+        </div>
+</template>
+
+<template id="tpl-error-log">
+    <section class="system-logs-area">
+        <div id="error-display-area"></div>
+    </section>
+</template>
+
+<template id="tpl-system-ui">
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+</template>
+
+<template id="tpl-legal-notice">
+    <div class="legal-footer-text">
+        <p>Propiedad confidencial de Tegra Global. Prohibida su reproducción...</p>
+    </div>
+</template>
+
+<template id="tpl-corporate-logos">
+    <div class="svg-library" style="display:none;">
+        </div>
+</template>
+
+<template id="tpl-static-footer">
+    <footer class="app-footer no-print">
+        <div class="footer-content">
+            <span>Tegra Global &copy; 2024</span>
+        </div>
+    </footer>
+</template>
 
     <script id="maintenance-loader">
         (function() {
