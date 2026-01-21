@@ -4,76 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tegra - Technical Spec Manager</title>
+    
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="js/config-teams.js"></script>
-    <script src="js/render-helpers.js"></script>
-    <script src="js/utils.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="./js/config-teams.js"></script>
+    <script src="./js/render-helpers.js"></script>
+    <script src="./js/utils.js"></script>
 </head>
 <body>
 
     <div class="app-container">
         <header class="app-header no-print">
-            </header>
+            <div class="header-content">
+                <div class="logo-area">
+                    <h1>TEGRA</h1>
+                    <span class="subtitle">Technical Spec Manager</span>
+                </div>
+                <div class="user-controls">
+                    <button id="themeToggle" class="btn-icon" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+                </div>
+            </div>
+        </header>
 
         <div id="anchor-reference-tables"></div>
 
         <main id="main-content">
-            <section id="spec-creator" class="tab-content active">
+            <section id="dashboard" class="tab-content active">
+                </section>
+            
+            <section id="spec-creator" class="tab-content">
                 </section>
         </main>
 
         <div id="anchor-static-footer"></div>
     </div>
 
-    <input type="file" id="excelFile" style="display: none;">
-    <input type="file" id="imageInput" style="display: none;">
+    <input type="file" id="excelFile" accept=".xlsx, .xls, .json, .zip" style="display: none;">
+    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+    <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
     <div id="statusMessage" class="status-message"></div>
 
     <template id="tpl-reference-tables">
         </template>
 
     <template id="tpl-static-footer">
-        </template>
+        <footer class="app-footer no-print">
+            <div class="footer-logos">
+                </div>
+            <p>Tegra Global &copy; 2024 - Confidential Technical Data</p>
+        </footer>
+    </template>
 
     <template id="tpl-system-ui">
         <div id="loadingOverlay" class="loading-overlay" style="display: none;">
             <div class="spinner"></div>
+            <p>Procesando Especificaciones...</p>
         </div>
     </template>
 
-   <script id="maintenance-loader">
-    (function() {
-        const hydrationMap = [
-            { tpl: 'tpl-reference-tables', target: 'anchor-reference-tables' },
-            { tpl: 'tpl-static-footer', target: 'anchor-static-footer' },
-            { tpl: 'tpl-system-ui', target: 'body' }
-        ];
+    <script id="maintenance-loader">
+        (function() {
+            const hydrationMap = [
+                { tpl: 'tpl-reference-tables', target: 'anchor-reference-tables' },
+                { tpl: 'tpl-static-footer', target: 'anchor-static-footer' },
+                { tpl: 'tpl-system-ui', target: 'body' }
+            ];
 
-        const run = () => {
-            hydrationMap.forEach(item => {
-                const template = document.getElementById(item.tpl);
-                const target = (item.target === 'body') ? document.body : document.getElementById(item.target);
-                if (template && target) {
-                    target.appendChild(template.content.cloneNode(true));
-                }
-            });
-            console.log("Ingeniería: DOM reconstruido con éxito.");
-            
-            // LANZAR EVENTO DE CIERRE: Esto avisa a utils.js y fixes.js que ya pueden trabajar
-            window.dispatchEvent(new Event('app-ready'));
-        };
+            const run = () => {
+                hydrationMap.forEach(item => {
+                    const template = document.getElementById(item.tpl);
+                    const dest = item.target === 'body' ? document.body : document.getElementById(item.target);
+                    if (template && dest) {
+                        dest.appendChild(template.content.cloneNode(true));
+                    }
+                });
+                console.log("Ingeniería: DOM reconstruido con éxito.");
+                // Notificar a fixes.js que puede iniciar
+                window.dispatchEvent(new CustomEvent('dom-ready-tegra'));
+            };
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', run);
-        } else {
-            run();
-        }
-    })();
-</script>
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', run);
+            } else {
+                run();
+            }
+        })();
+    </script>
 
-    <script src="js/fixes.js"></script>
+    <script src="./js/fixes.js"></script>
 </body>
 </html>
