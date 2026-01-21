@@ -48,36 +48,34 @@
 <template id="tpl-print-guides">
     <div class="print-guide-lines">...</div>
 </template>
-    <script>
-        (function() {
-            // Este mapa dice: "Toma el contenido de este Template y ponlo en este Div"
-            const map = [
-                { source: 'tpl-reference-tables', target: 'anchor-reference-tables' },
-                { source: 'tpl-static-footer', target: 'anchor-static-footer' }
-            ];
+   <script id="maintenance-loader">
+    (function() {
+        // Mapa extendido de hidratación
+        const hydrationMap = [
+            { tpl: 'tpl-reference-tables', target: 'anchor-reference-tables' },
+            { tpl: 'tpl-static-footer', target: 'anchor-static-footer' },
+            { tpl: 'tpl-help-modals', target: 'anchor-help-modals' },
+            { tpl: 'tpl-error-log', target: 'anchor-error-log' },
+            { tpl: 'tpl-print-guides', target: 'anchor-print-guides' }
+        ];
 
-            const hydrate = () => {
-                map.forEach(item => {
-                    const template = document.getElementById(item.source);
-                    const target = document.getElementById(item.target);
-                    if (template && target) {
-                        // Clonamos el contenido original y lo insertamos
-                        target.appendChild(template.content.cloneNode(true));
-                    }
-                });
-                console.log("Mantenimiento: DOM restaurado al 100%.");
-            };
+        const run = () => {
+            hydrationMap.forEach(item => {
+                const template = document.getElementById(item.tpl);
+                const target = document.getElementById(item.target);
+                if (template && target) {
+                    target.appendChild(template.content.cloneNode(true));
+                }
+            });
+            console.log("Mantenimiento: 5 bloques pasivos restaurados.");
+        };
 
-            // Ejecutar lo más pronto posible
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', hydrate);
-            } else {
-                hydrate();
-            }
-        })();
-    </script>
-
-    <script src="js/render-helpers.js"></script>
-    <script src="js/fixes.js"></script>
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+    })();
+</script>
 </body>
 </html>
