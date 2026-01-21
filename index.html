@@ -94,35 +94,39 @@
     </footer>
 </template>
 
-    <script id="maintenance-loader">
-        (function() {
-            const hydrationMap = [
-                { tpl: 'tpl-reference-tables', target: 'anchor-reference-tables' },
-                { tpl: 'tpl-static-footer', target: 'anchor-static-footer' },
-                { tpl: 'tpl-system-ui', target: 'body' }
-            ];
+   <script id="maintenance-loader">
+    (function() {
+        // Mapa completo de 8 bloques
+        const hydrationMap = [
+            { tpl: 'tpl-reference-tables', target: 'anchor-reference-tables' },
+            { tpl: 'tpl-art-guides',       target: 'anchor-art-guides' },
+            { tpl: 'tpl-help-modals',      target: 'body' },
+            { tpl: 'tpl-error-log',        target: 'anchor-error-log' },
+            { tpl: 'tpl-system-ui',        target: 'body' },
+            { tpl: 'tpl-legal-notice',     target: 'anchor-legal-notice' },
+            { tpl: 'tpl-corporate-logos',  target: 'body' },
+            { tpl: 'tpl-static-footer',    target: 'anchor-static-footer' }
+        ];
 
-            const run = () => {
-                hydrationMap.forEach(item => {
-                    const template = document.getElementById(item.tpl);
-                    const dest = item.target === 'body' ? document.body : document.getElementById(item.target);
-                    if (template && dest) {
-                        dest.appendChild(template.content.cloneNode(true));
-                    }
-                });
-                console.log("Ingeniería: DOM reconstruido con éxito.");
-                
-                // SINCRONIZACIÓN: Avisamos a fixes.js que el escenario está listo
-                window.dispatchEvent(new CustomEvent('tegra-dom-ready'));
-            };
+        const run = () => {
+            hydrationMap.forEach(item => {
+                const template = document.getElementById(item.tpl);
+                const dest = item.target === 'body' ? document.body : document.getElementById(item.target);
+                if (template && dest) {
+                    dest.appendChild(template.content.cloneNode(true));
+                }
+            });
+            console.log("Ingeniería: 8 bloques de infraestructura restaurados.");
+            window.dispatchEvent(new CustomEvent('tegra-dom-ready'));
+        };
 
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', run);
-            } else {
-                run();
-            }
-        })();
-    </script>
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+    })();
+</script>
 
     <script src="js/fixes.js"></script>
 </body>
