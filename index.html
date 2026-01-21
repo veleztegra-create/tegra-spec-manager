@@ -15,7 +15,84 @@
     <script src="js/config-teams.js"></script>
     <script src="js/render-helpers.js"></script>
     <script src="js/utils.js"></script>
-</head>
+</head> 
+    <template id="tpl-reference-tables">
+    <section class="measures-guide no-print">
+        <h3><i class="fas fa-ruler"></i> Reference: Inches to Centimeters</h3>
+        <table>
+            <thead>
+                <tr><th>Inches</th><th>Decimal</th><th>Centimeters</th><th>Tolerance</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1/8"</td><td>0.125</td><td>0.318 cm</td><td>+/- 0.1</td></tr>
+                <tr><td>1/4"</td><td>0.250</td><td>0.635 cm</td><td>+/- 0.2</td></tr>
+                <tr><td>1/2"</td><td>0.500</td><td>1.270 cm</td><td>+/- 0.3</td></tr>
+                <tr><td>1"</td><td>1.000</td><td>2.540 cm</td><td>+/- 0.5</td></tr>
+            </tbody>
+        </table>
+    </section>
+</template>
+
+<template id="tpl-art-guides">
+    <div class="art-standard-notes">
+        <h4><i class="fas fa-info-circle"></i> Standard Placement Rules:</h4>
+        <ul>
+            <li><strong>Front:</strong> Measured from the highest point of the shoulder (HPS).</li>
+            <li><strong>Back:</strong> Measured from the center back neck seam.</li>
+            <li><strong>Sleeves:</strong> Centered between shoulder seam and cuff/hem.</li>
+        </ul>
+    </div>
+</template>
+
+<template id="tpl-help-modals">
+    <div id="helpModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <h3>Tegra Spec Manager Guide</h3>
+            <p>1. Upload Excel to auto-fill team colors.</p>
+            <p>2. Drag & Drop images into placements.</p>
+            <p>3. Export to PDF for official Tech Pack.</p>
+            <button onclick="this.closest('.modal-overlay').style.display='none'">Close</button>
+        </div>
+    </div>
+</template>
+
+<template id="tpl-error-log">
+    <div class="system-monitor no-print">
+        <div class="monitor-header">System Status: <span id="sync-indicator">Online</span></div>
+        <div id="error-display-area" class="log-viewport"></div>
+    </div>
+</template>
+
+<template id="tpl-system-ui">
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="tegra-loader"></div>
+        <span>Generating Spec...</span>
+    </div>
+</template>
+
+<template id="tpl-legal-notice">
+    <div class="confidential-seal">
+        <p>CONFIDENTIAL: Property of Tegra Global. Authorized use only.</p>
+        <p>This technical specification is subject to change without notice.</p>
+    </div>
+</template>
+
+<template id="tpl-corporate-logos">
+    <div id="svg-assets" style="display:none;">
+        <svg id="logo-tegra-svg" viewBox="0 0 500 150">
+            <path d="M20,20 L80,20 L80,35 L58,35 L58,90 L42,90 L42,35 L20,35 Z" fill="#CC0000"/>
+            </svg>
+    </div>
+</template>
+
+<template id="tpl-static-footer">
+    <footer class="main-footer no-print">
+        <div class="footer-grid">
+            <div class="brand">Velez Tegra Create</div>
+            <div class="version">v2.4.0 (Maintenance Release)</div>
+        </div>
+    </footer>
+</template>
 <body>
 
     <div class="app-container">
