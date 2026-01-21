@@ -44,32 +44,35 @@
         </div>
     </template>
 
-    <script id="maintenance-script">
-        (function() {
-            const map = [
-                { src: 'tpl-reference-tables', dest: 'anchor-reference-tables' },
-                { src: 'tpl-static-footer', dest: 'anchor-static-footer' },
-                { src: 'tpl-system-ui', dest: 'document-body' }
-            ];
+   <script id="maintenance-loader">
+    (function() {
+        const hydrationMap = [
+            { tpl: 'tpl-reference-tables', target: 'anchor-reference-tables' },
+            { tpl: 'tpl-static-footer', target: 'anchor-static-footer' },
+            { tpl: 'tpl-system-ui', target: 'body' }
+        ];
 
-            const hydrate = () => {
-                map.forEach(item => {
-                    const template = document.getElementById(item.src);
-                    const target = (item.dest === 'document-body') ? document.body : document.getElementById(item.dest);
-                    if (template && target) {
-                        target.appendChild(template.content.cloneNode(true));
-                    }
-                });
-                console.log("Ingeniería: DOM reconstruido con éxito.");
-            };
+        const run = () => {
+            hydrationMap.forEach(item => {
+                const template = document.getElementById(item.tpl);
+                const target = (item.target === 'body') ? document.body : document.getElementById(item.target);
+                if (template && target) {
+                    target.appendChild(template.content.cloneNode(true));
+                }
+            });
+            console.log("Ingeniería: DOM reconstruido con éxito.");
+            
+            // LANZAR EVENTO DE CIERRE: Esto avisa a utils.js y fixes.js que ya pueden trabajar
+            window.dispatchEvent(new Event('app-ready'));
+        };
 
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', hydrate);
-            } else {
-                hydrate();
-            }
-        })();
-    </script>
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+    })();
+</script>
 
     <script src="js/fixes.js"></script>
 </body>
