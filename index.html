@@ -12,9 +12,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    <script src="./js/config-teams.js"></script>
-    <script src="./js/render-helpers.js"></script>
-    <script src="./js/utils.js"></script>
+    <script src="js/config-teams.js"></script>
+    <script src="js/render-helpers.js"></script>
+    <script src="js/utils.js"></script>
 </head>
 <body>
 
@@ -46,7 +46,6 @@
 
     <input type="file" id="excelFile" accept=".xlsx, .xls, .json, .zip" style="display: none;">
     <input type="file" id="imageInput" accept="image/*" style="display: none;">
-    <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
     <div id="statusMessage" class="status-message"></div>
 
     <template id="tpl-reference-tables">
@@ -84,8 +83,9 @@
                     }
                 });
                 console.log("Ingeniería: DOM reconstruido con éxito.");
-                // Notificar a fixes.js que puede iniciar
-                window.dispatchEvent(new CustomEvent('dom-ready-tegra'));
+                
+                // SINCRONIZACIÓN: Avisamos a fixes.js que el escenario está listo
+                window.dispatchEvent(new CustomEvent('tegra-dom-ready'));
             };
 
             if (document.readyState === 'loading') {
@@ -96,6 +96,6 @@
         })();
     </script>
 
-    <script src="./js/fixes.js"></script>
+    <script src="js/fixes.js"></script>
 </body>
 </html>
