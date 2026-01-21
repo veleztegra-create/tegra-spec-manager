@@ -8,74 +8,69 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    </head>
+    <script src="js/config-teams.js"></script>
+    <script src="js/render-helpers.js"></script>
+    <script src="js/utils.js"></script>
+</head>
 <body>
 
     <div class="app-container">
-        <header class="app-header">
+        <header class="app-header no-print">
             </header>
 
-     <div id="anchor-help-modals"></div>
+        <div id="anchor-reference-tables"></div>
 
-<div id="anchor-error-log"></div>
+        <main id="main-content">
+            <section id="spec-creator" class="tab-content active">
+                </section>
+        </main>
 
-<div id="anchor-print-guides"></div>
+        <div id="anchor-static-footer"></div>
     </div>
 
     <input type="file" id="excelFile" style="display: none;">
-    <div id="statusMessage"></div>
+    <input type="file" id="imageInput" style="display: none;">
+    <div id="statusMessage" class="status-message"></div>
 
     <template id="tpl-reference-tables">
-        <section class="measures-reference">
-            </section>
-    </template>
+        </template>
 
     <template id="tpl-static-footer">
-        <footer class="logos-footer">
-            </footer>
+        </template>
+
+    <template id="tpl-system-ui">
+        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+        </div>
     </template>
-<template id="tpl-help-modals">
-    <div class="modal" id="helpModal">...</div>
-</template>
 
-<template id="tpl-error-log">
-    <section class="error-container">
-        <h3><i class="fas fa-exclamation-circle"></i> Log del Sistema</h3>
-        <div id="error-display-area"></div> 
-    </section>
-</template>
+    <script id="maintenance-script">
+        (function() {
+            const map = [
+                { src: 'tpl-reference-tables', dest: 'anchor-reference-tables' },
+                { src: 'tpl-static-footer', dest: 'anchor-static-footer' },
+                { src: 'tpl-system-ui', dest: 'document-body' }
+            ];
 
-<template id="tpl-print-guides">
-    <div class="print-guide-lines">...</div>
-</template>
-   <script id="maintenance-loader">
-    (function() {
-        // Mapa extendido de hidratación
-        const hydrationMap = [
-            { tpl: 'tpl-reference-tables', target: 'anchor-reference-tables' },
-            { tpl: 'tpl-static-footer', target: 'anchor-static-footer' },
-            { tpl: 'tpl-help-modals', target: 'anchor-help-modals' },
-            { tpl: 'tpl-error-log', target: 'anchor-error-log' },
-            { tpl: 'tpl-print-guides', target: 'anchor-print-guides' }
-        ];
+            const hydrate = () => {
+                map.forEach(item => {
+                    const template = document.getElementById(item.src);
+                    const target = (item.dest === 'document-body') ? document.body : document.getElementById(item.dest);
+                    if (template && target) {
+                        target.appendChild(template.content.cloneNode(true));
+                    }
+                });
+                console.log("Ingeniería: DOM reconstruido con éxito.");
+            };
 
-        const run = () => {
-            hydrationMap.forEach(item => {
-                const template = document.getElementById(item.tpl);
-                const target = document.getElementById(item.target);
-                if (template && target) {
-                    target.appendChild(template.content.cloneNode(true));
-                }
-            });
-            console.log("Mantenimiento: 5 bloques pasivos restaurados.");
-        };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', hydrate);
+            } else {
+                hydrate();
+            }
+        })();
+    </script>
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', run);
-        } else {
-            run();
-        }
-    })();
-</script>
+    <script src="js/fixes.js"></script>
 </body>
 </html>
