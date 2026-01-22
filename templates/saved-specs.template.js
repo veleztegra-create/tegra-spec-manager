@@ -1,9 +1,9 @@
 /**
  * Template para la vista de Specs Guardadas
- * Renderiza la lista de specs almacenadas en localStorage
  */
 
-export function renderSavedSpecs() {
+// QUITAR: export function renderSavedSpecs()
+function renderSavedSpecs() {
   const container = document.getElementById('saved-specs');
   
   const html = `
@@ -57,7 +57,7 @@ function loadSavedSpecsList() {
           <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn btn-primary btn-sm" onclick='window.layoutManager.loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
+          <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
           <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
           <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
         </div>
@@ -108,8 +108,17 @@ function clearAllSpecs() {
   }
 }
 
-// Hacer funciones disponibles globalmente
+// Añadimos loadSpecData aquí ya que es necesaria para este template
+function loadSpecData(data) {
+  if (window.layoutManager && window.layoutManager.loadSpecData) {
+    window.layoutManager.loadSpecData(data);
+  }
+}
+
+// EXPORTAR AL WINDOW
+window.renderSavedSpecs = renderSavedSpecs;
 window.loadSavedSpecsList = loadSavedSpecsList;
 window.clearAllSpecs = clearAllSpecs;
 window.deleteSpec = deleteSpec;
 window.downloadSingleSpec = downloadSingleSpec;
+window.loadSpecData = loadSpecData;
