@@ -1,9 +1,9 @@
 /**
  * Template para el Log de Errores
- * Renderiza el registro de errores de la aplicación
  */
 
-export function renderErrorLog() {
+// QUITAR: export function renderErrorLog()
+function renderErrorLog() {
   const container = document.getElementById('error-log');
   
   const html = `
@@ -142,7 +142,8 @@ function exportErrorLog() {
   }
 }
 
-// Hacer funciones disponibles globalmente
+// EXPORTAR AL WINDOW
+window.renderErrorLog = renderErrorLog;
 window.loadErrorLog = loadErrorLog;
 window.clearErrorLog = clearErrorLog;
 window.exportErrorLog = exportErrorLog;
