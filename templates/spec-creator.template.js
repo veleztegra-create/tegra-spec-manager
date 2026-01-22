@@ -1,9 +1,9 @@
 /**
  * Template para el creador de Specs
- * Renderiza el formulario principal y el sistema de placements
  */
 
-export function renderSpecCreator() {
+// QUITAR: export function renderSpecCreator()
+function renderSpecCreator() {
   const container = document.getElementById('spec-creator');
   
   const html = `
@@ -79,7 +79,7 @@ export function renderSpecCreator() {
       <div class="card-header">
         <h2 class="card-title"><i class="fas fa-layer-group"></i> Ubicaciones (Placements)</h2>
         <div class="no-print">
-          <button class="btn btn-primary btn-sm" onclick="window.layoutManager.addNewPlacement()">
+          <button class="btn btn-primary btn-sm" onclick="addNewPlacement()">
             <i class="fas fa-plus"></i> Agregar Placement
           </button>
         </div>
@@ -100,16 +100,16 @@ export function renderSpecCreator() {
     <!-- BOTONES DE ACCIÓN -->
     <div class="card no-print">
       <div class="card-body" style="display:flex; gap:15px; flex-wrap:wrap; justify-content:center;">
-        <button class="btn btn-primary btn-lg" onclick="window.exportManager.exportToExcel()">
+        <button class="btn btn-primary btn-lg" onclick="exportToExcel()">
           <i class="fas fa-file-excel"></i> Descargar Spec
         </button>
-        <button class="btn btn-success btn-lg" onclick="window.exportManager.exportPDF()">
+        <button class="btn btn-success btn-lg" onclick="exportPDF()">
           <i class="fas fa-file-pdf"></i> Exportar PDF
         </button>
-        <button class="btn btn-warning btn-lg" onclick="window.exportManager.downloadProjectZip()">
+        <button class="btn btn-warning btn-lg" onclick="downloadProjectZip()">
           <i class="fas fa-file-archive"></i> Descargar ZIP
         </button>
-        <button class="btn btn-primary btn-lg" onclick="window.layoutManager.saveCurrentSpec()">
+        <button class="btn btn-primary btn-lg" onclick="saveCurrentSpec()">
           <i class="fas fa-save"></i> Guardar Spec
         </button>
         <button class="btn btn-outline btn-lg" onclick="clearForm()">
@@ -123,7 +123,9 @@ export function renderSpecCreator() {
   
   // Inicializar placements si es necesario
   if (!window.placements || window.placements.length === 0) {
-    window.layoutManager.initializePlacements();
+    if (window.layoutManager) {
+      window.layoutManager.initializePlacements();
+    }
   }
 }
 
@@ -143,7 +145,9 @@ function clearForm() {
     const tabsContainer = document.getElementById('placements-tabs');
     if (tabsContainer) tabsContainer.innerHTML = '';
     
-    window.layoutManager.initializePlacements();
+    if (window.layoutManager) {
+      window.layoutManager.initializePlacements();
+    }
     
     const logoElement = document.getElementById('logoCliente');
     if (logoElement) {
@@ -154,5 +158,6 @@ function clearForm() {
   }
 }
 
-// Hacer disponible globalmente
+// EXPORTAR AL WINDOW
+window.renderSpecCreator = renderSpecCreator;
 window.clearForm = clearForm;
