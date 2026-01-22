@@ -3,7 +3,8 @@
  * Renderiza la vista principal con estadísticas y acciones rápidas
  */
 
-export function renderDashboard() {
+// QUITAR: export function renderDashboard()
+function renderDashboard() {
   const container = document.getElementById('dashboard');
   
   const html = `
@@ -44,7 +45,7 @@ export function renderDashboard() {
       </div>
       <div class="card-body" style="text-align:center;">
         <div style="margin-top:20px; display:flex; gap:15px; justify-content:center; flex-wrap:wrap;">
-          <button class="btn btn-primary btn-lg" onclick="window.layoutManager.showTab('spec-creator')">
+          <button class="btn btn-primary btn-lg" onclick="showTab('spec-creator')">
             <i class="fas fa-plus"></i> Nueva Spec
           </button>
           <button class="btn btn-warning btn-lg" onclick="document.getElementById('excelFile').click()">
@@ -53,10 +54,10 @@ export function renderDashboard() {
           <button class="btn btn-success btn-lg" onclick="document.getElementById('excelFile').click()">
             <i class="fas fa-file-excel"></i> Cargar SWO
           </button>
-          <button class="btn btn-outline btn-lg" onclick="window.layoutManager.showTab('saved-specs')">
+          <button class="btn btn-outline btn-lg" onclick="showTab('saved-specs')">
             <i class="fas fa-history"></i> Ver Historial
           </button>
-          <button class="btn btn-danger btn-lg" onclick="window.layoutManager.showTab('error-log')">
+          <button class="btn btn-danger btn-lg" onclick="showTab('error-log')">
             <i class="fas fa-bug"></i> Ver Errores
           </button>
         </div>
@@ -139,5 +140,6 @@ function updateDashboard() {
   }
 }
 
-// Hacer disponible globalmente
+// EXPORTAR AL WINDOW
+window.renderDashboard = renderDashboard;
 window.updateDashboard = updateDashboard;
