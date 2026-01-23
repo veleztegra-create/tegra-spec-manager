@@ -3,9 +3,13 @@
  * Renderiza la vista principal con estadísticas y acciones rápidas
  */
 
-// QUITAR: export function renderDashboard()
 function renderDashboard() {
   const container = document.getElementById('dashboard');
+  
+  if (!container) {
+    console.error('❌ No se encontró el contenedor del dashboard');
+    return;
+  }
   
   const html = `
     <div class="dashboard-grid">
@@ -95,12 +99,18 @@ function updateDashboard() {
     });
     
     const todaySpecsEl = document.getElementById('today-specs');
-    if (todaySpecsEl && lastSpec) {
-      todaySpecsEl.innerHTML = `
-        <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
-        <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
-        <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
-      `;
+    if (todaySpecsEl) {
+      if (lastSpec) {
+        todaySpecsEl.innerHTML = `
+          <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
+          <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
+        `;
+      } else {
+        todaySpecsEl.innerHTML = `
+          <div style="font-size:0.9rem; color:var(--text-secondary);">Sin specs creadas</div>
+        `;
+      }
     }
     
     let activeCount = 0;
@@ -140,6 +150,6 @@ function updateDashboard() {
   }
 }
 
-// EXPORTAR AL WINDOW
+// Hacer disponible globalmente
 window.renderDashboard = renderDashboard;
 window.updateDashboard = updateDashboard;
