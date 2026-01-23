@@ -1,10 +1,15 @@
 /**
  * Template para el creador de Specs
+ * Renderiza el formulario principal y el sistema de placements
  */
 
-// QUITAR: export function renderSpecCreator()
 function renderSpecCreator() {
   const container = document.getElementById('spec-creator');
+  
+  if (!container) {
+    console.error('❌ No se encontró el contenedor del spec-creator');
+    return;
+  }
   
   const html = `
     <!-- INFORMACIÓN GENERAL -->
@@ -158,6 +163,6 @@ function clearForm() {
   }
 }
 
-// EXPORTAR AL WINDOW
+// Hacer disponible globalmente
 window.renderSpecCreator = renderSpecCreator;
 window.clearForm = clearForm;
