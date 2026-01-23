@@ -1,10 +1,15 @@
 /**
  * Template para la vista de Specs Guardadas
+ * Renderiza la lista de specs almacenadas en localStorage
  */
 
-// QUITAR: export function renderSavedSpecs()
 function renderSavedSpecs() {
   const container = document.getElementById('saved-specs');
+  
+  if (!container) {
+    console.error('❌ No se encontró el contenedor de saved-specs');
+    return;
+  }
   
   const html = `
     <div class="card">
@@ -90,7 +95,9 @@ function deleteSpec(key) {
   if (confirm('¿Estás seguro de que quieres eliminar esta spec?')) {
     localStorage.removeItem(key);
     loadSavedSpecsList();
-    updateDashboard();
+    if (window.updateDashboard) {
+      window.updateDashboard();
+    }
     showStatus('🗑️ Spec eliminada', 'success');
   }
 }
@@ -103,7 +110,9 @@ function clearAllSpecs() {
       }
     });
     loadSavedSpecsList();
-    updateDashboard();
+    if (window.updateDashboard) {
+      window.updateDashboard();
+    }
     showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
   }
 }
@@ -115,7 +124,7 @@ function loadSpecData(data) {
   }
 }
 
-// EXPORTAR AL WINDOW
+// Hacer funciones disponibles globalmente
 window.renderSavedSpecs = renderSavedSpecs;
 window.loadSavedSpecsList = loadSavedSpecsList;
 window.clearAllSpecs = clearAllSpecs;
