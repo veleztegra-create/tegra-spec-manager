@@ -2,14 +2,19 @@
  * Export Manager - Gestiona todas las exportaciones (Excel, PDF, ZIP)
  */
 
-export default class ExportManager {
+class ExportManager {
   constructor() {
+    console.log('🚀 ExportManager inicializado');
     this.initialize();
   }
   
   initialize() {
     // Hacer métodos disponibles globalmente
-    window.exportManager = this;
+    window.exportToExcel = this.exportToExcel.bind(this);
+    window.exportPDF = this.exportPDF.bind(this);
+    window.downloadProjectZip = this.downloadProjectZip.bind(this);
+    
+    console.log('✅ ExportManager configurado');
   }
   
   exportToExcel() {
@@ -598,6 +603,8 @@ export default class ExportManager {
   }
   
   hexToRgb(hex) {
+    if (!hex || !hex.startsWith('#')) return [0, 0, 0];
+    
     hex = hex.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
@@ -611,18 +618,18 @@ export default class ExportManager {
     try {
       const name = colorName.toUpperCase().trim();
       
-      // 1. Usar Utils si está disponible
+      // Usar Utils si está disponible
       if (window.Utils && window.Utils.getColorHex) {
         return window.Utils.getColorHex(colorName);
       }
       
-      // 2. Verificar si Config está disponible
+      // Verificar si Config está disponible
       if (!window.Config || !window.Config.COLOR_DATABASES) {
         // Fallback a colores básicos
         return this.getBasicColorHex(name);
       }
       
-      // 3. Buscar en todas las bases de datos
+      // Buscar en todas las bases de datos
       for (const db of Object.values(window.Config.COLOR_DATABASES)) {
         for (const [key, data] of Object.entries(db)) {
           if (key && data && data.hex) {
@@ -635,13 +642,13 @@ export default class ExportManager {
         }
       }
       
-      // 4. Buscar código hex directo
+      // Buscar código hex directo
       const hexMatch = name.match(/#([0-9A-F]{6})/i);
       if (hexMatch) {
         return `#${hexMatch[1]}`;
       }
       
-      // 5. Último recurso: colores básicos
+      // Último recurso: colores básicos
       return this.getBasicColorHex(name);
       
     } catch (error) {
@@ -833,3 +840,6 @@ Placements incluidos: ${placements.map(p => this.getPlacementDisplayName(p)).joi
     }
   }
 }
+
+// Hacer disponible globalmente
+window.ExportManager = ExportManager;
