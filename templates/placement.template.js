@@ -4,7 +4,7 @@
  */
 
 // Función principal para renderizar un placement
-function renderPlacement(placement, isFirst = false) {
+export function renderPlacement(placement, isFirst = false) {
   const container = document.getElementById('placements-container');
   if (!container) {
     console.error('❌ No se encontró el contenedor de placements');
@@ -429,10 +429,3 @@ function updateAllPlacementTitles(placementId) {
     `;
   }
 }
-
-// Hacer funciones disponibles globalmente
-window.renderPlacement = renderPlacement;
-window.updatePlacementStations = updatePlacementStations;
-window.updatePlacementColorsPreview = updatePlacementColorsPreview;
-window.updateAllPlacementTitles = updateAllPlacementTitles;
-window.getPlacementDisplayName = getPlacementDisplayName;
