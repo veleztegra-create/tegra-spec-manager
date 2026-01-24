@@ -3,7 +3,7 @@
  * Renderiza el registro de errores de la aplicación
  */
 
-function renderErrorLog() {
+export function renderErrorLog() {
   const container = document.getElementById('error-log');
   
   if (!container) {
