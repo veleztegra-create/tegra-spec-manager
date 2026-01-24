@@ -71,7 +71,7 @@ class StateManager {
  detectGenderFromText(text) {  
      if (!text) return '';  
      const upperText = text.toUpperCase();  
-     const gearForSportMatch = upperText.match(/^U([MWYBGKTIAN])\\d+/);  
+     const gearForSportMatch = upperText.match(/^U([MWYBGKTIAN])\d+/);  
      if (gearForSportMatch && gearForSportMatch[1]) {  
          const genderCode = `U${gearForSportMatch[1]}`;  
          if (Config.GEARFORSPORT_GENDER_MAP && Config.GEARFORSPORT_GENDER_MAP[genderCode]) {  
@@ -94,9 +94,12 @@ class StateManager {
  }
 
  addError(context, error) {
-     const errorEntry = { id: Date.now(), context, message: error.message };
-     this.state.errors.push(errorEntry);
-     this.saveErrorsToLocalStorage();
+    const errorEntry = { id: Date.now(), context, message: error.message };
+    if (!Array.isArray(this.state.errors)) {
+        this.state.errors = [];
+    }
+    this.state.errors.push(errorEntry);
+    this.saveErrorsToLocalStorage();
  }
 
  saveErrorsToLocalStorage() {
@@ -105,7 +108,20 @@ class StateManager {
 
  loadErrorsFromLocalStorage() {
      const saved = localStorage.getItem('tegraspec_errors');
-     if (saved) this.state.errors = JSON.parse(saved);
+     if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                this.state.errors = parsed;
+            } else {
+                this.state.errors = [];
+            }
+        } catch (e) {
+            this.state.errors = [];
+        }
+     } else {
+        this.state.errors = [];
+     }
  }
 
  loadFromLocalStorage(key = 'tegraspec_state') {
