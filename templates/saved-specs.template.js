@@ -3,7 +3,7 @@
  * Renderiza la lista de specs almacenadas en localStorage
  */
 
-function renderSavedSpecs() {
+export function renderSavedSpecs() {
   const container = document.getElementById('saved-specs');
   
   if (!container) {
