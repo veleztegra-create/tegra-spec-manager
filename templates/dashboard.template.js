@@ -3,7 +3,7 @@
  * Renderiza la vista principal con estadísticas y acciones rápidas
  */
 
-function renderDashboard() {
+export function renderDashboard() {
   const container = document.getElementById('dashboard');
   
   if (!container) {
@@ -149,7 +149,3 @@ function updateDashboard() {
     console.error('Error en updateDashboard:', error);
   }
 }
-
-// Hacer disponible globalmente
-window.renderDashboard = renderDashboard;
-window.updateDashboard = updateDashboard;
