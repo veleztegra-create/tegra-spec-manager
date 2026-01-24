@@ -3,7 +3,7 @@
  * Renderiza el formulario principal y el sistema de placements
  */
 
-function renderSpecCreator() {
+export function renderSpecCreator() {
   const container = document.getElementById('spec-creator');
   
   if (!container) {
@@ -162,7 +162,3 @@ function clearForm() {
     showStatus('🧹 Formulario limpiado correctamente');
   }
 }
-
-// Hacer disponible globalmente
-window.renderSpecCreator = renderSpecCreator;
-window.clearForm = clearForm;
