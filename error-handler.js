@@ -1,25 +1,7 @@
-// error-handler.js - VERSIÓN CORREGIDA
+// error-handler.js - Manejador centralizado de errores
 class ErrorHandler {
     constructor() {
         this.errors = [];
-        this.maxErrors = 100;
-        this.setupGlobalErrorHandling();
-    }
-    
-    setupGlobalErrorHandling() {
-        // Capturar errores globales
-        window.addEventListener('error', (event) => {
-            this.log('global_error', event.error || event, {
-                filename: event.filename,
-                lineno: event.lineno,
-                colno: event.colno
-            });
-        });
-        
-        // Capturar promesas rechazadas
-        window.addEventListener('unhandledrejection', (event) => {
-            this.log('unhandled_promise_rejection', event.reason);
-        });
     }
     
     log(context, error, extraData = {}) {
@@ -37,24 +19,26 @@ class ErrorHandler {
         
         this.errors.push(errorEntry);
         
-        if (this.errors.length > this.maxErrors) {
+        // Limitar a 100 errores
+        if (this.errors.length > 100) {
             this.errors.shift();
         }
         
-        console.error(`[${context}]`, error, extraData);
-        
+        // Guardar en localStorage
         this.saveToStorage();
+        
+        console.error(`[${context}]`, error, extraData);
         
         return errorEntry;
     }
     
-    getErrors() {
-        return [...this.errors].reverse();
+    getErrors(limit = 20) {
+        return this.errors.slice(-limit).reverse();
     }
     
-    clearErrors() {
+    clear() {
         this.errors = [];
-        this.saveToStorage();
+        localStorage.removeItem('tegraspec_errors');
     }
     
     saveToStorage() {
@@ -64,7 +48,7 @@ class ErrorHandler {
                 lastUpdated: new Date().toISOString()
             }));
         } catch (e) {
-            console.warn('No se pudieron guardar errores:', e);
+            console.warn('No se pudo guardar errores:', e);
         }
     }
     
@@ -81,10 +65,6 @@ class ErrorHandler {
     }
 }
 
-// Instancia global - NO llamar loadFromStorage aquí, se llama después
-const errorHandler = new ErrorHandler();
-
-// Hacer disponible globalmente
-if (typeof window !== 'undefined') {
-    window.errorHandler = errorHandler;
-}
+// Instancia global
+window.errorHandler = new ErrorHandler();
+errorHandler.loadFromStorage();
