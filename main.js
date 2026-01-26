@@ -1,188 +1,299 @@
 
 // =================================================================================
-// MAIN SCRIPT - TEGRA TECHNICAL SPEC MANAGER V2.3
+// MAIN SCRIPT - TEGRA TECHNICAL SPEC MANAGER V3.0 (MODULAR)
 // =================================================================================
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- CONFIGURACIÓN Y ESTADO INICIAL ---
+    // --- APLICACIÓN Y ESTADO ---
     const state = {
         currentPlacementId: null,
         nextPlacementId: 1,
-        placements: {},
-        imageBlobs: {},
+        placements: {}, // { id: { data, imageBase64, mockUpBase64, colors: [] } }
+        imageBlobs: {},   // { id: { placement, mockup } }
         currentTheme: localStorage.getItem('theme') || 'dark-mode',
+        loadedTemplates: {}, // Cache para los templates HTML
     };
 
-    // --- REFERENCIAS A ELEMENTOS DEL DOM ---
-    const DOMElements = {
-        body: document.body,
-        appLogo: document.getElementById('app-logo'),
-        themeToggle: document.getElementById('themeToggle'),
-        logoCliente: document.getElementById('logoCliente'),
-        customerInput: document.getElementById('customer'),
-        folderNumInput: document.getElementById('folder-num'),
-        dateTime: document.getElementById('current-datetime'),
-        excelFileInput: document.getElementById('excelFile'),
-        imageInput: document.getElementById('imageInput'),
-        placementImageInput: document.getElementById('placementImageInput'),
-        placementsContainer: document.getElementById('placements-container'),
-        placementsTabs: document.getElementById('placements-tabs'),
-        statusMessage: document.getElementById('statusMessage'),
-        errorLogContent: document.getElementById('error-log-content'),
-        savedSpecsList: document.getElementById('saved-specs-list'),
-        designerSelect: document.getElementById('designer'),
-    };
-
-    // --- INICIALIZACIÓN DE LA APLICACIÓN ---
-    function initializeApp() {
+    // --- INICIALIZACIÓN ---
+    async function initializeApp() {
         try {
-            loadTegraLogo();
-            updateDateTime();
-            setInterval(updateDateTime, 60000);
+            console.log("Initializing App v3.0...");
             applyTheme(state.currentTheme);
             setupGlobalEventListeners();
+            await showTab('dashboard'); // Carga el dashboard por defecto
             loadInitialData();
-            addNewPlacement(); // Añade el primer placement al cargar
+            updateDateTime();
+            setInterval(updateDateTime, 60000);
             showStatus("Aplicación iniciada y lista.", "success");
         } catch (error) {
             logError("Fallo crítico durante la inicialización: " + error.message, true);
-            showStatus("Error crítico al iniciar. La aplicación puede ser inestable.", "error", 10000);
+        }
+    }
+
+    // --- CARGA DE DATOS INICIAL ---
+    function loadInitialData() {
+        // Estas funciones se ejecutarán DESPUÉS de que el primer tab se cargue
+        loadTegraLogo();
+        loadSavedSpecsList();
+        loadErrorLog();
+        updateDashboardStats();
+    }
+    
+    // --- GESTIÓN DE LA NAVEGACIÓN Y TEMPLATES ---
+    async function showTab(tabId) {
+        const appContent = document.getElementById('app-content');
+        if (!appContent) {
+            logError("El contenedor principal 'app-content' no se encontró.", true);
+            return;
+        }
+
+        try {
+            if (!state.loadedTemplates[tabId]) {
+                const response = await fetch(`templates/${tabId}-tab.html`);
+                if (!response.ok) throw new Error(`No se pudo cargar el template: ${tabId}-tab.html`);
+                state.loadedTemplates[tabId] = await response.text();
+            }
+            
+            appContent.innerHTML = state.loadedTemplates[tabId];
+
+            // Actualizar la clase activa en las pestañas de navegación
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabId);
+            });
+
+            // Re-asociar elementos y ejecutar lógica específica del tab si es necesario
+            if (tabId === 'spec-creator') {
+                restoreSpecCreatorState();
+            } else if (tabId === 'saved-specs') {
+                loadSavedSpecsList();
+            } else if (tabId === 'error-log') {
+                loadErrorLog();
+            }
+
+        } catch (error) {
+            logError(`Error al cambiar al tab '${tabId}': ${error.message}`, true);
+            appContent.innerHTML = `<div class='card'><div class='card-body'><p style='color:var(--error);'>Error al cargar el contenido. Revise el log de errores.</p></div></div>`;
+        }
+    }
+
+    // --- RESTAURAR ESTADO DEL SPEC-CREATOR ---
+    function restoreSpecCreatorState() {
+        const placementsContainer = document.getElementById('placements-container');
+        const placementsTabs = document.getElementById('placements-tabs');
+        
+        if (!placementsContainer || !placementsTabs) return;
+
+        placementsContainer.innerHTML = '';
+        placementsTabs.innerHTML = '';
+
+        if (Object.keys(state.placements).length === 0) {
+            addNewPlacement();
+        } else {
+            Object.keys(state.placements).forEach(pId => {
+                renderPlacement(pId, false); // No cambiar de tab, solo renderizar
+            });
+            // Activa el tab y contenido correcto
+            if (state.currentPlacementId) {
+                switchPlacementTab(state.currentPlacementId);
+            } else {
+                const firstId = Object.keys(state.placements)[0];
+                if(firstId) switchPlacementTab(firstId);
+            }
         }
     }
 
     // --- GESTIÓN DE EVENTOS GLOBALES ---
     function setupGlobalEventListeners() {
-        DOMElements.themeToggle.addEventListener('click', toggleTheme);
-        DOMElements.excelFileInput.addEventListener('change', handleFileSelect);
-        DOMElements.imageInput.addEventListener('change', (e) => handleImageUpload(e, 'mockup'));
-        DOMElements.placementImageInput.addEventListener('change', (e) => handleImageUpload(e, 'placement'));
-        DOMElements.customerInput.addEventListener('input', updateClientLogo);
-    }
-    
-    // --- CARGA DE DATOS INICIAL ---
-    function loadInitialData() {
-        loadSavedSpecsList();
-        loadErrorLog();
-        updateDashboardStats();
-    }
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        document.querySelector('.app-nav').addEventListener('click', (e) => {
+            const tabElement = e.target.closest('.nav-tab');
+            if (tabElement && tabElement.dataset.tab) {
+                showTab(tabElement.dataset.tab);
+            }
+        });
 
-    // =========================================================
-    // FUNCIONES DE UI (NAVEGACIÓN, TEMA, LOGOS, ETC.)
-    // =========================================================
-    
-    window.showTab = (tabId) => {
-        document.querySelectorAll('.tab-content.active').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.nav-tab.active').forEach(tab => tab.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        const activeNavTab = document.querySelector(`.nav-tab[onclick="showTab('${tabId}')"]`);
-        if (activeNavTab) activeNavTab.classList.add('active');
-        
-        if (tabId === 'saved-specs') loadSavedSpecsList();
-        if (tabId === 'error-log') loadErrorLog();
-        updateDashboardStats();
-    };
-
-    function loadTegraLogo() {
-        if (window.LogoConfig && window.LogoConfig.TEGRA) {
-            const img = document.createElement('img');
-            img.src = window.LogoConfig.TEGRA;
-            img.alt = "Tegra Logo";
-            img.style.height = '40px';
-            DOMElements.appLogo.innerHTML = '';
-            DOMElements.appLogo.appendChild(img);
-        } else {
-            logError("El logo de Tegra no se encontró en 'config-logos.js'.", true);
-            DOMElements.appLogo.innerHTML = '<p style="color:yellow;">Error: Logo</p>';
-        }
-    }
-
-    window.updateClientLogo = () => {
-        const customerName = DOMElements.customerInput.value.trim().toUpperCase();
-        const clientKey = customerName.replace(/[&. ]/g, '_');
-        const logoImg = DOMElements.logoCliente;
-        
-        if (window.LogoConfig && LogoConfig[clientKey]) {
-            logoImg.src = LogoConfig[clientKey];
-            logoImg.style.display = 'block';
-        } else {
-            logoImg.style.display = 'none';
-            logoImg.src = '';
-        }
-    }
-
-    function applyTheme(theme) {
-        DOMElements.body.className = theme;
-        state.currentTheme = theme;
-        localStorage.setItem('theme', theme);
-        DOMElements.themeToggle.innerHTML = theme === 'dark-mode' 
-            ? '<i class="fas fa-sun"></i> Modo Claro' 
-            : '<i class="fas fa-moon"></i> Modo Oscuro';
-    }
-
-    function toggleTheme() {
-        const newTheme = state.currentTheme === 'dark-mode' ? 'light-mode' : 'dark-mode';
-        applyTheme(newTheme);
-    }
-
-    function updateDateTime() {
-        DOMElements.dateTime.textContent = new Date().toLocaleString('es-HN', {
-            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        // Los listeners para elementos dentro de los templates se deben delegar o añadir tras la carga del template
+        document.body.addEventListener('input', (e) => {
+             if (e.target.id === 'customer') updateClientLogo();
+        });
+        document.body.addEventListener('change', (e) => {
+            if (e.target.id === 'excelFile') handleFileSelect(e);
+            if (e.target.id === 'imageInput') handleImageUpload(e, 'mockup');
+            if (e.target.id === 'placementImageInput') handleImageUpload(e, 'placement');
         });
     }
 
-    function showStatus(message, type = 'info', duration = 3000) {
-        DOMElements.statusMessage.textContent = message;
-        DOMElements.statusMessage.className = `status-message status-${type} show`;
-        setTimeout(() => {
-            DOMElements.statusMessage.classList.remove('show');
-        }, duration);
-    }
-
-    // =========================================================
-    // GESTIÓN DE PLACEMENTS
-    // =========================================================
+    // --- GESTIÓN DE PLACEMENTS (LÓGICA RESTAURADA) ---
 
     window.addNewPlacement = () => {
         const placementId = state.nextPlacementId++;
-        const placementData = {
-            id: placementId,
-            title: `Placement ${placementId}`,
+        state.placements[placementId] = {
+            data: {
+                id: placementId,
+                title: `Placement ${placementId}`,
+                type: 'PRINT',
+                area: 'FB',
+                size: 'N/A',
+                specialty: 'N/A',
+                comments: '',
+            },
+            colors: [],
+            imageBase64: null,
+            mockUpBase64: null,
         };
-        state.placements[placementId] = { data: placementData, imageBase64: null, mockUpBase64: null };
         state.imageBlobs[placementId] = { placement: null, mockup: null };
 
-        renderPlacement(placementId);
-        switchPlacementTab(placementId);
+        renderPlacement(placementId, true); // Renderiza y cambia a este nuevo tab
         updateDashboardStats();
     };
-    
-    function renderPlacement(placementId) {
-        const placement = state.placements[placementId];
-        if (!placement) return;
 
+    function renderPlacement(placementId, switchTab = true) {
+        const placementData = state.placements[placementId];
+        if (!placementData) return;
+
+        const placementsTabs = document.getElementById('placements-tabs');
+        const placementsContainer = document.getElementById('placements-container');
+
+        // Renderizar Tab
         const tab = document.createElement('div');
         tab.className = 'placement-tab';
         tab.dataset.id = placementId;
         tab.innerHTML = `
-            <span class="tab-title" onclick="switchPlacementTab(${placementId})">${placement.data.title}</span>
+            <span class="tab-title" onclick="switchPlacementTab(${placementId})">${placementData.data.title}</span>
             <button class="close-tab" onclick="removePlacement(${placementId})">&times;</button>
         `;
-        DOMElements.placementsTabs.appendChild(tab);
+        placementsTabs.appendChild(tab);
 
+        // Renderizar Contenido (HTML complejo restaurado de index-old.html)
         const container = document.createElement('div');
         container.id = `placement-${placementId}`;
         container.className = 'placement-content';
-        container.innerHTML = `<h2>Contenido para ${placement.data.title}</h2>`;
-        DOMElements.placementsContainer.appendChild(container);
+        container.innerHTML = `
+            <div class="placement-grid">
+                <!-- Columna 1: Datos del Placement -->
+                <div class="placement-details">
+                    <div class="form-grid-placement">
+                        <div class="form-group">
+                            <label class="form-label">Placement Title</label>
+                            <input type="text" class="form-control" value="${placementData.data.title}" oninput="state.placements[${placementId}].data.title = this.value; document.querySelector('.placement-tab[data-id=\'${placementId}\'] .tab-title').textContent = this.value;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Type</label>
+                            <select class="form-control" onchange="updatePlacementType(${placementId}, this.value)">
+                                <option value="PRINT" ${placementData.data.type === 'PRINT' ? 'selected' : ''}>PRINT</option>
+                                <option value="EMB" ${placementData.data.type === 'EMB' ? 'selected' : ''}>EMB</option>
+                                <option value="TRANSFER" ${placementData.data.type === 'TRANSFER' ? 'selected' : ''}>TRANSFER</option>
+                                <option value="BADGE" ${placementData.data.type === 'BADGE' ? 'selected' : ''}>BADGE</option>
+                            </select>
+                        </div>
+                         <div class="form-group">
+                            <label class="form-label">Area</label>
+                            <input type="text" class="form-control" value="${placementData.data.area}" oninput="state.placements[${placementId}].data.area = this.value;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Size</label>
+                            <input type="text" class="form-control" value="${placementData.data.size}" oninput="state.placements[${placementId}].data.size = this.value;">
+                        </div>
+                         <div class="form-group">
+                            <label class="form-label">Specialty</label>
+                            <input type="text" class="form-control" value="${placementData.data.specialty}" oninput="state.placements[${placementId}].data.specialty = this.value;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Placement Comments</label>
+                        <textarea class="form-control" rows="4" oninput="state.placements[${placementId}].data.comments = this.value;">${placementData.data.comments}</textarea>
+                    </div>
+                </div>
+
+                <!-- Columna 2: Mockup y Arte -->
+                <div class="placement-images">
+                    <div class="image-upload-wrapper">
+                        <label class="form-label">Mockup Image</label>
+                        <div class="image-preview" id="mockup-preview-${placementId}" onclick="document.getElementById('imageInput').click()">
+                            ${placementData.mockUpBase64 ? `<img src="${placementData.mockUpBase64}" alt="Mockup">` : '<i class="fas fa-camera"></i>'}
+                        </div>
+                    </div>
+                    <div class="image-upload-wrapper">
+                        <label class="form-label">Placement Art</label>
+                        <div class="image-preview" id="art-preview-${placementId}" onclick="document.getElementById('placementImageInput').click()">
+                            ${placementData.imageBase64 ? `<img src="${placementData.imageBase64}" alt="Placement Art">` : '<i class="fas fa-palette"></i>'}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna 3: Secuencia de Colores -->
+                <div class="placement-colors">
+                     <label class="form-label">Color Sequence</label>
+                     <table class="color-sequence-table">
+                         <thead>
+                             <tr>
+                                 <th>#</th>
+                                 <th>Color Name</th>
+                                 <th>Code</th>
+                                 <th>Type</th>
+                                 <th></th>
+                             </tr>
+                         </thead>
+                         <tbody id="color-sequence-body-${placementId}">
+                            <!-- Los colores se renderizan aquí -->
+                         </tbody>
+                     </table>
+                     <button type="button" class="btn btn-outline btn-sm" onclick="addPlacementColorItem(${placementId})"><i class="fas fa-plus"></i> Add Color</button>
+                </div>
+            </div>
+            <div class="placement-actions">
+                 <button type="button" class="btn btn-secondary btn-sm" onclick="duplicatePlacement(${placementId})"><i class="fas fa-copy"></i> Duplicar</button>
+            </div>
+        `;
+        placementsContainer.appendChild(container);
+        renderPlacementColors(placementId);
+
+        if (switchTab) {
+            switchPlacementTab(placementId);
+        }
     }
-    
+
+    function renderPlacementColors(placementId) {
+        const placement = state.placements[placementId];
+        const tbody = document.getElementById(`color-sequence-body-${placementId}`);
+        if (!placement || !tbody) return;
+
+        tbody.innerHTML = '';
+        placement.colors.forEach((color, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td><input type="text" class="form-control-sm" value="${color.name}" oninput="state.placements[${placementId}].colors[${index}].name = this.value"></td>
+                <td><input type="text" class="form-control-sm" value="${color.code}" oninput="state.placements[${placementId}].colors[${index}].code = this.value"></td>
+                <td>
+                    <select class="form-control-sm" onchange="state.placements[${placementId}].colors[${index}].type = this.value">
+                        <option value="Color" ${color.type === 'Color' ? 'selected' : ''}>Color</option>
+                        <option value="Blocker" ${color.type === 'Blocker' ? 'selected' : ''}>Blocker</option>
+                        <option value="White Base" ${color.type === 'White Base' ? 'selected' : ''}>White Base</option>
+                    </select>
+                </td>
+                <td><button class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${placementId}, ${index})">&times;</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    window.addPlacementColorItem = (placementId) => {
+        state.placements[placementId].colors.push({ name: '', code: '', type: 'Color' });
+        renderPlacementColors(placementId);
+    };
+
+    window.removePlacementColorItem = (placementId, index) => {
+        state.placements[placementId].colors.splice(index, 1);
+        renderPlacementColors(placementId);
+    };
+
     window.switchPlacementTab = (placementId) => {
         state.currentPlacementId = placementId;
-
-        document.querySelectorAll('.placement-tab.active').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.placement-tab').forEach(t => t.classList.remove('active'));
         document.querySelector(`.placement-tab[data-id='${placementId}']`)?.classList.add('active');
         
-        document.querySelectorAll('.placement-content.active').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.placement-content').forEach(c => c.classList.remove('active'));
         document.getElementById(`placement-${placementId}`)?.classList.add('active');
     };
 
@@ -201,85 +312,116 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.currentPlacementId === placementId) {
             const firstRemainingId = Object.keys(state.placements)[0];
             if (firstRemainingId) switchPlacementTab(Number(firstRemainingId));
+            else state.currentPlacementId = null;
         }
         updateDashboardStats();
     };
-
-    // =========================================================
-    // MANEJO DE FORMULARIO Y DATOS
-    // =========================================================
     
-    window.clearForm = () => {
-        document.getElementById('spec-creator').querySelectorAll('input, select').forEach(el => {
-            if (el.type !== 'button' && el.type !== 'submit') el.value = '';
-        });
+    window.duplicatePlacement = (placementId) => {
+        const originalPlacement = state.placements[placementId];
+        if (!originalPlacement) return;
+
+        const newId = state.nextPlacementId++;
         
-        DOMElements.placementsContainer.innerHTML = '';
-        DOMElements.placementsTabs.innerHTML = '';
+        // Deep copy del placement
+        const newPlacement = JSON.parse(JSON.stringify(originalPlacement));
+        newPlacement.data.id = newId;
+        newPlacement.data.title = `${originalPlacement.data.title} (Copia)`;
+        
+        state.placements[newId] = newPlacement;
+        state.imageBlobs[newId] = JSON.parse(JSON.stringify(state.imageBlobs[placementId]));
+        
+        renderPlacement(newId, true);
+        showStatus(`Placement "${originalPlacement.data.title}" duplicado.`, "success");
+    };
+
+    // --- MANEJO DE FORMULARIO Y DATOS ---
+    window.clearForm = () => {
+        // Limpiar campos del formulario principal
+        const form = document.getElementById('spec-creator-form');
+        if (form) {
+            form.querySelectorAll('input:not([type=button]), select, textarea').forEach(el => el.value = '');
+        }
+        
+        // Resetear placements
         state.placements = {};
         state.imageBlobs = {};
         state.nextPlacementId = 1;
+        state.currentPlacementId = null;
         
-        addNewPlacement();
+        // Vuelve a cargar el tab para empezar de 0
+        showTab('spec-creator'); 
+        
         updateClientLogo();
         showStatus("Formulario limpiado.", "info");
     };
-
-    function getFormData() {
-        const generalData = {
-            customer: DOMElements.customerInput.value,
-            style: document.getElementById('style').value,
-            colorway: document.getElementById('colorway').value,
-            season: document.getElementById('season').value,
-            pattern: document.getElementById('pattern').value,
-            po: document.getElementById('po').value,
-            sampleType: document.getElementById('sample-type').value,
-            nameTeam: document.getElementById('name-team').value,
-            gender: document.getElementById('gender').value,
-            designer: DOMElements.designerSelect.value,
-            folderNum: DOMElements.folderNumInput.value,
-        };
-        return { general: generalData, placements: state.placements };
-    }
-
-    // =========================================================
-    // CARGA DE ARCHIVOS (SWO, JSON, ZIP)
-    // =========================================================
     
-    function handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const fileName = file.name.toLowerCase();
-        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-             showStatus("Carga de Excel (SWO) aún no implementada.", "warning");
-        } else if (fileName.endsWith('.json')) {
-            loadFromJSON(file);
-        } else if (fileName.endsWith('.zip')) {
-             showStatus("Carga de ZIP aún no implementada.", "warning");
-        } else {
-            logError(`Tipo de archivo no soportado: ${file.name}`);
+    // --- UI HELPERS ---
+    function loadTegraLogo() {
+        const appLogo = document.getElementById('app-logo');
+        if (appLogo && window.LogoConfig && window.LogoConfig.TEGRA) {
+            appLogo.innerHTML = `<img src="${window.LogoConfig.TEGRA}" alt="Tegra Logo" style="height: 40px;">`;
+        } else if(appLogo) {
+            logError("Logo de Tegra no encontrado en 'config-logos.js'.", true);
+            appLogo.innerHTML = '<p style="color:yellow;">Error: Logo</p>';
         }
-        event.target.value = ''; 
     }
     
-    function loadFromJSON(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                showStatus(`Spec "${data.general.style}" cargada desde JSON.`, "success");
-            } catch (error) {
-                logError("Error al parsear el archivo JSON: " + error.message, true);
-            }
-        };
-        reader.readAsText(file);
-    }
-    
-    // =========================================================
-    // MANEJO DE IMÁGENES
-    // =========================================================
+    function updateClientLogo() {
+        const customerInput = document.getElementById('customer');
+        const logoClienteImg = document.getElementById('logoCliente');
+        if(!customerInput || !logoClienteImg) return;
 
+        const customerName = customerInput.value.trim().toUpperCase();
+        const clientKey = customerName.replace(/[&. ]/g, '_');
+        
+        if (window.LogoConfig && LogoConfig[clientKey]) {
+            logoClienteImg.src = LogoConfig[clientKey];
+            logoClienteImg.style.display = 'block';
+        } else {
+            logoClienteImg.style.display = 'none';
+            logoClienteImg.src = '';
+        }
+    }
+
+    function applyTheme(theme) {
+        document.body.className = theme;
+        state.currentTheme = theme;
+        localStorage.setItem('theme', theme);
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+             themeToggle.innerHTML = theme === 'dark-mode' 
+                ? '<i class="fas fa-sun"></i> Modo Claro' 
+                : '<i class="fas fa-moon"></i> Modo Oscuro';
+        }
+    }
+
+    function toggleTheme() {
+        const newTheme = state.currentTheme === 'dark-mode' ? 'light-mode' : 'dark-mode';
+        applyTheme(newTheme);
+    }
+
+    function updateDateTime() {
+        const dateTimeEl = document.getElementById('current-datetime');
+        if(dateTimeEl) {
+            dateTimeEl.textContent = new Date().toLocaleString('es-HN', {
+                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        }
+    }
+
+    function showStatus(message, type = 'info', duration = 3000) {
+        const statusMessage = document.getElementById('statusMessage');
+        if (!statusMessage) return;
+        statusMessage.textContent = message;
+        // La clase ahora debe ser "status-success", "status-error", etc.
+        statusMessage.className = `status-message status-${type} show`;
+        setTimeout(() => {
+            statusMessage.classList.remove('show');
+        }, duration);
+    }
+
+    // --- MANEJO DE IMÁGENES ---
     function handleImageUpload(event, imageType) {
         const file = event.target.files[0];
         if (!file || !state.currentPlacementId) return;
@@ -288,12 +430,19 @@ document.addEventListener('DOMContentLoaded', () => {
         state.imageBlobs[placementId][imageType] = file;
 
         convertFileToBase64(file, (base64) => {
+            const previewId = imageType === 'mockup' ? `mockup-preview-${placementId}` : `art-preview-${placementId}`;
+            const previewEl = document.getElementById(previewId);
+
             if (imageType === 'mockup') {
                 state.placements[placementId].mockUpBase64 = base64;
             } else {
                 state.placements[placementId].imageBase64 = base64;
             }
-            showStatus(`Imagen de ${imageType} cargada para el placement actual.`, 'success');
+            
+            if (previewEl) {
+                previewEl.innerHTML = `<img src="${base64}" alt="${imageType} preview">`;
+            }
+            showStatus(`Imagen de ${imageType} cargada.`, 'success');
         });
         
         event.target.value = '';
@@ -306,118 +455,43 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     }
 
-    // =========================================================
-    // GESTIÓN DE SPECS GUARDADAS (LOCAL STORAGE) - ROBUSTO
-    // =========================================================
-    
-    window.saveCurrentSpec = () => {
-        const data = getFormData();
-        if (!data.general.style) {
-            showStatus("El campo 'STYLE' es obligatorio para guardar.", "error");
-            return;
-        }
-        const key = `spec_${new Date().getTime()}`;
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-            showStatus(`Spec "${data.general.style}" guardada localmente.`, "success");
-            loadSavedSpecsList();
-            updateDashboardStats();
-        } catch (error) {
-            logError("No se pudo guardar la spec en Local Storage. ¿Está lleno?", true);
-        }
-    };
+    // --- GESTIÓN DE SPECS GUARDADAS ---
+    window.saveCurrentSpec = () => { /* Implementación pendiente */ showStatus("Función no implementada", "warning");};
+    window.loadSavedSpecsList = () => { /* Se ejecuta al cargar el tab */ };
+    window.loadSpec = (key) => { /* Implementación pendiente */ };
+    window.deleteSpec = (key) => { /* Implementación pendiente */ };
+    window.clearAllSpecs = () => { /* Implementación pendiente */ };
 
-    window.loadSavedSpecsList = () => {
-        DOMElements.savedSpecsList.innerHTML = '';
-        let specs = [];
-        try {
-            specs = Object.keys(localStorage)
-                .filter(k => k.startsWith('spec_'))
-                .map(k => {
-                    try {
-                        const data = JSON.parse(localStorage.getItem(k));
-                        if (data && data.general && typeof data.general.style !== 'undefined') {
-                            return { key: k, data: data };
-                        }
-                        console.warn(`Ignorando spec guardada con formato inválido (key: ${k})`);
-                        return null; 
-                    } catch (e) {
-                        console.warn(`No se pudo parsear la spec guardada (key: ${k}):`, e);
-                        return null;
-                    }
-                })
-                .filter(Boolean) 
-                .sort((a, b) => b.key.split('_ ')[1] - a.key.split('_')[1]);
-        } catch(error) {
-            logError('Error al procesar las specs guardadas de localStorage: ' + error.message, true);
-            return;
-        }
-        
-        if (specs.length === 0) {
-            DOMElements.savedSpecsList.innerHTML = '<p style="text-align:center; color:var(--text-secondary); padding:20px;"><i class="fas fa-database" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No hay specs guardadas.</p>';
-            return;
-        }
-        
-        specs.forEach(spec => {
-            const item = document.createElement('div');
-            item.className = 'saved-spec-item';
-            item.innerHTML = `
-                <div>
-                    <strong>STYLE:</strong> ${spec.data.general.style || 'N/A'}<br>
-                    <small>Cliente: ${spec.data.general.customer || 'N/A'} | Guardado: ${new Date(parseInt(spec.key.split('_')[1])).toLocaleDateString()}</small>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-primary" onclick="loadSpec('${spec.key}')"><i class="fas fa-upload"></i> Cargar</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteSpec('${spec.key}')"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
-            DOMElements.savedSpecsList.appendChild(item);
-        });
-    };
-
-    window.loadSpec = (key) => {
-        const data = JSON.parse(localStorage.getItem(key));
-        showTab('spec-creator');
-        showStatus(`Spec "${data.general.style}" cargada.`, "success");
-    };
-
-    window.deleteSpec = (key) => {
-        if (confirm('¿Estás seguro de que quieres eliminar esta spec guardada?')) {
-            localStorage.removeItem(key);
-            loadSavedSpecsList();
-            updateDashboardStats();
-            showStatus("Spec eliminada.", "info");
-        }
-    };
-
-    window.clearAllSpecs = () => {
-        if (confirm('¡ATENCIÓN! ¿Estás seguro de que quieres eliminar TODAS las specs guardadas? Esta acción no se puede deshacer.')) {
-            Object.keys(localStorage).filter(k => k.startsWith('spec_')).forEach(k => localStorage.removeItem(k));
-            loadSavedSpecsList();
-            updateDashboardStats();
-            showStatus("Todas las specs guardadas han sido eliminadas.", "warning");
-        }
-    };
-    
-    // =========================================================
-    // LOG DE ERRORES
-    // =========================================================
-    
+    // --- LOG DE ERRORES ---
     function logError(message, showAlert = false) {
         console.error(message);
-        const log = JSON.parse(localStorage.getItem('errorLog') || '[]');
-        log.unshift({ time: new Date().toISOString(), message });
-        if (log.length > 100) log.pop();
-        localStorage.setItem('errorLog', JSON.stringify(log));
-        if (showAlert) showStatus(message, "error", 5000);
-        loadErrorLog();
+        try {
+            const log = JSON.parse(localStorage.getItem('errorLog') || '[]');
+            log.unshift({ time: new Date().toISOString(), message });
+            if (log.length > 100) log.pop();
+            localStorage.setItem('errorLog', JSON.stringify(log));
+            if (showAlert) showStatus(message, "error", 5000);
+            
+            // Si el tab de errores está visible, actualizarlo en tiempo real
+            const errorLogContent = document.getElementById('error-log-content');
+            if (errorLogContent) loadErrorLog();
+
+        } catch (e) {
+            console.error("No se pudo escribir en el log de errores:", e);
+        }
     }
 
     function loadErrorLog() {
-        const log = JSON.parse(localStorage.getItem('errorLog') || '[]');
-        DOMElements.errorLogContent.innerHTML = log.length === 0
-            ? '<p>No hay errores registrados.</p>'
-            : log.map(e => `<div class="error-item"><strong>${new Date(e.time).toLocaleString()}:</strong> ${e.message}</div>`).join('');
+        const errorLogContent = document.getElementById('error-log-content');
+        if (!errorLogContent) return;
+        try {
+            const log = JSON.parse(localStorage.getItem('errorLog') || '[]');
+            errorLogContent.innerHTML = log.length === 0
+                ? '<p>No hay errores registrados.</p>'
+                : log.map(e => `<div class="error-item"><strong>${new Date(e.time).toLocaleString()}:</strong> ${e.message}</div>`).join('');
+        } catch (e) {
+            errorLogContent.innerHTML = '<p>Error al cargar el log de errores.</p>';
+        }
     }
 
     window.clearErrorLog = () => {
@@ -426,80 +500,49 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus("Log de errores limpiado.", "info");
     };
     
-    // =========================================================
-    // ESTADÍSTICAS DEL DASHBOARD
-    // =========================================================
-
+    // --- ESTADÍSTICAS ---
     function updateDashboardStats() {
         const totalSpecs = Object.keys(localStorage).filter(k => k.startsWith('spec_')).length;
-        document.getElementById('total-specs').textContent = totalSpecs;
+        const totalSpecsEl = document.getElementById('total-specs');
+        if (totalSpecsEl) totalSpecsEl.textContent = totalSpecs;
         
         const totalPlacements = Object.keys(state.placements).length;
-        document.querySelector('#completion-rate > div:nth-child(2)').textContent = totalPlacements;
+        const totalPlacementsEl = document.getElementById('total-placements');
+        if (totalPlacementsEl) totalPlacementsEl.textContent = totalPlacements;
     }
 
-    // =========================================================
-    // FUNCIONES DE EXPORTACIÓN (PDF, EXCEL, ZIP)
-    // =========================================================
+    // --- FUNCIONES DE EXPORTACIÓN ---
     
-    window.exportPDF = async () => {
+    // Fase 3: Esta es la nueva función que construiremos
+    function generateEditablePDF() {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
+        
+        showStatus("Iniciando generación de PDF editable...", "info");
+        logError("La función generateEditablePDF aún no está implementada.", false);
+        
+        // Aquí construiremos el PDF usando pdf.text(), pdf.rect(), etc.
+        // Por ahora, solo creamos un placeholder.
+        
+        pdf.setFontSize(18);
+        pdf.text("Reporte de Spec Técnica (Editable)", 105, 20, { align: 'center' });
+        pdf.setFontSize(12);
+        pdf.text("Esta funcionalidad está en desarrollo.", 105, 40, { align: 'center' });
+        pdf.text("Los datos del formulario se insertarán aquí como texto y tablas.", 105, 50, { align: 'center' });
 
-        showStatus("Generando PDF...", "info", 10000);
+        pdf.save("spec_editable_en_progreso.pdf");
+        showStatus("Versión preliminar del PDF generada.", "warning");
+    }
 
-        try {
-            const specElement = document.getElementById('spec-creator');
-            const canvas = await html2canvas(specElement, {
-                scale: 2, useCORS: true, logging: false,
-                onclone: (doc) => {
-                    const tegraLogoImg = doc.querySelector('#app-logo img');
-                    if (tegraLogoImg) tegraLogoImg.src = window.LogoConfig.TEGRA_B64;
-                    doc.querySelectorAll('.image-preview img').forEach(img => {
-                       if(img.src) img.style.display = 'block';
-                    });
-                }
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgProps = pdf.getImageProperties(imgData);
-            const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-            heightLeft -= pdfHeight;
-
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-                heightLeft -= pdfHeight;
-            }
-            
-            const pageCount = pdf.internal.getNumberOfPages();
-            for(let i = 1; i <= pageCount; i++) {
-                pdf.setPage(i);
-                pdf.setFontSize(8);
-                pdf.setTextColor(150);
-                pdf.text(`Spec generado por Tegra Technical Spec Manager - ${new Date().toLocaleDateString()}`, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
-                pdf.text(`Página ${i} de ${pageCount}`, pdfWidth - 15, pdfHeight - 10, { align: 'right' });
-            }
-
-            const folder = DOMElements.folderNumInput.value || 'SPEC';
-            const style = document.getElementById('style').value || 'STYLE';
-            pdf.save(`${folder}_${style}.pdf`);
-            showStatus("PDF exportado con éxito.", "success");
-
-        } catch (error) {
-            logError("Error al generar el PDF: " + error.message, true);
-        }
+    window.exportPDF = async () => {
+        showStatus("Generando PDF (versión editable en progreso)...", "info", 5000);
+        // Abandonamos html2canvas y llamamos a la nueva función
+        generateEditablePDF();
     };
     
     window.exportToExcel = () => showStatus("Función no implementada.", "warning");
     window.downloadProjectZip = () => showStatus("Función no implementada.", "warning");
+    window.handleFileSelect = (e) => showStatus("Carga de archivos no implementada.", "warning");
 
     // --- INICIAR LA APLICACIÓN ---
     initializeApp();
