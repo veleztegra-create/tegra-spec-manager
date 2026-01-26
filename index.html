@@ -3657,7 +3657,136 @@ function updatePlacementColorValue(placementId, colorId, value) {
     const color = placement.colors.find(c => c.id === colorId);
     if (color) {
         color.val = value;
-        updatePlacementColorPreview(placementId, colorId);
+       function updatePlacementColorPreview(placementId, colorId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (!color) return;
+    
+    const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
+    if (!preview) return;
+    
+    const colorName = color.val.toUpperCase().trim();
+    let colorHex = null;
+    
+    // ========== USAR Utils.getColorHex si está disponible ==========
+    if (window.Utils && window.Utils.getColorHex) {
+        colorHex = window.Utils.getColorHex(color.val);
+    }
+    
+    // ========== BUSCAR EN TeamsConfig ==========
+    if (!colorHex && window.TeamsConfig) {
+        const leagues = ['NCAA', 'NBA', 'NFL'];
+        
+        for (const league of leagues) {
+            if (window.TeamsConfig[league] && window.TeamsConfig[league].colors) {
+                const colorCategories = ['institutional', 'metallic', 'alt', 'uni'];
+                
+                for (const category of colorCategories) {
+                    const categoryColors = window.TeamsConfig[league].colors[category];
+                    if (categoryColors) {
+                        for (const [key, data] of Object.entries(categoryColors)) {
+                            const keyUpper = key.toUpperCase().replace(/_/g, ' ');
+                            if (colorName === keyUpper || 
+                                colorName.includes(keyUpper) || 
+                                keyUpper.includes(colorName)) {
+                                if (data && data.hex) {
+                                    colorHex = data.hex;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (colorHex) break;
+                }
+            }
+            if (colorHex) break;
+        }
+    }
+    
+    // ========== BUSCAR EN Config.COLOR_DATABASES ==========
+    if (!colorHex && window.Config && window.Config.COLOR_DATABASES) {
+        const databases = ['PANTONE', 'GEARFORSPORT', 'INSTITUCIONAL'];
+        
+        for (const dbName of databases) {
+            const db = window.Config.COLOR_DATABASES[dbName];
+            if (db) {
+                for (const [key, data] of Object.entries(db)) {
+                    if (colorName === key.toUpperCase() || 
+                        colorName.includes(key.toUpperCase()) || 
+                        key.toUpperCase().includes(colorName)) {
+                        if (data && data.hex) {
+                            colorHex = data.hex;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (colorHex) break;
+        }
+    }
+    
+    // ========== COLORES BÁSICOS MÍNIMOS (solo los esenciales) ==========
+    if (!colorHex) {
+        const basicColors = {
+            'RED': '#FF0000',
+            'BLUE': '#0000FF',
+            'GREEN': '#00FF00',
+            'BLACK': '#000000',
+            'WHITE': '#FFFFFF',
+            'YELLOW': '#FFFF00',
+            'PURPLE': '#800080',
+            'ORANGE': '#FFA500',
+            'GRAY': '#808080',
+            'GREY': '#808080',
+            'GOLD': '#FFD700',
+            'SILVER': '#C0C0C0',
+            'NAVY': '#000080',
+            'MAROON': '#800000',
+            'PINK': '#FFC0CB',
+            'BROWN': '#A52A2A',
+            'TEAL': '#008080',
+            'CYAN': '#00FFFF',
+            'MAGENTA': '#FF00FF',
+            'LIME': '#00FF00',
+            'OLIVE': '#808000'
+        };
+        
+        // Coincidencia exacta
+        if (basicColors[colorName]) {
+            colorHex = basicColors[colorName];
+        } else {
+            // Buscar palabra dentro del nombre (ej: "ROYAL BLUE" → encuentra "BLUE")
+            for (const [basicName, hex] of Object.entries(basicColors)) {
+                if (colorName.includes(basicName)) {
+                    colorHex = hex;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // ========== CÓDIGO HEX DIRECTO ==========
+    if (!colorHex) {
+        const hexMatch = colorName.match(/#([0-9A-F]{6})/i);
+        if (hexMatch) {
+            colorHex = `#${hexMatch[1]}`;
+        }
+    }
+    
+    // ========== APLICAR COLOR ==========
+    if (colorHex) {
+        preview.style.background = colorHex;
+        preview.style.backgroundImage = 'none';
+        preview.title = `${color.val} - ${colorHex}`;
+    } else {
+        // Fallback: gris neutro (NO color aleatorio)
+        preview.style.background = '#CCCCCC';
+        preview.style.backgroundImage = 'repeating-linear-gradient(45deg, #999 0, #999 2px, #CCC 2px, #CCC 4px)';
+        preview.title = `${color.val} - No encontrado`;
+    }
+}
         updatePlacementStations(placementId);
         updatePlacementColorsPreview(placementId);
         checkForSpecialtiesInColors(placementId);
