@@ -1,6 +1,5 @@
 // =================================================================================
-// MAIN SCRIPT - TEGRA TECHNICAL SPEC MANAGER V4.0 (RESTAURADO)
-// Lógica basada en la funcionalidad original de index-old.html
+// MAIN SCRIPT - TEGRA TECHNICAL SPEC MANAGER V4.1 (PDF RECONSTRUCCIÓN)
 // =================================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,17 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INICIALIZACIÓN DE LA APLICACIÓN ---
     async function initializeApp() {
         try {
-            console.log("Initializing App v4.0 (Restored Logic)...");
-            
-            // Restaurar tema y listeners globales que no dependen de la pestaña
+            console.log("Initializing App v4.1 (PDF Rebuild)...");
             applyTheme(state.currentTheme);
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
             document.querySelector('.app-nav').addEventListener('click', handleNavigation);
             
-            // Cargar la pestaña de dashboard por defecto
             await showTab('dashboard');
             
-            // Cargar datos que viven fuera del contenido principal
             loadTegraLogo();
             updateDateTime();
             setInterval(updateDateTime, 60000);
@@ -47,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Cargar template desde cache o fetch
             if (!state.loadedTemplates[tabId]) {
                 const response = await fetch(`templates/${tabId}-tab.html`);
                 if (!response.ok) throw new Error(`No se pudo cargar el template: ${tabId}-tab.html`);
@@ -55,25 +49,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             appContent.innerHTML = state.loadedTemplates[tabId];
 
-            // Actualizar estado visual de la navegación
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.classList.toggle('active', tab.dataset.tab === tabId);
             });
 
-            // Ejecutar lógica específica para cada pestaña DESPUÉS de cargar su contenido
             switch (tabId) {
                 case 'spec-creator':
                     restoreSpecCreatorState();
+                    // Restaurar la fecha actual en el campo de fecha
+                    const specDateInput = document.getElementById('spec-date');
+                    if (specDateInput && !specDateInput.value) {
+                        specDateInput.value = new Date().toISOString().slice(0, 10);
+                    }
                     break;
-                case 'saved-specs':
-                    loadSavedSpecsList();
-                    break;
-                case 'error-log':
-                    loadErrorLog();
-                    break;
-                case 'dashboard':
-                    updateDashboardStats();
-                    break;
+                case 'saved-specs': loadSavedSpecsList(); break;
+                case 'error-log': loadErrorLog(); break;
+                case 'dashboard': updateDashboardStats(); break;
             }
         } catch (error) {
             logError(`Error al cambiar al tab '${tabId}': ${error.message}`, true);
@@ -88,142 +79,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNCIONES GLOBALES (ACCESIBLES DESDE EL HTML) ---
-    // Estas funciones se asignan a `window` para que los `oninput`/`onchange` las encuentren.
-
     window.updateClientLogo = () => {
         const customerInput = document.getElementById('customer');
         const logoClienteImg = document.getElementById('logoCliente');
         if(!customerInput || !logoClienteImg) return;
-
         const customerName = customerInput.value.trim().toUpperCase();
         const clientKey = customerName.replace(/[&. ]/g, '_');
-        
-        if (window.LogoConfig && LogoConfig[clientKey]) {
-            logoClienteImg.src = LogoConfig[clientKey];
-            logoClienteImg.style.display = 'block';
-        } else {
-            logoClienteImg.style.display = 'none';
-            logoClienteImg.src = '';
-        }
+        logoClienteImg.src = (window.LogoConfig && LogoConfig[clientKey]) ? LogoConfig[clientKey] : '';
+        logoClienteImg.style.display = logoClienteImg.src ? 'block' : 'none';
     };
 
     window.handleGearForSportLogic = () => {
         const customerInput = document.getElementById('customer');
         const nameTeamInput = document.getElementById('name-team');
-        if (!customerInput || !nameTeamInput) return;
-
-        if (customerInput.value.toUpperCase().trim() === 'GEAR FOR SPORT') {
-            const styleInput = document.getElementById('style');
-            const poInput = document.getElementById('po');
-            const searchTerm = (styleInput?.value || '') || (poInput?.value || '');
-            
-            if (window.AppConfig && window.AppConfig.GEARFORSPORT_TEAM_MAP) {
-                const teamName = Object.keys(window.AppConfig.GEARFORSPORT_TEAM_MAP).find(key => searchTerm.toUpperCase().includes(key));
-                if (teamName) {
-                    nameTeamInput.value = window.AppConfig.GEARFORSPORT_TEAM_MAP[teamName];
-                }
-            }
+        if (!customerInput || !nameTeamInput || customerInput.value.toUpperCase().trim() !== 'GEAR FOR SPORT') return;
+        
+        const styleInput = document.getElementById('style');
+        const poInput = document.getElementById('po');
+        const searchTerm = (styleInput?.value || '') || (poInput?.value || '');
+        
+        if (window.AppConfig && window.AppConfig.GEARFORSPORT_TEAM_MAP) {
+            const teamKey = Object.keys(window.AppConfig.GEARFORSPORT_TEAM_MAP).find(key => searchTerm.toUpperCase().includes(key));
+            if (teamKey) nameTeamInput.value = window.AppConfig.GEARFORSPORT_TEAM_MAP[teamKey];
         }
     };
     
     window.validateColorName = (inputElement, placementId, colorIndex) => {
         if (!window.AppConfig || !window.AppConfig.COLOR_DATABASES) return;
-
         const colorName = inputElement.value.toUpperCase().trim();
         const { PANTONE, GEARFORSPORT, INSTITUCIONAL } = window.AppConfig.COLOR_DATABASES;
+        const isValid = !!(PANTONE[colorName] || (GEARFORSPORT && GEARFORSPORT[colorName]) || (INSTITUCIONAL && INSTITUCIONAL[colorName]));
 
-        let isValid = false;
-        if (PANTONE[colorName] || (GEARFORSPORT && GEARFORSPORT[colorName]) || (INSTITUCIONAL && INSTITUCIONAL[colorName])) {
-            isValid = true;
-        }
-
-        // Feedback visual directo como en el original
         inputElement.classList.remove('color-valid', 'color-invalid');
-        if (inputElement.value.length > 2) {
-            inputElement.classList.add(isValid ? 'color-valid' : 'color-invalid');
-        }
+        if (inputElement.value.length > 2) inputElement.classList.add(isValid ? 'color-valid' : 'color-invalid');
 
-        // Actualizar el estado
-        if (state.placements[placementId] && state.placements[placementId].colors[colorIndex]) {
-            state.placements[placementId].colors[colorIndex].name = inputElement.value;
-        }
+        if (state.placements[placementId]?.colors[colorIndex]) state.placements[placementId].colors[colorIndex].name = inputElement.value;
     };
 
+    // --- GESTIÓN DE PLACEMENTS ---
     window.addNewPlacement = () => {
-        const placementId = state.nextPlacementId++;
-        state.placements[placementId] = {
-            data: { id: placementId, title: `Placement ${placementId}`, type: 'PRINT', area: 'FB', size: 'N/A', specialty: 'N/A', comments: '' },
-            colors: [{ name: '', code: '', type: 'Color' }], // Empezar con un color
-            imageBase64: null, mockUpBase64: null
-        };
-        state.imageBlobs[placementId] = { placement: null, mockup: null };
-        renderPlacement(placementId, true);
+        const id = state.nextPlacementId++;
+        state.placements[id] = { data: { id, title: `Placement ${id}`, type: 'PRINT', area: 'FB', size: 'N/A', specialty: 'N/A', comments: '' }, colors: [{ name: '', code: '', type: 'Color' }], imageBase64: null, mockUpBase64: null };
+        state.imageBlobs[id] = { placement: null, mockup: null };
+        renderPlacement(id, true);
         updateDashboardStats();
     };
-
-    window.addPlacementColorItem = (placementId) => {
-        if (!state.placements[placementId]) return;
-        state.placements[placementId].colors.push({ name: '', code: '', type: 'Color' });
-        renderPlacementColors(placementId);
-    };
-    
-    // --- LÓGICA DE RENDERIZADO DEL SPEC-CREATOR ---
 
     function restoreSpecCreatorState() {
         const placementsContainer = document.getElementById('placements-container');
         const placementsTabs = document.getElementById('placements-tabs');
         if (!placementsContainer || !placementsTabs) return;
-
         placementsContainer.innerHTML = '';
         placementsTabs.innerHTML = '';
-
-        if (Object.keys(state.placements).length === 0) {
-            addNewPlacement();
-        } else {
+        if (Object.keys(state.placements).length === 0) addNewPlacement();
+        else {
             Object.keys(state.placements).forEach(pId => renderPlacement(pId, false));
             const idToSelect = state.currentPlacementId || Object.keys(state.placements)[0];
             if (idToSelect) switchPlacementTab(idToSelect);
         }
-        updateClientLogo(); // Asegura que el logo se muestre al recargar
+        updateClientLogo();
     }
 
-    function renderPlacement(placementId, switchTab = true) {
-        const placementData = state.placements[placementId];
-        if (!placementData) return;
-
+    function renderPlacement(id, switchTab = true) {
+        const pData = state.placements[id];
+        if (!pData) return;
         const placementsTabs = document.getElementById('placements-tabs');
         const placementsContainer = document.getElementById('placements-container');
-
-        // Crear y añadir el tab
-        const tabHTML = `<span class="tab-title" onclick="switchPlacementTab(${placementId})">${placementData.data.title}</span><button class="close-tab" onclick="removePlacement(${placementId})">&times;</button>`;
-        let tab = placementsTabs.querySelector(`[data-id='${placementId}']`);
-        if (!tab) {
-            tab = document.createElement('div');
-            tab.className = 'placement-tab';
-            tab.dataset.id = placementId;
-            placementsTabs.appendChild(tab);
-        }
-        tab.innerHTML = tabHTML;
-
-        // Crear y añadir el contenido del placement
-        const containerHTML = createPlacementHTML(placementId, placementData);
-        let container = document.getElementById(`placement-${placementId}`);
-        if (!container) {
-            container = document.createElement('div');
-            container.id = `placement-${placementId}`;
-            container.className = 'placement-content';
-            placementsContainer.appendChild(container);
-        }
-        container.innerHTML = containerHTML;
-        
-        renderPlacementColors(placementId);
-
-        if (switchTab) {
-            switchPlacementTab(placementId);
-        }
+        let tab = placementsTabs.querySelector(`[data-id='${id}']`);
+        if (!tab) { tab = document.createElement('div'); tab.className = 'placement-tab'; tab.dataset.id = id; placementsTabs.appendChild(tab); }
+        tab.innerHTML = `<span class="tab-title" onclick="switchPlacementTab(${id})">${pData.data.title}</span><button class="close-tab" onclick="removePlacement(${id})">&times;</button>`;
+        let container = document.getElementById(`placement-${id}`);
+        if (!container) { container = document.createElement('div'); container.id = `placement-${id}`; container.className = 'placement-content'; placementsContainer.appendChild(container); }
+        container.innerHTML = createPlacementHTML(id, pData);
+        renderPlacementColors(id);
+        if (switchTab) switchPlacementTab(id);
     }
     
-    // Función para generar el HTML de un solo placement (basado en el viejo index)
     function createPlacementHTML(id, p) {
         return `
             <div class="placement-grid">
@@ -253,158 +184,170 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPlacementColors(placementId) {
-        const placement = state.placements[placementId];
+        const p = state.placements[placementId];
         const tbody = document.getElementById(`color-sequence-body-${placementId}`);
-        if (!placement || !tbody) return;
+        if (!p || !tbody) return;
         tbody.innerHTML = '';
-        placement.colors.forEach((color, index) => {
-            const row = document.createElement('tr');
+        p.colors.forEach((color, index) => {
+            const row = tbody.insertRow();
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td><input type="text" class="form-control-sm" value="${color.name}" oninput="validateColorName(this, ${placementId}, ${index})"></td>
                 <td><input type="text" class="form-control-sm" value="${color.code}" oninput="updateColorData(${placementId}, ${index}, 'code', this.value)"></td>
-                <td>
-                    <select class="form-control-sm" onchange="updateColorData(${placementId}, ${index}, 'type', this.value)">
-                        <option value="Color" ${color.type === 'Color' ? 'selected' : ''}>Color</option>
-                        <option value="Blocker" ${color.type === 'Blocker' ? 'selected' : ''}>Blocker</option>
-                        <option value="White Base" ${color.type === 'White Base' ? 'selected' : ''}>White Base</option>
-                    </select>
-                </td>
+                <td><select class="form-control-sm" onchange="updateColorData(${placementId}, ${index}, 'type', this.value)"><option value="Color" ${color.type === 'Color' ? 'selected' : ''}>Color</option><option value="Blocker" ${color.type === 'Blocker' ? 'selected' : ''}>Blocker</option><option value="White Base" ${color.type === 'White Base' ? 'selected' : ''}>White Base</option></select></td>
                 <td><button class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${placementId}, ${index})">&times;</button></td>
             `;
-            tbody.appendChild(row);
         });
     }
 
-    // --- FUNCIONES DE MANIPULACIÓN DE DATOS (ACCEDIDAS DESDE EL HTML) ---
-    
-    window.updatePlacementData = (placementId, field, value) => {
-        if (state.placements[placementId]) {
-            state.placements[placementId].data[field] = value;
-            // Actualizar el título del tab si es necesario
-            if (field === 'title') {
-                const tabTitle = document.querySelector(`.placement-tab[data-id='${placementId}'] .tab-title`);
-                if (tabTitle) tabTitle.textContent = value;
-            }
-        }
+    window.addPlacementColorItem = (id) => { if(state.placements[id]) { state.placements[id].colors.push({ name: '', code: '', type: 'Color' }); renderPlacementColors(id); }};
+    window.removePlacementColorItem = (id, index) => { if(state.placements[id]) { state.placements[id].colors.splice(index, 1); renderPlacementColors(id); }};
+    window.updatePlacementData = (id, field, value) => { if (state.placements[id]) { state.placements[id].data[field] = value; if (field === 'title') document.querySelector(`.placement-tab[data-id='${id}'] .tab-title`).textContent = value; }};
+    window.updateColorData = (id, i, f, v) => { if (state.placements[id]?.colors[i]) state.placements[id].colors[i][f] = v; };
+
+    window.switchPlacementTab = (id) => {
+        state.currentPlacementId = id;
+        document.querySelectorAll('.placement-tab').forEach(t => t.classList.toggle('active', t.dataset.id == id));
+        document.querySelectorAll('.placement-content').forEach(c => c.classList.toggle('active', c.id === `placement-${id}`));
     };
 
-    window.updateColorData = (placementId, colorIndex, field, value) => {
-        if (state.placements[placementId] && state.placements[placementId].colors[colorIndex]) {
-            state.placements[placementId].colors[colorIndex][field] = value;
-        }
-    };
-
-    window.removePlacementColorItem = (placementId, index) => {
-        if (!state.placements[placementId]) return;
-        state.placements[placementId].colors.splice(index, 1);
-        renderPlacementColors(placementId);
-    };
-
-    window.switchPlacementTab = (placementId) => {
-        state.currentPlacementId = placementId;
-        document.querySelectorAll('.placement-tab').forEach(t => t.classList.toggle('active', t.dataset.id == placementId));
-        document.querySelectorAll('.placement-content').forEach(c => c.classList.toggle('active', c.id === `placement-${placementId}`));
-    };
-
-    window.removePlacement = (placementId) => {
-        if (Object.keys(state.placements).length <= 1) {
-            showStatus("Debe haber al menos un placement.", "warning");
-            return;
-        }
-
-        document.querySelector(`.placement-tab[data-id='${placementId}']`)?.remove();
-        document.getElementById(`placement-${placementId}`)?.remove();
-        
-        delete state.placements[placementId];
-        delete state.imageBlobs[placementId];
-
-        if (state.currentPlacementId == placementId) {
-            const firstRemainingId = Object.keys(state.placements)[0];
-            switchPlacementTab(firstRemainingId || null);
-        }
+    window.removePlacement = (id) => {
+        if (Object.keys(state.placements).length <= 1) { showStatus("Debe haber al menos un placement.", "warning"); return; }
+        document.querySelector(`.placement-tab[data-id='${id}']`)?.remove();
+        document.getElementById(`placement-${id}`)?.remove();
+        delete state.placements[id]; delete state.imageBlobs[id];
+        if (state.currentPlacementId == id) switchPlacementTab(Object.keys(state.placements)[0] || null);
         updateDashboardStats();
     };
 
     // --- MANEJO DE IMÁGENES ---
-    window.triggerImageUpload = (placementId, imageType) => {
-        // Necesitamos asegurarnos de que el tab esté activo para que el input exista
-        switchPlacementTab(placementId);
-        document.getElementById(`image-input-${placementId}-${imageType}`)?.click();
-    };
-
-    window.handleImageUpload = (event, placementId, imageType) => {
+    window.triggerImageUpload = (id, type) => { switchPlacementTab(id); document.getElementById(`image-input-${id}-${type}`)?.click(); };
+    window.handleImageUpload = (event, id, type) => {
         const file = event.target.files[0];
         if (!file) return;
-
-        state.imageBlobs[placementId][imageType] = file;
-
+        state.imageBlobs[id][type] = file;
         const reader = new FileReader();
         reader.onload = (e) => {
             const base64 = e.target.result;
-            if(imageType === 'mockup') state.placements[placementId].mockUpBase64 = base64;
-            else state.placements[placementId].imageBase64 = base64;
-
-            const previewEl = document.getElementById(imageType === 'mockup' ? `mockup-preview-${placementId}` : `art-preview-${placementId}`);
-            if(previewEl) previewEl.innerHTML = `<img src="${base64}" alt="Preview">`;
-            showStatus(`${imageType.charAt(0).toUpperCase() + imageType.slice(1)} image loaded.`, 'success');
+            if(type === 'mockup') state.placements[id].mockUpBase64 = base64; else state.placements[id].imageBase64 = base64;
+            document.getElementById(`${type}-preview-${id}`).innerHTML = `<img src="${base64}" alt="Preview">`;
+            showStatus(`${type.charAt(0).toUpperCase() + type.slice(1)} image loaded.`, 'success');
         };
         reader.readAsDataURL(file);
-        event.target.value = ''; // Permite recargar la misma imagen
+        event.target.value = '';
     };
 
-    // --- FUNCIONES DE ACCIÓN GLOBAL ---
-    window.clearForm = () => {
-        state.placements = {};
-        state.imageBlobs = {};
-        state.nextPlacementId = 1;
-        state.currentPlacementId = null;
-        showTab('spec-creator'); // Recarga el tab para un estado limpio
-        showStatus("Formulario limpiado.", "info");
+    // --- EXPORTACIÓN A PDF (RECONSTRUIDO) ---
+    window.exportPDF = () => {
+        showStatus("Generando PDF...", "info");
+        try {
+            generateEditablePDF();
+        } catch (error) {
+            logError("Error al generar el PDF: " + error.message, true);
+        }
     };
+
+    function generateEditablePDF() {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
+
+        // --- RECOLECCIÓN DE DATOS ---
+        const getVal = (id) => document.getElementById(id)?.value || 'N/A';
+        const generalData = {
+            customer: getVal('customer'),
+            style: getVal('style'),
+            season: getVal('season'),
+            colorway: getVal('colorway'),
+            po: getVal('po'),
+            nameTeam: getVal('name-team'),
+            program: getVal('program'),
+            specDate: getVal('spec-date'),
+            comments: document.getElementById('special-instructions')?.value || ''
+        };
+
+        // --- CONSTANTES DE DISEÑO ---
+        const MARGIN = 10;
+        const PAGE_WIDTH = pdf.internal.pageSize.getWidth();
+        const FONT_SIZE_TITLE = 16;
+        const FONT_SIZE_SUBTITLE = 10;
+        const FONT_SIZE_BODY = 9;
+        const FONT_SIZE_SMALL = 8;
+        const LINE_HEIGHT = 5;
+        const PRIMARY_COLOR = '#D32F2F'; // Rojo oscuro de Tegra
+        let y = MARGIN;
+
+        // --- CABECERA ---
+        if (window.LogoConfig && window.LogoConfig.TEGRA) {
+            pdf.addImage(window.LogoConfig.TEGRA, 'PNG', MARGIN, y, 30, 15);
+        }
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(FONT_SIZE_TITLE);
+        pdf.text('TECHNICAL SPECIFICATION', PAGE_WIDTH / 2, y + 7, { align: 'center' });
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(FONT_SIZE_SMALL);
+        pdf.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), PAGE_WIDTH - MARGIN, y + 5, { align: 'right' });
+
+        const clientLogoImg = document.getElementById('logoCliente');
+        if (clientLogoImg && clientLogoImg.style.display !== 'none') {
+            try { pdf.addImage(clientLogoImg, 'PNG', PAGE_WIDTH - MARGIN - 30, y + 10, 30, 10, '', 'FAST'); } catch(e){ logError("No se pudo añadir el logo del cliente al PDF.", false); }
+        }
+        y += 25;
+
+        // --- TABLA DE DATOS GENERALES ---
+        pdf.setFontSize(FONT_SIZE_SUBTITLE);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(MARGIN, y, PAGE_WIDTH - (MARGIN * 2), 7, 'F');
+        pdf.text('GENERAL INFORMATION', MARGIN + 2, y + 5);
+        y += 7;
+
+        pdf.autoTable({
+            startY: y,
+            body: [
+                [{content: 'CUSTOMER:', styles:{fontStyle:'bold'}}, generalData.customer, {content: 'SEASON:', styles:{fontStyle:'bold'}}, generalData.season],
+                [{content: 'STYLE #:', styles:{fontStyle:'bold'}}, generalData.style, {content: 'GARMENT COLOR:', styles:{fontStyle:'bold'}}, generalData.colorway],
+                [{content: 'P.O. #:', styles:{fontStyle:'bold'}}, generalData.po, {content: 'PROGRAM:', styles:{fontStyle:'bold'}}, generalData.program],
+                [{content: 'NAME / TEAM:', styles:{fontStyle:'bold'}}, generalData.nameTeam, {content: 'SPEC DATE:', styles:{fontStyle:'bold'}}, generalData.specDate],
+            ],
+            theme: 'grid',
+            styles: { fontSize: FONT_SIZE_BODY, cellPadding: 2 },
+            columnStyles: { 0: { cellWidth: 35 }, 2: { cellWidth: 35 } },
+            margin: { left: MARGIN, right: MARGIN },
+        });
+        y = pdf.autoTable.previous.finalY + 10;
+
+        // --- FIN DEL DOCUMENTO (POR AHORA) ---
+        const fileName = `Spec_${generalData.customer}_${generalData.style}.pdf`.replace(/[^a-zA-Z0-9_\.]/g, '_');
+        pdf.save(fileName);
+        showStatus("PDF de Datos Generales generado con éxito!", "success");
+    }
+
+
+    // --- FUNCIONES DE ACCIÓN GLOBAL ---
+    window.clearForm = () => { state.placements = {}; state.imageBlobs = {}; state.nextPlacementId = 1; state.currentPlacementId = null; showTab('spec-creator'); showStatus("Formulario limpiado.", "info"); };
 
     // --- HELPERS Y UI ---
     function loadTegraLogo() {
         const appLogo = document.getElementById('app-logo');
         if (appLogo && window.LogoConfig && window.LogoConfig.TEGRA) {
-            appLogo.innerHTML = `<img src="${window.Logo-config.js}" alt="Tegra Logo">`;
+            appLogo.innerHTML = `<img src="${window.LogoConfig.TEGRA}" alt="Tegra Logo">`;
         }
     }
 
-    function updateDateTime() {
-        const el = document.getElementById('current-datetime');
-        if (el) el.textContent = new Date().toLocaleString('es-HN', { dateStyle: 'long', timeStyle: 'short' });
-    }
-
-    function applyTheme(theme) {
-        document.body.className = theme;
-        state.currentTheme = theme;
-        localStorage.setItem('theme', theme);
-        const btn = document.getElementById('themeToggle');
-        if(btn) btn.innerHTML = theme === 'dark-mode' ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro';
-    }
-
+    function updateDateTime() { const el = document.getElementById('current-datetime'); if (el) el.textContent = new Date().toLocaleString('es-HN', { dateStyle: 'long', timeStyle: 'short' }); }
+    function applyTheme(theme) { document.body.className = theme; state.currentTheme = theme; localStorage.setItem('theme', theme); const btn = document.getElementById('themeToggle'); if(btn) btn.innerHTML = theme === 'dark-mode' ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro'; }
     window.toggleTheme = () => applyTheme(state.currentTheme === 'dark-mode' ? 'light-mode' : 'dark-mode');
-
-    function showStatus(message, type = 'info', duration = 3500) {
-        const el = document.getElementById('statusMessage');
-        if (!el) return;
-        el.textContent = message;
-        el.className = `status-message status-${type} show`;
-        setTimeout(() => { el.classList.remove('show'); }, duration);
-    }
+    function showStatus(message, type = 'info', duration = 3500) { const el = document.getElementById('statusMessage'); if (!el) return; el.textContent = message; el.className = `status-message status-${type} show`; setTimeout(() => { el.classList.remove('show'); }, duration); }
     
-    // --- PLACEHOLDERS PARA FUNCIONALIDAD FUTURA ---
-    window.exportPDF = () => { logError("PDF export no implementado en V4.", true); };
-    window.exportToExcel = () => { logError("Excel export no implementado en V4.", true); };
-    window.downloadProjectZip = () => { logError("ZIP download no implementado en V4.", true); };
-    window.loadSavedSpecsList = () => { /* Cargar specs guardadas */ };
-    window.updateDashboardStats = () => { /* Actualizar stats */ };
-    window.loadErrorLog = () => { /* Cargar log */ };
-    window.logError = (message, showAlert) => {
-        console.error(message);
-        if (showAlert) showStatus(message, 'error');
-    }
+    // --- LOGS Y STATS (PLACEHOLDERS) ---
+    window.exportToExcel = () => { logError("Excel export no está implementado.", true); };
+    window.downloadProjectZip = () => { logError("Descarga de ZIP no está implementada.
+", true); };
+    window.loadSavedSpecsList = () => { };
+    window.updateDashboardStats = () => { };
+    window.loadErrorLog = () => { };
+    window.logError = (message, showAlert) => { console.error(message); if (showAlert) showStatus(message, 'error'); }
 
     // --- INICIAR LA APLICACIÓN ---
     initializeApp();
