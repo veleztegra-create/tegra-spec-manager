@@ -17,32 +17,35 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
   <!-- 3. NUESTROS MÓDULOS - ORDEN CRÍTICO -->
-  <!-- PRIMERO: Configuración base -->
-  <script src="config-teams-unified.js"></script>
-  
-  <!-- SEGUNDO: Utils (necesita Config) -->
-  <script src="utils.js"></script>
-  
-  <!-- TERCERO: Configuración de equipos (usa Utils) -->
-  <script src="config-teams-unified.js"></script>
-  
-  <!-- CUARTO: State Manager (usa Config y Utils) -->
-  <script src="state-manager.js"></script>
-  
-  <!-- QUINTO: Validators (usa Config) -->
-  <script src="validators.js"></script>
-  
-  <!-- SEXTO: Error Handler (independiente) -->
-  <script src="error-handler.js"></script>
-  
-  <!-- SÉPTIMO: Specialties Detector (usa Config) -->
-  <script src="specialties-detector.js"></script>
-  
-  <!-- OCTAVO: Render Helpers (usa todo lo anterior) -->
-  <script src="render-helpers.js"></script>
-  
-  <!-- NOVENO: Fixes (debe ir ÚLTIMO, corrige todo) -->
-  <script src="fixes.js"></script>
+<!-- PRIMERO: Configuración base -->
+<script src="config.js"></script> <!-- Necesitas crear este archivo o asegurarte que existe -->
+
+<!-- SEGUNDO: Configuración de equipos -->
+<script src="config-teams.js"></script>
+
+<!-- TERCERO: Configuración de logos -->
+<script src="config-logos.js"></script>
+
+<!-- CUARTO: Utils (necesita Config) -->
+<script src="utils.js"></script>
+
+<!-- QUINTO: State Manager (usa Config y Utils) -->
+<script src="state-manager.js"></script>
+
+<!-- SEXTO: Error Handler (independiente) -->
+<script src="error-handler.js"></script>
+
+<!-- SÉPTIMO: Validators (usa Config) -->
+<script src="validators.js"></script>
+
+<!-- OCTAVO: Specialties Detector (usa Config) -->
+<script src="specialties-detector.js"></script>
+
+<!-- NOVENO: Render Helpers (usa todo lo anterior) -->
+<script src="render-helpers.js"></script>
+
+<!-- DÉCIMO: Fixes (debe ir ÚLTIMO, corrige todo) -->
+<script src="fixes.js"></script>
 </head>
 <body>
   <div class="app-container">
