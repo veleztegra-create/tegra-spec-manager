@@ -3392,8 +3392,292 @@ window.exportPDF = exportPDF;
 window.downloadProjectZip = downloadProjectZip;
 
 // AGREGAR ESTAS FUNCIONES FALTANTES:
+// ========== FUNCIÓN removePlacement ==========
+function removePlacement(placementId) {
+    if (placements.length <= 1) {
+        showStatus('⚠️ No puedes eliminar el único placement', 'warning');
+        return;
+    }
+    
+    if (!confirm(`¿Estás seguro de que quieres eliminar este placement?`)) {
+        return;
+    }
+    
+    // Encontrar índice del placement
+    const index = placements.findIndex(p => p.id === placementId);
+    if (index === -1) return;
+    
+    const removedType = placements[index].type;
+    
+    // Eliminar del array
+    placements.splice(index, 1);
+    
+    // Eliminar del DOM
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (section) {
+        section.remove();
+    }
+    
+    // Actualizar tabs
+    updatePlacementsTabs();
+    
+    // Mostrar el primer placement si eliminamos el actual
+    if (currentPlacementId === placementId && placements.length > 0) {
+        showPlacement(placements[0].id);
+    }
+    
+    showStatus(`🗑️ Placement "${removedType}" eliminado`, 'success');
+}
+    // ========== FUNCIÓN PARA ACTUALIZAR PARÁMETROS ==========
+function updatePlacementParam(placementId, param, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement) {
+        placement[param] = value;
+        updatePlacementStations(placementId);
+        showStatus(`✅ ${param} actualizado`);
+    }
+}
+function updateCustomPlacement(placementId, customName) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement && customName.trim()) {
+        placement.type = `CUSTOM: ${customName}`;
+        placement.name = customName;
+        
+        // ACTUALIZAR TODOS LOS TÍTULOS
+        updateAllPlacementTitles(placementId);
+        
+        showStatus(`✅ Placement personalizado: "${customName}" creado`);
+    }
+}
+   function updateAllPlacementTitles(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const displayType = placement.type.includes('CUSTOM:') 
+        ? placement.type.replace('CUSTOM: ', '')
+        : placement.type;
+    
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (!section) return;
+    
+    // 1. Título principal
+    const mainTitle = section.querySelector('.placement-title span');
+    if (mainTitle) mainTitle.textContent = displayType;
+    
+    // 2. Actualizar todos los títulos de cards
+    const cardTitles = section.querySelectorAll('.card-title');
+    cardTitles.forEach(title => {
+        const text = title.textContent;
+        if (text.includes('Colores para')) {
+            title.textContent = `Colores para ${displayType}`;
+        } else if (text.includes('Imagen para')) {
+            title.textContent = `Imagen para ${displayType}`;
+        } else if (text.includes('Condiciones para')) {
+            title.textContent = `Condiciones para ${displayType}`;
+        }
+    });
+    
+    // 3. Título de secuencia
+    const sequenceTitle = section.querySelector('h4');
+    if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
+        sequenceTitle.textContent = `Secuencia de ${displayType}`;
+    }
+    
+    // 4. Actualizar pestaña
+    updatePlacementsTabs();
+}
+
+function duplicatePlacement(placementId) {
+    const original = placements.find(p => p.id === placementId);
+    if (!original) return;
+
+    const newId = Date.now();
+    const duplicate = JSON.parse(JSON.stringify(original));
+    duplicate.id = newId;
+    duplicate.name = duplicate.type.includes('CUSTOM:') 
+        ? duplicate.type.replace('CUSTOM: ', '') 
+        : duplicate.type;
+    
+    placements.push(duplicate);
+    
+    renderPlacementHTML(duplicate);
+    updatePlacementsTabs();
+    showPlacement(newId);
+    
+    // Actualizar títulos después de renderizar
+    setTimeout(() => {
+        updateAllPlacementTitles(newId);
+    }, 50);
+    
+    showStatus('✅ Placement duplicado correctamente');
+}
+
+function showPlacement(placementId) {
+    document.querySelectorAll('.placement-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (section) {
+        section.classList.add('active');
+    }
+    
+    document.querySelectorAll('.placement-tab').forEach(tab => {
+        tab.classList.toggle('active', parseInt(tab.dataset.placementId) === placementId);
+    });
+    
+    currentPlacementId = placementId;
+}
+
+function updatePlacementType(placementId, type) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement) {
+        const customInput = document.getElementById(`custom-placement-input-${placementId}`);
+        
+        if (type === 'CUSTOM') {
+            if (customInput) customInput.style.display = 'block';
+            if (!placement.type.startsWith('CUSTOM:')) {
+                placement.type = 'CUSTOM:';
+            }
+        } else {
+            if (customInput) customInput.style.display = 'none';
+            placement.type = type;
+            placement.name = type;
+        }
+        
+        updateAllPlacementTitles(placementId);
+        showStatus(`✅ Tipo de placement cambiado a ${type}`);
+    }
+}
+
+function updatePlacementInkType(placementId, inkType) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    placement.inkType = inkType;
+    
+    const preset = Utils ? Utils.getInkPreset(inkType) : {
+        temp: '320 °F',
+        time: inkType === 'PLASTISOL' ? '1:00 min' : '1:40 min'
+    };
+    
+    const tempField = document.getElementById(`temp-${placementId}`);
+    const timeField = document.getElementById(`time-${placementId}`);
+    
+    if (tempField) tempField.value = preset.temp;
+    if (timeField) timeField.value = preset.time;
+    
+    placement.temp = preset.temp;
+    placement.time = preset.time;
+    
+    updatePlacementStations(placementId);
+    showStatus(`✅ Tinta cambiada a ${inkType}`);
+}
+
+function openImagePickerForPlacement(placementId) {
+    currentPlacementId = placementId;
+    document.getElementById('placementImageInput').click();
+}
+
+function removePlacementImage(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const img = document.getElementById(`placement-image-preview-${placementId}`);
+    const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+    
+    if (img) {
+        img.src = '';
+        img.style.display = 'none';
+    }
+    
+    if (imageActions) {
+        imageActions.style.display = 'none';
+    }
+    
+    placement.imageData = null;
+    showStatus('🗑️ Imagen eliminada');
+}
+
+function addPlacementColorItem(placementId, type) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    let screenLetter = '';
+    let initialVal = '';
+    
+    if (type === 'BLOCKER') {
+        screenLetter = 'A';
+        initialVal = 'BLOCKER CHT';
+    } else if (type === 'WHITE_BASE') {
+        screenLetter = 'B';
+        initialVal = 'AQUAFLEX WHITE';
+    } else if (type === 'METALLIC') {
+        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        screenLetter = String(colorItems.length + 1);
+        initialVal = 'METALLIC GOLD';
+    } else {
+        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        screenLetter = String(colorItems.length + 1);
+    }
+    
+    const colorId = Date.now() + Math.random();
+    placement.colors.push({
+        id: colorId,
+        type: type,
+        screenLetter: screenLetter,
+        val: initialVal
+    });
+    
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+    
+    showStatus(`✅ ${type} agregado`);
+}
+
+function removePlacementColorItem(placementId, colorId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    placement.colors = placement.colors.filter(c => c.id !== colorId);
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+    
+    showStatus('🗑️ Color eliminado');
+}
+
+function updatePlacementColorValue(placementId, colorId, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (color) {
+        color.val = value;
+        updatePlacementColorPreview(placementId, colorId);
+        updatePlacementStations(placementId);
+        updatePlacementColorsPreview(placementId);
+        checkForSpecialtiesInColors(placementId);
+    }
+}
+
+function updatePlacementScreenLetter(placementId, colorId, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (color) {
+        color.screenLetter = value.toUpperCase();
+        updatePlacementStations(placementId);
+    }
+} 
+  // ========== HACER FUNCIONES DISPONIBLES GLOBALMENTE ==========
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
+window.showPlacement = showPlacement;
 window.updatePlacementType = updatePlacementType;
 window.updatePlacementInkType = updatePlacementInkType;
 window.openImagePickerForPlacement = openImagePickerForPlacement;
@@ -3402,6 +3686,23 @@ window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
+window.updatePlacementParam = updatePlacementParam;
+window.updateCustomPlacement = updateCustomPlacement;
+window.updateAllPlacementTitles = updateAllPlacementTitles;
+
+// Funciones principales
+window.showTab = showTab;
+window.loadSavedSpecsList = loadSavedSpecsList;
+window.clearErrorLog = clearErrorLog;
+window.exportErrorLog = exportErrorLog;
+window.clearAllSpecs = clearAllSpecs;
+window.addNewPlacement = addNewPlacement;
+window.saveCurrentSpec = saveCurrentSpec;
+window.clearForm = clearForm;
+window.exportToExcel = exportToExcel;
+window.exportPDF = exportPDF;
+window.downloadProjectZip = downloadProjectZip;
+window.updateClientLogo = updateClientLogo;
 
   </script>
 </body>
