@@ -99,6 +99,65 @@ const Utils = {
         const hue = hash % 360;
         return `hsl(${hue}, 70%, 60%)`;
     },
+    getColorHex: function(colorName) {
+    if (!colorName) return null;
+    
+    const name = colorName.toUpperCase().trim();
+    
+    // 1. Buscar en TeamsConfig primero
+    if (window.TeamsConfig) {
+        const leagues = ['NCAA', 'NBA', 'NFL'];
+        for (const league of leagues) {
+            if (window.TeamsConfig[league]?.colors) {
+                for (const category of ['institutional', 'metallic', 'alt', 'uni']) {
+                    const colors = window.TeamsConfig[league].colors[category];
+                    if (colors) {
+                        for (const [key, data] of Object.entries(colors)) {
+                            const keyUpper = key.toUpperCase().replace(/_/g, ' ');
+                            if (name === keyUpper || name.includes(keyUpper) || keyUpper.includes(name)) {
+                                if (data?.hex) return data.hex;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 2. Buscar en Config.COLOR_DATABASES
+    if (window.Config?.COLOR_DATABASES) {
+        for (const db of Object.values(window.Config.COLOR_DATABASES)) {
+            if (db) {
+                for (const [key, data] of Object.entries(db)) {
+                    if (name === key.toUpperCase() || name.includes(key.toUpperCase())) {
+                        if (data?.hex) return data.hex;
+                    }
+                }
+            }
+        }
+    }
+    
+    // 3. Colores básicos mínimos
+    const basic = {
+        'RED': '#FF0000', 'BLUE': '#0000FF', 'GREEN': '#00FF00',
+        'BLACK': '#000000', 'WHITE': '#FFFFFF', 'YELLOW': '#FFFF00',
+        'PURPLE': '#800080', 'ORANGE': '#FFA500', 'GRAY': '#808080',
+        'GREY': '#808080', 'GOLD': '#FFD700', 'SILVER': '#C0C0C0',
+        'NAVY': '#000080', 'MAROON': '#800000', 'PINK': '#FFC0CB'
+    };
+    
+    if (basic[name]) return basic[name];
+    
+    for (const [color, hex] of Object.entries(basic)) {
+        if (name.includes(color)) return hex;
+    }
+    
+    // 4. HEX directo
+    const hexMatch = name.match(/#([0-9A-F]{6})/i);
+    if (hexMatch) return `#${hexMatch[1]}`;
+    
+    return null;
+}
     
     // ========== FUNCIONES CON DEPENDENCIAS (con verificaciones) ==========
     
