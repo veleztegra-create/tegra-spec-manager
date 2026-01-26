@@ -1,6 +1,6 @@
 
 // =================================================================================
-// MAIN SCRIPT - TEGRA TECHNICAL SPEC MANAGER V2.2
+// MAIN SCRIPT - TEGRA TECHNICAL SPEC MANAGER V2.3
 // =================================================================================
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showStatus(message, type = 'info', duration = 3000) {
         DOMElements.statusMessage.textContent = message;
-        DOMElements.statusMessage.className = `status-message ${type} show`;
+        DOMElements.statusMessage.className = `status-message status-${type} show`;
         setTimeout(() => {
             DOMElements.statusMessage.classList.remove('show');
         }, duration);
