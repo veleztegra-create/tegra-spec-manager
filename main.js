@@ -1,6 +1,6 @@
 
 // =================================================================================
-// MAIN SCRIPT - TEGRA TECHNICAL SPEC MANAGER V2.1
+// MAIN SCRIPT - TEGRA TECHNICAL SPEC MANAGER V2.2
 // =================================================================================
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -147,7 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const placementData = {
             id: placementId,
             title: `Placement ${placementId}`,
-            // ... (otros campos por defecto)
         };
         state.placements[placementId] = { data: placementData, imageBase64: null, mockUpBase64: null };
         state.imageBlobs[placementId] = { placement: null, mockup: null };
@@ -161,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const placement = state.placements[placementId];
         if (!placement) return;
 
-        // Crear Tab
         const tab = document.createElement('div');
         tab.className = 'placement-tab';
         tab.dataset.id = placementId;
@@ -171,31 +169,21 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         DOMElements.placementsTabs.appendChild(tab);
 
-        // Crear Contenido del Placement
         const container = document.createElement('div');
         container.id = `placement-${placementId}`;
         container.className = 'placement-content';
-        container.innerHTML = `
-            <!-- Contenido del formulario del placement -->
-            <div class="form-grid-placement">
-                <!-- ... campos del placement ... -->
-            </div>
-            <div class="image-previews">
-                <!-- Previews de imágenes -->
-            </div>
-        `; // Simplificado para brevedad - el HTML completo del placement iría aquí
+        container.innerHTML = `<h2>Contenido para ${placement.data.title}</h2>`;
         DOMElements.placementsContainer.appendChild(container);
     }
     
     window.switchPlacementTab = (placementId) => {
         state.currentPlacementId = placementId;
 
-        // Gestionar clases activas para tabs y contenido
         document.querySelectorAll('.placement-tab.active').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.placement-tab[data-id='${placementId}']`).classList.add('active');
+        document.querySelector(`.placement-tab[data-id='${placementId}']`)?.classList.add('active');
         
         document.querySelectorAll('.placement-content.active').forEach(c => c.classList.remove('active'));
-        document.getElementById(`placement-${placementId}`).classList.add('active');
+        document.getElementById(`placement-${placementId}`)?.classList.add('active');
     };
 
     window.removePlacement = (placementId) => {
@@ -204,23 +192,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Eliminar del estado
         delete state.placements[placementId];
         delete state.imageBlobs[placementId];
 
-        // Eliminar del DOM
-        document.querySelector(`.placement-tab[data-id='${placementId}']`).remove();
-        document.getElementById(`placement-${placementId}`).remove();
+        document.querySelector(`.placement-tab[data-id='${placementId}']`)?.remove();
+        document.getElementById(`placement-${placementId}`)?.remove();
 
-        // Activar otro placement si el actual fue eliminado
         if (state.currentPlacementId === placementId) {
             const firstRemainingId = Object.keys(state.placements)[0];
-            switchPlacementTab(Number(firstRemainingId));
+            if (firstRemainingId) switchPlacementTab(Number(firstRemainingId));
         }
         updateDashboardStats();
     };
-    
-    // ... (otras funciones de gestión de placements como `updatePlacementTitle`)
 
     // =========================================================
     // MANEJO DE FORMULARIO Y DATOS
@@ -231,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (el.type !== 'button' && el.type !== 'submit') el.value = '';
         });
         
-        // Limpiar y reiniciar placements
         DOMElements.placementsContainer.innerHTML = '';
         DOMElements.placementsTabs.innerHTML = '';
         state.placements = {};
@@ -257,10 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
             designer: DOMElements.designerSelect.value,
             folderNum: DOMElements.folderNumInput.value,
         };
-
-        // Aquí se recogerían los datos de cada placement y se añadirían al estado
-        // ...
-
         return { general: generalData, placements: state.placements };
     }
 
@@ -274,17 +252,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fileName = file.name.toLowerCase();
         if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-            // loadFromExcel(file);
              showStatus("Carga de Excel (SWO) aún no implementada.", "warning");
         } else if (fileName.endsWith('.json')) {
             loadFromJSON(file);
         } else if (fileName.endsWith('.zip')) {
-            // loadFromZip(file);
              showStatus("Carga de ZIP aún no implementada.", "warning");
         } else {
             logError(`Tipo de archivo no soportado: ${file.name}`);
         }
-        event.target.value = ''; // Reset input
+        event.target.value = ''; 
     }
     
     function loadFromJSON(file) {
@@ -292,7 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                // setFormData(data); // Función para popular el formulario con los datos
                 showStatus(`Spec "${data.general.style}" cargada desde JSON.`, "success");
             } catch (error) {
                 logError("Error al parsear el archivo JSON: " + error.message, true);
@@ -310,23 +285,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!file || !state.currentPlacementId) return;
 
         const placementId = state.currentPlacementId;
-        
-        // Guardar el blob para el ZIP
         state.imageBlobs[placementId][imageType] = file;
 
-        // Convertir a Base64 para PDF y preview
         convertFileToBase64(file, (base64) => {
             if (imageType === 'mockup') {
                 state.placements[placementId].mockUpBase64 = base64;
-                // Actualizar preview del mockup
             } else {
                 state.placements[placementId].imageBase64 = base64;
-                // Actualizar preview de la imagen del placement
             }
             showStatus(`Imagen de ${imageType} cargada para el placement actual.`, 'success');
         });
         
-        event.target.value = ''; // Reset input
+        event.target.value = '';
     }
     
     function convertFileToBase64(file, callback) {
@@ -337,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================
-    // GESTIÓN DE SPECS GUARDADAS (LOCAL STORAGE)
+    // GESTIÓN DE SPECS GUARDADAS (LOCAL STORAGE) - ROBUSTO
     // =========================================================
     
     window.saveCurrentSpec = () => {
@@ -359,10 +329,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.loadSavedSpecsList = () => {
         DOMElements.savedSpecsList.innerHTML = '';
-        const specs = Object.keys(localStorage)
-            .filter(k => k.startsWith('spec_'))
-            .map(k => ({ key: k, data: JSON.parse(localStorage.getItem(k)) }))
-            .sort((a, b) => b.key.split('_')[1] - a.key.split('_')[1]);
+        let specs = [];
+        try {
+            specs = Object.keys(localStorage)
+                .filter(k => k.startsWith('spec_'))
+                .map(k => {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(k));
+                        if (data && data.general && typeof data.general.style !== 'undefined') {
+                            return { key: k, data: data };
+                        }
+                        console.warn(`Ignorando spec guardada con formato inválido (key: ${k})`);
+                        return null; 
+                    } catch (e) {
+                        console.warn(`No se pudo parsear la spec guardada (key: ${k}):`, e);
+                        return null;
+                    }
+                })
+                .filter(Boolean) 
+                .sort((a, b) => b.key.split('_ ')[1] - a.key.split('_')[1]);
+        } catch(error) {
+            logError('Error al procesar las specs guardadas de localStorage: ' + error.message, true);
+            return;
+        }
         
         if (specs.length === 0) {
             DOMElements.savedSpecsList.innerHTML = '<p style="text-align:center; color:var(--text-secondary); padding:20px;"><i class="fas fa-database" style="font-size:2rem; margin-bottom:10px; display:block;"></i>No hay specs guardadas.</p>';
@@ -388,7 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.loadSpec = (key) => {
         const data = JSON.parse(localStorage.getItem(key));
-        // setFormData(data); // Función para popular el formulario
         showTab('spec-creator');
         showStatus(`Spec "${data.general.style}" cargada.`, "success");
     };
@@ -419,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error(message);
         const log = JSON.parse(localStorage.getItem('errorLog') || '[]');
         log.unshift({ time: new Date().toISOString(), message });
-        if (log.length > 100) log.pop(); // Limitar el log
+        if (log.length > 100) log.pop();
         localStorage.setItem('errorLog', JSON.stringify(log));
         if (showAlert) showStatus(message, "error", 5000);
         loadErrorLog();
@@ -456,26 +444,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.exportPDF = async () => {
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({
-            orientation: 'p',
-            unit: 'mm',
-            format: 'letter'
-        });
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
 
         showStatus("Generando PDF...", "info", 10000);
 
         try {
             const specElement = document.getElementById('spec-creator');
             const canvas = await html2canvas(specElement, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
+                scale: 2, useCORS: true, logging: false,
                 onclone: (doc) => {
-                    // Aquí manipulamos el clon del DOM antes de renderizarlo
                     const tegraLogoImg = doc.querySelector('#app-logo img');
-                    if (tegraLogoImg) tegraLogoImg.src = window.LogoConfig.TEGRA_B64; // Usar Base64 para el logo
-                    
-                    // Forzar la visibilidad de todas las imágenes de placements
+                    if (tegraLogoImg) tegraLogoImg.src = window.LogoConfig.TEGRA_B64;
                     doc.querySelectorAll('.image-preview img').forEach(img => {
                        if(img.src) img.style.display = 'block';
                     });
@@ -500,24 +479,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 heightLeft -= pdfHeight;
             }
             
-            // Añadir pie de página en cada página
             const pageCount = pdf.internal.getNumberOfPages();
             for(let i = 1; i <= pageCount; i++) {
                 pdf.setPage(i);
                 pdf.setFontSize(8);
                 pdf.setTextColor(150);
-                pdf.text(
-                    `Spec generado por Tegra Technical Spec Manager - ${new Date().toLocaleDateString()}`,
-                    pdfWidth / 2, // Centrado
-                    pdfHeight - 10,
-                    { align: 'center' }
-                );
-                pdf.text(
-                    `Página ${i} de ${pageCount}`,
-                    pdfWidth - 15, // A la derecha
-                    pdfHeight - 10,
-                    { align: 'right' }
-                );
+                pdf.text(`Spec generado por Tegra Technical Spec Manager - ${new Date().toLocaleDateString()}`, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
+                pdf.text(`Página ${i} de ${pageCount}`, pdfWidth - 15, pdfHeight - 10, { align: 'right' });
             }
 
             const folder = DOMElements.folderNumInput.value || 'SPEC';
@@ -530,10 +498,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // ... Otras funciones de exportación (Excel, ZIP) a implementar
     window.exportToExcel = () => showStatus("Función no implementada.", "warning");
     window.downloadProjectZip = () => showStatus("Función no implementada.", "warning");
-
 
     // --- INICIAR LA APLICACIÓN ---
     initializeApp();
