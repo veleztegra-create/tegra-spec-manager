@@ -1201,7 +1201,6 @@ function analyzeAndPopulateFromText(text, placementId) {
 
 setTimeout(() => {
       updateAllPlacementTitles(placement.id);
-  onclick="algunaFuncion(this.dataset.placementId)"
     }, 50); 
 
       // ========== FUNCIONES DE GESTIÓN DE PLACEMENTS ==========
@@ -3561,71 +3560,7 @@ window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
-// ========== DECLARAR FUNCIONES COMO GLOBALES ==========
 
-// Función removePlacement - VERSIÓN CORREGIDA
-function removePlacement(placementId) {
-    console.log('removePlacement llamado con ID:', placementId);
-    
-    // Validar que haya más de un placement
-    if (!window.placements || window.placements.length <= 1) {
-        alert('⚠️ No puedes eliminar el único placement');
-        return;
-    }
-    
-    if (!confirm('¿Estás seguro de eliminar este placement?')) {
-        return;
-    }
-    
-    // Convertir ID a número si es string
-    const id = typeof placementId === 'string' ? parseInt(placementId) : placementId;
-    
-    // Buscar el índice
-    const index = window.placements.findIndex(p => {
-        const pId = typeof p.id === 'string' ? parseInt(p.id) : p.id;
-        return pId === id;
-    });
-    
-    if (index === -1) {
-        console.error('Placement no encontrado:', id);
-        return;
-    }
-    
-    // Guardar info del placement eliminado
-    const removedPlacement = window.placements[index];
-    
-    // Eliminar del array
-    window.placements.splice(index, 1);
-    
-    // Eliminar del DOM
-    const section = document.getElementById(`placement-section-${id}`);
-    if (section) {
-        section.remove();
-    }
-    
-    // Actualizar tabs
-    if (typeof updatePlacementsTabs === 'function') {
-        updatePlacementsTabs();
-    }
-    
-    // Mostrar otro placement si era el actual
-    if (window.currentPlacementId === id && window.placements.length > 0) {
-        if (typeof showPlacement === 'function') {
-            showPlacement(window.placements[0].id);
-        }
-    }
-    
-    // Mostrar mensaje
-    if (typeof showStatus === 'function') {
-        const displayName = removedPlacement.type.includes('CUSTOM:') 
-            ? removedPlacement.type.replace('CUSTOM: ', '')
-            : removedPlacement.type;
-        showStatus(`🗑️ Placement "${displayName}" eliminado`, 'success');
-    }
-}
-
-// Hacerla disponible globalmente
-window.removePlacement = removePlacement;
   </script>
 </body>
 </html>
