@@ -448,198 +448,46 @@
           }
       }
 
-     function setupPasteHandler() {
-    document.addEventListener('paste', function(e) {
-        const activeElement = document.activeElement;
-        const isInputField = activeElement && (
-            activeElement.tagName === 'INPUT' || 
-            activeElement.tagName === 'TEXTAREA' ||
-            activeElement.hasAttribute('contenteditable')
-        );
-        
-        // Si el usuario está en un campo de texto, dejar que se comporte normalmente
-        if (isInputField) {
-            return;
-        }
-        
-        const activePlacement = document.querySelector('.placement-section.active');
-        if (!activePlacement) return;
-        
-        const items = e.clipboardData.items;
-        let hasImage = false;
-        
-        // Primero buscar imágenes
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                const blob = items[i].getAsFile();
-                const reader = new FileReader();
-                
-                reader.onload = function(event) {
-                    const placementId = activePlacement.dataset.placementId;
-                    const placement = placements.find(p => p.id === parseInt(placementId));
-                    
-                    if (placement) {
-                        placement.imageData = event.target.result;
-                        
-                        const img = document.getElementById(`placement-image-preview-${placementId}`);
-                        const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
-                        
-                        if (img && imageActions) {
-                            img.src = event.target.result;
-                            img.style.display = 'block';
-                            imageActions.style.display = 'flex';
-                        }
-                        
-                        showStatus(`✅ Imagen pegada en ${placement.type}`);
-                    }
-                };
-                
-                reader.readAsDataURL(blob);
-                e.preventDefault();
-                hasImage = true;
-                break;
-            }
-        }
-        
-        // Si no había imagen, buscar texto
-        if (!hasImage) {
-            for (let i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf('text') !== -1) {
-                    items[i].getAsString(function(text) {
-                        handlePastedText(text, activePlacement);
-                    });
-                    e.preventDefault();
-                    break;
-                }
-            }
-        }
-    });
-}
-function handlePastedText(text, activePlacement) {
-    if (!text || !text.trim()) return;
-    
-    const placementId = parseInt(activePlacement.dataset.placementId);
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
-    
-    // Limpiar el texto (remover caracteres especiales de Illustrator/Excel)
-    const cleanedText = cleanPastedText(text);
-    
-    // Analizar el texto para extraer información
-    analyzeAndPopulateFromText(cleanedText, placementId);
-    
-    showStatus(`📋 Texto pegado: ${cleanedText.substring(0, 50)}...`);
-}
-
-function cleanPastedText(text) {
-    // Remover caracteres especiales no deseados
-    return text
-        .replace(/\r\n/g, '\n') // Normalizar saltos de línea
-        .replace(/\t/g, ' ')    // Tabs a espacios
-        .replace(/[^\S\n]+/g, ' ') // Múltiples espacios a uno
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remover caracteres invisibles
-        .trim();
-}
-function analyzeAndPopulateFromText(text, placementId) {
-    const lines = text.split('\n').filter(line => line.trim().length > 0);
-    
-    // Patrones para detectar información
-    const patterns = {
-        color: /(BLUE|RED|GREEN|YELLOW|BLACK|WHITE|ORANGE|PURPLE|PINK|BROWN|GRAY|GOLD|SILVER|NAVY|ROYAL|SKY|LIGHT|DARK|FOREST|SEA|TEAL|TURQUOISE|AQUA|MAROON|BEIGE|KHAKI|OLIVE|LIME|MAGENTA|VIOLET|INDIGO)/i,
-        pantone: /(PANTONE|PMS)\s*(\d+[A-Z]?(\s*C)?)/i,
-        hex: /#([0-9A-F]{6}|[0-9A-F]{3})/i,
-        dimensions: /(\d+(\.\d+)?)\s*["']?\s*[xX×]\s*(\d+(\.\d+)?)\s*["']?/,
-        inches: /(\d+(\.\d+)?)\s*["']/,
-        position: /(FROM|ABOVE|BELOW|LEFT|RIGHT|CENTER|TOP|BOTTOM)\s+(.+)/i
-    };
-    
-    // Buscar colores en el texto
-    const colorMatches = [];
-    lines.forEach(line => {
-        // Buscar códigos Pantone
-        const pantoneMatch = line.match(patterns.pantone);
-        if (pantoneMatch) {
-            colorMatches.push({
-                type: 'COLOR',
-                value: pantoneMatch[0].toUpperCase(),
-                source: 'Pantone'
-            });
-        }
-        
-        // Buscar colores por nombre
-        const colorMatch = line.match(patterns.color);
-        if (colorMatch) {
-            colorMatches.push({
-                type: 'COLOR',
-                value: colorMatch[0].toUpperCase(),
-                source: 'Color Name'
-            });
-        }
-        
-        // Buscar códigos HEX
-        const hexMatch = line.match(patterns.hex);
-        if (hexMatch) {
-            colorMatches.push({
-                type: 'COLOR',
-                value: hexMatch[0].toUpperCase(),
-                source: 'HEX'
-            });
-        }
-    });
-    
-    // Agregar colores encontrados al placement
-    if (colorMatches.length > 0) {
-        const placement = placements.find(p => p.id === placementId);
-        if (placement) {
-            // Agregar colores únicos
-            const existingColors = placement.colors.map(c => c.val.toUpperCase());
-            
-            colorMatches.forEach((match, index) => {
-                if (!existingColors.includes(match.value.toUpperCase())) {
-                    // Determinar tipo de color
-                    let colorType = 'COLOR';
-                    if (match.value.includes('METALLIC') || match.value.includes('GOLD') || match.value.includes('SILVER')) {
-                        colorType = 'METALLIC';
-                    }
-                    
-                    // Generar letra de pantalla
-                    const screenLetter = String.fromCharCode(65 + index); // A, B, C, etc.
-                    
-                    // Agregar color
-                    addPlacementColorItem(placementId, colorType, match.value, screenLetter);
-                }
-            });
-            
-            showStatus(`🎨 ${colorMatches.length} color(es) detectado(s) del texto pegado`);
-        }
-    }
-    
-    // Buscar dimensiones
-    lines.forEach(line => {
-        const dimMatch = line.match(patterns.dimensions);
-        if (dimMatch) {
-            const width = dimMatch[1];
-            const height = dimMatch[3];
-            
-            // Actualizar campos de dimensiones
-            const wField = document.getElementById(`dimension-w-${placementId}`);
-            const hField = document.getElementById(`dimension-h-${placementId}`);
-            
-            if (wField) wField.value = width;
-            if (hField) hField.value = height;
-            
-            // Actualizar placement
-            const placement = placements.find(p => p.id === placementId);
-            if (placement) {
-                placement.width = width;
-                placement.height = height;
-                placement.dimensions = `SIZE: (W) ${width}" X (H) ${height}"`;
-            }
-            
-            showStatus(`📐 Dimensiones detectadas: ${width}" x ${height}"`);
-        }
-    });
-}
+      // ========== FUNCIÓN SETUP PASTE HANDLER ==========
+      function setupPasteHandler() {
+          document.addEventListener('paste', function(e) {
+              const activePlacement = document.querySelector('.placement-section.active');
+              if (!activePlacement) return;
+              
+              const items = e.clipboardData.items;
+              
+              for (let i = 0; i < items.length; i++) {
+                  if (items[i].type.indexOf('image') !== -1) {
+                      const blob = items[i].getAsFile();
+                      const reader = new FileReader();
+                      
+                      reader.onload = function(event) {
+                          const placementId = activePlacement.dataset.placementId;
+                          const placement = placements.find(p => p.id === parseInt(placementId));
+                          
+                          if (placement) {
+                              placement.imageData = event.target.result;
+                              
+                              const img = document.getElementById(`placement-image-preview-${placementId}`);
+                              const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+                              
+                              if (img && imageActions) {
+                                  img.src = event.target.result;
+                                  img.style.display = 'block';
+                                  imageActions.style.display = 'flex';
+                              }
+                              
+                              showStatus(`✅ Imagen pegada en ${placement.type}`);
+                          }
+                      };
+                      
+                      reader.readAsDataURL(blob);
+                      e.preventDefault();
+                      break;
+                  }
+              }
+          });
+      }
 
       // ========== FUNCIONES DE DETECCIÓN ==========
       function detectTeamFromStyle(style) {
@@ -1518,49 +1366,43 @@ function updateAllPlacementTitles(placementId) {
       }
 
       // ========== FUNCIONES PARA COLORS DE PLACEMENTS ==========
-      function addPlacementColorItem(placementId, type, customValue = null, customLetter = null) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
-    
-    let screenLetter = '';
-    let initialVal = '';
-    
-    if (type === 'BLOCKER') {
-        screenLetter = customLetter || 'A';
-        initialVal = customValue || 'BLOCKER CHT';
-    } else if (type === 'WHITE_BASE') {
-        screenLetter = customLetter || 'B';
-        initialVal = customValue || 'AQUAFLEX WHITE';
-    } else if (type === 'METALLIC') {
-        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
-        screenLetter = customLetter || String(colorItems.length + 1);
-        initialVal = customValue || 'METALLIC GOLD';
-    } else {
-        const colorItems = placement.colors.filter(c => c.type === 'COLOR');
-        screenLetter = customLetter || String(colorItems.length + 1);
-        initialVal = customValue || '';
-    }
-    
-    const colorId = Date.now();
-    placement.colors.push({
-        id: colorId,
-        type: type,
-        screenLetter: screenLetter,
-        val: initialVal
-    });
-    
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-    
-    checkForSpecialtiesInColors(placementId);
-    
-    const typeName = type === 'METALLIC' ? 'Color metálico' : 
-                    type === 'BLOCKER' ? 'Blocker' : 
-                    type === 'WHITE_BASE' ? 'White Base' : 'Color';
-    
-    showStatus(`✅ ${typeName} "${initialVal}" agregado`);
-}
+      function addPlacementColorItem(placementId, type) {
+          const placement = placements.find(p => p.id === placementId);
+          if (!placement) return;
+          
+          let initialLetter = '';
+          let initialVal = '';
+          
+          if (type === 'BLOCKER') {
+              initialLetter = 'A';
+              initialVal = 'BLOCKER CHT';
+          } else if (type === 'WHITE_BASE') {
+              initialLetter = 'B';
+              initialVal = 'AQUAFLEX WHITE';
+          } else if (type === 'METALLIC') {
+              const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+              initialLetter = String(colorItems.length + 1);
+              initialVal = 'METALLIC GOLD';
+          } else {
+              const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+              initialLetter = String(colorItems.length + 1);
+          }
+          
+          const colorId = Date.now() + Math.random();
+          placement.colors.push({
+              id: colorId,
+              type: type,
+              screenLetter: initialLetter,
+              val: initialVal
+          });
+          
+          renderPlacementColors(placementId);
+          updatePlacementStations(placementId);
+          updatePlacementColorsPreview(placementId);
+          
+          checkForSpecialtiesInColors(placementId);
+      }
+
       function renderPlacementColors(placementId) {
           const placement = placements.find(p => p.id === placementId);
           if (!placement) return;
@@ -3550,8 +3392,421 @@ window.exportPDF = exportPDF;
 window.downloadProjectZip = downloadProjectZip;
 
 // AGREGAR ESTAS FUNCIONES FALTANTES:
+// ========== FUNCIÓN removePlacement ==========
+function removePlacement(placementId) {
+    if (placements.length <= 1) {
+        showStatus('⚠️ No puedes eliminar el único placement', 'warning');
+        return;
+    }
+    
+    if (!confirm(`¿Estás seguro de que quieres eliminar este placement?`)) {
+        return;
+    }
+    
+    // Encontrar índice del placement
+    const index = placements.findIndex(p => p.id === placementId);
+    if (index === -1) return;
+    
+    const removedType = placements[index].type;
+    
+    // Eliminar del array
+    placements.splice(index, 1);
+    
+    // Eliminar del DOM
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (section) {
+        section.remove();
+    }
+    
+    // Actualizar tabs
+    updatePlacementsTabs();
+    
+    // Mostrar el primer placement si eliminamos el actual
+    if (currentPlacementId === placementId && placements.length > 0) {
+        showPlacement(placements[0].id);
+    }
+    
+    showStatus(`🗑️ Placement "${removedType}" eliminado`, 'success');
+}
+    // ========== FUNCIÓN PARA ACTUALIZAR PARÁMETROS ==========
+function updatePlacementParam(placementId, param, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement) {
+        placement[param] = value;
+        updatePlacementStations(placementId);
+        showStatus(`✅ ${param} actualizado`);
+    }
+}
+function updateCustomPlacement(placementId, customName) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement && customName.trim()) {
+        placement.type = `CUSTOM: ${customName}`;
+        placement.name = customName;
+        
+        // ACTUALIZAR TODOS LOS TÍTULOS
+        updateAllPlacementTitles(placementId);
+        
+        showStatus(`✅ Placement personalizado: "${customName}" creado`);
+    }
+}
+   function updateAllPlacementTitles(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const displayType = placement.type.includes('CUSTOM:') 
+        ? placement.type.replace('CUSTOM: ', '')
+        : placement.type;
+    
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (!section) return;
+    
+    // 1. Título principal
+    const mainTitle = section.querySelector('.placement-title span');
+    if (mainTitle) mainTitle.textContent = displayType;
+    
+    // 2. Actualizar todos los títulos de cards
+    const cardTitles = section.querySelectorAll('.card-title');
+    cardTitles.forEach(title => {
+        const text = title.textContent;
+        if (text.includes('Colores para')) {
+            title.textContent = `Colores para ${displayType}`;
+        } else if (text.includes('Imagen para')) {
+            title.textContent = `Imagen para ${displayType}`;
+        } else if (text.includes('Condiciones para')) {
+            title.textContent = `Condiciones para ${displayType}`;
+        }
+    });
+    
+    // 3. Título de secuencia
+    const sequenceTitle = section.querySelector('h4');
+    if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
+        sequenceTitle.textContent = `Secuencia de ${displayType}`;
+    }
+    
+    // 4. Actualizar pestaña
+    updatePlacementsTabs();
+}
+
+function duplicatePlacement(placementId) {
+    const original = placements.find(p => p.id === placementId);
+    if (!original) return;
+
+    const newId = Date.now();
+    const duplicate = JSON.parse(JSON.stringify(original));
+    duplicate.id = newId;
+    duplicate.name = duplicate.type.includes('CUSTOM:') 
+        ? duplicate.type.replace('CUSTOM: ', '') 
+        : duplicate.type;
+    
+    placements.push(duplicate);
+    
+    renderPlacementHTML(duplicate);
+    updatePlacementsTabs();
+    showPlacement(newId);
+    
+    // Actualizar títulos después de renderizar
+    setTimeout(() => {
+        updateAllPlacementTitles(newId);
+    }, 50);
+    
+    showStatus('✅ Placement duplicado correctamente');
+}
+
+function showPlacement(placementId) {
+    document.querySelectorAll('.placement-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    const section = document.getElementById(`placement-section-${placementId}`);
+    if (section) {
+        section.classList.add('active');
+    }
+    
+    document.querySelectorAll('.placement-tab').forEach(tab => {
+        tab.classList.toggle('active', parseInt(tab.dataset.placementId) === placementId);
+    });
+    
+    currentPlacementId = placementId;
+}
+
+function updatePlacementType(placementId, type) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement) {
+        const customInput = document.getElementById(`custom-placement-input-${placementId}`);
+        
+        if (type === 'CUSTOM') {
+            if (customInput) customInput.style.display = 'block';
+            if (!placement.type.startsWith('CUSTOM:')) {
+                placement.type = 'CUSTOM:';
+            }
+        } else {
+            if (customInput) customInput.style.display = 'none';
+            placement.type = type;
+            placement.name = type;
+        }
+        
+        updateAllPlacementTitles(placementId);
+        showStatus(`✅ Tipo de placement cambiado a ${type}`);
+    }
+}
+
+function updatePlacementInkType(placementId, inkType) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    placement.inkType = inkType;
+    
+    const preset = Utils ? Utils.getInkPreset(inkType) : {
+        temp: '320 °F',
+        time: inkType === 'PLASTISOL' ? '1:00 min' : '1:40 min'
+    };
+    
+    const tempField = document.getElementById(`temp-${placementId}`);
+    const timeField = document.getElementById(`time-${placementId}`);
+    
+    if (tempField) tempField.value = preset.temp;
+    if (timeField) timeField.value = preset.time;
+    
+    placement.temp = preset.temp;
+    placement.time = preset.time;
+    
+    updatePlacementStations(placementId);
+    showStatus(`✅ Tinta cambiada a ${inkType}`);
+}
+
+function openImagePickerForPlacement(placementId) {
+    currentPlacementId = placementId;
+    document.getElementById('placementImageInput').click();
+}
+
+function removePlacementImage(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const img = document.getElementById(`placement-image-preview-${placementId}`);
+    const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+    
+    if (img) {
+        img.src = '';
+        img.style.display = 'none';
+    }
+    
+    if (imageActions) {
+        imageActions.style.display = 'none';
+    }
+    
+    placement.imageData = null;
+    showStatus('🗑️ Imagen eliminada');
+}
+
+function addPlacementColorItem(placementId, type) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    let screenLetter = '';
+    let initialVal = '';
+    
+    if (type === 'BLOCKER') {
+        screenLetter = 'A';
+        initialVal = 'BLOCKER CHT';
+    } else if (type === 'WHITE_BASE') {
+        screenLetter = 'B';
+        initialVal = 'AQUAFLEX WHITE';
+    } else if (type === 'METALLIC') {
+        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        screenLetter = String(colorItems.length + 1);
+        initialVal = 'METALLIC GOLD';
+    } else {
+        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        screenLetter = String(colorItems.length + 1);
+    }
+    
+    const colorId = Date.now() + Math.random();
+    placement.colors.push({
+        id: colorId,
+        type: type,
+        screenLetter: screenLetter,
+        val: initialVal
+    });
+    
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+    
+    showStatus(`✅ ${type} agregado`);
+}
+
+function removePlacementColorItem(placementId, colorId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    placement.colors = placement.colors.filter(c => c.id !== colorId);
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+    
+    showStatus('🗑️ Color eliminado');
+}
+
+function updatePlacementColorValue(placementId, colorId, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (color) {
+        color.val = value;
+       function updatePlacementColorPreview(placementId, colorId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (!color) return;
+    
+    const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
+    if (!preview) return;
+    
+    const colorName = color.val.toUpperCase().trim();
+    let colorHex = null;
+    
+    // ========== USAR Utils.getColorHex si está disponible ==========
+    if (window.Utils && window.Utils.getColorHex) {
+        colorHex = window.Utils.getColorHex(color.val);
+    }
+    
+    // ========== BUSCAR EN TeamsConfig ==========
+    if (!colorHex && window.TeamsConfig) {
+        const leagues = ['NCAA', 'NBA', 'NFL'];
+        
+        for (const league of leagues) {
+            if (window.TeamsConfig[league] && window.TeamsConfig[league].colors) {
+                const colorCategories = ['institutional', 'metallic', 'alt', 'uni'];
+                
+                for (const category of colorCategories) {
+                    const categoryColors = window.TeamsConfig[league].colors[category];
+                    if (categoryColors) {
+                        for (const [key, data] of Object.entries(categoryColors)) {
+                            const keyUpper = key.toUpperCase().replace(/_/g, ' ');
+                            if (colorName === keyUpper || 
+                                colorName.includes(keyUpper) || 
+                                keyUpper.includes(colorName)) {
+                                if (data && data.hex) {
+                                    colorHex = data.hex;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (colorHex) break;
+                }
+            }
+            if (colorHex) break;
+        }
+    }
+    
+    // ========== BUSCAR EN Config.COLOR_DATABASES ==========
+    if (!colorHex && window.Config && window.Config.COLOR_DATABASES) {
+        const databases = ['PANTONE', 'GEARFORSPORT', 'INSTITUCIONAL'];
+        
+        for (const dbName of databases) {
+            const db = window.Config.COLOR_DATABASES[dbName];
+            if (db) {
+                for (const [key, data] of Object.entries(db)) {
+                    if (colorName === key.toUpperCase() || 
+                        colorName.includes(key.toUpperCase()) || 
+                        key.toUpperCase().includes(colorName)) {
+                        if (data && data.hex) {
+                            colorHex = data.hex;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (colorHex) break;
+        }
+    }
+    
+    // ========== COLORES BÁSICOS MÍNIMOS (solo los esenciales) ==========
+    if (!colorHex) {
+        const basicColors = {
+            'RED': '#FF0000',
+            'BLUE': '#0000FF',
+            'GREEN': '#00FF00',
+            'BLACK': '#000000',
+            'WHITE': '#FFFFFF',
+            'YELLOW': '#FFFF00',
+            'PURPLE': '#800080',
+            'ORANGE': '#FFA500',
+            'GRAY': '#808080',
+            'GREY': '#808080',
+            'GOLD': '#FFD700',
+            'SILVER': '#C0C0C0',
+            'NAVY': '#000080',
+            'MAROON': '#800000',
+            'PINK': '#FFC0CB',
+            'BROWN': '#A52A2A',
+            'TEAL': '#008080',
+            'CYAN': '#00FFFF',
+            'MAGENTA': '#FF00FF',
+            'LIME': '#00FF00',
+            'OLIVE': '#808000'
+        };
+        
+        // Coincidencia exacta
+        if (basicColors[colorName]) {
+            colorHex = basicColors[colorName];
+        } else {
+            // Buscar palabra dentro del nombre (ej: "ROYAL BLUE" → encuentra "BLUE")
+            for (const [basicName, hex] of Object.entries(basicColors)) {
+                if (colorName.includes(basicName)) {
+                    colorHex = hex;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // ========== CÓDIGO HEX DIRECTO ==========
+    if (!colorHex) {
+        const hexMatch = colorName.match(/#([0-9A-F]{6})/i);
+        if (hexMatch) {
+            colorHex = `#${hexMatch[1]}`;
+        }
+    }
+    
+    // ========== APLICAR COLOR ==========
+    if (colorHex) {
+        preview.style.background = colorHex;
+        preview.style.backgroundImage = 'none';
+        preview.title = `${color.val} - ${colorHex}`;
+    } else {
+        // Fallback: gris neutro (NO color aleatorio)
+        preview.style.background = '#CCCCCC';
+        preview.style.backgroundImage = 'repeating-linear-gradient(45deg, #999 0, #999 2px, #CCC 2px, #CCC 4px)';
+        preview.title = `${color.val} - No encontrado`;
+    }
+}
+        updatePlacementStations(placementId);
+        updatePlacementColorsPreview(placementId);
+        checkForSpecialtiesInColors(placementId);
+    }
+}
+
+function updatePlacementScreenLetter(placementId, colorId, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+    
+    const color = placement.colors.find(c => c.id === colorId);
+    if (color) {
+        color.screenLetter = value.toUpperCase();
+        updatePlacementStations(placementId);
+    }
+} 
+  // ========== HACER FUNCIONES DISPONIBLES GLOBALMENTE ==========
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
+window.showPlacement = showPlacement;
 window.updatePlacementType = updatePlacementType;
 window.updatePlacementInkType = updatePlacementInkType;
 window.openImagePickerForPlacement = openImagePickerForPlacement;
@@ -3560,6 +3815,23 @@ window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
+window.updatePlacementParam = updatePlacementParam;
+window.updateCustomPlacement = updateCustomPlacement;
+window.updateAllPlacementTitles = updateAllPlacementTitles;
+
+// Funciones principales
+window.showTab = showTab;
+window.loadSavedSpecsList = loadSavedSpecsList;
+window.clearErrorLog = clearErrorLog;
+window.exportErrorLog = exportErrorLog;
+window.clearAllSpecs = clearAllSpecs;
+window.addNewPlacement = addNewPlacement;
+window.saveCurrentSpec = saveCurrentSpec;
+window.clearForm = clearForm;
+window.exportToExcel = exportToExcel;
+window.exportPDF = exportPDF;
+window.downloadProjectZip = downloadProjectZip;
+window.updateClientLogo = updateClientLogo;
 
   </script>
 </body>
