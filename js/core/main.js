@@ -301,6 +301,42 @@ function addNewPlacement(type = null, isFirst = false) {
 }
 
 // ... incluir todas las demás funciones ...
+// En js/main.js, después de verifyConfigurations()
+
+// ========== CARGAR MÓDULOS ==========
+function loadModules() {
+    console.log('📦 Cargando módulos...');
+    
+    // Cargar módulo de placements
+    const placementsScript = document.createElement('script');
+    placementsScript.src = 'js/modules/placements/core.js';
+    placementsScript.onload = function() {
+        console.log('✅ Módulo de placements cargado');
+        
+        // Probar el módulo
+        if (window.PlacementsModule) {
+            console.log('🧪 Probando módulo de placements...');
+            const placementId = window.PlacementsModule.addNewPlacement('FRONT');
+            console.log(`✅ Placement creado con ID: ${placementId}`);
+        }
+    };
+    
+    document.head.appendChild(placementsScript);
+}
+
+// Llamar loadModules en initializeApp()
+function initializeApp() {
+    console.log('⚙️ Inicializando aplicación...');
+    
+    // 1. Verificar configuraciones
+    verifyConfigurations();
+    
+    // 2. Cargar módulos
+    loadModules();
+    
+    // 3. Resto del código...
+    // ...
+}
 
 // ========== ARCHITECTURE MIGRATION HELPER ==========
 // Esta función ayuda a migrar gradualmente
