@@ -53,25 +53,17 @@ function checkRequiredConfigs() {
     }
 }
 
-// ========== INICIALIZAR MÓDULOS ==========
 function initializeModules() {
     console.log('📦 Inicializando módulos...');
     
     // 1. Cargar módulo de tema
     loadThemeModule();
     
-    // 2. Inicializar fecha/hora si la función existe
-    if (typeof updateDateTime === 'function') {
-        updateDateTime();
-        setInterval(updateDateTime, 60000);
-        console.log('✅ Reloj inicializado');
-    }
+    // 2. Cargar módulo de dashboard
+    loadDashboardModule();
     
-    // 3. Inicializar dashboard si la función existe
-    if (typeof updateDashboard === 'function') {
-        updateDashboard();
-        console.log('✅ Dashboard inicializado');
-    }
+    // 3. NOTA: Ya NO llamamos directamente a updateDateTime ni updateDashboard
+    // porque ahora los módulos se encargan de eso
     
     // 4. Verificar placements
     if (typeof window.placements === 'undefined') {
@@ -79,6 +71,8 @@ function initializeModules() {
         window.currentPlacementId = 1;
         console.log('✅ Variables globales de placements inicializadas');
     }
+    
+    console.log('✅ Todos los módulos cargados');
 }
 
 // ========== CARGAR MÓDULO DE TEMA ==========
@@ -103,6 +97,36 @@ function loadThemeModule() {
         if (typeof loadThemePreference === 'function') {
             loadThemePreference();
             console.log('🔄 Usando funciones globales de tema como fallback');
+        }
+    };
+    
+    document.head.appendChild(script);
+}
+// ========== CARGAR MÓDULO DE DASHBOARD ==========
+function loadDashboardModule() {
+    console.log('📊 Cargando módulo de dashboard...');
+    
+    const script = document.createElement('script');
+    script.src = 'js/modules/ui/dashboard-manager.js';
+    
+    script.onload = function() {
+        console.log('✅ Módulo de dashboard cargado');
+        
+        // El módulo se auto-inicializa, pero podemos verificarlo
+        if (window.DashboardManager) {
+            console.log('🎯 DashboardManager disponible');
+        }
+    };
+    
+    script.onerror = function() {
+        console.error('❌ Error al cargar módulo de dashboard');
+        // Fallback a funciones globales
+        if (typeof updateDateTime === 'function') {
+            updateDateTime();
+            setInterval(updateDateTime, 60000);
+        }
+        if (typeof updateDashboard === 'function') {
+            updateDashboard();
         }
     };
     
