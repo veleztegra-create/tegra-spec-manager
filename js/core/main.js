@@ -1,360 +1,181 @@
-// js/main.js - PUNTO DE ENTRADA PRINCIPAL DE LA APLICACIÓN
+// js/main.js - PUNTO DE ENTRADA PRINCIPAL
+console.log('🎯 Tegra Spec Manager - Punto de entrada principal cargado');
 
-// ========== VARIABLES GLOBALES ==========
-let placements = [];
-let currentPlacementId = 1;
-let clientLogoCache = {};
-let isDarkMode = true;
-
-// ========== INICIALIZACIÓN ==========
+// ========== CONFIGURACIÓN INICIAL ==========
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Inicializando Tegra Spec Manager...');
+    console.log('🚀 DOM cargado, iniciando aplicación...');
     
-    // 1. Verificar configuraciones críticas
-    verifyConfigurations();
+    // 1. Verificar que las configuraciones estén cargadas
+    checkRequiredConfigs();
     
-    // 2. Inicializar estado global
-    initGlobalState();
+    // 2. Inicializar módulos
+    initializeModules();
     
-    // 3. Configurar tema
-    loadThemePreference();
-    
-    // 4. Actualizar UI inicial
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
-    
-    // 5. Inicializar componentes
-    initComponents();
-    
-    // 6. Configurar event listeners
-    setupEventListeners();
-    
-    // 7. Cargar estado guardado
-    loadSavedState();
+    // 3. Configurar eventos globales
+    setupGlobalEventListeners();
     
     console.log('✅ Aplicación inicializada correctamente');
-    
-    // 8. Mostrar dashboard inicial
-    showTab('dashboard');
 });
 
-// ========== FUNCIONES DE INICIALIZACIÓN ==========
-function verifyConfigurations() {
+// ========== VERIFICAR CONFIGURACIONES REQUERIDAS ==========
+function checkRequiredConfigs() {
+    console.log('🔍 Verificando configuraciones...');
+    
+    // Verificar Config
+    if (!window.Config) {
+        console.error('❌ ERROR: Config no está definida');
+        console.log('💡 Solución: Asegúrate que config.js se cargue antes que main.js');
+        // Crear configuración mínima de emergencia
+        window.Config = {
+            APP: { VERSION: '1.0.0' },
+            COLOR_DATABASES: {
+                PANTONE: {},
+                GEARFORSPORT: {},
+                RAL: {}
+            }
+        };
+    } else {
+        console.log('✅ Config cargada correctamente');
+    }
+    
     // Verificar LogoConfig
     if (!window.LogoConfig) {
-        console.error('❌ LogoConfig no cargado');
-        // Configuración de emergencia
-        window.LogoConfig = {
-            'NIKE': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png',
-            'FANATICS': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png',
-            'ADIDAS': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png',
-            'PUMA': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png',
-            'UNDER ARMOUR': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png',
-            'GEAR FOR SPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png'
-        };
+        console.warn('⚠️ ADVERTENCIA: LogoConfig no está definida');
+    } else {
+        console.log('✅ LogoConfig cargada correctamente');
     }
     
     // Verificar TeamsConfig
     if (!window.TeamsConfig) {
-        console.warn('⚠️ TeamsConfig no cargado - algunas funciones estarán limitadas');
-    }
-    
-    // Verificar Config
-    if (!window.Config) {
-        console.error('❌ Config no cargado');
-        // Configuración mínima de emergencia
-        window.Config = {
-            APP: { VERSION: '1.0.0' },
-            COLOR_DATABASES: { PANTONE: {}, GEARFORSPORT: {} },
-            INK_PRESETS: {
-                WATER: { temp: '320 °F', time: '1:40 min' },
-                PLASTISOL: { temp: '320 °F', time: '1:00 min' },
-                SILICONE: { temp: '300 °F', time: '2:00 min' }
-            }
-        };
-    }
-}
-
-function initGlobalState() {
-    window.placements = [];
-    window.currentPlacementId = 1;
-    window.clientLogoCache = {};
-    window.isDarkMode = localStorage.getItem('tegraspec-theme') !== 'light';
-}
-
-function initComponents() {
-    // Inicializar dashboard
-    updateDashboard();
-    
-    // Inicializar lista de specs
-    loadSavedSpecsList();
-    
-    // Inicializar log de errores
-    if (window.errorHandler) {
-        window.errorHandler.init();
-    }
-    
-    // Setup para pegar imágenes
-    setupPasteHandler();
-}
-
-function setupEventListeners() {
-    // Toggle de tema
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
-    }
-    
-    // Input de cliente para logo automático
-    const customerInput = document.getElementById('customer');
-    if (customerInput) {
-        customerInput.addEventListener('input', updateClientLogo);
-    }
-    
-    // File inputs
-    const excelFileInput = document.getElementById('excelFile');
-    if (excelFileInput) {
-        excelFileInput.addEventListener('change', handleFileUpload);
-    }
-    
-    const imageInput = document.getElementById('imageInput');
-    if (imageInput) {
-        imageInput.addEventListener('change', handleImageUpload);
-    }
-    
-    const placementImageInput = document.getElementById('placementImageInput');
-    if (placementImageInput) {
-        placementImageInput.addEventListener('change', handlePlacementImageUpload);
-    }
-}
-
-function loadSavedState() {
-    // Cargar última spec trabajada si existe
-    const lastSpecKey = localStorage.getItem('tegraspec_last_spec');
-    if (lastSpecKey) {
-        try {
-            const specData = JSON.parse(localStorage.getItem(lastSpecKey));
-            if (specData) {
-                // Cargar spec automáticamente
-                setTimeout(() => {
-                    loadSpecData(specData);
-                    showStatus('📂 Última spec cargada automáticamente', 'info');
-                }, 1000);
-            }
-        } catch (e) {
-            console.warn('Error al cargar última spec:', e);
-        }
-    }
-}
-
-// ========== FUNCIONES BÁSICAS DE LA APP ==========
-// Estas funciones deben moverse a sus respectivos módulos, pero por ahora
-// las mantenemos aquí para que la app funcione
-
-// Función para mostrar/ocultar tabs
-function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-    
-    const tabElement = document.getElementById(tabName);
-    if (tabElement) {
-        tabElement.classList.add('active');
-    }
-    
-    // Activar la pestaña correspondiente en la navegación
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        if (tab.innerText.toLowerCase().includes(tabName.replace('-', ' '))) {
-            tab.classList.add('active');
-        }
-    });
-    
-    // Acciones específicas por tab
-    switch(tabName) {
-        case 'saved-specs':
-            loadSavedSpecsList();
-            break;
-        case 'dashboard':
-            updateDashboard();
-            break;
-        case 'error-log':
-            loadErrorLog();
-            break;
-        case 'spec-creator':
-            if (placements.length === 0) {
-                initializePlacements();
-            }
-            break;
-    }
-}
-
-// Función para actualizar logo del cliente
-function updateClientLogo() {
-    const customer = document.getElementById('customer').value.toUpperCase().trim();
-    const logoElement = document.getElementById('logoCliente');
-    
-    if (!logoElement) return;
-    
-    let logoUrl = '';
-    
-    // Detectar Gear for Sport con todas sus variaciones
-    const gfsVariations = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S', 'GEAR', 'G-F-S'];
-    const isGFS = gfsVariations.some(variation => customer.includes(variation));
-    
-    if (customer.includes('NIKE') || customer.includes('NIQUE')) {
-        logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png';
-    } else if (customer.includes('FANATICS') || customer.includes('FANATIC')) {
-        logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png';
-    } else if (customer.includes('ADIDAS')) {
-        logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png';
-    } else if (customer.includes('PUMA')) {
-        logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png';
-    } else if (customer.includes('UNDER ARMOUR') || customer.includes('UA')) {
-        logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png';
-    } else if (isGFS) {
-        logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png';
-    }
-    
-    if (logoUrl) {
-        logoElement.src = logoUrl;
-        logoElement.style.display = 'block';
-        clientLogoCache[customer] = logoUrl;
+        console.warn('⚠️ ADVERTENCIA: TeamsConfig no está definida');
     } else {
-        logoElement.style.display = 'none';
+        console.log('✅ TeamsConfig cargada correctamente');
     }
 }
 
-// ========== EXPORTAR FUNCIONES AL ÁMBITO GLOBAL ==========
-// Esto es necesario mientras migramos la arquitectura
-window.app = {
-    // Navegación
-    showTab,
+// ========== INICIALIZAR MÓDULOS ==========
+function initializeModules() {
+    console.log('📦 Inicializando módulos...');
     
-    // Placements
-    addNewPlacement,
-    removePlacement,
-    duplicatePlacement,
-    showPlacement,
-    updatePlacementType,
-    updatePlacementInkType,
-    updateCustomPlacement,
+    // 1. Cargar módulo de tema
+    loadThemeModule();
     
-    // Imágenes
-    openImagePickerForPlacement,
-    removePlacementImage,
+    // 2. Inicializar fecha/hora si la función existe
+    if (typeof updateDateTime === 'function') {
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+        console.log('✅ Reloj inicializado');
+    }
     
-    // Colores
-    addPlacementColorItem,
-    removePlacementColorItem,
-    updatePlacementColorValue,
-    updatePlacementScreenLetter,
+    // 3. Inicializar dashboard si la función existe
+    if (typeof updateDashboard === 'function') {
+        updateDashboard();
+        console.log('✅ Dashboard inicializado');
+    }
     
-    // Parámetros
-    updatePlacementParam,
-    updateAllPlacementTitles,
-    
-    // Guardado/Carga
-    saveCurrentSpec,
-    clearForm,
-    loadSavedSpecsList,
-    clearAllSpecs,
-    
-    // Exportación
-    exportToExcel,
-    exportPDF,
-    downloadProjectZip,
-    
-    // Errores
-    clearErrorLog,
-    exportErrorLog,
-    
-    // UI
-    updateClientLogo
-};
-
-// También exportar funciones individualmente para compatibilidad
-// con el código existente en index.html
-window.showTab = showTab;
-window.updateClientLogo = updateClientLogo;
-window.addNewPlacement = addNewPlacement;
-window.saveCurrentSpec = saveCurrentSpec;
-window.clearForm = clearForm;
-window.exportToExcel = exportToExcel;
-window.exportPDF = exportPDF;
-window.downloadProjectZip = downloadProjectZip;
-window.loadSavedSpecsList = loadSavedSpecsList;
-window.clearErrorLog = clearErrorLog;
-window.exportErrorLog = exportErrorLog;
-window.clearAllSpecs = clearAllSpecs;
-
-// ========== INCLUIR FUNCIONES RESTANTES ==========
-// Las funciones restantes del código original deben incluirse aquí
-// o en sus respectivos módulos. Por ahora, para que funcione:
-
-// Incluir todas las funciones del código original que no están en main.js
-// Esto es TEMPORAL hasta que se migren a módulos
-function initializePlacements() {
-    // Tu código actual de initializePlacements
+    // 4. Verificar placements
+    if (typeof window.placements === 'undefined') {
+        window.placements = [];
+        window.currentPlacementId = 1;
+        console.log('✅ Variables globales de placements inicializadas');
+    }
 }
 
-function addNewPlacement(type = null, isFirst = false) {
-    // Tu código actual de addNewPlacement
-}
-
-// ... incluir todas las demás funciones ...
-// En js/main.js, después de verifyConfigurations()
-
-// ========== CARGAR MÓDULOS ==========
-function loadModules() {
-    console.log('📦 Cargando módulos...');
+// ========== CARGAR MÓDULO DE TEMA ==========
+function loadThemeModule() {
+    console.log('🎨 Cargando módulo de tema...');
     
-    // Cargar módulo de placements
-    const placementsScript = document.createElement('script');
-    placementsScript.src = 'js/modules/placements/core.js';
-    placementsScript.onload = function() {
-        console.log('✅ Módulo de placements cargado');
+    // Crear elemento script dinámicamente
+    const script = document.createElement('script');
+    script.src = 'js/modules/ui/theme-manager.js';
+    script.onload = function() {
+        console.log('✅ Módulo de tema cargado');
         
-        // Probar el módulo
-        if (window.PlacementsModule) {
-            console.log('🧪 Probando módulo de placements...');
-            const placementId = window.PlacementsModule.addNewPlacement('FRONT');
-            console.log(`✅ Placement creado con ID: ${placementId}`);
+        // Inicializar tema
+        if (window.ThemeManager && typeof window.ThemeManager.initialize === 'function') {
+            window.ThemeManager.initialize();
         }
     };
     
-    document.head.appendChild(placementsScript);
+    script.onerror = function() {
+        console.error('❌ Error al cargar módulo de tema');
+        // Fallback: usar funciones globales si existen
+        if (typeof loadThemePreference === 'function') {
+            loadThemePreference();
+            console.log('🔄 Usando funciones globales de tema como fallback');
+        }
+    };
+    
+    document.head.appendChild(script);
 }
 
-// Llamar loadModules en initializeApp()
-function initializeApp() {
-    console.log('⚙️ Inicializando aplicación...');
+// ========== CONFIGURAR EVENTOS GLOBALES ==========
+function setupGlobalEventListeners() {
+    console.log('🔗 Configurando eventos globales...');
     
-    // 1. Verificar configuraciones
-    verifyConfigurations();
+    // 1. Evento para el botón de tema
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function(e) {
+            // Intentar usar el módulo primero
+            if (window.ThemeManager && typeof window.ThemeManager.toggleTheme === 'function') {
+                window.ThemeManager.toggleTheme();
+            } 
+            // Fallback a función global
+            else if (typeof toggleTheme === 'function') {
+                toggleTheme();
+            }
+            // Último recurso
+            else {
+                console.warn('⚠️ No se encontró función toggleTheme');
+                alert('Función de tema no disponible');
+            }
+        });
+        console.log('✅ Botón de tema configurado');
+    }
     
-    // 2. Cargar módulos
-    loadModules();
+    // 2. Evento para input de cliente
+    const customerInput = document.getElementById('customer');
+    if (customerInput) {
+        customerInput.addEventListener('input', function() {
+            if (typeof updateClientLogo === 'function') {
+                updateClientLogo();
+            }
+        });
+        console.log('✅ Input de cliente configurado');
+    }
     
-    // 3. Resto del código...
-    // ...
+    // 3. Setup para pegar imágenes si existe
+    if (typeof setupPasteHandler === 'function') {
+        setupPasteHandler();
+        console.log('✅ Handler para pegar imágenes configurado');
+    }
+    
+    console.log('✅ Todos los eventos configurados');
 }
 
-// ========== ARCHITECTURE MIGRATION HELPER ==========
-// Esta función ayuda a migrar gradualmente
-function migrateToModules() {
-    console.log('🔧 Migrando a arquitectura modular...');
+// ========== FUNCIONES DE UTILIDAD ==========
+function showAppStatus(message, type = 'info') {
+    const statusEl = document.getElementById('statusMessage');
+    if (!statusEl) {
+        console.log(`📢 ${message}`);
+        return;
+    }
     
-    // Aquí irá la lógica para mover funciones a módulos
-    // Por ahora, solo registra qué funciones existen
-    const functionList = [
-        'showTab', 'updateClientLogo', 'addNewPlacement', 'removePlacement',
-        'duplicatePlacement', 'saveCurrentSpec', 'exportPDF', 'exportToExcel',
-        'downloadProjectZip', 'clearForm', 'loadSavedSpecsList', 'clearErrorLog',
-        'exportErrorLog', 'clearAllSpecs', 'initializePlacements'
-    ];
+    statusEl.textContent = message;
+    statusEl.className = `status-message status-${type}`;
+    statusEl.style.display = 'block';
     
-    console.log(`📋 Total de funciones a migrar: ${functionList.length}`);
-    return functionList;
+    setTimeout(() => {
+        statusEl.style.display = 'none';
+    }, 3000);
 }
 
-// Iniciar migración al cargar
-setTimeout(migrateToModules, 5000);
+// ========== HACER DISPONIBLE GLOBALMENTE ==========
+window.AppManager = {
+    showStatus: showAppStatus,
+    initialize: initializeModules,
+    setupEvents: setupGlobalEventListeners
+};
+
+console.log('🎯 AppManager disponible globalmente');
