@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 2. Inicializar módulos
     initializeModules();
     
-    // 3. Configurar eventos globales (solo los que no tienen módulo)
+    // 3. Configurar eventos globales
     setupGlobalEventListeners();
     
     // 4. Mostrar estado inicial
@@ -31,23 +31,93 @@ function checkRequiredConfigs() {
         
         // Crear configuración mínima de emergencia
         window.Config = {
-            APP: { VERSION: '1.0.0', NAME: 'Tegra Spec Manager' },
+            APP: { 
+                VERSION: '1.0.0', 
+                NAME: 'Tegra Spec Manager',
+                AUTHOR: 'Tegra Team'
+            },
             COLOR_DATABASES: {
                 PANTONE: {},
                 GEARFORSPORT: {},
                 RAL: {},
-                CUSTOM: {}
+                CUSTOM: {},
+                INSTITUCIONAL: {}
             },
             INK_PRESETS: {
-                WATER: { temp: '320 °F', time: '1:40 min' },
-                PLASTISOL: { temp: '320 °F', time: '1:00 min' },
-                SILICONE: { temp: '300 °F', time: '2:00 min' }
+                WATER: { 
+                    temp: '320 °F', 
+                    time: '1:40 min',
+                    color: { 
+                        mesh: '157/48', 
+                        durometer: '70', 
+                        speed: '35', 
+                        angle: '15', 
+                        strokes: '2', 
+                        pressure: '40',
+                        additives: '3 % cross-linker 500 · 1.5 % antitack'
+                    },
+                    blocker: { 
+                        name: 'BLOCKER CHT', 
+                        mesh1: '122/55', 
+                        mesh2: '157/48', 
+                        durometer: '70', 
+                        speed: '35', 
+                        angle: '15', 
+                        strokes: '2', 
+                        pressure: '40', 
+                        additives: 'N/A'
+                    },
+                    white: { 
+                        name: 'AQUAFLEX WHITE', 
+                        mesh1: '198/40', 
+                        mesh2: '157/48', 
+                        durometer: '70', 
+                        speed: '35', 
+                        angle: '15', 
+                        strokes: '2', 
+                        pressure: '40', 
+                        additives: 'N/A'
+                    }
+                },
+                PLASTISOL: { 
+                    temp: '320 °F', 
+                    time: '1:00 min',
+                    color: { 
+                        mesh: '156/64', 
+                        durometer: '65', 
+                        speed: '35', 
+                        angle: '15', 
+                        strokes: '1', 
+                        pressure: '40',
+                        additives: 'Catalizador estándar'
+                    }
+                },
+                SILICONE: { 
+                    temp: '300 °F', 
+                    time: '2:00 min',
+                    color: { 
+                        mesh: '110/64', 
+                        durometer: '75', 
+                        speed: '30', 
+                        angle: '20', 
+                        strokes: '2', 
+                        pressure: '35',
+                        additives: 'Catalizador de silicona'
+                    }
+                }
             },
-            METALLIC_CODES: [],
-            GENDER_MAP: {},
-            PLACEMENT_TYPES: [],
-            INK_TYPES: [],
-            DESIGNERS: []
+            METALLIC_CODES: ["871C", "872C", "873C", "874C", "875C", "876C", "877C"],
+            GENDER_MAP: {
+                'MENS': 'M',
+                'WOMENS': 'F',
+                'UNISEX': 'U',
+                'YOUTH': 'Y',
+                'BOYS': 'B',
+                'GIRLS': 'G'
+            },
+            PLACEMENT_TYPES: ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'],
+            INK_TYPES: ['WATER', 'PLASTISOL', 'SILICONE'],
+            DESIGNERS: ['ELMER VELEZ', 'DANIEL HERNANDEZ', 'CINDY PINEDA', 'FERNANDO FERRERA', 'NILDA CORDOBA', 'OTRO']
         };
     } else {
         console.log('✅ Config cargada correctamente');
@@ -60,7 +130,10 @@ function checkRequiredConfigs() {
         window.LogoConfig = {
             'NIKE': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png',
             'FANATICS': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png',
-            'GEAR FOR SPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png'
+            'GEAR FOR SPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png',
+            'ADIDAS': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png',
+            'PUMA': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png',
+            'UNDER ARMOUR': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png'
         };
     } else {
         console.log('✅ LogoConfig cargada correctamente');
@@ -89,183 +162,198 @@ function checkRequiredConfigs() {
 function initializeModules() {
     console.log('📦 Inicializando módulos...');
     
-    // 1. Cargar módulo de tema (UI)
-    loadThemeModule();
+    // ORDEN DE CARGA CRÍTICO:
+    // 1. Módulos de datos y configuración
+    // 2. Módulos core
+    // 3. Módulos UI
+    // 4. Módulos de funcionalidad específica
     
-    // 2. Cargar módulo de dashboard (UI)
-    loadDashboardModule();
+    // 1. Cargar módulos de configuración
+    loadConfigModules();
     
-    // 3. Cargar módulo de pestañas (UI)
-    loadTabsModule();
+    // 2. Cargar módulos core
+    loadCoreModules();
     
-    // 4. Cargar módulo de clientes (Data)
-    loadClientModule();
+    // 3. Cargar módulos UI
+    loadUIModules();
     
-    // 5. NUEVO: Cargar módulo de placements (CRÍTICO)
-    loadPlacementsModule();
+    // 4. Cargar módulos de datos
+    loadDataModules();
     
-    // 6. Inicializar variables globales esenciales
+    // 5. Cargar módulos de funcionalidad
+    loadFunctionalityModules();
+    
+    // 6. Inicializar variables globales
     initGlobalVariables();
     
-    // 7. Cargar handlers especiales (sin módulo aún)
-    loadSpecialHandlers();
-    
-    console.log('✅ Todos los módulos cargados');
+    console.log('✅ Todos los módulos inicializados');
 }
 
-// Agregar esta nueva función:
-function loadPlacementsModule() {
-    console.log('📍 Cargando módulo de placements...');
-    
-    // Cargar core primero
-    const coreScript = document.createElement('script');
-    coreScript.src = 'js/modules/placements/placements-core.js';
-    
-    coreScript.onload = function() {
-        console.log('✅ PlacementsCore cargado');
-        
-        // Cargar UI después
-        const uiScript = document.createElement('script');
-        uiScript.src = 'js/modules/placements/placements-ui.js';
-        
-        uiScript.onload = function() {
-            console.log('✅ PlacementsUI cargado');
-            
-            // Inicializar UI de placements
-            if (window.PlacementsUI && window.PlacementsUI.initializePlacementsUI) {
-                setTimeout(() => {
-                    window.PlacementsUI.initializePlacementsUI();
-                }, 500);
-            }
-        };
-        
-        uiScript.onerror = function() {
-            console.error('❌ Error al cargar PlacementsUI');
-        };
-        
-        document.head.appendChild(uiScript);
-    };
-    
-    coreScript.onerror = function() {
-        console.error('❌ Error al cargar PlacementsCore');
-    };
-    
-    document.head.appendChild(coreScript);
-}
 // ========== FUNCIONES DE CARGA DE MÓDULOS ==========
 
-function loadThemeModule() {
-    console.log('🎨 Cargando módulo de tema...');
+function loadConfigModules() {
+    console.log('⚙️ Cargando módulos de configuración...');
+    // Estos ya están cargados por las etiquetas <script> en el HTML
+}
+
+function loadCoreModules() {
+    console.log('🔧 Cargando módulos core...');
+    
+    // Verificar que los módulos core estén cargados
+    const coreModules = ['stateManager', 'errorHandler'];
+    coreModules.forEach(module => {
+        if (window[module]) {
+            console.log(`✅ ${module} disponible`);
+        } else {
+            console.warn(`⚠️ ${module} no disponible`);
+        }
+    });
+}
+
+function loadUIModules() {
+    console.log('🎨 Cargando módulos UI...');
+    
+    // Cargar módulo de tema
+    loadModule('js/modules/ui/theme-manager.js', 'ThemeManager', () => {
+        console.log('✅ ThemeManager cargado');
+    });
+    
+    // Cargar módulo de dashboard
+    loadModule('js/modules/ui/dashboard-manager.js', 'DashboardManager', () => {
+        console.log('✅ DashboardManager cargado');
+    });
+    
+    // Cargar módulo de pestañas
+    loadModule('js/modules/ui/tabs-manager.js', 'TabsManager', () => {
+        console.log('✅ TabsManager cargado');
+    });
+}
+
+function loadDataModules() {
+    console.log('💾 Cargando módulos de datos...');
+    
+    // Cargar módulo de clientes
+    loadModule('js/modules/data/client-manager.js', 'ClientManager', () => {
+        console.log('✅ ClientManager cargado');
+    });
+    
+    // Cargar módulo de specs
+    loadModule('js/modules/data/specs-manager.js', 'SpecsManager', () => {
+        console.log('✅ SpecsManager cargado');
+    });
+    
+    // Cargar módulo de almacenamiento
+    loadModule('js/modules/data/storage-manager.js', 'StorageManager', () => {
+        console.log('✅ StorageManager cargado');
+    });
+}
+
+function loadFunctionalityModules() {
+    console.log('🛠️ Cargando módulos de funcionalidad...');
+    
+    // Cargar módulos de placements en orden
+    loadPlacementsModules();
+    
+    // Cargar módulos de exportación
+    loadExportModules();
+}
+
+function loadPlacementsModules() {
+    console.log('📍 Cargando módulos de placements...');
+    
+    // ORDEN CRÍTICO: Core → UI → Colors → Export
+    const placementsModules = [
+        { path: 'js/modules/placements/placements-core.js', name: 'PlacementsCore' },
+        { path: 'js/modules/placements/placements-ui.js', name: 'PlacementsUI' },
+        { path: 'js/modules/placements/placements-colors.js', name: 'PlacementsColors' },
+        { path: 'js/modules/placements/placements-export.js', name: 'PlacementsExport' }
+    ];
+    
+    loadModulesSequentially(placementsModules, () => {
+        console.log('✅ Todos los módulos de placements cargados');
+        
+        // Inicializar placements después de cargar todo
+        setTimeout(() => {
+            if (window.PlacementsUI && window.PlacementsUI.initializePlacementsUI) {
+                window.PlacementsUI.initializePlacementsUI();
+            }
+        }, 1000);
+    });
+}
+
+function loadExportModules() {
+    console.log('📤 Cargando módulos de exportación...');
+    
+    const exportModules = [
+        { path: 'js/modules/export/pdf-exporter.js', name: 'PDFExporter' },
+        { path: 'js/modules/export/excel-exporter.js', name: 'ExcelExporter' },
+        { path: 'js/modules/export/zip-exporter.js', name: 'ZipExporter' }
+    ];
+    
+    loadModulesSequentially(exportModules, () => {
+        console.log('✅ Todos los módulos de exportación cargados');
+    });
+}
+
+// ========== FUNCIONES AUXILIARES DE CARGA ==========
+
+function loadModule(modulePath, moduleName, onSuccess) {
+    // Verificar si ya está cargado
+    if (window[moduleName]) {
+        console.log(`✅ ${moduleName} ya cargado`);
+        if (onSuccess) onSuccess();
+        return;
+    }
     
     const script = document.createElement('script');
-    script.src = 'js/modules/ui/theme-manager.js';
+    script.src = modulePath;
     
     script.onload = function() {
-        console.log('✅ Módulo de tema cargado');
-        
-        if (window.ThemeManager) {
-            console.log('🎯 ThemeManager disponible');
-            // El módulo se auto-inicializa
-        }
+        console.log(`✅ ${moduleName} cargado correctamente`);
+        if (onSuccess) onSuccess();
     };
     
     script.onerror = function() {
-        console.error('❌ Error al cargar módulo de tema');
+        console.error(`❌ Error al cargar ${moduleName} desde ${modulePath}`);
         
-        // Fallback a funciones globales si existen
-        if (typeof loadThemePreference === 'function') {
-            loadThemePreference();
-            console.log('🔄 Usando loadThemePreference global como fallback');
-        }
+        // Intentar cargar desde ruta alternativa
+        const altScript = document.createElement('script');
+        altScript.src = modulePath.replace('js/', '');
+        
+        altScript.onload = function() {
+            console.log(`✅ ${moduleName} cargado desde ruta alternativa`);
+            if (onSuccess) onSuccess();
+        };
+        
+        altScript.onerror = function() {
+            console.error(`❌ Error crítico: ${moduleName} no pudo ser cargado`);
+        };
+        
+        document.head.appendChild(altScript);
     };
     
     document.head.appendChild(script);
 }
 
-function loadDashboardModule() {
-    console.log('📊 Cargando módulo de dashboard...');
+function loadModulesSequentially(modules, onComplete) {
+    let index = 0;
     
-    const script = document.createElement('script');
-    script.src = 'js/modules/ui/dashboard-manager.js';
-    
-    script.onload = function() {
-        console.log('✅ Módulo de dashboard cargado');
-        
-        if (window.DashboardManager) {
-            console.log('🎯 DashboardManager disponible');
-            // El módulo se auto-inicializa
-        }
-    };
-    
-    script.onerror = function() {
-        console.error('❌ Error al cargar módulo de dashboard');
-        
-        // Fallback a funciones globales
-        if (typeof updateDateTime === 'function') {
-            updateDateTime();
-            setInterval(updateDateTime, 60000);
-            console.log('🔄 Usando updateDateTime global como fallback');
+    function loadNext() {
+        if (index >= modules.length) {
+            if (onComplete) onComplete();
+            return;
         }
         
-        if (typeof updateDashboard === 'function') {
-            updateDashboard();
-            console.log('🔄 Usando updateDashboard global como fallback');
-        }
-    };
-    
-    document.head.appendChild(script);
-}
-
-function loadTabsModule() {
-    console.log('🗂️ Cargando módulo de pestañas...');
-    
-    const script = document.createElement('script');
-    script.src = 'js/modules/ui/tabs-manager.js';
-    
-    script.onload = function() {
-        console.log('✅ Módulo de pestañas cargado');
+        const module = modules[index];
+        console.log(`📦 Cargando ${module.name}... (${index + 1}/${modules.length})`);
         
-        if (window.TabsManager) {
-            console.log('🎯 TabsManager disponible');
-            // El módulo se auto-inicializa
-        }
-    };
+        loadModule(module.path, module.name, () => {
+            index++;
+            loadNext();
+        });
+    }
     
-    script.onerror = function() {
-        console.error('❌ Error al cargar módulo de pestañas');
-        console.log('🔄 Usando funciones globales para pestañas');
-    };
-    
-    document.head.appendChild(script);
-}
-
-function loadClientModule() {
-    console.log('🏢 Cargando módulo de clientes...');
-    
-    const script = document.createElement('script');
-    script.src = 'js/modules/data/client-manager.js';
-    
-    script.onload = function() {
-        console.log('✅ Módulo de clientes cargado');
-        
-        if (window.ClientManager) {
-            console.log('🎯 ClientManager disponible');
-            // El módulo se auto-inicializa
-        }
-    };
-    
-    script.onerror = function() {
-        console.error('❌ Error al cargar módulo de clientes');
-        
-        // Fallback a función global
-        const customerInput = document.getElementById('customer');
-        if (customerInput && typeof updateClientLogo === 'function') {
-            customerInput.addEventListener('input', updateClientLogo);
-            console.log('🔄 Configurando updateClientLogo global como fallback');
-        }
-    };
-    
-    document.head.appendChild(script);
+    loadNext();
 }
 
 // ========== INICIALIZACIÓN DE VARIABLES GLOBALES ==========
@@ -273,173 +361,542 @@ function loadClientModule() {
 function initGlobalVariables() {
     console.log('🌍 Inicializando variables globales...');
     
-    // Variables esenciales para placements
-    if (typeof window.placements === 'undefined') {
-        window.placements = [];
-        console.log('✅ placements inicializado como array vacío');
+    // Variables globales esenciales
+    if (typeof window.globalPlacements === 'undefined') {
+        window.globalPlacements = [];
+        console.log('✅ globalPlacements inicializado como array vacío');
     }
     
-    if (typeof window.currentPlacementId === 'undefined') {
-        window.currentPlacementId = 1;
-        console.log('✅ currentPlacementId inicializado como 1');
+    if (typeof window.globalCurrentPlacementId === 'undefined') {
+        window.globalCurrentPlacementId = 1;
+        console.log('✅ globalCurrentPlacementId inicializado como 1');
     }
     
-    if (typeof window.clientLogoCache === 'undefined') {
-        window.clientLogoCache = {};
-        console.log('✅ clientLogoCache inicializado como objeto vacío');
+    if (typeof window.globalClientLogoCache === 'undefined') {
+        window.globalClientLogoCache = {};
+        console.log('✅ globalClientLogoCache inicializado como objeto vacío');
     }
     
-    if (typeof window.isDarkMode === 'undefined') {
-        window.isDarkMode = true;
-        console.log('✅ isDarkMode inicializado como true');
+    if (typeof window.globalIsDarkMode === 'undefined') {
+        window.globalIsDarkMode = true;
+        console.log('✅ globalIsDarkMode inicializado como true');
+    }
+    
+    // Variables de estado de la aplicación
+    if (typeof window.appState === 'undefined') {
+        window.appState = {
+            initialized: true,
+            modulesLoaded: 0,
+            lastError: null,
+            currentTab: 'dashboard',
+            lastSave: null,
+            autoSaveEnabled: true
+        };
+        console.log('✅ appState inicializado');
     }
     
     console.log('✅ Variables globales inicializadas');
 }
 
-// ========== HANDLERS ESPECIALES (sin módulo aún) ==========
-
-function loadSpecialHandlers() {
-    console.log('🔧 Cargando handlers especiales...');
-    
-    // Handler para pegar imágenes (si existe globalmente)
-    if (typeof setupPasteHandler === 'function') {
-        try {
-            setupPasteHandler();
-            console.log('✅ Handler para pegar imágenes configurado');
-        } catch (error) {
-            console.error('❌ Error al configurar paste handler:', error);
-        }
-    } else {
-        console.log('ℹ️ setupPasteHandler no disponible');
-    }
-    
-    // Handler para file upload (si existe globalmente)
-    setupFileUploadListeners();
-    
-    console.log('✅ Handlers especiales cargados');
-}
-
-function setupFileUploadListeners() {
-    const excelFileInput = document.getElementById('excelFile');
-    if (excelFileInput && !excelFileInput.hasAttribute('data-listener-added')) {
-        excelFileInput.addEventListener('change', function(e) {
-            if (typeof handleFileUpload === 'function') {
-                handleFileUpload(e);
-            } else {
-                console.warn('⚠️ handleFileUpload no disponible');
-            }
-        });
-        excelFileInput.setAttribute('data-listener-added', 'true');
-        console.log('✅ Listener para excelFile configurado');
-    }
-    
-    const placementImageInput = document.getElementById('placementImageInput');
-    if (placementImageInput && !placementImageInput.hasAttribute('data-listener-added')) {
-        placementImageInput.addEventListener('change', function(e) {
-            if (typeof handlePlacementImageUpload === 'function') {
-                handlePlacementImageUpload(e);
-            } else {
-                console.warn('⚠️ handlePlacementImageUpload no disponible');
-            }
-        });
-        placementImageInput.setAttribute('data-listener-added', 'true');
-        console.log('✅ Listener para placementImageInput configurado');
-    }
-}
-
-// ========== CONFIGURAR EVENTOS GLOBALES (solo los sin módulo) ==========
+// ========== CONFIGURAR EVENTOS GLOBALES ==========
 
 function setupGlobalEventListeners() {
-    console.log('🔗 Configurando eventos globales (sin módulo)...');
+    console.log('🔗 Configurando eventos globales...');
     
-    // NOTA: Los siguientes eventos son manejados por sus respectivos módulos:
-    // - Botón de tema → ThemeManager
-    // - Input de cliente → ClientManager  
-    // - Pestañas de navegación → TabsManager
-    // - Dashboard auto-update → DashboardManager
+    // 1. Eventos de navegación por pestañas
+    setupTabNavigation();
     
-    // Configurar solo eventos que no tienen módulo:
+    // 2. Eventos de botones principales
+    setupMainButtons();
     
-    // 1. Eventos para botones de acción rápida en dashboard
-    setupDashboardQuickActions();
+    // 3. Eventos de inputs de archivos
+    setupFileInputs();
     
-    // 2. Eventos para botones en spec-creator
-    setupSpecCreatorButtons();
+    // 4. Eventos de teclado
+    setupKeyboardShortcuts();
     
-    // 3. Eventos para botones en saved-specs
-    setupSavedSpecsButtons();
+    // 5. Eventos de formulario
+    setupFormEvents();
     
-    // 4. Eventos para botones en error-log
-    setupErrorLogButtons();
+    // 6. Evento para pegar imágenes
+    setupPasteHandler();
     
     console.log('✅ Eventos globales configurados');
 }
 
-function setupDashboardQuickActions() {
-    // Botón "Limpiar Log" en dashboard
-    const clearLogBtn = document.querySelector('button[onclick*="clearErrorLog"]');
-    if (clearLogBtn) {
-        clearLogBtn.addEventListener('click', function(e) {
-            if (typeof clearErrorLog === 'function') {
-                if (confirm('¿Estás seguro de que quieres limpiar el log de errores?')) {
-                    clearErrorLog();
-                }
+function setupTabNavigation() {
+    console.log('🔗 Configurando navegación por pestañas...');
+    
+    const navTabs = document.querySelectorAll('.nav-tab');
+    navTabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tabName = this.getAttribute('data-tab');
+            
+            if (window.TabsManager && window.TabsManager.showTab) {
+                window.TabsManager.showTab(tabName);
+            } else if (window.showTab) {
+                window.showTab(tabName);
+            } else {
+                console.error('❌ No hay gestor de pestañas disponible');
+                showAppStatus('Error: Gestor de pestañas no disponible', 'error');
             }
         });
-        console.log('✅ Botón "Limpiar Log" configurado');
-    }
+    });
     
-    // Botones de acción rápida
-    const quickActions = document.querySelectorAll('.btn[onclick*="showTab"]');
-    quickActions.forEach(btn => {
-        const originalOnClick = btn.getAttribute('onclick');
-        if (originalOnClick) {
-            btn.addEventListener('click', function(e) {
-                // Permitir que el módulo TabsManager maneje la navegación
-                // El onclick original seguirá funcionando como fallback
+    // Botones que cambian de pestaña
+    const tabButtons = document.querySelectorAll('[data-tab]');
+    tabButtons.forEach(button => {
+        if (!button.classList.contains('nav-tab')) {
+            button.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                if (window.TabsManager && window.TabsManager.showTab) {
+                    window.TabsManager.showTab(tabName);
+                }
             });
         }
     });
 }
 
-function setupSpecCreatorButtons() {
-    // Estos botones serán manejados por sus módulos correspondientes
-    // Por ahora solo los registramos
-    const buttons = [
-        'button[onclick*="saveCurrentSpec"]',
-        'button[onclick*="exportToExcel"]',
-        'button[onclick*="exportPDF"]',
-        'button[onclick*="downloadProjectZip"]',
-        'button[onclick*="clearForm"]'
-    ];
+function setupMainButtons() {
+    console.log('🔗 Configurando botones principales...');
     
-    buttons.forEach(selector => {
-        const btn = document.querySelector(selector);
-        if (btn) {
-            console.log(`✅ Botón detectado: ${selector}`);
+    // Botón: Agregar Placement
+    const addPlacementBtn = document.getElementById('addPlacementBtn');
+    if (addPlacementBtn) {
+        addPlacementBtn.addEventListener('click', function() {
+            if (window.PlacementsCore && window.PlacementsCore.addNewPlacement) {
+                const newId = window.PlacementsCore.addNewPlacement();
+                if (window.PlacementsUI) {
+                    window.PlacementsUI.renderAllPlacements();
+                    window.PlacementsUI.showPlacement(newId);
+                }
+                showAppStatus('✅ Nuevo placement agregado', 'success');
+            } else {
+                showAppStatus('❌ Módulo de placements no disponible', 'error');
+            }
+        });
+    }
+    
+    // Botón: Guardar Spec
+    const saveSpecBtns = document.querySelectorAll('[id^="saveSpecBtn"]');
+    saveSpecBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (window.SpecsManager && window.SpecsManager.saveCurrentSpec) {
+                window.SpecsManager.saveCurrentSpec();
+            } else if (window.saveCurrentSpec) {
+                window.saveCurrentSpec();
+            } else {
+                showAppStatus('❌ Función de guardar no disponible', 'error');
+            }
+        });
+    });
+    
+    // Botón: Exportar PDF
+    const exportPDFBtn = document.getElementById('exportPDFBtn');
+    if (exportPDFBtn) {
+        exportPDFBtn.addEventListener('click', function() {
+            if (window.PDFExporter && window.PDFExporter.exportPDF) {
+                window.PDFExporter.exportPDF();
+            } else if (window.exportPDF) {
+                window.exportPDF();
+            } else {
+                showAppStatus('❌ Exportador PDF no disponible', 'error');
+            }
+        });
+    }
+    
+    // Botón: Exportar Excel
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', function() {
+            if (window.ExcelExporter && window.ExcelExporter.exportToExcel) {
+                window.ExcelExporter.exportToExcel();
+            } else if (window.exportToExcel) {
+                window.exportToExcel();
+            } else {
+                showAppStatus('❌ Exportador Excel no disponible', 'error');
+            }
+        });
+    }
+    
+    // Botón: Exportar ZIP
+    const exportZipBtn = document.getElementById('exportZipBtn');
+    if (exportZipBtn) {
+        exportZipBtn.addEventListener('click', function() {
+            if (window.ZipExporter && window.ZipExporter.downloadProjectZip) {
+                window.ZipExporter.downloadProjectZip();
+            } else if (window.downloadProjectZip) {
+                window.downloadProjectZip();
+            } else {
+                showAppStatus('❌ Exportador ZIP no disponible', 'error');
+            }
+        });
+    }
+    
+    // Botón: Limpiar Formulario
+    const clearFormBtns = document.querySelectorAll('[id^="clearFormBtn"]');
+    clearFormBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('⚠️ ¿Estás seguro de que quieres limpiar todo el formulario?\n\nSe perderán todos los datos no guardados.')) {
+                if (window.SpecsManager && window.SpecsManager.clearForm) {
+                    window.SpecsManager.clearForm();
+                } else if (window.clearForm) {
+                    window.clearForm();
+                } else {
+                    // Limpieza básica
+                    document.querySelectorAll('input:not(#folder-num), textarea, select').forEach(i => {
+                        if (i.type !== 'button' && i.type !== 'submit') {
+                            i.value = '';
+                        }
+                    });
+                    showAppStatus('🧹 Formulario limpiado', 'success');
+                }
+            }
+        });
+    });
+    
+    // Botón: Limpiar Todo (Specs)
+    const clearAllSpecsBtn = document.getElementById('clearAllSpecsBtn');
+    if (clearAllSpecsBtn) {
+        clearAllSpecsBtn.addEventListener('click', function() {
+            if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?\n\nEsta acción no se puede deshacer.')) {
+                if (window.StorageManager && window.StorageManager.clearAllSpecs) {
+                    window.StorageManager.clearAllSpecs();
+                } else if (window.clearAllSpecs) {
+                    window.clearAllSpecs();
+                }
+                showAppStatus('🗑️ Todas las specs eliminadas', 'success');
+            }
+        });
+    }
+    
+    // Botón: Limpiar Log de Errores
+    const clearErrorLogBtns = document.querySelectorAll('[id^="clearErrorLog"], #clearLogBtn');
+    clearErrorLogBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres limpiar el log de errores?')) {
+                if (window.errorHandler && window.errorHandler.clearErrors) {
+                    window.errorHandler.clearErrors();
+                } else if (window.clearErrorLog) {
+                    window.clearErrorLog();
+                }
+                showAppStatus('🗑️ Log de errores limpiado', 'success');
+            }
+        });
+    });
+    
+    // Botón: Exportar Log de Errores
+    const exportErrorLogBtn = document.getElementById('exportErrorLogBtn');
+    if (exportErrorLogBtn) {
+        exportErrorLogBtn.addEventListener('click', function() {
+            if (window.errorHandler && window.errorHandler.exportErrors) {
+                window.errorHandler.exportErrors();
+            } else if (window.exportErrorLog) {
+                window.exportErrorLog();
+            }
+        });
+    }
+    
+    // Botón: Cargar SWO/Spec
+    const loadBtns = document.querySelectorAll('[id^="loadSWO"], #loadSpecBtn');
+    loadBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('excelFile').click();
+        });
+    });
+    
+    // Botón: Ver Historial
+    const viewHistoryBtn = document.getElementById('viewHistoryBtn');
+    if (viewHistoryBtn) {
+        viewHistoryBtn.addEventListener('click', function() {
+            if (window.TabsManager && window.TabsManager.showTab) {
+                window.TabsManager.showTab('saved-specs');
+            }
+            if (window.SpecsManager && window.SpecsManager.loadSavedSpecsList) {
+                window.SpecsManager.loadSavedSpecsList();
+            }
+        });
+    }
+}
+
+function setupFileInputs() {
+    console.log('🔗 Configurando inputs de archivos...');
+    
+    // Input para archivos Excel/JSON/ZIP
+    const excelFileInput = document.getElementById('excelFile');
+    if (excelFileInput) {
+        excelFileInput.addEventListener('change', function(e) {
+            if (!e.target.files[0]) return;
+            
+            const file = e.target.files[0];
+            const fileName = file.name.toLowerCase();
+            
+            if (fileName.endsWith('.zip')) {
+                // Cargar proyecto ZIP
+                if (window.ZipExporter && window.ZipExporter.loadProjectZip) {
+                    window.ZipExporter.loadProjectZip(file);
+                }
+            } else if (fileName.endsWith('.json')) {
+                // Cargar spec JSON
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (window.SpecsManager && window.SpecsManager.loadSpecData) {
+                            window.SpecsManager.loadSpecData(data);
+                            showAppStatus('✅ Spec cargada desde JSON', 'success');
+                        }
+                    } catch (err) {
+                        showAppStatus('❌ Error leyendo archivo JSON', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                // Procesar Excel
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        let worksheet = null;
+                        let sheetUsed = '';
+                        const sheetPriority = ['SWO', 'PPS', 'Proto 1', 'Proto 2', 'Proto 3', 'Proto 4', 'Sheet1'];
+                        
+                        for (const sheetName of sheetPriority) {
+                            if (workbook.SheetNames.includes(sheetName)) {
+                                worksheet = workbook.Sheets[sheetName];
+                                sheetUsed = sheetName;
+                                break;
+                            }
+                        }
+                        
+                        if (!worksheet) {
+                            worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                            sheetUsed = workbook.SheetNames[0];
+                        }
+                        
+                        if (window.ExcelExporter && window.ExcelExporter.processExcelData) {
+                            window.ExcelExporter.processExcelData(worksheet, sheetUsed);
+                        }
+                        
+                    } catch (err) {
+                        showAppStatus('❌ Error leyendo archivo Excel', 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+            
+            // Limpiar input
+            e.target.value = '';
+        });
+    }
+    
+    // Input para imágenes de placements
+    const placementImageInput = document.getElementById('placementImageInput');
+    if (placementImageInput) {
+        placementImageInput.addEventListener('change', function(e) {
+            if (!e.target.files[0]) return;
+            
+            const file = e.target.files[0];
+            const placementId = window.PlacementsCore ? 
+                window.PlacementsCore.getCurrentPlacementId() : 1;
+            
+            if (!file.type.match('image.*')) {
+                showAppStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const placement = window.PlacementsCore ? 
+                    window.PlacementsCore.getPlacementById(placementId) : null;
+                
+                if (placement) {
+                    placement.imageData = ev.target.result;
+                    
+                    // Actualizar UI
+                    const img = document.getElementById(`placement-image-preview-${placementId}`);
+                    const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+                    
+                    if (img) {
+                        img.src = ev.target.result;
+                        img.style.display = 'block';
+                    }
+                    
+                    if (imageActions) {
+                        imageActions.style.display = 'flex';
+                    }
+                    
+                    showAppStatus(`✅ Imagen cargada para placement`, 'success');
+                }
+            };
+            reader.readAsDataURL(file);
+            
+            e.target.value = '';
+        });
+    }
+}
+
+function setupKeyboardShortcuts() {
+    console.log('🔗 Configurando atajos de teclado...');
+    
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+S: Guardar spec
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            if (window.SpecsManager && window.SpecsManager.saveCurrentSpec) {
+                window.SpecsManager.saveCurrentSpec();
+            }
+        }
+        
+        // Ctrl+E: Exportar Excel
+        if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault();
+            if (window.ExcelExporter && window.ExcelExporter.exportToExcel) {
+                window.ExcelExporter.exportToExcel();
+            }
+        }
+        
+        // Ctrl+P: Exportar PDF
+        if (e.ctrlKey && e.key === 'p') {
+            e.preventDefault();
+            if (window.PDFExporter && window.PDFExporter.exportPDF) {
+                window.PDFExporter.exportPDF();
+            }
+        }
+        
+        // Ctrl+Shift+D: Diagnóstico
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            e.preventDefault();
+            diagnoseApp();
+        }
+        
+        // Ctrl+N: Nueva spec (limpiar formulario)
+        if (e.ctrlKey && e.key === 'n') {
+            e.preventDefault();
+            if (confirm('¿Crear nueva spec? Se perderán los cambios no guardados.')) {
+                if (window.SpecsManager && window.SpecsManager.clearForm) {
+                    window.SpecsManager.clearForm();
+                }
+            }
+        }
+        
+        // Ctrl+Tab: Cambiar entre placements
+        if (e.ctrlKey && e.key === 'Tab') {
+            e.preventDefault();
+            if (window.PlacementsCore && window.PlacementsUI) {
+                const placements = window.PlacementsCore.getAllPlacements();
+                const currentId = window.PlacementsCore.getCurrentPlacementId();
+                const currentIndex = placements.findIndex(p => p.id === currentId);
+                
+                if (currentIndex !== -1) {
+                    const nextIndex = e.shiftKey ? 
+                        (currentIndex - 1 + placements.length) % placements.length :
+                        (currentIndex + 1) % placements.length;
+                    
+                    window.PlacementsUI.showPlacement(placements[nextIndex].id);
+                }
+            }
         }
     });
 }
 
-function setupSavedSpecsButtons() {
-    // Botón "Limpiar Todo" en saved-specs
-    const clearAllBtn = document.querySelector('button[onclick*="clearAllSpecs"]');
-    if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', function(e) {
-            if (typeof clearAllSpecs === 'function') {
-                if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?')) {
-                    clearAllSpecs();
+function setupFormEvents() {
+    console.log('🔗 Configurando eventos de formulario...');
+    
+    // Input de cliente para actualizar logo
+    const customerInput = document.getElementById('customer');
+    if (customerInput) {
+        customerInput.addEventListener('input', function() {
+            if (window.ClientManager && window.ClientManager.updateClientLogo) {
+                window.ClientManager.updateClientLogo();
+            } else if (window.updateClientLogo) {
+                window.updateClientLogo();
+            }
+        });
+    }
+    
+    // Input de estilo para detectar equipo y género
+    const styleInput = document.getElementById('style');
+    if (styleInput) {
+        styleInput.addEventListener('input', function() {
+            if (window.Utils && window.Utils.detectTeamFromStyle) {
+                const team = window.Utils.detectTeamFromStyle(this.value);
+                const nameTeamInput = document.getElementById('name-team');
+                if (nameTeamInput && team) {
+                    nameTeamInput.value = team;
+                }
+            }
+            
+            if (window.Utils && window.Utils.extractGenderFromStyle) {
+                const gender = window.Utils.extractGenderFromStyle(this.value);
+                const genderInput = document.getElementById('gender');
+                if (genderInput && gender) {
+                    genderInput.value = gender;
                 }
             }
         });
-        console.log('✅ Botón "Limpiar Todo" configurado');
+    }
+    
+    // Auto-guardado cada 2 minutos
+    if (window.appState && window.appState.autoSaveEnabled) {
+        setInterval(() => {
+            if (window.SpecsManager && window.SpecsManager.autoSave) {
+                window.SpecsManager.autoSave();
+            }
+        }, 120000); // 2 minutos
     }
 }
 
-function setupErrorLogButtons() {
-    // Botones en error-log serán manejados por su módulo futuro
-    console.log('ℹ️ Botones de error-log pendientes de módulo');
+function setupPasteHandler() {
+    console.log('🔗 Configurando handler para pegar imágenes...');
+    
+    document.addEventListener('paste', function(e) {
+        // Solo procesar en la pestaña de spec-creator
+        const specCreatorTab = document.getElementById('spec-creator');
+        if (!specCreatorTab || !specCreatorTab.classList.contains('active')) {
+            return;
+        }
+        
+        const items = e.clipboardData.items;
+        
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                
+                reader.onload = function(event) {
+                    const placementId = window.PlacementsCore ? 
+                        window.PlacementsCore.getCurrentPlacementId() : 1;
+                    
+                    const placement = window.PlacementsCore ? 
+                        window.PlacementsCore.getPlacementById(placementId) : null;
+                    
+                    if (placement) {
+                        placement.imageData = event.target.result;
+                        
+                        // Actualizar UI
+                        const img = document.getElementById(`placement-image-preview-${placementId}`);
+                        const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+                        
+                        if (img && imageActions) {
+                            img.src = event.target.result;
+                            img.style.display = 'block';
+                            imageActions.style.display = 'flex';
+                        }
+                        
+                        showAppStatus(`✅ Imagen pegada en placement`, 'success');
+                    }
+                };
+                
+                reader.readAsDataURL(blob);
+                e.preventDefault();
+                break;
+            }
+        }
+    });
 }
 
 // ========== FUNCIONES DE UTILIDAD ==========
@@ -454,7 +911,7 @@ function showAppStatus(message, type = 'info') {
         newStatusEl.id = 'statusMessage';
         newStatusEl.className = 'status-message';
         document.body.appendChild(newStatusEl);
-        return showAppStatus(message, type); // Intentar de nuevo
+        return showAppStatus(message, type);
     }
     
     // Limpiar clases anteriores
@@ -494,7 +951,14 @@ function diagnoseApp() {
     console.log('===============================');
     
     // Verificar módulos cargados
-    const modules = ['ThemeManager', 'DashboardManager', 'TabsManager', 'ClientManager'];
+    const modules = [
+        'ThemeManager', 'DashboardManager', 'TabsManager',
+        'ClientManager', 'SpecsManager', 'StorageManager',
+        'PlacementsCore', 'PlacementsUI', 'PlacementsColors', 'PlacementsExport',
+        'PDFExporter', 'ExcelExporter', 'ZipExporter'
+    ];
+    
+    console.log('📦 Módulos cargados:');
     modules.forEach(module => {
         const exists = typeof window[module] !== 'undefined';
         console.log(`${exists ? '✅' : '❌'} ${module}: ${exists ? 'CARGADO' : 'NO CARGADO'}`);
@@ -505,9 +969,10 @@ function diagnoseApp() {
         'showTab',
         'updateClientLogo',
         'updateDashboard',
-        'updateDateTime',
-        'toggleTheme',
-        'saveCurrentSpec'
+        'saveCurrentSpec',
+        'exportPDF',
+        'exportToExcel',
+        'downloadProjectZip'
     ];
     
     console.log('\n🔍 Funciones globales:');
@@ -518,14 +983,9 @@ function diagnoseApp() {
     
     // Verificar elementos DOM críticos
     const criticalElements = [
-        'customer',
-        'logoCliente',
-        'current-datetime',
-        'themeToggle',
-        'dashboard',
-        'spec-creator',
-        'saved-specs',
-        'error-log'
+        'customer', 'style', 'colorway', 'folder-num',
+        'placements-container', 'placements-tabs',
+        'dashboard', 'spec-creator', 'saved-specs', 'error-log'
     ];
     
     console.log('\n🎯 Elementos DOM críticos:');
@@ -534,11 +994,19 @@ function diagnoseApp() {
         console.log(`${element ? '✅' : '❌'} #${id}: ${element ? 'ENCONTRADO' : 'NO ENCONTRADO'}`);
     });
     
+    // Información del estado
+    console.log('\n📊 Estado de la aplicación:');
+    console.log(`Versión: ${window.Config?.APP?.VERSION || 'Desconocida'}`);
+    console.log(`Placements activos: ${window.PlacementsCore ? window.PlacementsCore.getTotalPlacements() : 0}`);
+    console.log(`Specs guardadas: ${Object.keys(localStorage).filter(k => k.startsWith('spec_')).length}`);
+    
     console.log('===============================');
     console.log('🩺 Diagnóstico completado');
+    
+    showAppStatus('Diagnóstico ejecutado - Ver consola', 'info');
 }
 
-// ========== MANEJO DE ERRORES ==========
+// ========== MANEJO DE ERRORES GLOBALES ==========
 
 window.addEventListener('error', function(e) {
     console.error('🚨 ERROR GLOBAL CAPTURADO:', e.message);
@@ -548,7 +1016,7 @@ window.addEventListener('error', function(e) {
     console.error('Error completo:', e.error);
     
     // Mostrar notificación amigable
-    showAppStatus(`Error: ${e.message}`, 'error');
+    showAppStatus(`Error: ${e.message.substring(0, 50)}...`, 'error');
     
     // Registrar en error handler si existe
     if (window.errorHandler && typeof window.errorHandler.log === 'function') {
@@ -562,7 +1030,7 @@ window.addEventListener('error', function(e) {
     }
 });
 
-// ========== HACER DISPONIBLE GLOBALMENTE ==========
+// ========== API PÚBLICA DE LA APLICACIÓN ==========
 
 window.AppManager = {
     // Funciones principales
@@ -570,35 +1038,75 @@ window.AppManager = {
     diagnose: diagnoseApp,
     reloadModules: initializeModules,
     
-    // Información
-    getModules: function() {
+    // Información del sistema
+    getSystemInfo: function() {
         return {
-            ThemeManager: !!window.ThemeManager,
-            DashboardManager: !!window.DashboardManager,
-            TabsManager: !!window.TabsManager,
-            ClientManager: !!window.ClientManager,
-            Config: !!window.Config,
-            LogoConfig: !!window.LogoConfig,
-            TeamsConfig: !!window.TeamsConfig,
-            Utils: !!window.Utils,
-            stateManager: !!window.stateManager
+            app: window.Config?.APP?.NAME || 'Tegra Spec Manager',
+            version: window.Config?.APP?.VERSION || '1.0.0',
+            modules: this.getModules(),
+            placements: window.PlacementsCore ? window.PlacementsCore.getTotalPlacements() : 0,
+            specs: Object.keys(localStorage).filter(k => k.startsWith('spec_')).length,
+            theme: window.globalIsDarkMode ? 'dark' : 'light',
+            currentTab: window.appState?.currentTab || 'dashboard'
         };
+    },
+    
+    getModules: function() {
+        const modules = [
+            'ThemeManager', 'DashboardManager', 'TabsManager',
+            'ClientManager', 'SpecsManager', 'StorageManager',
+            'PlacementsCore', 'PlacementsUI', 'PlacementsColors', 'PlacementsExport',
+            'PDFExporter', 'ExcelExporter', 'ZipExporter',
+            'Utils', 'Config', 'LogoConfig', 'TeamsConfig',
+            'stateManager', 'errorHandler'
+        ];
+        
+        const result = {};
+        modules.forEach(module => {
+            result[module] = !!window[module];
+        });
+        
+        return result;
     },
     
     // Utilidades
     showModuleStatus,
     
+    // Control de la aplicación
+    switchTheme: function() {
+        if (window.ThemeManager && window.ThemeManager.toggleTheme) {
+            window.ThemeManager.toggleTheme();
+        } else if (window.toggleTheme) {
+            window.toggleTheme();
+        }
+    },
+    
+    saveAppState: function() {
+        if (window.SpecsManager && window.SpecsManager.saveCurrentSpec) {
+            return window.SpecsManager.saveCurrentSpec();
+        }
+        return false;
+    },
+    
+    loadAppState: function(key) {
+        if (window.StorageManager && window.StorageManager.loadSpec) {
+            return window.StorageManager.loadSpec(key);
+        }
+        return null;
+    },
+    
     // Información de la app
     _info: {
         name: 'AppManager',
-        version: '1.0.0',
-        description: 'Gestor principal de Tegra Spec Manager'
+        version: '2.0.0',
+        description: 'Gestor principal de Tegra Spec Manager',
+        author: 'Tegra Development Team'
     }
 };
 
 // ========== INICIALIZACIÓN ADICIONAL RETARDADA ==========
 
-// Esperar un poco y verificar que todo esté bien
+// Esperar a que todos los módulos se carguen
 setTimeout(() => {
     console.log('🕒 Verificación de estado posterior a la carga...');
     
@@ -608,19 +1116,30 @@ setTimeout(() => {
         console.log('⚠️ Dashboard no activo, activando...');
         if (window.TabsManager && typeof window.TabsManager.showTab === 'function') {
             window.TabsManager.showTab('dashboard');
-        } else if (typeof showTab === 'function') {
-            showTab('dashboard');
         }
     }
     
-    // Mostrar diagnóstico si se presiona Ctrl+Shift+D
-    document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-            e.preventDefault();
-            diagnoseApp();
-            showAppStatus('Diagnóstico ejecutado - Ver consola', 'info');
-        }
-    });
+    // Actualizar dashboard
+    if (window.DashboardManager && window.DashboardManager.updateDashboard) {
+        window.DashboardManager.updateDashboard();
+    }
+    
+    // Actualizar fecha y hora
+    if (window.DashboardManager && window.DashboardManager.updateDateTime) {
+        window.DashboardManager.updateDateTime();
+        setInterval(() => {
+            if (window.DashboardManager && window.DashboardManager.updateDateTime) {
+                window.DashboardManager.updateDateTime();
+            }
+        }, 60000);
+    }
+    
+    // Cargar lista de specs guardadas
+    if (window.SpecsManager && window.SpecsManager.loadSavedSpecsList) {
+        setTimeout(() => {
+            window.SpecsManager.loadSavedSpecsList();
+        }, 1500);
+    }
     
     console.log('✅ Verificación completada');
     console.log('🎉 Tegra Spec Manager listo para usar!');
@@ -628,8 +1147,60 @@ setTimeout(() => {
     // Mostrar mensaje de bienvenida
     setTimeout(() => {
         showAppStatus('🎉 ¡Bienvenido a Tegra Spec Manager!', 'success');
-    }, 1000);
+    }, 2000);
     
-}, 2000);
+}, 3000);
+
+// ========== EXPORTACIÓN PARA COMPATIBILIDAD ==========
+
+// Exportar funciones esenciales al ámbito global para compatibilidad
+// Estas serán sobrescritas por los módulos cuando se carguen
+window.showTab = function(tabName) {
+    if (window.TabsManager && window.TabsManager.showTab) {
+        return window.TabsManager.showTab(tabName);
+    }
+    console.warn('TabsManager no disponible');
+    return false;
+};
+
+window.updateClientLogo = function() {
+    if (window.ClientManager && window.ClientManager.updateClientLogo) {
+        return window.ClientManager.updateClientLogo();
+    }
+    console.warn('ClientManager no disponible');
+    return false;
+};
+
+window.saveCurrentSpec = function() {
+    if (window.SpecsManager && window.SpecsManager.saveCurrentSpec) {
+        return window.SpecsManager.saveCurrentSpec();
+    }
+    console.warn('SpecsManager no disponible');
+    return false;
+};
+
+window.exportPDF = function() {
+    if (window.PDFExporter && window.PDFExporter.exportPDF) {
+        return window.PDFExporter.exportPDF();
+    }
+    console.warn('PDFExporter no disponible');
+    return false;
+};
+
+window.exportToExcel = function() {
+    if (window.ExcelExporter && window.ExcelExporter.exportToExcel) {
+        return window.ExcelExporter.exportToExcel();
+    }
+    console.warn('ExcelExporter no disponible');
+    return false;
+};
+
+window.downloadProjectZip = function() {
+    if (window.ZipExporter && window.ZipExporter.downloadProjectZip) {
+        return window.ZipExporter.downloadProjectZip();
+    }
+    console.warn('ZipExporter no disponible');
+    return false;
+};
 
 console.log('🎯 Main.js completamente cargado y listo');
