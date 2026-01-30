@@ -101,15 +101,57 @@ function initializeModules() {
     // 4. Cargar módulo de clientes (Data)
     loadClientModule();
     
-    // 5. Inicializar variables globales esenciales
+    // 5. NUEVO: Cargar módulo de placements (CRÍTICO)
+    loadPlacementsModule();
+    
+    // 6. Inicializar variables globales esenciales
     initGlobalVariables();
     
-    // 6. Cargar handlers especiales (sin módulo aún)
+    // 7. Cargar handlers especiales (sin módulo aún)
     loadSpecialHandlers();
     
     console.log('✅ Todos los módulos cargados');
 }
 
+// Agregar esta nueva función:
+function loadPlacementsModule() {
+    console.log('📍 Cargando módulo de placements...');
+    
+    // Cargar core primero
+    const coreScript = document.createElement('script');
+    coreScript.src = 'js/modules/placements/placements-core.js';
+    
+    coreScript.onload = function() {
+        console.log('✅ PlacementsCore cargado');
+        
+        // Cargar UI después
+        const uiScript = document.createElement('script');
+        uiScript.src = 'js/modules/placements/placements-ui.js';
+        
+        uiScript.onload = function() {
+            console.log('✅ PlacementsUI cargado');
+            
+            // Inicializar UI de placements
+            if (window.PlacementsUI && window.PlacementsUI.initializePlacementsUI) {
+                setTimeout(() => {
+                    window.PlacementsUI.initializePlacementsUI();
+                }, 500);
+            }
+        };
+        
+        uiScript.onerror = function() {
+            console.error('❌ Error al cargar PlacementsUI');
+        };
+        
+        document.head.appendChild(uiScript);
+    };
+    
+    coreScript.onerror = function() {
+        console.error('❌ Error al cargar PlacementsCore');
+    };
+    
+    document.head.appendChild(coreScript);
+}
 // ========== FUNCIONES DE CARGA DE MÓDULOS ==========
 
 function loadThemeModule() {
