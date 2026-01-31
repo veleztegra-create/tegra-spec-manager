@@ -567,4 +567,98 @@ const SpecsManager = (function() {
                 const tabs = document.getElementById('placements-tabs');
                 if (container) container.innerHTML = '';
                 if (tabs) tabs.innerHTML = '';
-                window.global
+                window.globalPlacements = [];
+            }
+            
+            // Inicializar placements
+            if (window.PlacementsUI && window.PlacementsUI.initializePlacements) {
+                window.PlacementsUI.initializePlacements();
+            }
+            
+            // Ocultar logo
+            const logoElement = document.getElementById('logoCliente');
+            if (logoElement) {
+                logoElement.style.display = 'none';
+            }
+            
+            showStatus('🧹 Formulario limpiado correctamente', 'success');
+        }
+    }
+    
+    function autoSave() {
+        console.log('🤖 Auto-guardando...');
+        try {
+            // Solo auto-guardar si hay datos
+            const style = document.getElementById('style')?.value;
+            const customer = document.getElementById('customer')?.value;
+            
+            if (style || customer) {
+                const data = collectData();
+                if (validateSpecData(data)) {
+                    const backupKey = `${CONFIG.STORAGE_PREFIX}autosave_${Date.now()}`;
+                    localStorage.setItem(backupKey, JSON.stringify(data));
+                    console.log('✅ Auto-guardado completado');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error en autoSave:', error);
+        }
+    }
+    
+    // ========== INICIALIZACIÓN ==========
+    function init() {
+        console.log('🚀 Inicializando SpecsManager...');
+        
+        // Configurar auto-guardado
+        if (CONFIG.AUTO_SAVE_INTERVAL > 0) {
+            setInterval(autoSave, CONFIG.AUTO_SAVE_INTERVAL);
+            console.log(`⏰ Auto-guardado configurado cada ${CONFIG.AUTO_SAVE_INTERVAL / 60000} minutos`);
+        }
+        
+        // Cargar lista inicial de specs
+        setTimeout(() => {
+            loadSavedSpecsList();
+        }, 2000);
+        
+        console.log('✅ SpecsManager inicializado');
+    }
+    
+    // ========== EXPORTACIÓN PÚBLICA ==========
+    return {
+        // Funciones principales
+        saveCurrentSpec,
+        collectData,
+        loadSpecData,
+        loadSavedSpecsList,
+        downloadSingleSpec,
+        deleteSpec,
+        clearAllSpecs,
+        clearForm,
+        autoSave,
+        
+        // Utilidades
+        validateSpecData,
+        generateSpecId,
+        
+        // Inicialización
+        init
+    };
+})();
+
+// ========== EXPORTACIÓN GLOBAL ==========
+window.SpecsManager = SpecsManager;
+window.saveCurrentSpec = SpecsManager.saveCurrentSpec; // Para compatibilidad
+window.collectData = SpecsManager.collectData; // Para compatibilidad
+window.loadSpecData = SpecsManager.loadSpecData; // Para compatibilidad
+window.loadSavedSpecsList = SpecsManager.loadSavedSpecsList; // Para compatibilidad
+window.clearAllSpecs = SpecsManager.clearAllSpecs; // Para compatibilidad
+window.clearForm = SpecsManager.clearForm; // Para compatibilidad
+
+console.log('✅ Módulo SpecsManager completamente cargado');
+
+// Inicialización automática
+setTimeout(() => {
+    if (window.SpecsManager && window.SpecsManager.init) {
+        window.SpecsManager.init();
+    }
+}, 1000);
