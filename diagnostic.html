@@ -1,0 +1,116 @@
+<!-- diagnostic.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Diagnóstico Tegra Spec Manager</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .module { margin: 10px 0; padding: 10px; border-left: 4px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Diagnóstico de Rutas - Tegra Spec Manager</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        const modules = [
+            // Configuraciones
+            { path: 'js/config/app-config.js', name: 'AppConfig' },
+            { path: 'js/config/teams-config.js', name: 'TeamsConfig' },
+            { path: 'js/config/logos-config.js', name: 'LogoConfig' },
+            
+            // Utilerías (probablemente mal ubicadas)
+            { path: 'js/utils/helpers.js', name: 'Utils' },
+            { path: 'js/utils/validators.js', name: 'Validators' },
+            { path: 'js/utils/detectors.js', name: 'Detectors' },
+            { path: 'js/utils/render-helpers.js', name: 'RenderHelpers' },
+            
+            // Rutas alternativas (si están fuera de js/)
+            { path: 'utils/helpers.js', name: 'Utils (alternativa)' },
+            { path: 'utils/validators.js', name: 'Validators (alternativa)' },
+            { path: 'utils/detectors.js', name: 'Detectors (alternativa)' },
+        ];
+        
+        const results = document.getElementById('results');
+        let loadedCount = 0;
+        
+        function testModule(module) {
+            return new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = module.path;
+                
+                script.onload = () => {
+                    setTimeout(() => {
+                        const exists = !!window[module.name.replace(' (alternativa)', '')];
+                        resolve({
+                            ...module,
+                            loaded: true,
+                            exists: exists,
+                            message: exists ? '✅ Cargado y disponible' : '⚠️ Cargado pero no exportado'
+                        });
+                    }, 100);
+                };
+                
+                script.onerror = () => {
+                    resolve({
+                        ...module,
+                        loaded: false,
+                        exists: false,
+                        message: '❌ No encontrado'
+                    });
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+        
+        async function runDiagnosis() {
+            results.innerHTML = '<h2>Probando rutas...</h2>';
+            
+            for (const module of modules) {
+                const result = await testModule(module);
+                
+                const div = document.createElement('div');
+                div.className = 'module';
+                div.innerHTML = `
+                    <strong>${module.name}</strong><br>
+                    Ruta: ${module.path}<br>
+                    <span class="${result.loaded ? 'success' : 'error'}">
+                        ${result.message}
+                    </span>
+                `;
+                
+                results.appendChild(div);
+                
+                if (result.loaded && result.exists) {
+                    loadedCount++;
+                }
+            }
+            
+            // Resumen
+            const summary = document.createElement('div');
+            summary.innerHTML = `
+                <h2>Resumen</h2>
+                <p>Módulos cargados correctamente: ${loadedCount} / ${modules.length}</p>
+                <p>Estado: ${loadedCount > 5 ? '✅ BUENO' : '❌ PROBLEMAS SERIOS'}</p>
+                
+                <h3>Recomendaciones:</h3>
+                <ul>
+                    <li>Si las rutas js/utils/* fallan pero utils/* funcionan: 
+                        <strong>Mover utils/ dentro de js/</strong></li>
+                    <li>Si los módulos se cargan pero no están disponibles (window.X): 
+                        <strong>Revisar las exportaciones en los archivos</strong></li>
+                </ul>
+            `;
+            
+            results.appendChild(summary);
+        }
+        
+        runDiagnosis();
+    </script>
+</body>
+</html>
