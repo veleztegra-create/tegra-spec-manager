@@ -5,21 +5,169 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tegra - Technical Spec Manager</title>
   
-  <!-- SOLO ESTILOS -->
+  <!-- ESTILOS -->
   <link rel="stylesheet" href="styles.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-</head>
-<body>
-  <!-- TODO TU HTML ACTUAL (sin cambios) -->
   
-  <!-- SOLO LIBRERÍAS EXTERNAS CRÍTICAS -->
+  <!-- LIBRERÍAS EXTERNAS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
-  <!-- UN SOLO SCRIPT INTERNO -->
+  <!-- ========== CONFIGURACIONES UNIFICADAS ========== -->
+  <script src="js/config/config.js"></script>           <!-- TODO: Config principal UNIFICADA -->
+  <script src="js/config/config-teams.js"></script>     <!-- Equipos (se mantiene separado) -->
+  <script src="js/config/config-logos.js"></script>     <!-- Logos (se mantiene separado) -->
+  
+  <!-- ========== UTILIDADES (RUTAS CORREGIDAS) ========== -->
+  <script src="js/utils/helpers.js"></script>
+  <script src="js/utils/validators.js"></script>
+  <script src="js/utils/detectors.js"></script>
+  <script src="js/utils/specialties-detector.js"></script>
+  <script src="js/utils/render-helpers.js"></script>
+  
+  <!-- ========== CORE ========== -->
+  <script src="js/core/state-manager.js"></script>
+  <script src="js/core/error-handler.js"></script>
+  
+  <!-- ========== MÓDULOS DATA ========== -->
+  <script src="js/modules/data/client-manager.js"></script>
+  <script src="js/modules/data/specs-manager.js"></script>
+  <script src="js/modules/data/storage-manager.js"></script>
+  
+  <!-- ========== MÓDULOS UI ========== -->
+  <script src="js/modules/ui/theme-manager.js"></script>
+  <script src="js/modules/ui/dashboard-manager.js"></script>
+  <script src="js/modules/ui/tabs-manager.js"></script>
+  
+  <!-- ========== MÓDULOS PLACEMENTS ========== -->
+  <script src="js/modules/placements/placements-core.js"></script>
+  <script src="js/modules/placements/placements-ui.js"></script>
+  <script src="js/modules/placements/placements-colors.js"></script>
+  <script src="js/modules/placements/placements-export.js"></script>
+  
+  <!-- ========== MÓDULOS EXPORT ========== -->
+  <script src="js/modules/export/pdf-exporter.js"></script>
+  <script src="js/modules/export/excel-exporter.js"></script>
+  <script src="js/modules/export/zip-exporter.js"></script>
+  
+  <!-- ========== ENTRADA PRINCIPAL (ÚLTIMO) ========== -->
   <script src="js/main.js"></script>
+</head>
+<body>
+  <div class="app-container">
+      <!-- HEADER -->
+      <header class="app-header">
+          <div class="logo-section">
+              <div class="app-logo">
+                  <!-- SVG logo aquí -->
+              </div>
+              <div>
+                  <h1 class="app-title">Technical Spec Manager</h1>
+                  <p class="app-subtitle">Sistema de gestión de especificaciones técnicas</p>
+              </div>
+              <div class="theme-toggle">
+                  <button id="themeToggle" class="theme-toggle-btn">
+                      <i class="fas fa-sun"></i> Modo Claro
+                  </button>
+              </div>
+          </div>
+
+          <div class="client-section">
+              <span class="client-label">CUSTOMER / CLIENTE:</span>
+              <!-- AÑADIR INPUT PARA CLIENTE (FALTABA) -->
+              <input type="text" id="customer" class="form-control" placeholder="Nombre del cliente" style="width: 150px; margin-left: 10px;">
+              <div class="client-logo-wrapper">
+                  <img id="logoCliente" alt="Logo del cliente" style="max-height: 35px; max-width: 120px; display: none;">
+              </div>
+          </div>
+
+          <div class="header-actions">
+              <div class="folder-input-container">
+                  <span class="client-label" style="font-size: 0.9rem; color: White;"># FOLDER:</span>
+                  <input type="text" id="folder-num" class="form-control" placeholder="#####">
+              </div>
+              <div id="current-datetime"></div>
+          </div>
+      </header>
+
+      <!-- NAVIGATION -->
+      <nav class="app-nav no-print">
+          <ul class="nav-tabs">
+              <li class="nav-tab active" data-tab="dashboard">
+                  <i class="fas fa-tachometer-alt"></i> Dashboard
+              </li>
+              <li class="nav-tab" data-tab="spec-creator">
+                  <i class="fas fa-file-alt"></i> Crear Spec
+              </li>
+              <li class="nav-tab" data-tab="saved-specs">
+                  <i class="fas fa-database"></i> Guardadas
+              </li>
+              <li class="nav-tab" data-tab="error-log">
+                  <i class="fas fa-exclamation-triangle"></i> Log de Errores
+              </li>
+          </ul>
+      </nav>
+
+      <!-- MAIN CONTENT -->
+      <main class="app-main">
+          <!-- PESTAÑA DASHBOARD -->
+          <div class="tab-content active" id="dashboard">
+              <div class="dashboard-grid">
+                  <!-- Se llena dinámicamente por DashboardManager -->
+              </div>
+          </div>
+          
+          <!-- PESTAÑA CREAR SPEC -->
+          <div class="tab-content" id="spec-creator">
+              <!-- Se llena dinámicamente por PlacementsUI -->
+          </div>
+          
+          <!-- PESTAÑA GUARDADAS (FALTABA CONTENIDO) -->
+          <div class="tab-content" id="saved-specs">
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-database"></i> Especificaciones Guardadas</h2>
+                  </div>
+                  <div class="card-body">
+                      <!-- AÑADIR LISTA DE SPECS -->
+                      <div id="saved-specs-list">
+                          <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
+                              <i class="fas fa-spinner fa-spin"></i> Cargando especificaciones...
+                          </p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          
+          <!-- PESTAÑA ERROR LOG -->
+          <div class="tab-content" id="error-log">
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-exclamation-triangle"></i> Log de Errores</h2>
+                  </div>
+                  <div class="card-body">
+                      <div id="error-log-list">
+                          <!-- Se llena dinámicamente por ErrorHandler -->
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </main>
+
+      <div class="logos-container">
+          <!-- Logo Tegra -->
+      </div>
+
+      <div id="statusMessage" class="status-message"></div>
+  </div>
+
+  <!-- Inputs ocultos -->
+  <input type="file" id="excelFile" accept=".xlsx, .xls, .json, .zip" style="display: none;">
+  <input type="file" id="imageInput" accept="image/*" style="display: none;">
+  <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
+
 </body>
 </html>
