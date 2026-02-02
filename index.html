@@ -5,127 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tegra - Technical Spec Manager</title>
   
-  <!-- ESTILOS -->
+  <!-- SOLO ESTILOS -->
   <link rel="stylesheet" href="styles.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <!-- TODO TU HTML ACTUAL (sin cambios) -->
   
-  <!-- LIBRERÍAS EXTERNAS (primero) -->
+  <!-- SOLO LIBRERÍAS EXTERNAS CRÍTICAS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
-  <!-- CONFIGURACIONES -->
-<script src="js/config/config.js"></script>           <!-- Principal -->
-<script src="js/config/config-teams.js"></script>     <!-- Equipos -->
-<script src="js/config/config-logos.js"></script>     <!-- Logos -->
-<script src="js/config/color-databases.js"></script>  <!-- NUEVO: Colores -->
-
-<!-- UTILIDADES -->
-<script src="utils/helpers.js"></script>              <!-- Helpers -->
-<script src="utils/validators.js"></script>           <!-- Validators -->
-<script src="utils/detectors.js"></script>            <!-- NUEVO: Detectores -->
-<script src="utils/specialties-detector.js"></script> <!-- Specialties -->
-<script src="utils/render-helpers.js"></script>       <!-- Render helpers -->
-  
-  <!-- CORE (necesita utils) -->
-  <script src="js/core/state-manager.js"></script>
-  <script src="js/core/error-handler.js"></script>
-  
-  <!-- MÓDULOS DATA (necesita core) -->
-  <script src="js/modules/data/client-manager.js"></script>
-  <script src="js/modules/data/specs-manager.js"></script>
-  <script src="js/modules/data/storage-manager.js"></script>
-  
-  <!-- MÓDULOS UI (necesita data) -->
-  <script src="js/modules/ui/theme-manager.js"></script>
-  <script src="js/modules/ui/dashboard-manager.js"></script>
-  <script src="js/modules/ui/tabs-manager.js"></script>
-  
-  <!-- MÓDULOS PLACEMENTS (necesita UI y Data) -->
-  <script src="js/modules/placements/placements-core.js"></script>
-  <script src="js/modules/placements/placements-ui.js"></script>
-  <script src="js/modules/placements/placements-colors.js"></script>
-  <script src="js/modules/placements/placements-export.js"></script>
-  
-  <!-- MÓDULOS EXPORT (últimos, necesitan todo lo anterior) -->
-  <script src="js/modules/export/pdf-exporter.js"></script>
-  <script src="js/modules/export/excel-exporter.js"></script>
-  <script src="js/modules/export/zip-exporter.js"></script>
-  
-  <!-- PUNTO DE ENTRADA PRINCIPAL (ÚLTIMO) -->
+  <!-- UN SOLO SCRIPT INTERNO -->
   <script src="js/main.js"></script>
-</head>
-<body>
-  <div class="app-container">
-      <!-- HEADER -->
-      <header class="app-header">
-          <div class="logo-section">
-              <div class="app-logo">
-                  <!-- SVG logo aquí -->
-              </div>
-              <div>
-                  <h1 class="app-title">Technical Spec Manager</h1>
-                  <p class="app-subtitle">Sistema de gestión de especificaciones técnicas</p>
-              </div>
-              <div class="theme-toggle">
-                  <button id="themeToggle" class="theme-toggle-btn">
-                      <i class="fas fa-sun"></i> Modo Claro
-                  </button>
-              </div>
-          </div>
-
-          <div class="client-section">
-              <span class="client-label">CUSTOMER / CLIENTE:</span>
-              <div class="client-logo-wrapper">
-                  <img id="logoCliente" alt="Logo del cliente" style="max-height: 35px; max-width: 120px; display: none;">
-              </div>
-          </div>
-
-          <div class="header-actions">
-              <div class="folder-input-container">
-                  <span class="client-label" style="font-size: 0.9rem; color: White;"># FOLDER:</span>
-                  <input type="text" id="folder-num" class="form-control" placeholder="#####">
-              </div>
-              <div id="current-datetime"></div>
-          </div>
-      </header>
-
-      <!-- NAVIGATION -->
-      <nav class="app-nav no-print">
-          <ul class="nav-tabs">
-              <li class="nav-tab active" data-tab="dashboard">
-                  <i class="fas fa-tachometer-alt"></i> Dashboard
-              </li>
-              <li class="nav-tab" data-tab="spec-creator">
-                  <i class="fas fa-file-alt"></i> Crear Spec
-              </li>
-              <li class="nav-tab" data-tab="saved-specs">
-                  <i class="fas fa-database"></i> Guardadas
-              </li>
-              <li class="nav-tab" data-tab="error-log">
-                  <i class="fas fa-exclamation-triangle"></i> Log de Errores
-              </li>
-          </ul>
-      </nav>
-
-      <!-- MAIN CONTENT -->
-      <main class="app-main">
-          <!-- Las pestañas se llenarán dinámicamente -->
-      </main>
-
-      <div class="logos-container">
-          <!-- Logo Tegra -->
-      </div>
-
-      <div id="statusMessage" class="status-message"></div>
-  </div>
-
-  <!-- Inputs ocultos -->
-  <input type="file" id="excelFile" accept=".xlsx, .xls, .json, .zip" style="display: none;">
-  <input type="file" id="imageInput" accept="image/*" style="display: none;">
-  <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
-
 </body>
 </html>
