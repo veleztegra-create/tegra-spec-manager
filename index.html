@@ -16,17 +16,18 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
-  <!-- CONFIGURACIONES BASE -->
-  <script src="js/config/app-config.js"></script>
-  <script src="js/config/teams-config.js"></script>
-  <script src="js/config/logos-config.js"></script>
-  <script src="js/config/color-databases.js"></script>
-  
-  <!-- UTILIDADES (antes del core) -->
-  <script src="js/utils/helpers.js"></script>
-  <script src="js/utils/validators.js"></script>
-  <script src="js/utils/detectors.js"></script>
-  <script src="js/utils/render-helpers.js"></script>
+  <!-- CONFIGURACIONES -->
+<script src="js/config/config.js"></script>           <!-- Principal -->
+<script src="js/config/config-teams.js"></script>     <!-- Equipos -->
+<script src="js/config/config-logos.js"></script>     <!-- Logos -->
+<script src="js/config/color-databases.js"></script>  <!-- NUEVO: Colores -->
+
+<!-- UTILIDADES -->
+<script src="utils/helpers.js"></script>              <!-- Helpers -->
+<script src="utils/validators.js"></script>           <!-- Validators -->
+<script src="utils/detectors.js"></script>            <!-- NUEVO: Detectores -->
+<script src="utils/specialties-detector.js"></script> <!-- Specialties -->
+<script src="utils/render-helpers.js"></script>       <!-- Render helpers -->
   
   <!-- CORE (necesita utils) -->
   <script src="js/core/state-manager.js"></script>
