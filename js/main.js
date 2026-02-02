@@ -1,309 +1,338 @@
-// js/main.js - CARGA DINÁMICA DE TODOS LOS MÓDULOS
-console.log('🚀 Tegra Spec Manager - Sistema de carga dinámica');
+// js/main.js - PUNTO DE ENTRADA PRINCIPAL CORREGIDO Y SIMPLIFICADO
+console.log('🎯 Tegra Spec Manager - Inicializando aplicación');
 
-// ========== CONFIGURACIÓN DE MÓDULOS (ORDEN CRÍTICO) ==========
+// ========== CONFIGURACIÓN DE MÓDULOS SIMPLIFICADA ==========
 const MODULES = [
-    // 1. CONFIGURACIONES (Primero)
-    { path: 'js/config/config.js', name: 'Config', critical: true },
-    { path: 'js/config/config-teams.js', name: 'TeamsConfig', critical: true },
-    { path: 'js/config/config-logos.js', name: 'LogoConfig', critical: false },
-    { path: 'js/config/color-databases.js', name: 'ColorDatabases', critical: true },
+    // NOTA: Config, TeamsConfig y LogoConfig ya se cargan en index.html
+    // Por eso NO están en esta lista
     
-    // 2. UTILIDADES (Después de config)
-    { path: 'utils/helpers.js', name: 'Utils', critical: true },
-    { path: 'utils/validators.js', name: 'Validators', critical: false },
-    { path: 'utils/detectors.js', name: 'Detectors', critical: true },
-    { path: 'utils/specialties-detector.js', name: 'SpecialtiesDetector', critical: false },
-    { path: 'utils/render-helpers.js', name: 'RenderHelpers', critical: false },
+    // 1. Utilerías (RUTAS CORREGIDAS)
+    { type: 'util', path: 'js/utils/helpers.js', name: 'Utils' },
+    { type: 'util', path: 'js/utils/validators.js', name: 'Validators' },
+    { type: 'util', path: 'js/utils/detectors.js', name: 'Detectors' },
+    { type: 'util', path: 'js/utils/render-helpers.js', name: 'RenderHelpers' },
     
-    // 3. CORE
-    { path: 'core/state-manager.js', name: 'StateManager', critical: false },
-    { path: 'core/error-handler.js', name: 'ErrorHandler', critical: false },
+    // 2. Core
+    { type: 'core', path: 'js/core/state-manager.js', name: 'StateManager' },
+    { type: 'core', path: 'js/core/error-handler.js', name: 'ErrorHandler' },
     
-    // 4. MÓDULOS DE DATOS
-    { path: 'js/modules/data/client-manager.js', name: 'ClientManager', critical: true },
-    { path: 'js/modules/data/specs-manager.js', name: 'SpecsManager', critical: true },
-    { path: 'js/modules/data/storage-manager.js', name: 'StorageManager', critical: true },
+    // 3. Módulos de datos
+    { type: 'data', path: 'js/modules/data/client-manager.js', name: 'ClientManager' },
+    { type: 'data', path: 'js/modules/data/specs-manager.js', name: 'SpecsManager' },
+    { type: 'data', path: 'js/modules/data/storage-manager.js', name: 'StorageManager' },
     
-    // 5. MÓDULOS UI
-    { path: 'js/modules/ui/theme-manager.js', name: 'ThemeManager', critical: false },
-    { path: 'js/modules/ui/dashboard-manager.js', name: 'DashboardManager', critical: true },
-    { path: 'js/modules/ui/tabs-manager.js', name: 'TabsManager', critical: true },
+    // 4. Módulos UI
+    { type: 'ui', path: 'js/modules/ui/theme-manager.js', name: 'ThemeManager' },
+    { type: 'ui', path: 'js/modules/ui/dashboard-manager.js', name: 'DashboardManager' },
+    { type: 'ui', path: 'js/modules/ui/tabs-manager.js', name: 'TabsManager' },
     
-    // 6. MÓDULOS PLACEMENTS (ORDEN ESPECÍFICO)
-    { path: 'js/modules/placements/placements-core.js', name: 'PlacementsCore', critical: true },
-    { path: 'js/modules/placements/placements-ui.js', name: 'PlacementsUI', critical: true },
-    { path: 'js/modules/placements/placements-colors.js', name: 'PlacementsColors', critical: true },
-    { path: 'js/modules/placements/placements-export.js', name: 'PlacementsExport', critical: false },
+    // 5. Módulos de placements
+    { type: 'placement', path: 'js/modules/placements/placements-core.js', name: 'PlacementsCore' },
+    { type: 'placement', path: 'js/modules/placements/placements-ui.js', name: 'PlacementsUI' },
+    { type: 'placement', path: 'js/modules/placements/placements-colors.js', name: 'PlacementsColors' },
+    { type: 'placement', path: 'js/modules/placements/placements-export.js', name: 'PlacementsExport' },
     
-    // 7. MÓDULOS DE EXPORTACIÓN
-    { path: 'js/modules/export/pdf-exporter.js', name: 'PDFExporter', critical: false },
-    { path: 'js/modules/export/excel-exporter.js', name: 'ExcelExporter', critical: false },
-    { path: 'js/modules/export/zip-exporter.js', name: 'ZipExporter', critical: false }
+    // 6. Módulos de exportación
+    { type: 'export', path: 'js/modules/export/pdf-exporter.js', name: 'PDFExporter' },
+    { type: 'export', path: 'js/modules/export/excel-exporter.js', name: 'ExcelExporter' },
+    { type: 'export', path: 'js/modules/export/zip-exporter.js', name: 'ZipExporter' }
 ];
 
-// ========== SISTEMA DE CARGA ==========
-class ModuleLoader {
-    constructor() {
-        this.loadedModules = new Map();
-        this.errors = [];
-        this.isLoading = false;
-    }
+// Estado de la aplicación
+const AppState = {
+    loadedModules: {},
+    errors: [],
+    initialized: false,
     
-    async loadAllModules() {
-        if (this.isLoading) return;
-        this.isLoading = true;
+    // Verificar configuraciones críticas
+    checkCriticalConfigs: function() {
+        const criticalConfigs = [
+            { name: 'Config', obj: window.Config, required: true },
+            { name: 'TeamsConfig', obj: window.TeamsConfig, required: false },
+            { name: 'LogoConfig', obj: window.LogoConfig, required: false }
+        ];
         
-        console.log(`📦 Cargando ${MODULES.length} módulos...`);
+        let allGood = true;
+        criticalConfigs.forEach(config => {
+            if (config.required && !config.obj) {
+                console.error(`❌ Configuración crítica faltante: ${config.name}`);
+                allGood = false;
+            } else if (config.obj) {
+                console.log(`✅ ${config.name} cargado`);
+            }
+        });
         
-        for (const module of MODULES) {
-            await this.loadModule(module);
-        }
-        
-        console.log('✅ Todos los módulos cargados');
-        console.log(`📊 Estadísticas: ${this.loadedModules.size} ok, ${this.errors.length} errores`);
-        
-        if (this.errors.length > 0) {
-            console.error('❌ Errores:', this.errors);
-        }
-        
-        return this.loadedModules;
+        return allGood;
     }
+};
+
+// Función para cargar módulos secuencialmente
+async function loadModulesSequentially() {
+    console.log('📦 Iniciando carga secuencial de módulos...');
     
-    async loadModule(module) {
-        // Si ya está cargado, saltar
-        if (this.loadedModules.has(module.name) || window[module.name]) {
-            console.log(`⏭️  ${module.name} ya cargado, omitiendo`);
-            return true;
-        }
+    for (let i = 0; i < MODULES.length; i++) {
+        const module = MODULES[i];
+        console.log(`📥 Cargando (${i+1}/${MODULES.length}): ${module.name} [${module.type}]`);
         
         try {
-            console.log(`📥 Cargando: ${module.name}...`);
-            
-            // Cargar script dinámicamente
-            await this.loadScript(module.path);
-            
-            // Verificar que se exportó
-            await this.verifyModuleExport(module);
-            
-            this.loadedModules.set(module.name, {
-                path: module.path,
-                timestamp: Date.now(),
-                status: 'loaded'
-            });
-            
-            console.log(`✅ ${module.name} cargado correctamente`);
-            return true;
-            
+            await loadModule(module);
+            AppState.loadedModules[module.name] = true;
+            console.log(`✅ ${module.type.toUpperCase()}: ${module.name} - OK`);
         } catch (error) {
-            console.error(`❌ Error cargando ${module.name}:`, error.message);
-            
-            this.errors.push({
+            console.error(`❌ Error al cargar ${module.name}:`, error);
+            AppState.errors.push({
                 module: module.name,
-                path: module.path,
                 error: error.message,
-                timestamp: Date.now()
+                type: module.type
             });
-            
-            // Si es crítico, crear fallback
-            if (module.critical) {
-                await this.createCriticalFallback(module);
-            }
-            
-            return false;
         }
     }
-    
-    loadScript(src) {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = src;
-            script.async = false; // IMPORTANTE: mantener orden
-            
-            script.onload = () => {
-                // Pequeño delay para asegurar ejecución
-                setTimeout(resolve, 50);
-            };
-            
-            script.onerror = () => {
-                reject(new Error(`No se pudo cargar: ${src}`));
-            };
-            
-            document.head.appendChild(script);
-        });
-    }
-    
-    async verifyModuleExport(module) {
-        // Esperar un poco y verificar que el módulo se exportó
-        return new Promise((resolve, reject) => {
-            const maxAttempts = 10;
-            let attempts = 0;
-            
-            const check = () => {
-                attempts++;
-                
+}
+
+// Función para cargar un módulo individual
+function loadModule(module) {
+    return new Promise((resolve, reject) => {
+        // Verificar si ya está cargado
+        if (window[module.name]) {
+            console.log(`⚠️ ${module.name} ya cargado, omitiendo...`);
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = module.path;
+        script.async = false; // IMPORTANTE: carga síncrona
+        
+        script.onload = () => {
+            // Dar tiempo para que el módulo se inicialice
+            setTimeout(() => {
                 if (window[module.name]) {
                     resolve();
-                } else if (attempts >= maxAttempts) {
-                    reject(new Error(`Módulo no exportó "${module.name}" a window`));
                 } else {
-                    setTimeout(check, 50);
+                    // Algunos módulos no exportan a window, solo verificamos que no haya error
+                    console.log(`ℹ️ ${module.name} cargado (sin exportación global)`);
+                    resolve();
                 }
-            };
+            }, 50);
+        };
+        
+        script.onerror = () => {
+            reject(new Error(`Error de red al cargar ${module.path}`));
+        };
+        
+        document.head.appendChild(script);
+    });
+}
+
+// Inicializar aplicación
+async function initializeApp() {
+    console.log('🚀 Inicializando Tegra Spec Manager...');
+    console.log('📊 Verificando configuraciones...');
+    
+    try {
+        // 1. Verificar configuraciones críticas
+        if (!AppState.checkCriticalConfigs()) {
+            throw new Error('Configuraciones críticas faltantes');
+        }
+        
+        // 2. Cargar módulos
+        await loadModulesSequentially();
+        
+        // 3. Verificar módulos críticos
+        const criticalModules = ['PlacementsCore', 'PlacementsUI', 'SpecsManager', 'TabsManager'];
+        const missingCritical = criticalModules.filter(m => !AppState.loadedModules[m] && !window[m]);
+        
+        if (missingCritical.length > 0) {
+            console.warn(`⚠️ Módulos críticos faltantes: ${missingCritical.join(', ')}`);
+            console.log('Intentando cargar versiones de respaldo...');
+            // Continuar de todos modos, algunos módulos pueden estar en window
+        }
+        
+        // 4. Inicializar variables globales
+        if (!window.globalPlacements) window.globalPlacements = [];
+        if (!window.globalCurrentPlacementId) window.globalCurrentPlacementId = 1;
+        
+        // 5. Inicializar módulos en orden correcto
+        console.log('🔄 Inicializando módulos...');
+        
+        // TabsManager primero (para navegación)
+        if (window.TabsManager && window.TabsManager.init) {
+            window.TabsManager.init();
+        } else {
+            console.warn('TabsManager no disponible, usando navegación básica');
+            setupBasicTabs();
+        }
+        
+        // ThemeManager
+        if (window.ThemeManager && window.ThemeManager.init) {
+            window.ThemeManager.init();
+        }
+        
+        // PlacementsCore
+        if (window.PlacementsCore && window.PlacementsCore.initializePlacements) {
+            window.PlacementsCore.initializePlacements();
+        }
+        
+        // SpecsManager
+        if (window.SpecsManager && window.SpecsManager.init) {
+            window.SpecsManager.init();
+        }
+        
+        // ClientManager
+        if (window.ClientManager && window.ClientManager.init) {
+            window.ClientManager.init();
+        }
+        
+        // DashboardManager
+        if (window.DashboardManager && window.DashboardManager.updateDashboard) {
+            setTimeout(() => {
+                window.DashboardManager.updateDashboard();
+                window.DashboardManager.updateDateTime();
+                setInterval(() => {
+                    if (window.DashboardManager.updateDateTime) {
+                        window.DashboardManager.updateDateTime();
+                    }
+                }, 60000);
+            }, 500);
+        }
+        
+        // 6. Configurar event listeners globales
+        setupGlobalEventListeners();
+        
+        // 7. Mostrar dashboard inicial
+        if (window.TabsManager && window.TabsManager.showTab) {
+            window.TabsManager.showTab('dashboard');
+        } else {
+            showTab('dashboard');
+        }
+        
+        AppState.initialized = true;
+        
+        // 8. Mostrar resumen
+        console.log('🎉 Tegra Spec Manager inicializado correctamente');
+        console.log('📊 Resumen:', {
+            totalModules: MODULES.length,
+            loadedSuccessfully: Object.keys(AppState.loadedModules).length,
+            errors: AppState.errors.length,
+            configs: {
+                Config: !!window.Config,
+                TeamsConfig: !!window.TeamsConfig,
+                LogoConfig: !!window.LogoConfig
+            }
+        });
+        
+        showAppStatus('✅ Aplicación lista para usar', 'success');
+        
+        // 9. Si hay errores, mostrarlos pero no bloquear
+        if (AppState.errors.length > 0) {
+            console.warn(`⚠️ Se encontraron ${AppState.errors.length} errores no críticos:`);
+            AppState.errors.forEach(err => {
+                console.warn(`   - ${err.module}: ${err.error}`);
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Error fatal al inicializar:', error);
+        showAppStatus(`❌ Error: ${error.message}`, 'error');
+        
+        // Intentar modo mínimo funcional
+        setTimeout(() => {
+            console.log('🔄 Intentando modo mínimo...');
+            initializeMinimalMode();
+        }, 1000);
+    }
+}
+
+// Navegación básica de pestañas (fallback)
+function setupBasicTabs() {
+    const tabs = document.querySelectorAll('.nav-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
             
-            check();
+            // Remover activo de todos
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(tc => tc.classList.remove('active'));
+            
+            // Activar actual
+            this.classList.add('active');
+            const targetTab = document.getElementById(tabName);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+        });
+    });
+}
+
+function showTab(tabName) {
+    const tabs = document.querySelectorAll('.nav-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(t => t.classList.remove('active'));
+    tabContents.forEach(tc => tc.classList.remove('active'));
+    
+    const targetTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+    const targetContent = document.getElementById(tabName);
+    
+    if (targetTab) targetTab.classList.add('active');
+    if (targetContent) targetContent.classList.add('active');
+}
+
+// Configurar event listeners globales
+function setupGlobalEventListeners() {
+    console.log('🔗 Configurando event listeners...');
+    
+    // Navegación por pestañas (si no hay TabsManager)
+    if (!window.TabsManager) {
+        document.addEventListener('click', (e) => {
+            const tabElement = e.target.closest('.nav-tab');
+            if (tabElement) {
+                const tabName = tabElement.getAttribute('data-tab');
+                showTab(tabName);
+            }
         });
     }
     
-    async createCriticalFallback(module) {
-        console.log(`🆘 Creando fallback para ${module.name}...`);
-        
-        // Fallbacks básicos para módulos críticos
-        const fallbacks = {
-            'Detectors': `
-                window.Detectors = {
-                    detectTeamFromStyle: (s) => s ? s.toUpperCase().includes('DODGERS') ? 'DODGERS' : '' : '',
-                    extractGenderFromStyle: (s) => s ? (s.toUpperCase().includes('MENS') ? 'M' : 
-                                                      s.toUpperCase().includes('WOMENS') ? 'F' : '') : ''
-                };
-            `,
-            'PlacementsCore': `
-                window.PlacementsCore = {
-                    initializePlacements: () => { console.log('Placements (fallback)'); return 1; },
-                    getAllPlacements: () => window.globalPlacements || [],
-                    getPlacementById: (id) => (window.globalPlacements || []).find(p => p.id === id)
-                };
-            `,
-            'PlacementsUI': `
-                window.PlacementsUI = {
-                    initializePlacementsUI: () => { 
-                        if (!window.globalPlacements) window.globalPlacements = [];
-                        return true; 
-                    }
-                };
-            `
-        };
-        
-        if (fallbacks[module.name]) {
-            const script = document.createElement('script');
-            script.textContent = fallbacks[module.name];
-            document.head.appendChild(script);
-            
-            this.loadedModules.set(module.name, {
-                path: 'fallback',
-                timestamp: Date.now(),
-                status: 'fallback'
-            });
-            
-            console.log(`✅ Fallback creado para ${module.name}`);
-        }
-    }
-    
-    getModuleStatus() {
-        return {
-            total: MODULES.length,
-            loaded: this.loadedModules.size,
-            errors: this.errors.length,
-            modules: Array.from(this.loadedModules.entries()).map(([name, data]) => ({
-                name,
-                path: data.path,
-                status: data.status
-            }))
-        };
+    // Auto-detección en input de STYLE
+    const styleInput = document.getElementById('style');
+    if (styleInput && window.Detectors) {
+        styleInput.addEventListener('input', function() {
+            if (window.Detectors.autoDetectFromStyleInput) {
+                window.Detectors.autoDetectFromStyleInput(this);
+            }
+        });
     }
 }
 
-// ========== INICIALIZACIÓN DE LA APLICACIÓN ==========
-async function initializeApplication() {
-    console.log('🚀 Inicializando Tegra Spec Manager...');
+// Modo mínimo funcional
+function initializeMinimalMode() {
+    console.log('🔧 Iniciando modo mínimo funcional...');
     
-    try {
-        // 1. Crear y configurar loader
-        const loader = new ModuleLoader();
-        window.AppLoader = loader; // Para debugging
-        
-        // 2. Cargar todos los módulos
-        await loader.loadAllModules();
-        
-        // 3. Verificar módulos críticos
-        const criticalModules = MODULES.filter(m => m.critical).map(m => m.name);
-        const missingCritical = criticalModules.filter(name => !loader.loadedModules.has(name));
-        
-        if (missingCritical.length > 0) {
-            throw new Error(`Módulos críticos faltantes: ${missingCritical.join(', ')}`);
-        }
-        
-        // 4. Inicializar módulos en orden
-        await initializeModulesInOrder();
-        
-        // 5. Configurar UI
-        setupApplicationUI();
-        
-        console.log('🎉 Tegra Spec Manager inicializado exitosamente!');
-        showStatus('✅ Aplicación lista', 'success');
-        
-    } catch (error) {
-        console.error('❌ Error fatal:', error);
-        showStatus(`Error: ${error.message}`, 'error');
-        emergencyMode();
-    }
-}
-
-// ========== FUNCIONES AUXILIARES ==========
-
-async function initializeModulesInOrder() {
-    const initSequence = [
-        { check: () => window.PlacementsCore, init: 'initializePlacements' },
-        { check: () => window.PlacementsUI, init: 'initializePlacementsUI' },
-        { check: () => window.TabsManager, init: 'init' },
-        { check: () => window.ThemeManager, init: 'init' },
-        { check: () => window.ClientManager, init: 'init' },
-        { check: () => window.SpecsManager, init: 'init' },
-        { check: () => window.StorageManager, init: 'init' },
-        { check: () => window.DashboardManager, init: 'init' }
+    // Cargar solo lo esencial
+    const essentialScripts = [
+        'js/modules/ui/tabs-manager.js',
+        'js/modules/placements/placements-ui.js'
     ];
     
-    for (const module of initSequence) {
-        if (module.check() && module.check()[module.init]) {
-            try {
-                console.log(`⚙️  Inicializando ${module.check().constructor.name}...`);
-                module.check()[module.init]();
-            } catch (err) {
-                console.error(`❌ Error inicializando módulo:`, err);
-            }
-        }
-    }
+    essentialScripts.forEach(src => {
+        const script = document.createElement('script');
+        script.src = src;
+        document.head.appendChild(script);
+    });
+    
+    // Configurar navegación básica
+    setTimeout(() => {
+        setupBasicTabs();
+        showAppStatus('🔧 Modo mínimo activado', 'warning');
+    }, 1500);
 }
 
-function setupApplicationUI() {
-    // Mostrar dashboard inicial
-    if (window.TabsManager && window.TabsManager.showTab) {
-        window.TabsManager.showTab('dashboard');
-    }
+// Función para mostrar estado
+function showAppStatus(message, type = 'info') {
+    console.log(`📢 [${type.toUpperCase()}] ${message}`);
     
-    // Configurar auto-detección en input de estilo
-    const styleInput = document.getElementById('style');
-    if (styleInput && window.Detectors && window.Utils) {
-        styleInput.addEventListener('input', window.Utils.debounce(function() {
-            window.Detectors.autoDetectFromStyleInput(this);
-        }, 500));
-    }
-    
-    // Configurar auto-guardado
-    if (window.SpecsManager && window.SpecsManager.autoSave) {
-        setInterval(() => {
-            window.SpecsManager.autoSave();
-        }, 120000); // 2 minutos
-    }
-    
-    // Actualizar dashboard cada minuto
-    if (window.DashboardManager && window.DashboardManager.updateDateTime) {
-        window.DashboardManager.updateDateTime();
-        setInterval(() => window.DashboardManager.updateDateTime(), 60000);
-    }
-}
-
-function showStatus(message, type = 'info') {
     const statusEl = document.getElementById('statusMessage');
     if (statusEl) {
         statusEl.textContent = message;
@@ -318,24 +347,31 @@ function showStatus(message, type = 'info') {
     }
 }
 
-function emergencyMode() {
-    console.log('🆘 Activando modo de emergencia...');
-    
-    // Cargar HTML básico si no hay UI
-    if (!document.getElementById('dashboard')) {
-        document.body.innerHTML = `
-            <div style="padding: 20px; font-family: Arial;">
-                <h1>⚠️ Tegra Spec Manager - Modo Emergencia</h1>
-                <p>La aplicación encontró un error crítico.</p>
-                <button onclick="location.reload()">Reintentar</button>
-            </div>
-        `;
-    }
+// Iniciar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    setTimeout(initializeApp, 100); // Dar tiempo extra
 }
 
-// ========== INICIAR APLICACIÓN ==========
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApplication);
-} else {
-    initializeApplication();
-}
+// API global para debugging
+window.TegraDebug = {
+    getState: () => AppState,
+    showModules: () => {
+        console.table(MODULES.map(m => ({
+            name: m.name,
+            path: m.path,
+            loaded: !!window[m.name] || AppState.loadedModules[m.name],
+            type: m.type
+        })));
+    },
+    testConfig: () => {
+        console.log('🧪 Test de configuraciones:');
+        console.log('- Config:', window.Config ? '✅' : '❌');
+        console.log('- TeamsConfig:', window.TeamsConfig ? '✅' : '❌');
+        console.log('- LogoConfig:', window.LogoConfig ? '✅' : '❌');
+        console.log('- Utils:', window.Utils ? '✅' : '❌');
+    }
+};
+
+console.log('✅ Main.js cargado - Esperando DOM...');
