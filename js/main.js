@@ -252,6 +252,13 @@ function showAppStatus(message, type = 'info') {
         }, 4000);
     }
 }
+// Configurar auto-detección en el input de STYLE
+const styleInput = document.getElementById('style');
+if (styleInput && window.Detectors) {
+    styleInput.addEventListener('input', window.Utils.debounce(function() {
+        window.Detectors.autoDetectFromStyleInput(this);
+    }, 500));
+}
 
 // Modo de emergencia
 function loadEmergencyMode() {
