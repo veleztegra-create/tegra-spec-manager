@@ -165,47 +165,31 @@ async function initializeApp() {
         
         // 5. Inicializar módulos en orden correcto
         console.log('🔄 Inicializando módulos...');
-        
-        // TabsManager primero (para navegación)
-        if (window.TabsManager && window.TabsManager.init) {
-            window.TabsManager.init();
-        } else {
-            console.warn('TabsManager no disponible, usando navegación básica');
-            setupBasicTabs();
+
+// Función segura para inicializar
+function safeInit(moduleName, initFunction) {
+    try {
+        if (window[moduleName] && typeof window[moduleName][initFunction] === 'function') {
+            window[moduleName][initFunction]();
+            console.log(`✅ ${moduleName} inicializado`);
+            return true;
         }
-        
-        // ThemeManager
-        if (window.ThemeManager && window.ThemeManager.init) {
-            window.ThemeManager.init();
+        return false;
+    } catch (error) {
+        console.error(`❌ Error al inicializar ${moduleName}:`, error);
+        if (window.ErrorHandler) {
+            window.ErrorHandler.log(error, { module: moduleName });
         }
-        
-        // PlacementsCore
-        if (window.PlacementsCore && window.PlacementsCore.initializePlacements) {
-            window.PlacementsCore.initializePlacements();
-        }
-        
-        // SpecsManager
-        if (window.SpecsManager && window.SpecsManager.init) {
-            window.SpecsManager.init();
-        }
-        
-        // ClientManager
-        if (window.ClientManager && window.ClientManager.init) {
-            window.ClientManager.init();
-        }
-        
-        // DashboardManager
-        if (window.DashboardManager && window.DashboardManager.updateDashboard) {
-            setTimeout(() => {
-                window.DashboardManager.updateDashboard();
-                window.DashboardManager.updateDateTime();
-                setInterval(() => {
-                    if (window.DashboardManager.updateDateTime) {
-                        window.DashboardManager.updateDateTime();
-                    }
-                }, 60000);
-            }, 500);
-        }
+        return false;
+    }
+}
+
+// Inicializar en orden
+safeInit('TabsManager', 'init') || console.warn('TabsManager no disponible');
+safeInit('ThemeManager', 'init') || console.warn('ThemeManager no disponible');
+safeInit('PlacementsCore', 'initializePlacements') || console.warn('PlacementsCore no disponible');
+safeInit('SpecsManager', 'init') || console.warn('SpecsManager no disponible');
+safeInit('ClientManager', 'init') || console.warn('ClientManager no disponible');
         
         // 6. Configurar event listeners globales
         setupGlobalEventListeners();
