@@ -512,8 +512,8 @@ const SpecsManager = (function() {
             localStorage.removeItem(key);
             
             // Recargar lista
-            if (window.SpecsManager && window.SpecsManager.loadSavedSpecsList) {
-                window.SpecsManager.loadSavedSpecsList();
+            if (window.SSpecsDataManager && window.SpecsManager.loadSavedSpecsList) {
+                window.SpecsDataManager.loadSavedSpecsList();
             }
             
             // Actualizar dashboard
@@ -646,7 +646,7 @@ const SpecsManager = (function() {
 })();
 
 // ========== EXPORTACIÓN GLOBAL ==========
-window.SpecsManager = SpecsManager;
+window.SpecsDataManager= SpecsManager;
 window.saveCurrentSpec = SpecsManager.saveCurrentSpec; // Para compatibilidad
 window.collectData = SpecsManager.collectData; // Para compatibilidad
 window.loadSpecData = SpecsManager.loadSpecData; // Para compatibilidad
