@@ -81,6 +81,7 @@ const ThemeManager = (function() {
         
         // 3. Configurar el botón (ya se hizo en main.js)
         
+        publicAPI._initialized = true;
         console.log('✅ ThemeManager inicializado');
         return true;
     }
@@ -106,51 +107,7 @@ const ThemeManager = (function() {
         }
     }
     
-    function toggleTheme() {
-        console.log('🔄 Cambiando tema...');
-        
-        // Cambiar modo
-        isDarkMode = !isDarkMode;
-        
-        // Aplicar cambios
-        applyThemeToUI();
-        
-        // Guardar preferencia
-        saveThemePreference();
-        
-        return isDarkMode;
-    }
-    
-    function setTheme(darkMode) {
-        if (typeof darkMode !== 'boolean') {
-            console.error('❌ setTheme requiere un booleano');
-            return false;
-        }
-        
-        isDarkMode = darkMode;
-        applyThemeToUI();
-        saveThemePreference();
-        
-        return true;
-    }
-    
-    function getCurrentTheme() {
-        return {
-            isDarkMode: isDarkMode,
-            name: isDarkMode ? 'dark' : 'light',
-            displayName: isDarkMode ? 'Modo Oscuro' : 'Modo Claro'
-        };
-    }
-    
-    // ========== EXPORTAR MÓDULO ==========
-    
-    const publicAPI = {
-        // Métodos principales
-        initialize,
-        toggleTheme,
-        setTheme,
-        getCurrentTheme,
-        loadSavedTheme,
+@@ -154,36 +155,44 @@ const ThemeManager = (function() {
         
         // Para compatibilidad
         toggle: toggleTheme, // alias
@@ -177,12 +134,22 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         if (ThemeManager && typeof ThemeManager.initialize === 'function') {
             setTimeout(() => ThemeManager.initialize(), 100);
+            setTimeout(() => {
+                if (!ThemeManager._initialized) {
+                    ThemeManager.initialize();
+                }
+            }, 100);
         }
     });
 } else {
     // DOM ya cargado
     if (ThemeManager && typeof ThemeManager.initialize === 'function') {
         setTimeout(() => ThemeManager.initialize(), 100);
+        setTimeout(() => {
+            if (!ThemeManager._initialized) {
+                ThemeManager.initialize();
+            }
+        }, 100);
     }
 }
 
