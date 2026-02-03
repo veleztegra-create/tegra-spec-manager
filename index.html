@@ -125,23 +125,41 @@
               <!-- Se llena dinámicamente por PlacementsUI -->
           </div>
           
-          <!-- PESTAÑA GUARDADAS (FALTABA CONTENIDO) -->
-          <div class="tab-content" id="saved-specs">
-              <div class="card">
-                  <div class="card-header">
-                      <h2 class="card-title"><i class="fas fa-database"></i> Especificaciones Guardadas</h2>
-                  </div>
-                  <div class="card-body">
-                      <!-- AÑADIR LISTA DE SPECS -->
-                      <div id="saved-specs-list">
-                          <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
-                              <i class="fas fa-spinner fa-spin"></i> Cargando especificaciones...
-                          </p>
-                      </div>
-                  </div>
-              </div>
-          </div>
-          
+          <!-- PESTAÑA CREAR SPEC -->
+<div class="tab-content" id="spec-creator">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-plus-circle"></i> Crear Nueva Especificación</h2>
+        </div>
+        <div class="card-body">
+            <!-- CONTENEDOR PRINCIPAL PARA PLACEMENTS -->
+            <div id="placements-container">
+                <!-- Aquí se renderizan los placements -->
+                <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
+                    <i class="fas fa-spinner fa-spin"></i> Cargando editor de placements...
+                </p>
+            </div>
+            
+            <!-- PESTAÑAS DE PLACEMENTS -->
+            <div id="placements-tabs-container" class="placement-tabs">
+                <!-- Se llena dinámicamente por PlacementsUI -->
+            </div>
+            
+            <!-- BOTONES DE ACCIÓN -->
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="add-placement-btn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Agregar Placement
+                </button>
+                <button id="save-spec-btn" class="btn btn-success">
+                    <i class="fas fa-save"></i> Guardar Spec
+                </button>
+                <button id="export-pdf-btn" class="btn btn-warning">
+                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
           <!-- PESTAÑA ERROR LOG -->
           <div class="tab-content" id="error-log">
               <div class="card">
