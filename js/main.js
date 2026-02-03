@@ -205,7 +205,7 @@ function setupGlobalEventListeners() {
         });
     }
     
-    // Input de cliente
+   // Input de cliente
     const customerInput = document.getElementById('customer');
     if (customerInput && window.ClientManager) {
         customerInput.addEventListener('input', () => {
@@ -232,6 +232,21 @@ function setupGlobalEventListeners() {
             if (specData) {
                 safeInit('SpecsManager', 'saveSpec', specData);
                 showAppStatus('Spec guardada correctamente', 'success');
+                if (window.SpecsManager && typeof window.SpecsManager.saveCurrentSpec === 'function') {
+                    window.SpecsManager.saveCurrentSpec();
+                } else {
+                    safeInit('SpecsManager', 'saveSpec', specData);
+                }
+            }
+        });
+    }
+
+    // Botón para cambiar tema
+    const themeToggleBtn = document.getElementById('themeToggle');
+    if (themeToggleBtn && window.ThemeManager) {
+        themeToggleBtn.addEventListener('click', () => {
+            if (window.ThemeManager.toggleTheme) {
+                window.ThemeManager.toggleTheme();
             }
         });
     }
@@ -257,10 +272,7 @@ function collectSpecFormData() {
                            fieldId === 'ink-type' ? 'inkType' : fieldId;
             
             specData[specKey] = element.value;
-            
-            if (fieldId === 'style' || fieldId === 'customer') {
-                hasRequired = true;
-            }
+@@ -264,90 +277,80 @@ function collectSpecFormData() {
         }
     });
     
@@ -288,9 +300,12 @@ function initializeModules() {
     const initOrder = [
         { module: 'TabsManager', func: 'init' },
         { module: 'ThemeManager', func: 'init' },
+        { module: 'TabsManager', func: 'initialize' },
+        { module: 'ThemeManager', func: 'initialize' },
         { module: 'PlacementsCore', func: 'initializePlacements' },
         { module: 'SpecsManager', func: 'init' },
         { module: 'DashboardManager', func: 'init' },
+        { module: 'DashboardManager', func: 'initialize' },
         { module: 'ClientManager', func: 'init' },
         { module: 'StorageManager', func: 'init' }
     ];
@@ -326,6 +341,17 @@ function setupAutoUpdates() {
                 window.DashboardManager.updateDashboard();
             }
         }, 30000);
+    // Delegar auto-updates al DashboardManager si existe
+    if (window.DashboardManager) {
+        if (window.DashboardManager.updateDateTime) {
+            window.DashboardManager.updateDateTime();
+        }
+        if (window.DashboardManager.updateDashboard) {
+            setTimeout(() => window.DashboardManager.updateDashboard(), 1000);
+        }
+        if (window.DashboardManager.startAutoUpdate) {
+            window.DashboardManager.startAutoUpdate();
+        }
     }
 }
 
@@ -351,6 +377,7 @@ async function initializeApp() {
         // 4. Inicializar variables globales
         if (!window.globalPlacements) window.globalPlacements = [];
         if (!window.globalCurrentPlacementId) window.globalCurrentPlacementId = 1;
+
         
         // 5. Inicializar módulos
         initializeModules();
