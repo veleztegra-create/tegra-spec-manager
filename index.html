@@ -303,7 +303,7 @@
           </div>
       </div>
 
-      <!-- STATUS MESSAGE -->
+    <!-- STATUS MESSAGE -->
       <div id="statusMessage" class="status-message"></div>
   </div>
 
@@ -325,6 +325,8 @@
           refreshSpecsBtn.addEventListener('click', function() {
               if (window.SpecsManager && window.SpecsManager.updateSavedSpecsList) {
                   window.SpecsManager.updateSavedSpecsList();
+              if (window.SpecsManager && window.SpecsManager.loadSavedSpecsList) {
+                  window.SpecsManager.loadSavedSpecsList();
                   showTempMessage('Lista de specs actualizada', 'success');
               }
           });
@@ -350,6 +352,7 @@
           });
           
           importSpecFile.addEventListener('change', function(e) {
+
               const file = e.target.files[0];
               if (file && window.SpecsManager && window.SpecsManager.importSpecFromJSON) {
                   const reader = new FileReader();
