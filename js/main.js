@@ -59,14 +59,23 @@ function waitForGlobal(moduleName, maxAttempts = 15, interval = 200) {
 }
 
 // Función segura para inicializar módulos
+// En la función safeInit, cambiar:
 function safeInit(moduleName, initFunction, ...args) {
     try {
         if (window[moduleName] && typeof window[moduleName][initFunction] === 'function') {
+            // Verificar si ya se inicializó
+            if (window[moduleName]._initialized) {
+                console.log(`📌 ${moduleName} ya inicializado, omitiendo...`);
+                return null;
+            }
+            
             const result = window[moduleName][initFunction](...args);
+            window[moduleName]._initialized = true;
             console.log(`✅ ${moduleName}.${initFunction}() ejecutado`);
             return result;
         } else {
-            console.warn(`⚠️ ${moduleName}.${initFunction} no disponible`);
+            // Cambiar de warning a info
+            console.log(`ℹ️ ${moduleName}.${initFunction} ya inicializado o no disponible`);
             return null;
         }
     } catch (error) {
@@ -77,7 +86,6 @@ function safeInit(moduleName, initFunction, ...args) {
         return null;
     }
 }
-
 // Cargar un módulo individual
 function loadModule(module) {
     return new Promise((resolve) => {
