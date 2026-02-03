@@ -1,22 +1,26 @@
-// js/main.js - PUNTO DE ENTRADA PRINCIPAL OPTIMIZADO
+// js/main.js - VERSIÓN CORREGIDA Y FINAL
 console.log('🎯 Tegra Spec Manager - Inicializando aplicación');
 
 // ========== CONFIGURACIÓN DE MÓDULOS OPTIMIZADA ==========
-// NOTA: Algunos módulos ya se cargan en index.html, NO los dupliques aquí
+// NOTA: Estos módulos NO están en index.html, los cargamos aquí:
 const MODULES = [
-    // Estos módulos NO están en index.html, los cargamos aquí:
+    // Utilerías
     { type: 'util', path: 'js/utils/helpers.js', name: 'Utils' },
     { type: 'util', path: 'js/utils/validators.js', name: 'Validators' },
     { type: 'util', path: 'js/utils/detectors.js', name: 'Detectors' },
     { type: 'util', path: 'js/utils/render-helpers.js', name: 'RenderHelpers' },
+    
+    // Core
     { type: 'core', path: 'js/core/state-manager.js', name: 'StateManager' },
     { type: 'core', path: 'js/core/error-handler.js', name: 'ErrorHandler' },
     
-    // Placements y Export (no están en index.html)
+    // Placements
     { type: 'placement', path: 'js/modules/placements/placements-core.js', name: 'PlacementsCore' },
     { type: 'placement', path: 'js/modules/placements/placements-ui.js', name: 'PlacementsUI' },
     { type: 'placement', path: 'js/modules/placements/placements-colors.js', name: 'PlacementsColors' },
     { type: 'placement', path: 'js/modules/placements/placements-export.js', name: 'PlacementsExport' },
+    
+    // Export
     { type: 'export', path: 'js/modules/export/pdf-exporter.js', name: 'PDFExporter' },
     { type: 'export', path: 'js/modules/export/excel-exporter.js', name: 'ExcelExporter' },
     { type: 'export', path: 'js/modules/export/zip-exporter.js', name: 'ZipExporter' }
@@ -33,12 +37,13 @@ const AppState = {
 // ========== FUNCIONES AUXILIARES ==========
 
 // Esperar a que un módulo global esté disponible
-function waitForGlobal(moduleName, maxAttempts = 20, interval = 100) {
+function waitForGlobal(moduleName, maxAttempts = 15, interval = 200) {
     return new Promise((resolve) => {
         let attempts = 0;
         
         const check = () => {
             if (window[moduleName]) {
+                console.log(`✅ ${moduleName} disponible`);
                 resolve(true);
             } else if (attempts < maxAttempts) {
                 attempts++;
@@ -60,8 +65,10 @@ function safeInit(moduleName, initFunction, ...args) {
             const result = window[moduleName][initFunction](...args);
             console.log(`✅ ${moduleName}.${initFunction}() ejecutado`);
             return result;
+        } else {
+            console.warn(`⚠️ ${moduleName}.${initFunction} no disponible`);
+            return null;
         }
-        return null;
     } catch (error) {
         console.error(`❌ Error en ${moduleName}.${initFunction}():`, error);
         if (window.ErrorHandler) {
@@ -117,13 +124,15 @@ function loadModule(module) {
 // Cargar módulos secuencialmente
 async function loadModulesSequentially() {
     console.log('📦 Cargando módulos adicionales...');
+    console.log(`📊 Total a cargar: ${MODULES.length} módulos`);
     
     for (let i = 0; i < MODULES.length; i++) {
         const module = MODULES[i];
-        console.log(`📥 (${i+1}/${MODULES.length}): ${module.name}`);
-        
+        console.log(`📥 (${i+1}/${MODULES.length}): ${module.name} [${module.type}]`);
         await loadModule(module);
     }
+    
+    console.log('✅ Todos los módulos cargados');
 }
 
 // Verificar configuraciones críticas
@@ -162,14 +171,14 @@ async function waitForIndexModules() {
     ];
     
     const results = await Promise.all(
-        indexModules.map(module => waitForGlobal(module, 15, 200))
+        indexModules.map(module => waitForGlobal(module, 10, 300))
     );
     
     // Contar cuántos están disponibles
     const available = results.filter(Boolean).length;
     console.log(`📊 Módulos index.html: ${available}/${indexModules.length} disponibles`);
     
-    return available > 0; // Continuar si al menos uno está disponible
+    return available >= 3; // Necesitamos al menos 3 para funcionar
 }
 
 // Configurar event listeners globales
@@ -178,9 +187,9 @@ function setupGlobalEventListeners() {
     
     // Auto-detección en input de STYLE
     const styleInput = document.getElementById('style');
-    if (styleInput) {
+    if (styleInput && window.Detectors) {
         styleInput.addEventListener('input', function() {
-            if (window.Detectors && window.Detectors.autoDetectFromStyleInput) {
+            if (window.Detectors.autoDetectFromStyleInput) {
                 setTimeout(() => {
                     window.Detectors.autoDetectFromStyleInput(this);
                 }, 300);
@@ -191,11 +200,11 @@ function setupGlobalEventListeners() {
     // Input de cliente
     const customerInput = document.getElementById('customer');
     if (customerInput && window.ClientManager) {
-        customerInput.addEventListener('input', window.Utils.debounce(() => {
+        customerInput.addEventListener('input', () => {
             if (window.ClientManager.updateClientLogo) {
-                window.ClientManager.updateClientLogo();
+                setTimeout(() => window.ClientManager.updateClientLogo(), 500);
             }
-        }, 500));
+        });
     }
     
     // Botón para agregar placement
@@ -233,7 +242,13 @@ function collectSpecFormData() {
     fields.forEach(fieldId => {
         const element = document.getElementById(fieldId);
         if (element && element.value) {
-            specData[fieldId === 'style' ? 'styleNumber' : fieldId] = element.value;
+            // Mapear nombres de campos
+            const specKey = fieldId === 'style' ? 'styleNumber' : 
+                           fieldId === 'name-team' ? 'teamName' :
+                           fieldId === 'folder-num' ? 'folderNumber' :
+                           fieldId === 'ink-type' ? 'inkType' : fieldId;
+            
+            specData[specKey] = element.value;
             
             if (fieldId === 'style' || fieldId === 'customer') {
                 hasRequired = true;
@@ -272,9 +287,38 @@ function initializeModules() {
         { module: 'StorageManager', func: 'init' }
     ];
     
+    // Ejecutar inicializaciones
     initOrder.forEach(item => {
         safeInit(item.module, item.func);
     });
+}
+
+// Configurar auto-updates
+function setupAutoUpdates() {
+    console.log('⏰ Configurando auto-updates...');
+    
+    // Actualizar fecha/hora cada minuto
+    if (window.DashboardManager && window.DashboardManager.updateDateTime) {
+        window.DashboardManager.updateDateTime();
+        setInterval(() => {
+            if (window.DashboardManager.updateDateTime) {
+                window.DashboardManager.updateDateTime();
+            }
+        }, 60000);
+    }
+    
+    // Actualizar dashboard cada 30 segundos
+    if (window.DashboardManager && window.DashboardManager.updateDashboard) {
+        setTimeout(() => {
+            window.DashboardManager.updateDashboard();
+        }, 1000);
+        
+        setInterval(() => {
+            if (window.DashboardManager.updateDashboard) {
+                window.DashboardManager.updateDashboard();
+            }
+        }, 30000);
+    }
 }
 
 // Inicializar aplicación principal
@@ -286,10 +330,15 @@ async function initializeApp() {
         await checkCriticalConfigs();
         
         // 2. Esperar módulos de index.html
-        await waitForIndexModules();
+        const indexModulesReady = await waitForIndexModules();
         
-        // 3. Cargar módulos adicionales
-        await loadModulesSequencially();
+        if (!indexModulesReady) {
+            console.warn('⚠️ Pocos módulos de index.html disponibles');
+            // Continuar de todos modos
+        }
+        
+        // 3. Cargar módulos adicionales (los que NO están en index.html)
+        await loadModulesSequentially();
         
         // 4. Inicializar variables globales
         if (!window.globalPlacements) window.globalPlacements = [];
@@ -309,29 +358,10 @@ async function initializeApp() {
                 // Fallback básico
                 showTab('dashboard');
             }
-        }, 500);
+        }, 800);
         
-        // 8. Configurar auto-update del dashboard
-        setTimeout(() => {
-            if (window.DashboardManager && window.DashboardManager.updateDashboard) {
-                window.DashboardManager.updateDashboard();
-                window.DashboardManager.updateDateTime();
-                
-                // Actualizar cada minuto
-                setInterval(() => {
-                    if (window.DashboardManager.updateDateTime) {
-                        window.DashboardManager.updateDateTime();
-                    }
-                }, 60000);
-                
-                // Actualizar dashboard cada 30 segundos
-                setInterval(() => {
-                    if (window.DashboardManager.updateDashboard) {
-                        window.DashboardManager.updateDashboard();
-                    }
-                }, 30000);
-            }
-        }, 1000);
+        // 8. Configurar auto-updates
+        setupAutoUpdates();
         
         // 9. Marcar como inicializado
         AppState.initialized = true;
@@ -360,7 +390,7 @@ async function initializeApp() {
         showAppStatus(`❌ Error: ${error.message}`, 'error');
         
         // Intentar modo de recuperación
-        setTimeout(initializeRecoveryMode, 1500);
+        setTimeout(initializeRecoveryMode, 1000);
     }
 }
 
@@ -383,31 +413,18 @@ function showTab(tabName) {
 function initializeRecoveryMode() {
     console.log('🔄 Iniciando modo de recuperación...');
     
-    // Cargar lo mínimo esencial
-    const recoveryScripts = [
-        'js/modules/ui/tabs-manager.js',
-        'js/modules/placements/placements-ui.js'
-    ];
-    
-    recoveryScripts.forEach(src => {
-        if (!document.querySelector(`script[src="${src}"]`)) {
-            const script = document.createElement('script');
-            script.src = src;
-            document.head.appendChild(script);
-        }
+    // Configurar navegación básica
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            showTab(tabName);
+        });
     });
     
-    // Configurar navegación básica
-    setTimeout(() => {
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const tabName = this.getAttribute('data-tab');
-                showTab(tabName);
-            });
-        });
-        
-        showAppStatus('🔧 Modo de recuperación activado', 'warning');
-    }, 2000);
+    // Mostrar dashboard
+    showTab('dashboard');
+    
+    showAppStatus('🔧 Modo de recuperación activado', 'warning');
 }
 
 // Mostrar mensaje de estado
@@ -433,10 +450,10 @@ function showAppStatus(message, type = 'info') {
 // Esperar a que el DOM esté completamente cargado
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(initializeApp, 300); // Pequeño delay para estabilidad
+        setTimeout(initializeApp, 500); // Pequeño delay para estabilidad
     });
 } else {
-    setTimeout(initializeApp, 300);
+    setTimeout(initializeApp, 500);
 }
 
 // ========== API GLOBAL PARA DEBUGGING ==========
@@ -477,6 +494,11 @@ window.TegraDebug = {
             return stats;
         }
         return null;
+    },
+    
+    forceReload: () => {
+        console.log('🔄 Forzando recarga de la aplicación...');
+        location.reload();
     }
 };
 
