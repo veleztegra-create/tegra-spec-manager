@@ -12,7 +12,7 @@ const ClientManager = (function() {
         } else {
             console.warn('⚠️ ClientDataManager no está disponible.');
         }
-        console.log('✅ ClientManager (Orquestador) listo.');
+        console.log('✅ ClientDataManager (Orquestador) listo.');
     }
     
     function updateClientLogo() {
@@ -40,11 +40,11 @@ const ClientManager = (function() {
         detectClientFromCode
     };
     
-    window.ClientManager = publicAPI;
+    window.ClientDataManager = publicAPI;
     console.log('✅ ClientManager (Orquestador) cargado.');
     return publicAPI;
     
 })();
 
 // Auto-inicialización diferida
-setTimeout(() => { if (window.ClientManager) ClientManager.init(); }, 1000);
+setTimeout(() => { if (window.ClientDataManager) ClientDataManager.init(); }, 1000);
