@@ -90,10 +90,11 @@ async function loadModulesSequentially() {
 }
 
 // Función para cargar un módulo individual
+
 function loadModule(module) {
     return new Promise((resolve, reject) => {
-        // Verificar si ya está cargado
-        if (window[module.name]) {
+        // Verificar si ya está cargado - CON MÁS TOLERANCIA
+        if (window[module.name] || AppState.loadedModules[module.name]) {
             console.log(`⚠️ ${module.name} ya cargado, omitiendo...`);
             resolve();
             return;
@@ -101,26 +102,36 @@ function loadModule(module) {
         
         const script = document.createElement('script');
         script.src = module.path;
-        script.async = false; // IMPORTANTE: carga síncrona
+        script.async = false;
+        
+        // Usar un identificador único para evitar duplicados
+        script.setAttribute('data-module', module.name);
         
         script.onload = () => {
-            // Dar tiempo para que el módulo se inicialice
             setTimeout(() => {
-                if (window[module.name]) {
-                    resolve();
-                } else {
-                    // Algunos módulos no exportan a window, solo verificamos que no haya error
-                    console.log(`ℹ️ ${module.name} cargado (sin exportación global)`);
-                    resolve();
-                }
+                AppState.loadedModules[module.name] = true;
+                resolve();
             }, 50);
         };
         
         script.onerror = () => {
-            reject(new Error(`Error de red al cargar ${module.path}`));
+            // No rechazar, solo registrar error
+            console.warn(`⚠️ No se pudo cargar ${module.name}, continuando...`);
+            AppState.errors.push({
+                module: module.name,
+                error: `No se pudo cargar ${module.path}`
+            });
+            resolve(); // RESOLVER DE TODOS MODOS, NO RECHAZAR
         };
         
-        document.head.appendChild(script);
+        // Verificar que no exista ya el script
+        const existingScript = document.querySelector(`script[data-module="${module.name}"]`);
+        if (!existingScript) {
+            document.head.appendChild(script);
+        } else {
+            console.log(`⚠️ Script para ${module.name} ya existe, omitiendo...`);
+            resolve();
+        }
     });
 }
 
