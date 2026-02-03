@@ -15,4 +15,28 @@ Sistema web para gestión de especificaciones técnicas de serigrafía.
 9. **Interfaz modular**: 4 pestañas principales
 
 ## Estructura de Carpetas
- https://veleztegra-create.github.io/tegra-spec-manager/
+
+```
+.
+├── index.html
+├── styles.css
+├── js
+│   ├── config
+│   ├── core
+│   ├── main.js
+│   ├── modules
+│   │   ├── data
+│   │   ├── export
+│   │   ├── placements
+│   │   └── ui
+│   └── utils
+└── legacy
+    ├── diagnostic.html
+    ├── fixes.js
+    ├── managers
+    └── templates
+```
+
+La carpeta `legacy/` conserva archivos antiguos o en transición que ya no forman parte del flujo principal de carga. Esto ayuda a mantener el código activo más claro mientras continúa la migración desde el `index.html` original.
+
+Más información: https://veleztegra-create.github.io/tegra-spec-manager/
