@@ -1,24 +1,50 @@
 // js/managers/client-manager.js
+// ORQUESTADOR DE LÓGICA DE CLIENTE
+console.log('👔 Cargando ClientManager (Orquestador)...');
 
-const ClientManager = {
-    init: function() {
-        console.log('⚙️ Inicializando ClientManager...');
-        
-        const clientInput = document.getElementById('client-name-input'); // O el ID que uses
-        
-        // VALIDACIÓN DE SEGURIDAD
-        if (!clientInput) {
-            console.warn('⚠️ ClientManager: No se encontró el input del cliente (ID: client-name-input). Verifica tu HTML.');
-            return; // Detenemos la ejecución aquí para no causar error
+const ClientManager = (function() {
+    
+    function init() {
+        console.log('🚀 Inicializando ClientManager...');
+        // Esta función solo coordina, no ejecuta lógica pesada
+        if (window.ClientDataManager && window.ClientDataManager.init) {
+            window.ClientDataManager.init();
+        } else {
+            console.warn('⚠️ ClientDataManager no está disponible.');
         }
-
-        // Si existe, continuamos con la lógica...
-        this.setupListeners(clientInput);
-        console.log('✅ ClientManager inicializado.');
-    },
-
-    setupListeners: function(inputElement) {
-        // Tu lógica actual aquí
+        console.log('✅ ClientManager (Orquestador) listo.');
     }
-    // ... resto del código
-};
+    
+    function updateClientLogo() {
+        console.log('🎨 Manager: Solicitando actualización de logo...');
+        // Delega la tarea al módulo de datos especializado
+        if (window.ClientDataManager && window.ClientDataManager.updateClientLogo) {
+            return window.ClientDataManager.updateClientLogo();
+        }
+        console.warn('⚠️ No se pudo actualizar el logo: módulo no disponible.');
+        return false;
+    }
+    
+    function detectClientFromCode(code) {
+        console.log('🔍 Manager: Detectando cliente desde código...');
+        if (window.ClientDataManager && window.ClientDataManager.detectClientFromCode) {
+            return window.ClientDataManager.detectClientFromCode(code);
+        }
+        return null;
+    }
+    
+    // ========== EXPORTACIÓN ==========
+    const publicAPI = {
+        init,
+        updateClientLogo,
+        detectClientFromCode
+    };
+    
+    window.ClientManager = publicAPI;
+    console.log('✅ ClientManager (Orquestador) cargado.');
+    return publicAPI;
+    
+})();
+
+// Auto-inicialización diferida
+setTimeout(() => { if (window.ClientManager) ClientManager.init(); }, 1000);
