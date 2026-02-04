@@ -193,6 +193,22 @@
           }
       }
 
+      function handleGearForSportLogic() {
+          const customerInput = document.getElementById('customer');
+          const nameTeamInput = document.getElementById('name-team');
+          if (!customerInput || !nameTeamInput) return;
+          if (customerInput.value.toUpperCase().trim() !== 'GEAR FOR SPORT') return;
+          const styleInput = document.getElementById('style');
+          const poInput = document.getElementById('po');
+          const searchTerm = (styleInput?.value || '') || (poInput?.value || '');
+          if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
+              const teamKey = Object.keys(window.Config.GEARFORSPORT_TEAM_MAP).find(key =>
+                  searchTerm.toUpperCase().includes(key)
+              );
+              if (teamKey) nameTeamInput.value = window.Config.GEARFORSPORT_TEAM_MAP[teamKey];
+          }
+      }
+
      // ========== FUNCIONES PARA MÚLTIPLES PLACEMENTS ==========
         function initializePlacements() {
             const firstPlacementId = addNewPlacement('FRONT', true);
@@ -2105,6 +2121,11 @@ function updateAllPlacementTitles(placementId) {
           return [r, g, b];
       }
 
+      function getInputValue(id, fallback = '') {
+          const element = document.getElementById(id);
+          return element ? element.value : fallback;
+      }
+
       async function exportPDF() {
           try {
               if (typeof window.jspdf === 'undefined') {
@@ -2116,8 +2137,8 @@ function updateAllPlacementTitles(placementId) {
               
               const pdfBlob = await generatePDFBlob();
               
-              const style = document.getElementById('style').value || 'SinEstilo';
-              const folderNum = document.getElementById('folder-num').value || '00000';
+              const style = getInputValue('style', 'SinEstilo') || 'SinEstilo';
+              const folderNum = getInputValue('folder-num', '00000') || '00000';
               const fileName = `TegraSpec_${style}_${folderNum}.pdf`;
               
               const url = URL.createObjectURL(pdfBlob);
@@ -2194,7 +2215,7 @@ function updateAllPlacementTitles(placementId) {
                   pdf.setFontSize(11);
                   pdf.text("TECHNICAL SPEC MANAGER", 15, 22); // Ajustado
                   
-                  const folderNum = document.getElementById('folder-num').value || '#####';
+                  const folderNum = getInputValue('folder-num', '#####') || '#####';
                   
                   // FOLDER SUBIDO 3 PUNTOS
                   pdf.setFontSize(7);
@@ -2212,16 +2233,16 @@ function updateAllPlacementTitles(placementId) {
                       y += 5;
                       
                       const fields = [
-                          { l: 'CLIENTE:', v: document.getElementById('customer').value },
-                          { l: 'STYLE:', v: document.getElementById('style').value },
-                          { l: 'COLORWAY:', v: document.getElementById('colorway').value },
-                          { l: 'SEASON:', v: document.getElementById('season').value },
-                          { l: 'PATTERN #:', v: document.getElementById('pattern').value },
-                          { l: 'P.O. #:', v: document.getElementById('po').value },
-                          { l: 'SAMPLE TYPE:', v: document.getElementById('sample-type').value },
-                          { l: 'TEAM:', v: document.getElementById('name-team').value },
-                          { l: 'GENDER:', v: document.getElementById('gender').value },
-                          { l: 'DESIGNER:', v: document.getElementById('designer').value },
+                          { l: 'CLIENTE:', v: getInputValue('customer') },
+                          { l: 'STYLE:', v: getInputValue('style') },
+                          { l: 'COLORWAY:', v: getInputValue('colorway') },
+                          { l: 'SEASON:', v: getInputValue('season') },
+                          { l: 'PATTERN #:', v: getInputValue('pattern') },
+                          { l: 'P.O. #:', v: getInputValue('po') },
+                          { l: 'SAMPLE TYPE:', v: getInputValue('sample-type') },
+                          { l: 'TEAM:', v: getInputValue('name-team') },
+                          { l: 'GENDER:', v: getInputValue('gender') },
+                          { l: 'DESIGNER:', v: getInputValue('designer') },
                       ];
                       
                       let fieldY = y + 12;
@@ -3489,5 +3510,6 @@ window.exportToExcel = exportToExcel;
 window.exportPDF = exportPDF;
 window.downloadProjectZip = downloadProjectZip;
 window.updateClientLogo = updateClientLogo;
+window.handleGearForSportLogic = handleGearForSportLogic;
 
   
