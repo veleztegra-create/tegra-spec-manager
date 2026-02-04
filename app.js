@@ -707,10 +707,6 @@
           return icons[type] || 'map-marker-alt';
       }
 
-setTimeout(() => {
-      updateAllPlacementTitles(placement.id);
-    }, 50); 
-
       // ========== FUNCIONES DE GESTIÓN DE PLACEMENTS ==========
 function updatePlacementType(placementId, type) {
   const placement = placements.find(p => p.id === placementId);
