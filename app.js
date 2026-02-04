@@ -193,6 +193,13 @@
           }
       }
 
+      function setInputValue(id, value) {
+          const element = document.getElementById(id);
+          if (element) {
+              element.value = value;
+          }
+      }
+
       function handleGearForSportLogic() {
           const customerInput = document.getElementById('customer');
           const nameTeamInput = document.getElementById('name-team');
@@ -1895,19 +1902,20 @@ function updateAllPlacementTitles(placementId) {
       }
 
       function loadSpecData(data) {
-          document.getElementById('customer').value = data.customer || '';
-          document.getElementById('style').value = data.style || '';
-          document.getElementById('folder-num').value = data.folder || ''; 
-          document.getElementById('colorway').value = data.colorway || '';
-          document.getElementById('season').value = data.season || '';
-          document.getElementById('pattern').value = data.pattern || '';
-          document.getElementById('po').value = data.po || '';
-          document.getElementById('sample-type').value = data.sampleType || '';
-          document.getElementById('name-team').value = data.nameTeam || '';
-          document.getElementById('gender').value = data.gender || '';
-          document.getElementById('designer').value = data.designer || '';
+          setInputValue('customer', data.customer || '');
+          setInputValue('style', data.style || '');
+          setInputValue('folder-num', data.folder || '');
+          setInputValue('colorway', data.colorway || '');
+          setInputValue('season', data.season || '');
+          setInputValue('pattern', data.pattern || '');
+          setInputValue('po', data.po || '');
+          setInputValue('sample-type', data.sampleType || '');
+          setInputValue('name-team', data.nameTeam || '');
+          setInputValue('gender', data.gender || '');
+          setInputValue('designer', data.designer || '');
           
-          document.getElementById('placements-container').innerHTML = '';
+          const placementsContainer = document.getElementById('placements-container');
+          if (placementsContainer) placementsContainer.innerHTML = '';
           placements = [];
           
           if (data.placements && Array.isArray(data.placements)) {
@@ -2095,11 +2103,13 @@ function updateAllPlacementTitles(placementId) {
                       i.value = '';
                   }
               });
-              document.getElementById('designer').value = '';
+              setInputValue('designer', '');
               
               placements = [];
-              document.getElementById('placements-container').innerHTML = '';
-              document.getElementById('placements-tabs').innerHTML = '';
+              const placementsContainer = document.getElementById('placements-container');
+              const placementsTabs = document.getElementById('placements-tabs');
+              if (placementsContainer) placementsContainer.innerHTML = '';
+              if (placementsTabs) placementsTabs.innerHTML = '';
               
               initializePlacements();
               
@@ -2532,13 +2542,13 @@ function updateAllPlacementTitles(placementId) {
               }
               
               const data = {
-                  designer: document.getElementById('designer').value || '',
-                  customer: document.getElementById('customer').value || '',
-                  season: document.getElementById('season').value || '',
-                  folder: document.getElementById('folder-num').value || '',
-                  nameTeam: document.getElementById('name-team').value || '',
-                  colorway: document.getElementById('colorway').value || '',
-                  style: document.getElementById('style').value || ''
+                  designer: getInputValue('designer'),
+                  customer: getInputValue('customer'),
+                  season: getInputValue('season'),
+                  folder: getInputValue('folder-num'),
+                  nameTeam: getInputValue('name-team'),
+                  colorway: getInputValue('colorway'),
+                  style: getInputValue('style')
               };
               
               const wb = XLSX.utils.book_new();
