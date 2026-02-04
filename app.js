@@ -1,3 +1,124 @@
+Analyze and split index from old branch
+4 feb · tegra-spec-manager · old ·
++3533-3688
+subi la ultima version larga que tenia semi-funcional para que la analices y ver en que estabaoms fallando a didivid el index en multiples partes y reducir su tamaño, el branches se llama old
+
+Summary
+
+    Se externalizó el JavaScript principal a app.js y se enlazó desde el HTML principal para mantener index.html más liviano.
+
+    Se reemplazó el contenido inline de las pestañas por contenedores con data-template que apuntan a los archivos en templates/.
+
+    Se añadió la carga de templates vía fetch y se actualizó la inicialización para esperar esa carga antes de ejecutar la lógica existente.
+
+Testing
+
+    ⚠️ Not run (not requested).
+
+Notes
+
+    No encontré una rama llamada old en el repo; el único branch local visible fue work. Comando usado: git branch -a.
+
+Uncaught ReferenceError: placement is not defined
+    <anonymous> https://veleztegra-create.github.io/tegra-spec-manager/app.js:711
+    setTimeout handler* https://veleztegra-create.github.io/tegra-spec-manager/app.js:710
+app.js:711:32
+GET
+https://veleztegra-create.github.io/favicon.ico
+[HTTP/2 404  0ms]
+
+Summary
+
+    Eliminé el setTimeout huérfano que llamaba a updateAllPlacementTitles(placement.id) con placement indefinido, evitando el ReferenceError reportado.
+
+Testing
+
+    ⚠️ Not run (not requested).
+
+Uncaught ReferenceError: handleGearForSportLogic is not defined
+    oninput https://veleztegra-create.github.io/tegra-spec-manager/:1
+5 tegra-spec-manager:1:21
+Uncaught ReferenceError: handleGearForSportLogic is not defined
+    oninput https://veleztegra-create.github.io/tegra-spec-manager/:1
+11 tegra-spec-manager:1:1
+Error al generar PDF: TypeError: can't access property "value", document.getElementById(...) is null
+    generatePDFBlob https://veleztegra-create.github.io/tegra-spec-manager/app.js:2219
+    generatePDFBlob https://veleztegra-create.github.io/tegra-spec-manager/app.js:2141
+    exportPDF https://veleztegra-create.github.io/tegra-spec-manager/app.js:2117
+    onclick https://veleztegra-create.github.io/tegra-spec-manager/:1
+app.js:2500:27
+Error al exportar PDF: TypeError: can't access property "value", document.getElementById(...) is null
+    generatePDFBlob https://veleztegra-create.github.io/tegra-spec-manager/app.js:2219
+    generatePDFBlob https://veleztegra-create.github.io/tegra-spec-manager/app.js:2141
+    exportPDF https://veleztegra-create.github.io/tegra-spec-manager/app.js:2117
+    onclick https://veleztegra-create.github.io/tegra-spec-manager/:1
+app.js:2135:23
+
+Summary
+
+    Added the missing handleGearForSportLogic helper and exposed it globally so the template oninput handlers can resolve correctly.
+
+    Guarded PDF export against missing form fields by introducing a safe input accessor and using it in both PDF naming and PDF content generation.
+
+Testing
+
+    ⚠️ Not run (not requested).
+
+GET
+https://veleztegra-create.github.io/favicon.ico
+[HTTP/2 404  0ms]
+
+Uncaught TypeError: can't access property "value", document.getElementById(...) is null
+    loadSpecData https://veleztegra-create.github.io/tegra-spec-manager/app.js:1903
+    onclick https://veleztegra-create.github.io/tegra-spec-manager/?:1
+6 app.js:1903:20
+Error al exportar Excel: TypeError: can't access property "value", document.getElementById(...) is null
+    exportToExcel https://veleztegra-create.github.io/tegra-spec-manager/app.js:2535
+    onclick https://veleztegra-create.github.io/tegra-spec-manager/?:1
+app.js:2680:23
+Uncaught TypeError: can't access property "value", document.getElementById(...) is null
+    clearForm https://veleztegra-create.github.io/tegra-spec-manager/app.js:2098
+    onclick https://veleztegra-create.github.io/tegra-spec-manager/?:1
+app.js:2098:24
+
+Summary
+
+    Added safe clearing of the placements container during spec load to avoid null access when the DOM node is missing.
+
+    Added a minimal favicon link to prevent the 404 on /favicon.ico.
+
+Testing
+
+    ⚠️ Not run (not requested).
+
+Fixes cargados fixes.js:3:13
+Error al exportar Excel: TypeError: can't access property "value", document.getElementById(...) is null
+    exportToExcel https://veleztegra-create.github.io/tegra-spec-manager/app.js:2535
+    onclick https://veleztegra-create.github.io/tegra-spec-manager/?:1
+app.js:2680:23
+Error al cargar SWO: TypeError: can't access property "value", document.getElementById(...) is null
+    processExcelData https://veleztegra-create.github.io/tegra-spec-manager/app.js:1712
+    onload https://veleztegra-create.github.io/tegra-spec-manager/app.js:1774
+    EventHandlerNonNull* https://veleztegra-create.github.io/tegra-spec-manager/app.js:1751
+    EventListener.handleEvent* https://veleztegra-create.github.io/tegra-spec-manager/app.js:1730
+app.js:1777:31 Aparte de esos errores cuando selecciono el color el programa se reinicia
+
+Summary
+
+    Fixed the placement color update flow by separating preview rendering from value updates, preventing the color-selection crash and ensuring preview/station updates run in order.
+
+    Guarded SWO import field writes with safe setters so missing inputs no longer throw during processExcelData.
+
+    Avoided null access when building ZIP export names by using the safe input accessor.
+
+Testing
+
+    ⚠️ Not run (not requested).
+
+
+app.jsapp.js
+Nuevo
++3527-0
       // ========== VARIABLES GLOBALES ==========
       const stateManager = new StateManager();
       let placements = [];
@@ -1712,21 +1833,21 @@ function updateAllPlacementTitles(placementId) {
           }
 
           // Establecer valores en el formulario
-          if (extracted.customer) document.getElementById('customer').value = extracted.customer;
-          if (extracted.style) document.getElementById('style').value = extracted.style;
-          if (extracted.colorway) document.getElementById('colorway').value = extracted.colorway;
-          if (extracted.season) document.getElementById('season').value = extracted.season;
-          if (extracted.pattern) document.getElementById('pattern').value = extracted.pattern;
-          if (extracted.po) document.getElementById('po').value = extracted.po;
-          if (extracted.sample) document.getElementById('sample-type').value = extracted.sample;
-          if (extracted.team) document.getElementById('name-team').value = extracted.team;
+          if (extracted.customer) setInputValue('customer', extracted.customer);
+          if (extracted.style) setInputValue('style', extracted.style);
+          if (extracted.colorway) setInputValue('colorway', extracted.colorway);
+          if (extracted.season) setInputValue('season', extracted.season);
+          if (extracted.pattern) setInputValue('pattern', extracted.pattern);
+          if (extracted.po) setInputValue('po', extracted.po);
+          if (extracted.sample) setInputValue('sample-type', extracted.sample);
+          if (extracted.team) setInputValue('name-team', extracted.team);
 
           if (extracted.gender) {
-              document.getElementById('gender').value = extracted.gender;
+              setInputValue('gender', extracted.gender);
           } else if (extracted.style) {
               const detectedGender = extractGenderFromStyle(extracted.style);
               if (detectedGender) {
-                  document.getElementById('gender').value = detectedGender;
+                  setInputValue('gender', detectedGender);
               }
           }
 
@@ -2699,7 +2820,7 @@ function updateAllPlacementTitles(placementId) {
                   return;
               }
 
-              const style = document.getElementById('style').value || 'SinEstilo';
+              const style = getInputValue('style', 'SinEstilo') || 'SinEstilo';
               const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
               const projectName = `TegraSpec_${style}_${timestamp}`;
               
@@ -3341,43 +3462,50 @@ function removePlacementColorItem(placementId, colorId) {
 function updatePlacementColorValue(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
-    const color = placement.colors.find(c => c.id === colorId);
-    if (color) {
-        color.val = value;
-       function updatePlacementColorPreview(placementId, colorId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
-    
+
     const color = placement.colors.find(c => c.id === colorId);
     if (!color) return;
-    
+
+    color.val = value;
+    updatePlacementColorPreview(placementId, colorId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+}
+
+function updatePlacementColorPreview(placementId, colorId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+
+    const color = placement.colors.find(c => c.id === colorId);
+    if (!color) return;
+
     const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
     if (!preview) return;
-    
+
     const colorName = color.val.toUpperCase().trim();
     let colorHex = null;
-    
+
     // ========== USAR Utils.getColorHex si está disponible ==========
     if (window.Utils && window.Utils.getColorHex) {
         colorHex = window.Utils.getColorHex(color.val);
     }
-    
+
     // ========== BUSCAR EN TeamsConfig ==========
     if (!colorHex && window.TeamsConfig) {
         const leagues = ['NCAA', 'NBA', 'NFL'];
-        
+
         for (const league of leagues) {
             if (window.TeamsConfig[league] && window.TeamsConfig[league].colors) {
                 const colorCategories = ['institutional', 'metallic', 'alt', 'uni'];
-                
+
                 for (const category of colorCategories) {
                     const categoryColors = window.TeamsConfig[league].colors[category];
                     if (categoryColors) {
                         for (const [key, data] of Object.entries(categoryColors)) {
                             const keyUpper = key.toUpperCase().replace(/_/g, ' ');
-                            if (colorName === keyUpper || 
-                                colorName.includes(keyUpper) || 
+                            if (colorName === keyUpper ||
+                                colorName.includes(keyUpper) ||
                                 keyUpper.includes(colorName)) {
                                 if (data && data.hex) {
                                     colorHex = data.hex;
@@ -3392,17 +3520,17 @@ function updatePlacementColorValue(placementId, colorId, value) {
             if (colorHex) break;
         }
     }
-    
+
     // ========== BUSCAR EN Config.COLOR_DATABASES ==========
     if (!colorHex && window.Config && window.Config.COLOR_DATABASES) {
         const databases = ['PANTONE', 'GEARFORSPORT', 'INSTITUCIONAL'];
-        
+
         for (const dbName of databases) {
             const db = window.Config.COLOR_DATABASES[dbName];
             if (db) {
                 for (const [key, data] of Object.entries(db)) {
-                    if (colorName === key.toUpperCase() || 
-                        colorName.includes(key.toUpperCase()) || 
+                    if (colorName === key.toUpperCase() ||
+                        colorName.includes(key.toUpperCase()) ||
                         key.toUpperCase().includes(colorName)) {
                         if (data && data.hex) {
                             colorHex = data.hex;
@@ -3414,7 +3542,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
             if (colorHex) break;
         }
     }
-    
+
     // ========== COLORES BÁSICOS MÍNIMOS (solo los esenciales) ==========
     if (!colorHex) {
         const basicColors = {
@@ -3440,7 +3568,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
             'LIME': '#00FF00',
             'OLIVE': '#808000'
         };
-        
+
         // Coincidencia exacta
         if (basicColors[colorName]) {
             colorHex = basicColors[colorName];
@@ -3454,7 +3582,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
             }
         }
     }
-    
+
     // ========== CÓDIGO HEX DIRECTO ==========
     if (!colorHex) {
         const hexMatch = colorName.match(/#([0-9A-F]{6})/i);
@@ -3462,7 +3590,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
             colorHex = `#${hexMatch[1]}`;
         }
     }
-    
+
     // ========== APLICAR COLOR ==========
     if (colorHex) {
         preview.style.background = colorHex;
@@ -3473,11 +3601,6 @@ function updatePlacementColorValue(placementId, colorId, value) {
         preview.style.background = '#CCCCCC';
         preview.style.backgroundImage = 'repeating-linear-gradient(45deg, #999 0, #999 2px, #CCC 2px, #CCC 4px)';
         preview.title = `${color.val} - No encontrado`;
-    }
-}
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
-        checkForSpecialtiesInColors(placementId);
     }
 }
 
@@ -3523,3 +3646,5 @@ window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
 
   
+index.htmlindex.html
++6-3688
