@@ -546,7 +546,104 @@ const SpecsManager = (function() {
             localStorage.removeItem(key);
             
             // Recargar lista
-@@ -613,52 +647,54 @@ const SpecsManager = (function() {
+            if (window.SpecsManager && window.SpecsManager.loadSavedSpecsList) {
+                window.SpecsManager.loadSavedSpecsList();
+            }
+            
+            // Actualizar dashboard
+            if (window.DashboardManager && window.DashboardManager.updateDashboard) {
+                window.DashboardManager.updateDashboard();
+            }
+            
+            showStatus('🗑️ Spec eliminada', 'success');
+        }
+    }
+    
+    function clearAllSpecs() {
+        console.log('🗑️ Eliminando todas las specs...');
+        if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?\n\nEsta acción no se puede deshacer y se perderán todos los datos.')) {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith(CONFIG.STORAGE_PREFIX)) {
+                    localStorage.removeItem(key);
+                }
+            });
+            
+            // Recargar lista
+            if (window.SpecsManager && window.SpecsManager.loadSavedSpecsList) {
+                window.SpecsManager.loadSavedSpecsList();
+            }
+            
+            // Actualizar dashboard
+            if (window.DashboardManager && window.DashboardManager.updateDashboard) {
+                window.DashboardManager.updateDashboard();
+            }
+            
+            showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
+        }
+    }
+    
+    function clearForm() {
+        console.log('🧹 Limpiando formulario...');
+        if (confirm('⚠️ ¿Estás seguro de que quieres limpiar todo el formulario?\n\nSe perderán todos los datos no guardados.\n\n¿Continuar?')) {
+            // Limpiar campos generales
+            document.querySelectorAll('input:not(#folder-num), textarea, select').forEach(i => {
+                if (i.type !== 'button' && i.type !== 'submit') {
+                    i.value = '';
+                }
+            });
+            document.getElementById('designer').value = '';
+            
+            // Limpiar placements
+            if (window.PlacementsCore && window.PlacementsCore.clearAllPlacements) {
+                window.PlacementsCore.clearAllPlacements();
+            } else {
+                const container = document.getElementById('placements-container');
+                const tabs = document.getElementById('placements-tabs');
+                if (container) container.innerHTML = '';
+                if (tabs) tabs.innerHTML = '';
+                window.globalPlacements = [];
+            }
+            
+            // Inicializar placements
+            if (window.PlacementsUI && window.PlacementsUI.initializePlacements) {
+                window.PlacementsUI.initializePlacements();
+            }
+            
+            // Ocultar logo
+            const logoElement = document.getElementById('logoCliente');
+            if (logoElement) {
+                logoElement.style.display = 'none';
+            }
+            
+            showStatus('🧹 Formulario limpiado correctamente', 'success');
+        }
+    }
+    
+    function autoSave() {
+        console.log('🤖 Auto-guardando...');
+        try {
+            // Solo auto-guardar si hay datos
+            const style = document.getElementById('style')?.value;
+            const customer = document.getElementById('customer')?.value;
+            
+            if (style || customer) {
+                const data = collectData();
+                if (validateSpecData(data)) {
+                    const backupKey = `${CONFIG.STORAGE_PREFIX}autosave_${Date.now()}`;
+                    localStorage.setItem(backupKey, JSON.stringify(data));
+                    console.log('✅ Auto-guardado completado');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error en autoSave:', error);
+        }
+    }
+    
+    // ========== INICIALIZACIÓN ==========
+    function init() {
+        console.log('🚀 Inicializando SpecsManager...');
+        
+        // Configurar auto-guardado
         if (CONFIG.AUTO_SAVE_INTERVAL > 0) {
             setInterval(autoSave, CONFIG.AUTO_SAVE_INTERVAL);
             console.log(`⏰ Auto-guardado configurado cada ${CONFIG.AUTO_SAVE_INTERVAL / 60000} minutos`);

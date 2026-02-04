@@ -272,7 +272,6 @@ function collectSpecFormData() {
                            fieldId === 'ink-type' ? 'inkType' : fieldId;
             
             specData[specKey] = element.value;
-@@ -264,90 +277,80 @@ function collectSpecFormData() {
         }
     });
     
@@ -320,8 +319,18 @@ function initializeModules() {
 function setupAutoUpdates() {
     console.log('⏰ Configurando auto-updates...');
     
-    // Actualizar fecha/hora cada minuto
-    if (window.DashboardManager && window.DashboardManager.updateDateTime) {
+    if (!window.DashboardManager) {
+        return;
+    }
+
+    // Preferir la delegación al DashboardManager si está disponible
+    if (typeof window.DashboardManager.startAutoUpdate === 'function') {
+        window.DashboardManager.startAutoUpdate();
+        return;
+    }
+
+    // Fallback manual si no existe startAutoUpdate
+    if (window.DashboardManager.updateDateTime) {
         window.DashboardManager.updateDateTime();
         setInterval(() => {
             if (window.DashboardManager.updateDateTime) {
@@ -329,29 +338,17 @@ function setupAutoUpdates() {
             }
         }, 60000);
     }
-    
-    // Actualizar dashboard cada 30 segundos
-    if (window.DashboardManager && window.DashboardManager.updateDashboard) {
+
+    if (window.DashboardManager.updateDashboard) {
         setTimeout(() => {
             window.DashboardManager.updateDashboard();
         }, 1000);
-        
+
         setInterval(() => {
             if (window.DashboardManager.updateDashboard) {
                 window.DashboardManager.updateDashboard();
             }
         }, 30000);
-    // Delegar auto-updates al DashboardManager si existe
-    if (window.DashboardManager) {
-        if (window.DashboardManager.updateDateTime) {
-            window.DashboardManager.updateDateTime();
-        }
-        if (window.DashboardManager.updateDashboard) {
-            setTimeout(() => window.DashboardManager.updateDashboard(), 1000);
-        }
-        if (window.DashboardManager.startAutoUpdate) {
-            window.DashboardManager.startAutoUpdate();
-        }
     }
 }
 

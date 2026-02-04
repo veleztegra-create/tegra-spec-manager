@@ -71,7 +71,85 @@ const DashboardManager = (function() {
         try {
             // Usar función global si existe (compatibilidad)
             if (typeof window.updateDashboard === 'function') {
-@@ -151,66 +153,74 @@ const DashboardManager = (function() {
+                return window.updateDashboard();
+            }
+            
+            // Implementación propia
+            updateDashboardStats();
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Error en updateDashboard:', error);
+            return false;
+        }
+    }
+    
+    function updateDashboardStats() {
+        try {
+            const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
+            const total = specs.length;
+            
+            // Actualizar total de specs
+            const totalEl = document.getElementById('total-specs');
+            if (totalEl) totalEl.textContent = total;
+            
+            // Buscar última spec
+            let lastSpec = null;
+            let lastSpecDate = null;
+            
+            specs.forEach(key => {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    const specDate = new Date(data.savedAt || 0);
+                    
+                    if (!lastSpecDate || specDate > lastSpecDate) {
+                        lastSpecDate = specDate;
+                        lastSpec = data;
+                    }
+                } catch(e) {
+                    console.warn('Error al parsear spec:', key, e);
+                }
+            });
+            
+            // Actualizar última spec
+            const todayEl = document.getElementById('today-specs');
+            if (todayEl) {
+                if (lastSpec) {
+                    todayEl.innerHTML = `
+                        <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
+                        <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
+                        <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
+                    `;
+                } else {
+                    todayEl.innerHTML = `
+                        <div style="font-size:0.9rem; color:var(--text-secondary);">Sin specs creadas</div>
+                    `;
+                }
+            }
+            
+            // Contar proyectos activos
+            let activeCount = 0;
+            specs.forEach(key => {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data.placements && data.placements.length > 0) {
+                        activeCount++;
+                    }
+                } catch(e) {
+                    // Ignorar errores
+                }
+            });
+            
+            const activeEl = document.getElementById('active-projects');
+            if (activeEl) activeEl.textContent = activeCount;
+            
+            // Contar placements totales
+            const totalPlacements = specs.reduce((sum, key) => {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    return sum + (data.placements?.length || 0);
+                } catch(e) {
+                    return sum;
                 }
             }, 0);
             
@@ -103,7 +181,6 @@ const DashboardManager = (function() {
         }
         
         // Actualizar fecha cada minuto
-        setInterval(updateDateTime, 60000);
         dateInterval = setInterval(updateDateTime, 60000);
         
         // Actualizar dashboard cada 30 segundos
@@ -147,7 +224,32 @@ const DashboardManager = (function() {
                     totalPlacements += data.placements.length;
                 }
             } catch(e) {
-@@ -243,35 +253,43 @@ const DashboardManager = (function() {
+                // Ignorar errores
+            }
+        });
+        
+        return {
+            totalSpecs: total,
+            activeProjects: activeCount,
+            totalPlacements: totalPlacements,
+            lastUpdate: new Date().toISOString()
+        };
+    }
+    
+    // ========== EXPORTAR MÓDULO ==========
+    
+    const publicAPI = {
+        // Métodos principales
+        initialize,
+        updateDateTime,
+        updateDashboard,
+        refreshNow,
+        
+        // Control de auto-update
+        startAutoUpdate,
+        stopAutoUpdate,
+        
+        // Información
         getStats,
         
         // Para compatibilidad
@@ -157,7 +259,8 @@ const DashboardManager = (function() {
         _info: {
             name: 'DashboardManager',
             version: '1.0.0'
-        }
+        },
+        _initialized: false
     };
     
     // Hacer disponible globalmente
@@ -193,4 +296,3 @@ if (document.readyState === 'loading') {
 }
 
 console.log('📊 Módulo DashboardManager cargado correctamente');
-
