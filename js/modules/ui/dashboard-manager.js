@@ -69,18 +69,36 @@ const DashboardManager = (function() {
         console.log('📈 Actualizando dashboard...');
         
         try {
-            // Usar función global si existe (compatibilidad)
-            if (typeof window.updateDashboard === 'function') {
-@@ -151,66 +153,74 @@ const DashboardManager = (function() {
-                }
-            }, 0);
+            const { total, activeCount, totalPlacements, lastSpec } = getStats();
+
+            const totalSpecsEl = document.getElementById('total-specs');
+            if (totalSpecsEl) {
+                totalSpecsEl.textContent = total;
+            }
+
+            const activeSpecsEl = document.getElementById('active-projects');
+            if (activeSpecsEl) {
+                activeSpecsEl.textContent = activeCount;
+            }
             
             const placementsEl = document.getElementById('completion-rate');
             if (placementsEl) {
-                placementsEl.innerHTML = `
-                    <div style="font-size:0.9rem; color:var(--text-secondary);">Placements totales:</div>
-                    <div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${totalPlacements}</div>
-                `;
+                const totalPlacementsEl = placementsEl.querySelector('#total-placements');
+                if (totalPlacementsEl) {
+                    totalPlacementsEl.textContent = totalPlacements;
+                }
+            }
+
+            const lastSpecNameEl = document.getElementById('last-spec-name');
+            const lastSpecDateEl = document.getElementById('last-spec-date');
+            if (lastSpecNameEl && lastSpecDateEl) {
+                if (lastSpec) {
+                    lastSpecNameEl.textContent = lastSpec.name;
+                    lastSpecDateEl.textContent = formatDate(lastSpec.date);
+                } else {
+                    lastSpecNameEl.textContent = 'Ninguna';
+                    lastSpecDateEl.textContent = '-';
+                }
             }
             
             console.log(`📊 Dashboard actualizado: ${total} specs, ${activeCount} activas, ${totalPlacements} placements`);
@@ -103,7 +121,6 @@ const DashboardManager = (function() {
         }
         
         // Actualizar fecha cada minuto
-        setInterval(updateDateTime, 60000);
         dateInterval = setInterval(updateDateTime, 60000);
         
         // Actualizar dashboard cada 30 segundos
@@ -138,6 +155,7 @@ const DashboardManager = (function() {
         
         let activeCount = 0;
         let totalPlacements = 0;
+        let lastSpec = null;
         
         specs.forEach(key => {
             try {
@@ -146,8 +164,33 @@ const DashboardManager = (function() {
                     activeCount++;
                     totalPlacements += data.placements.length;
                 }
+                if (data.savedAt) {
+                    const savedDate = new Date(data.savedAt);
+                    if (!lastSpec || savedDate > lastSpec.date) {
+                        lastSpec = {
+                            name: data.style || data.styleNumber || data.name || 'Sin estilo',
+                            date: savedDate
+                        };
+                    }
+                }
             } catch(e) {
-@@ -243,35 +253,43 @@ const DashboardManager = (function() {
+                console.warn('⚠️ Error leyendo spec para estadísticas:', e);
+            }
+        });
+
+        return { total, activeCount, totalPlacements, lastSpec };
+    }
+    
+    // ========== EXPORTAR MÓDULO ==========
+    
+    const publicAPI = {
+        // Métodos principales
+        initialize,
+        updateDateTime,
+        updateDashboard,
+        startAutoUpdate,
+        stopAutoUpdate,
+        refreshNow,
         getStats,
         
         // Para compatibilidad
@@ -193,4 +236,3 @@ if (document.readyState === 'loading') {
 }
 
 console.log('📊 Módulo DashboardManager cargado correctamente');
-

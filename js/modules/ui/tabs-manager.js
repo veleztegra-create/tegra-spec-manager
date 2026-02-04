@@ -28,8 +28,7 @@ const TabsManager = (function() {
         
         // Activar la pestaña correspondiente en la navegación
         document.querySelectorAll('.nav-tab').forEach(tab => {
-            if (tab.innerText.toLowerCase().includes(currentTab.replace('-', ' '))) {
-            if (tab.dataset.tab === currentTab) {
+            if (tab.dataset.tab === currentTab || tab.innerText.toLowerCase().includes(currentTab.replace('-', ' '))) {
                 tab.classList.add('active');
             }
         });
@@ -88,47 +87,33 @@ const TabsManager = (function() {
     function setupTabListeners() {
         console.log('🔗 Configurando listeners de pestañas...');
         
-        // Pestaña Dashboard
-        const dashboardTab = document.querySelector('.nav-tab[onclick*="dashboard"]');
-        if (dashboardTab) {
-            dashboardTab.addEventListener('click', function(e) {
-                e.preventDefault();
-                showTab('dashboard');
-            });
-        }
-        
-        // Pestaña Crear Spec
-        const specTab = document.querySelector('.nav-tab[onclick*="spec-creator"]');
-        if (specTab) {
-            specTab.addEventListener('click', function(e) {
-                e.preventDefault();
-                showTab('spec-creator');
-            });
-        }
-        
-        // Pestaña Guardadas
-        const savedTab = document.querySelector('.nav-tab[onclick*="saved-specs"]');
-        if (savedTab) {
-            savedTab.addEventListener('click', function(e) {
+        // Usar data-tab como fuente principal
         document.querySelectorAll('.nav-tab[data-tab]').forEach(tab => {
             tab.addEventListener('click', function(e) {
                 e.preventDefault();
-                showTab('saved-specs');
-            });
-        }
-        
-        // Pestaña Error Log
-        const errorTab = document.querySelector('.nav-tab[onclick*="error-log"]');
-        if (errorTab) {
-            errorTab.addEventListener('click', function(e) {
-                e.preventDefault();
-                showTab('error-log');
                 const tabName = this.dataset.tab;
                 if (tabName) {
                     showTab(tabName);
                 }
             });
-        }
+        });
+
+        // Compatibilidad con onclick legado
+        const legacyTabs = [
+            { selector: '.nav-tab[onclick*="dashboard"]', tab: 'dashboard' },
+            { selector: '.nav-tab[onclick*="spec-creator"]', tab: 'spec-creator' },
+            { selector: '.nav-tab[onclick*="saved-specs"]', tab: 'saved-specs' },
+            { selector: '.nav-tab[onclick*="error-log"]', tab: 'error-log' }
+        ];
+
+        legacyTabs.forEach(({ selector, tab }) => {
+            const tabElement = document.querySelector(selector);
+            if (tabElement && !tabElement.dataset.tab) {
+                tabElement.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showTab(tab);
+                });
+            }
         });
         
         console.log('✅ Listeners de pestañas configurados');
@@ -155,8 +140,40 @@ const TabsManager = (function() {
         // Actualizar pestaña actual
         currentTab = tabName;
         
-@@ -210,57 +183,68 @@ const TabsManager = (function() {
+        updateActiveTabIndicator();
+        executeTabSpecificActions(tabName);
+        return true;
+    }
+
+    function goBack() {
+        if (tabHistory.length === 0) {
+            return false;
+        }
+        const previousTab = tabHistory.pop();
+        return showTab(previousTab);
+    }
+
+    function getCurrentTab() {
+        return currentTab;
+    }
+
+    function getAllTabs() {
+        return [
+            'dashboard',
+            'spec-creator',
+            'saved-specs',
+            'error-log'
         ];
+    }
+
+    function getTabDisplayName(tabName) {
+        const displayNames = {
+            'dashboard': 'Dashboard',
+            'spec-creator': 'Crear Spec',
+            'saved-specs': 'Specs Guardadas',
+            'error-log': 'Error Log'
+        };
+        return displayNames[tabName] || tabName;
     }
     
     // ========== EXPORTAR MÓDULO ==========
@@ -226,4 +243,3 @@ if (document.readyState === 'loading') {
 }
 
 console.log('🗂️ Módulo TabsManager cargado correctamente');
-

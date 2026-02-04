@@ -107,7 +107,6 @@ const ThemeManager = (function() {
         }
     }
     
-@@ -154,36 +155,44 @@ const ThemeManager = (function() {
         
         // Para compatibilidad
         toggle: toggleTheme, // alias

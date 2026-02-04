@@ -546,7 +546,6 @@ const SpecsManager = (function() {
             localStorage.removeItem(key);
             
             // Recargar lista
-@@ -613,52 +647,54 @@ const SpecsManager = (function() {
         if (CONFIG.AUTO_SAVE_INTERVAL > 0) {
             setInterval(autoSave, CONFIG.AUTO_SAVE_INTERVAL);
             console.log(`⏰ Auto-guardado configurado cada ${CONFIG.AUTO_SAVE_INTERVAL / 60000} minutos`);

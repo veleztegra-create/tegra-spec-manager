@@ -272,7 +272,6 @@ function collectSpecFormData() {
                            fieldId === 'ink-type' ? 'inkType' : fieldId;
             
             specData[specKey] = element.value;
-@@ -264,90 +277,80 @@ function collectSpecFormData() {
         }
     });
     
