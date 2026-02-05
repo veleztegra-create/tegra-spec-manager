@@ -623,16 +623,16 @@
                               </div>
                               <div class="card-body">
                                   <div class="no-print" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
-                                      <button class="btn btn-danger btn-sm" onclick="addPlacementColorItem(${placement.id}, 'BLOCKER')">
+                                      <button type="button" class="btn btn-danger btn-sm" onclick="addPlacementColorItem(${placement.id}, 'BLOCKER')">
                                           <i class="fas fa-plus"></i> Blocker
                                       </button>
-                                      <button class="btn btn-white-base btn-sm" onclick="addPlacementColorItem(${placement.id}, 'WHITE_BASE')">
+                                      <button type="button" class="btn btn-white-base btn-sm" onclick="addPlacementColorItem(${placement.id}, 'WHITE_BASE')">
                                           <i class="fas fa-plus"></i> White Base
                                       </button>
-                                      <button class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
+                                      <button type="button" class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
                                           <i class="fas fa-plus"></i> Color
                                       </button>
-                                      <button class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')">
+                                      <button type="button" class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')">
                                           <i class="fas fa-star"></i> Metálico
                                       </button>
                                   </div>
@@ -1141,7 +1141,7 @@ function updateAllPlacementTitles(placementId) {
                   <div class="color-preview" 
                        id="placement-color-preview-${placementId}-${color.id}" 
                        title="Vista previa del color"></div>
-                  <button class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${placementId}, ${color.id})">
+                  <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${placementId}, ${color.id})">
                       <i class="fas fa-times"></i>
                   </button>
               `;
