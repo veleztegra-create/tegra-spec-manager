@@ -1199,15 +1199,18 @@ function updateAllPlacementTitles(placementId) {
           const colorName = color.val.toUpperCase().trim();
           let colorHex = null;
           
+          const gearDb = Config?.COLOR_DATABASES?.GEARFORSPORT;
+          const pantoneDb = Config?.COLOR_DATABASES?.PANTONE;
+          
           // Buscar en Gear for Sport colors
           const normalizedGFSColor = normalizeGearForSportColor(colorName);
-          if (Config.COLOR_DATABASES.GEARFORSPORT[normalizedGFSColor]) {
-              colorHex = Config.COLOR_DATABASES.GEARFORSPORT[normalizedGFSColor].hex;
+          if (gearDb && gearDb[normalizedGFSColor]) {
+              colorHex = gearDb[normalizedGFSColor].hex;
           }
           
           // Buscar en Pantone DB general
-          if (!colorHex) {
-              for (const [key, data] of Object.entries(Config.COLOR_DATABASES.PANTONE)) {
+          if (!colorHex && pantoneDb) {
+              for (const [key, data] of Object.entries(pantoneDb)) {
                   if (colorName === key || colorName.includes(key) || key.includes(colorName)) {
                       colorHex = data.hex;
                       break;
@@ -1314,10 +1317,12 @@ function updateAllPlacementTitles(placementId) {
           const name = colorName.toUpperCase().trim();
           
           // Buscar en todas las bases de datos
-          for (const db of Object.values(Config.COLOR_DATABASES)) {
-              for (const [key, data] of Object.entries(db)) {
-                  if (name === key || name.includes(key) || key.includes(name)) {
-                      return data.hex;
+          if (Config?.COLOR_DATABASES) {
+              for (const db of Object.values(Config.COLOR_DATABASES)) {
+                  for (const [key, data] of Object.entries(db)) {
+                      if (name === key || name.includes(key) || key.includes(name)) {
+                          return data.hex;
+                      }
                   }
               }
           }
