@@ -39,6 +39,25 @@
           setTimeout(() => el.style.display = 'none', 4000);
       }
 
+      function getInkPresetSafe(inkType = 'WATER') {
+          const defaultPreset = {
+              temp: '320 °F',
+              time: inkType === 'PLASTISOL' ? '1:00 min' : '1:40 min',
+              blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+              white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+              color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+          };
+
+          if (window.Utils && typeof window.Utils.getInkPreset === 'function') {
+              const preset = window.Utils.getInkPreset(inkType);
+              if (preset && preset.color) {
+                  return preset;
+              }
+          }
+
+          return defaultPreset;
+      }
+
       async function loadTabTemplates() {
           const templateSections = Array.from(document.querySelectorAll('[data-template]'));
           await Promise.all(templateSections.map(async (section) => {
@@ -303,13 +322,7 @@
           const customName = isCustom ? placement.type.replace('CUSTOM: ', '') : '';
           
           // Obtener valores por defecto
-          const preset = Utils ? Utils.getInkPreset(placement.inkType || 'WATER') : {
-              temp: '320 °F', 
-              time: '1:40 min',
-              blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-              white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-              color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
-          };
+          const preset = getInkPresetSafe(placement.inkType || 'WATER');
           
           const defaultMeshColor = preset.color.mesh || '157/48';
           const defaultMeshWhite = preset.white.mesh1 || '198/40';
@@ -859,11 +872,7 @@ function updateAllPlacementTitles(placementId) {
           placement.inkType = inkType;
           
           // Obtener valores de la configuración
-          const preset = Utils ? Utils.getInkPreset(inkType) : 
-              (inkType === 'PLASTISOL' ? 
-                  { temp: '320 °F', time: '1:00 min', color: { mesh: '156/64', durometer: '65', speed: '35', angle: '15', strokes: '1', pressure: '40' } } : 
-                  { temp: '320 °F', time: '1:40 min', color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40' } }
-              );
+          const preset = getInkPresetSafe(inkType);
           
           // Actualizar en el objeto placement
           placement.temp = preset.temp;
@@ -897,13 +906,7 @@ function updateAllPlacementTitles(placementId) {
           const placement = placements.find(p => p.id === placementId);
           if (!placement) return;
           
-          const preset = Utils ? Utils.getInkPreset(inkType) : {
-              temp: '320 °F', 
-              time: '1:40 min',
-              blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-              white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-              color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
-          };
+          const preset = getInkPresetSafe(inkType);
           
           // Actualizar campos si están vacíos
           if (!placement.meshColor) {
@@ -1384,13 +1387,7 @@ function updateAllPlacementTitles(placementId) {
           const placement = placements.find(p => p.id === placementId);
           if (!placement) return [];
           
-          const preset = Utils ? Utils.getInkPreset(placement.inkType || 'WATER') : {
-              temp: '320 °F', 
-              time: '1:40 min',
-              blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-              white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-              color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
-          };
+          const preset = getInkPresetSafe(placement.inkType || 'WATER');
           
           const stationsData = [];
           let stNum = 1;
@@ -3249,10 +3246,7 @@ function updatePlacementInkType(placementId, inkType) {
     
     placement.inkType = inkType;
     
-    const preset = Utils ? Utils.getInkPreset(inkType) : {
-        temp: '320 °F',
-        time: inkType === 'PLASTISOL' ? '1:00 min' : '1:40 min'
-    };
+    const preset = getInkPresetSafe(inkType);
     
     const tempField = document.getElementById(`temp-${placementId}`);
     const timeField = document.getElementById(`time-${placementId}`);
