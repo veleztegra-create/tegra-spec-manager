@@ -156,7 +156,7 @@ const AppConfig = {
             temp: '320 °F', 
             time: '1:00 min',
             blocker: { 
-                name: 'BLOCKER plastisol', 
+                name: 'BARRIER BASE', 
                 mesh1: '110/64', 
                 mesh2: '156/64', 
                 durometer: '65', 
@@ -167,7 +167,7 @@ const AppConfig = {
                 additives: 'N/A' 
             },
             white: { 
-                name: 'PLASTISOL WHITE', 
+                name: 'TXT POLY WHITE', 
                 mesh1: '156/64', 
                 mesh2: '110/64', 
                 durometer: '65', 
