@@ -1196,7 +1196,7 @@ function updateAllPlacementTitles(placementId) {
           const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
           if (!preview) return;
           
-          const colorName = color.val.toUpperCase().trim();
+          const colorName = (color.val || '').toUpperCase().trim();
           let colorHex = null;
           
           const gearDb = Config?.COLOR_DATABASES?.GEARFORSPORT;
@@ -1253,7 +1253,7 @@ function updateAllPlacementTitles(placementId) {
           
           placement.colors.forEach(color => {
               if (color.val) {
-                  const colorVal = color.val.toUpperCase();
+                  const colorVal = (color.val || '').toUpperCase();
                   
                   // Detectar HIGH DENSITY
                   if (colorVal.includes('HD') || colorVal.includes('HIGH DENSITY')) {
@@ -1347,7 +1347,7 @@ function updateAllPlacementTitles(placementId) {
           
           placement.colors.forEach(color => {
               if (color.type === 'COLOR' || color.type === 'METALLIC') {
-                  const colorVal = color.val.toUpperCase().trim();
+                  const colorVal = (color.val || '').toUpperCase().trim();
                   if (colorVal && !seenColors.has(colorVal)) {
                       seenColors.add(colorVal);
                       uniqueColors.push({
@@ -2328,7 +2328,7 @@ function updateAllPlacementTitles(placementId) {
                           
                           placement.colors.forEach(color => {
                               if (color.type === 'COLOR' || color.type === 'METALLIC') {
-                                  const colorVal = color.val.toUpperCase().trim();
+                                  const colorVal = (color.val || '').toUpperCase().trim();
                                   if (colorVal && !seenColors.has(colorVal)) {
                                       seenColors.add(colorVal);
                                       uniqueColors.push({
@@ -3367,7 +3367,7 @@ function updatePlacementColorPreview(placementId, colorId) {
     const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
     if (!preview) return;
 
-    const colorName = color.val.toUpperCase().trim();
+    const colorName = (color.val || '').toUpperCase().trim();
     let colorHex = null;
 
     // ========== USAR Utils.getColorHex si está disponible ==========
