@@ -58,6 +58,19 @@
           return defaultPreset;
       }
 
+
+
+      function bindSpecCreatorFormSafety() {
+          const form = document.getElementById('spec-creator-form');
+          if (!form || form.dataset.submitGuardBound === '1') return;
+
+          form.addEventListener('submit', (event) => {
+              event.preventDefault();
+          });
+
+          form.dataset.submitGuardBound = '1';
+      }
+
       async function loadTabTemplates() {
           const templateSections = Array.from(document.querySelectorAll('[data-template]'));
           await Promise.all(templateSections.map(async (section) => {
@@ -2980,6 +2993,7 @@ ${JSON.stringify(error.extraData, null, 2)}
                   loadSavedSpecsList();
                   setupPasteHandler();
                   loadThemePreference();
+                  bindSpecCreatorFormSafety();
 
                   document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 
