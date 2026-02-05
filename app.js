@@ -42,9 +42,18 @@
       function getInkPresetSafe(inkType = 'WATER') {
           const defaultPreset = {
               temp: '320 °F',
-              time: inkType === 'PLASTISOL' ? '1:00 min' : '1:40 min',
+              time: inkType === 'WATERBASE' ? '1:00 min' : '1:40 min',
               blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
               white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+              color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
+                 }
+
+      function getInkPresetSafe(inkType = 'PLASTISOL') {
+          const defaultPreset = {
+              temp: '320 °F',
+              time: inkType === 'PLASTISOL' ? '1:00 min' : '1:40 min',
+              blocker: { name: 'BLOCKER PLASTI', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
+              white: { name: 'WHITE TXR', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
               color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
           };
 
