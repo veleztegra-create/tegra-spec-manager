@@ -6,57 +6,84 @@ console.log('📄 Módulo PDFExporter cargado');
 const PDFExporter = (function() {
     // ========== VARIABLES Y CONFIGURACIÓN ==========
     
-    const CONFIG = {
-        pageSize: 'letter',
-        orientation: 'p',
-        unit: 'mm',
-        primaryColor: [255, 82, 82],    // Rojo Tegra
-        accentColor: [255, 138, 128],   // Rojo claro
-        grayLight: [240, 240, 240],
-        grayDark: [100, 100, 100],
-        textColor: [0, 0, 0],
-        whiteColor: [255, 255, 255]
-    };
-    
-    // ========== FUNCIONES PRINCIPALES ==========
-    
-    /**
-     * Exporta la spec actual a PDF
-     * @returns {Promise} Promesa que se resuelve cuando se completa la exportación
-     */
-    async function exportPDF() {
-        console.log('📄 Iniciando exportación a PDF...');
+   // Dentro de pdf-exporter.js, actualiza el objeto CONFIG y la función de generación:
+
+const CONFIG = {
+    pageSize: 'letter',
+    primaryColor: [0, 51, 153], // Azul TEGRA corregido
+    labelWidth: 35,             // Ancho fijo para etiquetas como "CLIENTE:"
+    col2: 105,                  // Inicio de la segunda columna
+    // Coordenadas X fijas para la tabla de secuencia de impresión
+    tableCols: {
+        est: 15, scr: 25, screen: 45, add: 100, mesh: 140, strokes: 160, angle: 180, p: 195
+    }
+};
+
+async function generatePDFBlob() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF(CONFIG.orientation, CONFIG.unit, CONFIG.pageSize);
+    let currentY = 20;
+
+    // --- SECCIÓN: INFORMACIÓN GENERAL ---
+    // Usamos una lógica de 2 columnas para evitar que los campos se traslapen 
+    const genFields = [
+        { l: "CLIENTE:", v: document.getElementById('customer').value },
+        { l: "STYLE:", v: document.getElementById('style').value },
+        { l: "COLORWAY:", v: document.getElementById('colorway').value },
+        { l: "SEASON:", v: document.getElementById('season').value },
+        { l: "PATTERN #:", v: document.getElementById('pattern').value },
+        { l: "P.O. #:", v: document.getElementById('po').value }
+    ];
+
+    pdf.setFontSize(9);
+    genFields.forEach((field, i) => {
+        const xPos = (i % 2 === 0) ? 15 : CONFIG.col2;
+        pdf.setFont("helvetica", "bold");
+        pdf.text(field.l, xPos, currentY);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(String(field.v || ""), xPos + CONFIG.labelWidth, currentY);
+        if (i % 2 !== 0) currentY += 6;
+    });
+
+    // --- SECCIÓN: PLACEMENTS ---
+    // Iteramos sobre el array global 'placements' definido en app.js 
+    placements.forEach((plc) => {
+        if (currentY > 240) { pdf.addPage(); currentY = 20; }
         
-        try {
-            // Verificar que jsPDF esté cargado
-            if (typeof window.jspdf === 'undefined') {
-                throw new Error('jsPDF no está cargado');
-            }
+        // Título del Placement con fondo gris [cite: 49, 67]
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(15, currentY, 180, 7, 'F');
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`PLACEMENT: ${plc.type.toUpperCase()}`, 17, currentY + 5);
+        currentY += 12;
+
+        // Encabezados de Tabla (Usando CONFIG.tableCols)
+        pdf.setFontSize(7);
+        pdf.text("Est", CONFIG.tableCols.est, currentY);
+        pdf.text("Screen (Tinta)", CONFIG.tableCols.screen, currentY);
+        pdf.text("Aditivos", CONFIG.tableCols.add, currentY);
+        pdf.line(15, currentY + 2, 200, currentY + 2);
+        currentY += 7;
+
+        // Estaciones (Filas) 
+        plc.stations.forEach(st => {
+            pdf.setFont("helvetica", "normal");
+            pdf.text(st.station || "", CONFIG.tableCols.est, currentY);
             
-            showStatus('📄 Generando PDF...', 'warning');
+            // Ajuste automático de texto largo para tintas y aditivos
+            const splitTinta = pdf.splitTextToSize(st.name || "", 50);
+            pdf.text(splitTinta, CONFIG.tableCols.screen, currentY);
             
-            // Generar el blob del PDF
-            const pdfBlob = await generatePDFBlob();
-            
-            // Crear nombre de archivo
-            const style = document.getElementById('style')?.value || 'SinEstilo';
-            const folderNum = document.getElementById('folder-num')?.value || '00000';
-            const fileName = `TegraSpec_${style}_${folderNum}.pdf`;
-            
-            // Descargar el archivo
-            const url = URL.createObjectURL(pdfBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showStatus('✅ PDF generado correctamente', 'success');
-            console.log(`✅ PDF exportado: ${fileName}`);
-            
-            return pdfBlob;
+            const splitAdd = pdf.splitTextToSize(st.additives || "N/A", 35);
+            pdf.text(splitAdd, CONFIG.tableCols.add, currentY);
+
+            currentY += (Math.max(splitTinta.length, splitAdd.length) * 4) + 2;
+        });
+        currentY += 10;
+    });
+
+    return pdf.output('blob');
+}
             
         } catch (error) {
             console.error('❌ Error al exportar PDF:', error);
