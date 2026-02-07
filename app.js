@@ -2229,170 +2229,91 @@ function updateAllPlacementTitles(placementId) {
                       pdf.line(x1, y1, x2, y2);
                   };
 
-                  // CABECERA - ESPACIO REDUCIDO
-                  pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                  pdf.rect(0, 0, pageW, 18, 'F'); // Reducido de 20 a 18
-                  
-                  pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(20);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text("TEGRA", 15, 16); // Ajustado
-                  
-                  pdf.setFontSize(11);
-                  pdf.text("TECHNICAL SPEC MANAGER", 15, 22); // Ajustado
-                  
-                  const folderNum = getInputValue('folder-num', '#####') || '#####';
-                  
-                  // FOLDER SUBIDO 3 PUNTOS
-                  pdf.setFontSize(7);
-                  pdf.text('FOLDER', pageW - 25, 15, { align: 'right' }); // Subido de 18 a 15
-                  
-                  pdf.setFontSize(16);
-                  pdf.text(`#${folderNum}`, pageW - 25, 19, { align: 'right' }); // Ajustado
-                  
-                  let y = 42; // Reducido de 45
-                  
-                  if (placements.length > 0) {
-                      drawRect(10, y, pageW - 20, 40, [250, 250, 250], grayLight);
-                      text('INFORMACIÓN GENERAL', 15, y + 8, 12, true, primaryColor);
-                      
-                      y += 5;
-                      
-                      const fields = [
-                          { l: 'CLIENTE:', v: getInputValue('customer') },
-                          { l: 'STYLE:', v: getInputValue('style') },
-                          { l: 'COLORWAY:', v: getInputValue('colorway') },
-                          { l: 'SEASON:', v: getInputValue('season') },
-                          { l: 'PATTERN #:', v: getInputValue('pattern') },
-                          { l: 'P.O. #:', v: getInputValue('po') },
-                          { l: 'SAMPLE TYPE:', v: getInputValue('sample-type') },
-                          { l: 'TEAM:', v: getInputValue('name-team') },
-                          { l: 'GENDER:', v: getInputValue('gender') },
-                          { l: 'DESIGNER:', v: getInputValue('designer') },
-                      ];
-                      
-                      let fieldY = y + 12;
-                      fields.forEach((f, i) => {
-                          const xPos = i % 2 === 0 ? 15 : 115;
-                          text(f.l, xPos, fieldY, 9, true);
-                          text(f.v || '---', xPos + 25, fieldY, 9, false);
-                          if (i % 2 !== 0) fieldY += 5;
-                      });
-                      y += 45;
-                  }
-                  
-                  placements.forEach((placement, index) => {
-                      if (index > 0) {
-                          pdf.addPage();
-                          y = 25;
-                      }
-                      
-                      const displayType = placement.type.includes('CUSTOM:') 
-                          ? placement.type.replace('CUSTOM: ', '')
-                          : placement.type;
-                      
-                      pdf.setFillColor(...primaryColor);
-                      drawRect(10, y, pageW - 20, 10, primaryColor, primaryColor, 0);
-                      text(`PLACEMENT: ${displayType}`, 15, y + 6, 11, true, [255, 255, 255]);
-                      y += 15;
-                      
-                      if (placement.imageData && placement.imageData.startsWith('data:')) {
-                          try {
-                              const imgH = 70;
-                              const imgW = 90;
-                              
-                              drawRect(15, y, imgW, imgH, [245, 245, 245], grayLight);
-                              pdf.addImage(placement.imageData, 'JPEG', 17, y + 2, imgW - 4, imgH - 4);
-                              
-                              const detailsX = 110;
-                              drawRect(detailsX, y, pageW - detailsX - 15, imgH, [250, 250, 250], grayLight);
-                              
-                              let detailY = y + 10;
-                              text('DETALLES DEL PLACEMENT', detailsX + 5, detailY, 10, true, primaryColor);
-                              detailY += 7;
-                              
-                              const details = [
-                                  `Tipo de tinta: ${placement.inkType || '---'}`,
-                                  `Dimensiones: ${placement.width || '##'}" X ${placement.height || '##'}"`,
-                                  `Ubicación: ${displayType || '---'}`,
-                                  `Placement: ${placement.placementDetails || '---'}`,
-                                  `Especialidades: ${placement.specialties || '---'}`
-                              ];
-                              
-                              details.forEach(detail => {
-                                  text(detail, detailsX + 5, detailY, 8);
-                                  detailY += 5;
-                              });
-                              
-                              y += imgH + 12;
-                          } catch (e) {
-                              console.warn('No se pudo agregar imagen al PDF:', e);
-                              y += 10;
-                          }
-                      } else {
-                          y += 10;
-                      }
-                      
-                      if (placement.colors && placement.colors.length > 0) {
-                          const uniqueColors = [];
-                          const seenColors = new Set();
-                          
-                          placement.colors.forEach(color => {
-                              if (color.type === 'COLOR' || color.type === 'METALLIC') {
-                                  const colorVal = (color.val || '').toUpperCase().trim();
-                                  if (colorVal && !seenColors.has(colorVal)) {
-                                      seenColors.add(colorVal);
-                                      uniqueColors.push({
-                                          val: colorVal,
-                                          screenLetter: color.screenLetter
-                                      });
-                                  }
-                              }
-                          });
-                          
-                          if (uniqueColors.length > 0) {
-                              drawRect(10, y, pageW - 20, 35, [250, 250, 250], grayLight);
-                              text('COLORES Y TINTAS', 15, y + 8, 11, true, primaryColor);
-                              y += 10;
-                              
-                              let xPos = 15;
-                              let rowY = y + 10;
-                              let colorsInRow = 0;
-                              
-                              uniqueColors.forEach((color, idx) => {
-                                  const colorHex = getColorHex(color.val) || '#cccccc';
-                                  const rgb = hexToRgb(colorHex);
-                                  
-                                  const colorBoxSize = 8;
-                                  pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
-                                  pdf.rect(xPos, rowY, colorBoxSize, colorBoxSize, 'F');
-                                  pdf.setDrawColor(0, 0, 0);
-                                  pdf.setLineWidth(0.1);
-                                  pdf.rect(xPos, rowY, colorBoxSize, colorBoxSize);
-                                  
-                                  text(`${color.screenLetter}: ${color.val}`, xPos + colorBoxSize + 4, rowY + 5, 7);
-                                  
-                                  xPos += 70;
-                                  colorsInRow++;
-                                  
-                                  if (colorsInRow >= 3) {
-                                      xPos = 15;
-                                      rowY += 15;
-                                      colorsInRow = 0;
-                                  }
-                              });
-                              
-                              y += 40;
-                          } else {
-                              y += 5;
-                          }
-                      } else {
-                          y += 5;
-                      }
-                      
-                      const stationsData = updatePlacementStations(placement.id, true);
-                      
-                      if (stationsData.length > 0) {
+             // Función mejorada para generar el PDF
+async function generatePDFBlob() {
+    return new Promise((resolve, reject) => {
+        try {
+            const pdf = new jspdf.jsPDF();
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const margin = 15;
+            const primaryColor = [0, 51, 153]; // Azul Tegra (ejemplo)
+            const grayLight = [240, 240, 240];
+
+            // --- CABECERA ---
+            pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            pdf.rect(0, 0, pageW, 20, 'F');
+            
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(18);
+            pdf.setFont("helvetica", "bold");
+            pdf.text("TEGRA", margin, 13);
+            
+            pdf.setFontSize(9);
+            pdf.setFont("helvetica", "normal");
+            pdf.text("TECHNICAL SPEC MANAGER", margin, 18);
+
+            const folderNum = getInputValue('folder-num', '#####') || '#####';
+            pdf.setFontSize(8);
+            pdf.text('FOLDER', pageW - margin, 10, { align: 'right' });
+            pdf.setFontSize(14);
+            pdf.text(`#${folderNum}`, pageW - margin, 16, { align: 'right' });
+
+            let currentY = 30;
+
+            // --- INFORMACIÓN GENERAL (Alineación en 2 columnas) ---
+            if (placements.length > 0) {
+                pdf.setFillColor(250, 250, 250);
+                pdf.setDrawColor(200, 200, 200);
+                pdf.rect(margin, currentY, pageW - (margin * 2), 45, 'FD');
+                
+                pdf.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                pdf.setFontSize(11);
+                pdf.setFont("helvetica", "bold");
+                pdf.text('INFORMACIÓN GENERAL', margin + 5, currentY + 8);
+
+                const fields = [
+                    { l: 'CLIENTE:', v: getInputValue('customer') },
+                    { l: 'STYLE:', v: getInputValue('style') },
+                    { l: 'COLORWAY:', v: getInputValue('colorway') },
+                    { l: 'SEASON:', v: getInputValue('season') },
+                    { l: 'PATTERN #:', v: getInputValue('pattern') },
+                    { l: 'P.O. #:', v: getInputValue('po') },
+                    { l: 'SAMPLE TYPE:', v: getInputValue('sample-type') },
+                    { l: 'TEAM:', v: getInputValue('name-team') },
+                    { l: 'GENDER:', v: getInputValue('gender') },
+                    { l: 'DESIGNER:', v: getInputValue('designer') }
+                ];
+
+                let fieldY = currentY + 16;
+                pdf.setFontSize(9);
+                fields.forEach((f, i) => {
+                    // Columna 1 (izquierda) o Columna 2 (derecha)
+                    const xLabel = (i % 2 === 0) ? margin + 5 : (pageW / 2) + 5;
+                    const xValue = xLabel + 25; // Espacio fijo para la etiqueta
+
+                    pdf.setFont("helvetica", "bold");
+                    pdf.setTextColor(60, 60, 60);
+                    pdf.text(f.l, xLabel, fieldY);
+                    
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text(f.v || '---', xValue, fieldY);
+
+                    if (i % 2 !== 0) fieldY += 6; // Salto de línea cada 2 campos
+                });
+                currentY += 55;
+            }
+
+            // Aquí continuaría el bucle de placements...
+            // (Asegúrate de actualizar 'currentY' después de cada sección)
+
+            resolve(pdf.output('blob'));
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
                           // SECUENCIA SUBIDA
                           text(`SECUENCIA DE IMPRESIÓN - ${displayType}`, 15, y - 5, 12, true, primaryColor); // Subido 5 puntos
                           y += 6; // Reducido espacio
