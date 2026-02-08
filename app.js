@@ -1,4 +1,9 @@
-      // ========== VARIABLES GLOBALES ==========
+console.log("🔍 DIAGNÓSTICO PDF - Iniciando app.js");
+console.log("Versión actual:", window.Config?.APP?.VERSION || "Desconocida");
+console.log("Placements cargados:", placements?.length || 0);
+console.log("jspdf disponible:", typeof window.jspdf !== "undefined");
+
+// ========== VARIABLES GLOBALES ==========
       const stateManager = new StateManager();
       let placements = [];
       let currentPlacementId = 1;
