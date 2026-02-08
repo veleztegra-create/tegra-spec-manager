@@ -1,212 +1,174 @@
 
-function hexToRgb(hex) {
-    if (!hex || typeof hex !== 'string') return [204, 204, 204]; // default to gray
-    hex = hex.replace('#', '');
-    if (hex.length !== 6) return [204, 204, 204];
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    return [r, g, b];
-}
+// pdf-generator.js
 
-function getColorHex(colorName, colorDatabases) {
-    if (!colorName) return '#cccccc';
-    const name = colorName.toUpperCase().trim();
-
-    if (colorDatabases) {
-        for (const db of Object.values(colorDatabases)) {
-            for (const [key, data] of Object.entries(db)) {
-                const keyUpper = key.toUpperCase();
-                if (name === keyUpper || name.includes(keyUpper) || keyUpper.includes(name)) {
-                    if (data && data.hex) return data.hex;
-                }
-            }
-        }
+// Objeto de configuración centralizado para el diseño del PDF, como sugeriste.
+const CONFIG = {
+    pageSize: 'letter',
+    orientation: 'p',
+    unit: 'mm',
+    primaryColor: [0, 51, 153], // Azul TEGRA corporativo
+    grayLight: [240, 240, 240],
+    grayDark: [100, 100, 100],
+    margin: 15,
+    labelWidth: 35, // Ancho para etiquetas como "CLIENTE:"
+    col2X: 115,     // Posición X de inicio para la segunda columna de datos
+    // Coordenadas X fijas para la tabla de secuencia, para un control preciso
+    tableCols: {
+        est: 17,
+        scr: 28,
+        screen: 40,
+        add: 105,
+        mesh: 150,
+        strokes: 165,
+        angle: 178,
+        pressure: 190,
+        duro: 205
     }
-
-    const hexMatch = name.match(/#([0-9A-F]{6})/i);
-    if (hexMatch) return `#${hexMatch[1]}`;
-
-    return '#cccccc';
-}
+};
 
 window.PdfGenerator = {
   generate: async function(data, colorDatabases, options = {}) {
     return new Promise((resolve, reject) => {
         try {
-            if (typeof window.jspdf === 'undefined' || typeof window.jspdf.autoTable === 'undefined') {
-                throw new Error('jsPDF o jsPDF-AutoTable no están cargados.');
+            if (typeof window.jspdf === 'undefined') {
+                throw new Error('jsPDF no está cargado.');
             }
 
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'letter');
+            const pdf = new jsPDF(CONFIG.orientation, CONFIG.unit, CONFIG.pageSize);
             const pageW = pdf.internal.pageSize.getWidth();
             const pageH = pdf.internal.pageSize.getHeight();
-            const margin = 10;
-            const availableWidth = pageW - (margin * 2);
-            let y = 18;
+            let y = 20; // y inicial
 
-            const primaryColor = [255, 82, 82];
-            const grayLight = [240, 240, 240];
-            const grayDark = [100, 100, 100];
-
-            const text = (str, x, y, size = 10, bold = false, color = [0, 0, 0], align = 'left') => {
+            // --- Helpers ---
+            const text = (str, x, y, size = 10, bold = false, color = [0,0,0]) => {
                 pdf.setTextColor(...color);
                 pdf.setFont('helvetica', bold ? 'bold' : 'normal');
                 pdf.setFontSize(size);
-                pdf.text(String(str || '---'), x, y, { align });
+                pdf.text(String(str || '---'), x, y);
             };
 
             const drawFooter = (pageIndex, totalPages) => {
                 const footerY = pageH - 15;
                 pdf.setDrawColor(220, 220, 220);
-                pdf.line(margin, footerY - 2, pageW - margin, footerY - 2);
-                text(`Generado: ${new Date().toLocaleString('es-ES')}`, margin, footerY, 8, false, grayDark);
-                text(`Página ${pageIndex} de ${totalPages}`, pageW / 2, footerY, 8, false, grayDark, 'center');
-                text('TEGRA Spec Manager', pageW - margin, footerY, 8, true, primaryColor, 'right');
+                pdf.line(CONFIG.margin, footerY - 2, pageW - CONFIG.margin, footerY - 2);
+                text(`Generado: ${new Date().toLocaleString('es-ES')}`, CONFIG.margin, footerY, 8, false, CONFIG.grayDark);
+                text(`Página ${pageIndex} de ${totalPages}`, pageW / 2, footerY, 8, false, CONFIG.grayDark, 'center');
+                text('TEGRA Spec Manager', pageW - CONFIG.margin, footerY, 8, true, CONFIG.primaryColor, 'right');
             };
-
-            pdf.setFillColor(...primaryColor);
+            
+            // --- Cabecera ---
+            pdf.setFillColor(...CONFIG.primaryColor);
             pdf.rect(0, 0, pageW, 18, 'F');
-            text('TEGRA', 15, 12, 20, true, [255, 255, 255]);
-            text('TECHNICAL SPECIFICATION', 15, 17, 10, false, [255, 255, 255]);
+            text('TEGRA', CONFIG.margin, 12, 20, true, [255, 255, 255]);
+            text('TECHNICAL SPECIFICATION', CONFIG.margin, 17, 10, false, [255, 255, 255]);
             const folderNum = data.folder || '#####';
-            text('FOLDER', pageW - 25, 10, 8, false, [255, 255, 255], 'right');
-            text(`#${folderNum}`, pageW - 25, 15, 16, true, [255, 255, 255], 'right');
-
+            text('FOLDER', pageW - 40, 10, 8, false, [255, 255, 255], 'right');
+            text(`#${folderNum}`, pageW - 40, 15, 16, true, [255, 255, 255], 'right');
             y = 30;
-            text('INFORMACIÓN GENERAL', margin, y - 4, 12, true, primaryColor);
 
-            const generalInfoBody = [
-                [{ content: 'CLIENTE:', styles: { fontStyle: 'bold' } }, data.customer, { content: 'SEASON:', styles: { fontStyle: 'bold' } }, data.season],
-                [{ content: 'STYLE:', styles: { fontStyle: 'bold' } }, data.style, { content: 'COLORWAY:', styles: { fontStyle: 'bold' } }, data.colorway],
-                [{ content: 'P.O. #:', styles: { fontStyle: 'bold' } }, data.po, { content: 'TEAM:', styles: { fontStyle: 'bold' } }, data.nameTeam],
-                [{ content: 'SAMPLE:', styles: { fontStyle: 'bold' } }, data.sampleType, { content: 'GENDER:', styles: { fontStyle: 'bold' } }, data.gender],
+            // --- Información General (2 Columnas Manual) ---
+            text('INFORMACIÓN GENERAL', CONFIG.margin, y - 4, 12, true, CONFIG.primaryColor);
+            const genFields = [
+                { l: 'CLIENTE:', v: data.customer }, { l: 'SEASON:', v: data.season },
+                { l: 'STYLE:', v: data.style }, { l: 'COLORWAY:', v: data.colorway },
+                { l: 'P.O. #:', v: data.po }, { l: 'TEAM:', v: data.nameTeam },
+                { l: 'SAMPLE:', v: data.sampleType }, { l: 'GENDER:', v: data.gender },
             ];
-
-            pdf.autoTable({
-                startY: y,
-                body: generalInfoBody,
-                theme: 'grid',
-                styles: { fontSize: 9, cellPadding: 2 },
-                columnStyles: { 0: { cellWidth: 25 }, 2: { cellWidth: 25 } },
-                margin: { left: margin, right: margin }
+            
+            pdf.setFontSize(9);
+            genFields.forEach((field, i) => {
+                const xPos = (i % 2 === 0) ? CONFIG.margin : CONFIG.col2X;
+                text(field.l, xPos, y, 9, true);
+                text(field.v, xPos + 22, y, 9, false);
+                if (i % 2 !== 0) y += 6;
             });
 
-            y = pdf.autoTable.previous.finalY + 8;
+            y += 10; // Espacio después de la info general
 
+            // --- Placements ---
             data.placements.forEach((placement, index) => {
-                if (y > pageH - 40) { // Check if new page is needed before starting a new placement
+                if (index > 0 && y > 40) { // Si no es el primero, añadir página
                     pdf.addPage();
-                    y = 25;
-                }
-                if (index > 0) {
-                    pdf.addPage();
-                    y = 25;
+                    y = 20;
                 }
 
-                const displayType = placement.type.includes('CUSTOM:') ? placement.type.replace('CUSTOM: ', '') : placement.type;
-                pdf.setFillColor(...primaryColor);
-                pdf.rect(margin, y, availableWidth, 8, 'F');
-                text(`PLACEMENT: ${displayType}`, margin + 5, y + 5.5, 11, true, [255, 255, 255]);
+                if (y > pageH - 60) { // Salto de página si queda poco espacio
+                    pdf.addPage(); y = 20;
+                }
+
+                // --- Título del Placement ---
+                pdf.setFillColor(...CONFIG.grayLight);
+                pdf.rect(CONFIG.margin, y, pageW - (CONFIG.margin * 2), 8, 'F');
+                text(`PLACEMENT: ${placement.type.toUpperCase()}`, CONFIG.margin + 2, y + 5.5, 11, true, CONFIG.primaryColor);
                 y += 12;
+                
+                // --- Detalles (Imagen, etc) ---
+                // ... (se puede añadir la lógica de la imagen aquí si se desea)
+                y += 10;
 
-                if (placement.imageData && placement.imageData.startsWith('data:')) {
-                    const imgH = 60, imgW = 85;
-                    try {
-                        pdf.addImage(placement.imageData, 'JPEG', margin, y, imgW, imgH);
-                    } catch (e) {
-                        console.warn('Error adding image to PDF:', e);
-                        text('Error al cargar imagen', margin, y + 30);
-                    }
-
-                    const detailsTableBody = [
-                        [{ content: 'Tinta:', styles: { fontStyle: 'bold' } }, placement.inkType || '---'],
-                        [{ content: 'Dimensiones:', styles: { fontStyle: 'bold' } }, `${placement.width || '##'}" X ${placement.height || '##'}"`],
-                        [{ content: 'Ubicación:', styles: { fontStyle: 'bold' } }, placement.placementDetails || '---'],
-                        [{ content: 'Especialidades:', styles: { fontStyle: 'bold' } }, placement.specialties || '---'],
-                    ];
-                    pdf.autoTable({
-                        startY: y - 1,
-                        body: detailsTableBody,
-                        theme: 'plain',
-                        styles: { fontSize: 8, cellPadding: 1.5 },
-                        margin: { left: margin + imgW + 5 }
-                    });
-                    y += imgH + 5;
-                }
-
+                // --- Tabla de Secuencia de Impresión (Manual) ---
                 if (placement.stationsData && placement.stationsData.length > 0) {
-                    text(`SECUENCIA DE IMPRESIÓN - ${displayType}`, margin, y, 12, true, primaryColor);
-                    y += 5;
+                    text('SECUENCIA DE IMPRESIÓN', CONFIG.margin, y, 11, true, CONFIG.primaryColor);
+                    y += 6;
 
-                    const head = [['Est', 'Scr.', 'Screen (Tinta/Proceso)', 'Aditivos', 'Malla', 'Strokes', 'Angle', 'Pressure', 'Speed', 'Duro']];
-                    const body = placement.stationsData.map(r => [r.st, r.screenLetter, r.screenCombined, r.add, r.mesh, r.strokes, r.angle, r.pressure, r.speed, r.duro]);
+                    // Encabezados
+                    pdf.setFontSize(8);
+                    text('Est', CONFIG.tableCols.est, y, 8, true);
+                    text('Scr.', CONFIG.tableCols.scr, y, 8, true);
+                    text('Screen (Tinta/Proceso)', CONFIG.tableCols.screen, y, 8, true);
+                    text('Aditivos', CONFIG.tableCols.add, y, 8, true);
+                    text('Malla', CONFIG.tableCols.mesh, y, 8, true);
+                    text('Strokes', CONFIG.tableCols.strokes, y, 8, true);
+                    text('Angle', CONFIG.tableCols.angle, y, 8, true);
+                    text('Pressure', CONFIG.tableCols.pressure, y, 8, true);
+                    pdf.setDrawColor(...CONFIG.grayDark).line(CONFIG.margin, y + 2, pageW - CONFIG.margin, y + 2);
+                    y += 7;
 
-                    pdf.autoTable({
-                        startY: y,
-                        head: head,
-                        body: body,
-                        theme: 'grid',
-                        headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold', cellPadding: 1.5 },
-                        styles: { fontSize: 7.5, cellPadding: 1 },
-                        columnStyles: {
-                            0: { cellWidth: 8 },    // Est
-                            1: { cellWidth: 10 },   // Scr.
-                            2: { cellWidth: 50.5 }, // Screen
-                            3: { cellWidth: 50.5 }, // Aditivos
-                            4: { cellWidth: 12 },   // Malla
-                            5: { cellWidth: 12 },   // Strokes
-                            6: { cellWidth: 12 },   // Angle
-                            7: { cellWidth: 15 },   // Pressure
-                            8: { cellWidth: 12 },   // Speed
-                            9: { cellWidth: 12 },   // Duro
-                        },
-                        margin: { left: margin, right: margin },
-                        didDrawCell: (d) => {
-                            if (d.section === 'body' && (d.cell.raw.includes('FLASH') || d.cell.raw.includes('COOL'))) {
-                                pdf.setFillColor(...grayLight);
-                                pdf.rect(d.cell.x, d.cell.y, d.cell.width, d.cell.height, 'F');
-                                pdf.setTextColor(...grayDark);
-                                pdf.setFont('helvetica', 'bold');
-                                pdf.text(d.cell.text, d.cell.x + d.cell.padding('left'), d.cell.y + d.cell.height / 2, { baseline: 'middle' });
-                            }
+                    // Filas
+                    placement.stationsData.forEach(row => {
+                        if (y > pageH - 30) { pdf.addPage(); y = 20; }
+
+                        const isFlash = row.screenCombined.includes('FLASH') || row.screenCombined.includes('COOL');
+                        if (isFlash) {
+                            pdf.setFillColor(...CONFIG.grayLight);
+                            pdf.rect(CONFIG.margin, y - 4, pageW - (CONFIG.margin * 2), 5, 'F');
+                            text(row.screenCombined, CONFIG.tableCols.screen, y, 8, true, CONFIG.grayDark);
+                            y += 6;
+                            return; // Saltar al siguiente
                         }
+
+                        pdf.setFontSize(8);
+                        text(row.st, CONFIG.tableCols.est, y, 8, true);
+                        text(row.screenLetter, CONFIG.tableCols.scr, y, 8, true, CONFIG.primaryColor);
+                        
+                        const screenText = pdf.splitTextToSize(row.screenCombined, 60);
+                        const additivesText = pdf.splitTextToSize(row.add || 'N/A', 45);
+                        
+                        text(screenText, CONFIG.tableCols.screen, y, 8, false);
+                        text(additivesText, CONFIG.tableCols.add, y, 8, false);
+                        
+                        text(row.mesh, CONFIG.tableCols.mesh, y, 8, false);
+                        text(row.strokes, CONFIG.tableCols.strokes, y, 8, false);
+                        text(row.angle, CONFIG.tableCols.angle, y, 8, false);
+                        text(row.pressure, CONFIG.tableCols.pressure, y, 8, false);
+
+                        // Incrementar 'y' basado en la línea más alta (tinta o aditivos)
+                        const maxHeight = Math.max(screenText.length, additivesText.length);
+                        y += (maxHeight * 4) + 2; // 4mm por línea + 2mm de espacio
                     });
-                    y = pdf.autoTable.previous.finalY + 8;
                 }
-
-                if(y > pageH - 50) { pdf.addPage(); y = 25; }
-
-                const temp = placement.temp || '---';
-                const time = placement.time || '---';
-                const cureTable = {
-                    startY: y,
-                    theme: 'grid',
-                    styles: { fontSize: 9, cellPadding: 2 },
-                    body: [[{ content: 'CONDICIONES DE CURADO', colSpan: 4, styles: { halign: 'center', fontStyle: 'bold', fillColor: grayLight } }],
-                           [{ content: 'Temp:', styles: { fontStyle: 'bold' } }, temp, { content: 'Tiempo:', styles: { fontStyle: 'bold' } }, time]]
-                };
-                pdf.autoTable(cureTable);
-                y = pdf.autoTable.previous.finalY + 5;
-
-                if (placement.specialInstructions) {
-                    if(y > pageH - 40) { pdf.addPage(); y = 25; }
-                    y += 2;
-                    text('INSTRUCCIONES ESPECIALES:', margin, y, 10, true, primaryColor);
-                    pdf.setFontSize(9).setTextColor(...grayDark);
-                    const instructionLines = pdf.splitTextToSize(placement.specialInstructions, availableWidth);
-                    pdf.text(instructionLines, margin, y + 5);
-                    y += (instructionLines.length * 5) + 2;
-                }
+                 y += 10;
             });
 
+            // --- Footer en todas las páginas ---
             const totalPages = pdf.internal.getNumberOfPages();
             for (let i = 1; i <= totalPages; i++) {
                 pdf.setPage(i);
                 drawFooter(i, totalPages);
             }
 
+            // --- Salida ---
             if (options.output === 'blob') {
                 resolve(pdf.output('blob'));
             } else {
