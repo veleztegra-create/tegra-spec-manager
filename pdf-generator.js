@@ -1,4 +1,3 @@
-
 // pdf-generator.js
 
 // Objeto de configuración centralizado para el diseño del PDF, como sugeriste.
@@ -41,19 +40,19 @@ window.PdfGenerator = {
             let y = 20; // y inicial
 
             // --- Helpers ---
-            const text = (str, x, y, size = 10, bold = false, color = [0,0,0]) => {
+            const text = (str, x, y, size = 10, bold = false, color = [0,0,0], align = 'left') => {
                 pdf.setTextColor(...color);
                 pdf.setFont('helvetica', bold ? 'bold' : 'normal');
                 pdf.setFontSize(size);
-                pdf.text(String(str || '---'), x, y);
+                pdf.text(String(str || '---'), x, y, { align });
             };
 
             const drawFooter = (pageIndex, totalPages) => {
                 const footerY = pageH - 15;
                 pdf.setDrawColor(220, 220, 220);
                 pdf.line(CONFIG.margin, footerY - 2, pageW - CONFIG.margin, footerY - 2);
-                text(`Generado: ${new Date().toLocaleString('es-ES')}`, CONFIG.margin, footerY, 8, false, CONFIG.grayDark);
-                text(`Página ${pageIndex} de ${totalPages}`, pageW / 2, footerY, 8, false, CONFIG.grayDark, 'center');
+                text(\`Generado: ${new Date().toLocaleString('es-ES')}\`, CONFIG.margin, footerY, 8, false, CONFIG.grayDark);
+                text(\`Página ${pageIndex} de ${totalPages}\`, pageW / 2, footerY, 8, false, CONFIG.grayDark, 'center');
                 text('TEGRA Spec Manager', pageW - CONFIG.margin, footerY, 8, true, CONFIG.primaryColor, 'right');
             };
             
@@ -64,7 +63,7 @@ window.PdfGenerator = {
             text('TECHNICAL SPECIFICATION', CONFIG.margin, 17, 10, false, [255, 255, 255]);
             const folderNum = data.folder || '#####';
             text('FOLDER', pageW - 40, 10, 8, false, [255, 255, 255], 'right');
-            text(`#${folderNum}`, pageW - 40, 15, 16, true, [255, 255, 255], 'right');
+            text(\`#${folderNum}\`, pageW - 40, 15, 16, true, [255, 255, 255], 'right');
             y = 30;
 
             // --- Información General (2 Columnas Manual) ---
@@ -100,12 +99,28 @@ window.PdfGenerator = {
                 // --- Título del Placement ---
                 pdf.setFillColor(...CONFIG.grayLight);
                 pdf.rect(CONFIG.margin, y, pageW - (CONFIG.margin * 2), 8, 'F');
-                text(`PLACEMENT: ${placement.type.toUpperCase()}`, CONFIG.margin + 2, y + 5.5, 11, true, CONFIG.primaryColor);
+                text(\`PLACEMENT: ${placement.type.toUpperCase()}\`, CONFIG.margin + 2, y + 5.5, 11, true, CONFIG.primaryColor);
                 y += 12;
                 
-                // --- Detalles (Imagen, etc) ---
-                // ... (se puede añadir la lógica de la imagen aquí si se desea)
-                y += 10;
+                // --- Detalles e Imagen ---
+                if (placement.imageData) {
+                    try {
+                        pdf.addImage(placement.imageData, 'JPEG', CONFIG.margin, y, 85, 60);
+                    } catch(e) { console.warn("Could not add placement image to PDF"); }
+                }
+                
+                // Tabla de detalles al lado de la imagen
+                pdf.setFontSize(8);
+                text("Tinta:", CONFIG.col2X, y, 8, true);
+                text(placement.inkType, CONFIG.col2X + 15, y, 8, false);
+                text("Dimensiones:", CONFIG.col2X, y + 6, 8, true);
+                text(\`\${placement.width || '##'}" x \${placement.height || '##'}"\`, CONFIG.col2X + 25, y + 6, 8, false);
+                text("Ubicación:", CONFIG.col2X, y + 12, 8, true);
+                const detailsLines = pdf.splitTextToSize(placement.placementDetails || '---', 70);
+                text(detailsLines, CONFIG.col2X + 20, y + 12, 8, false);
+
+                y += 65; // Espacio para la imagen y detalles
+
 
                 // --- Tabla de Secuencia de Impresión (Manual) ---
                 if (placement.stationsData && placement.stationsData.length > 0) {
@@ -113,15 +128,15 @@ window.PdfGenerator = {
                     y += 6;
 
                     // Encabezados
-                    pdf.setFontSize(8);
-                    text('Est', CONFIG.tableCols.est, y, 8, true);
-                    text('Scr.', CONFIG.tableCols.scr, y, 8, true);
-                    text('Screen (Tinta/Proceso)', CONFIG.tableCols.screen, y, 8, true);
-                    text('Aditivos', CONFIG.tableCols.add, y, 8, true);
-                    text('Malla', CONFIG.tableCols.mesh, y, 8, true);
-                    text('Strokes', CONFIG.tableCols.strokes, y, 8, true);
-                    text('Angle', CONFIG.tableCols.angle, y, 8, true);
-                    text('Pressure', CONFIG.tableCols.pressure, y, 8, true);
+                    pdf.setFontSize(7);
+                    text('Est', CONFIG.tableCols.est, y, 7, true);
+                    text('Scr.', CONFIG.tableCols.scr, y, 7, true);
+                    text('Screen (Tinta/Proceso)', CONFIG.tableCols.screen, y, 7, true);
+                    text('Aditivos', CONFIG.tableCols.add, y, 7, true);
+                    text('Malla', CONFIG.tableCols.mesh, y, 7, true);
+                    text('Strokes', CONFIG.tableCols.strokes, y, 7, true);
+                    text('Angle', CONFIG.tableCols.angle, y, 7, true);
+                    text('Pressure', CONFIG.tableCols.pressure, y, 7, true);
                     pdf.setDrawColor(...CONFIG.grayDark).line(CONFIG.margin, y + 2, pageW - CONFIG.margin, y + 2);
                     y += 7;
 
@@ -142,8 +157,8 @@ window.PdfGenerator = {
                         text(row.st, CONFIG.tableCols.est, y, 8, true);
                         text(row.screenLetter, CONFIG.tableCols.scr, y, 8, true, CONFIG.primaryColor);
                         
-                        const screenText = pdf.splitTextToSize(row.screenCombined, 60);
-                        const additivesText = pdf.splitTextToSize(row.add || 'N/A', 45);
+                        const screenText = pdf.splitTextToSize(row.screenCombined, 60); // Ancho de 60mm
+                        const additivesText = pdf.splitTextToSize(row.add || 'N/A', 45); // Ancho de 45mm
                         
                         text(screenText, CONFIG.tableCols.screen, y, 8, false);
                         text(additivesText, CONFIG.tableCols.add, y, 8, false);
@@ -155,7 +170,7 @@ window.PdfGenerator = {
 
                         // Incrementar 'y' basado en la línea más alta (tinta o aditivos)
                         const maxHeight = Math.max(screenText.length, additivesText.length);
-                        y += (maxHeight * 4) + 2; // 4mm por línea + 2mm de espacio
+                        y += (maxHeight * 4) + 3; // 4mm por línea + 3mm de espacio
                     });
                 }
                  y += 10;
@@ -172,7 +187,7 @@ window.PdfGenerator = {
             if (options.output === 'blob') {
                 resolve(pdf.output('blob'));
             } else {
-                const fileName = `TegraSpec_${data.style || 'Spec'}_${data.folder || '00000'}.pdf`;
+                const fileName = \`TegraSpec_\${data.style || 'Spec'}_\${data.folder || '00000'}.pdf\`;
                 pdf.save(fileName);
                 resolve();
             }
