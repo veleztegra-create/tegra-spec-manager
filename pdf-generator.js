@@ -51,8 +51,8 @@ window.PdfGenerator = {
                 const footerY = pageH - 15;
                 pdf.setDrawColor(220, 220, 220);
                 pdf.line(CONFIG.margin, footerY - 2, pageW - CONFIG.margin, footerY - 2);
-                text(\`Generado: ${new Date().toLocaleString('es-ES')}\`, CONFIG.margin, footerY, 8, false, CONFIG.grayDark);
-                text(\`Página ${pageIndex} de ${totalPages}\`, pageW / 2, footerY, 8, false, CONFIG.grayDark, 'center');
+                text(`Generado: ${new Date().toLocaleString('es-ES')}`, CONFIG.margin, footerY, 8, false, CONFIG.grayDark);
+                text(`Página ${pageIndex} de ${totalPages}`, pageW / 2, footerY, 8, false, CONFIG.grayDark, 'center');
                 text('TEGRA Spec Manager', pageW - CONFIG.margin, footerY, 8, true, CONFIG.primaryColor, 'right');
             };
             
@@ -63,7 +63,7 @@ window.PdfGenerator = {
             text('TECHNICAL SPECIFICATION', CONFIG.margin, 17, 10, false, [255, 255, 255]);
             const folderNum = data.folder || '#####';
             text('FOLDER', pageW - 40, 10, 8, false, [255, 255, 255], 'right');
-            text(\`#${folderNum}\`, pageW - 40, 15, 16, true, [255, 255, 255], 'right');
+            text(`#${folderNum}`, pageW - 40, 15, 16, true, [255, 255, 255], 'right');
             y = 30;
 
             // --- Información General (2 Columnas Manual) ---
@@ -99,7 +99,7 @@ window.PdfGenerator = {
                 // --- Título del Placement ---
                 pdf.setFillColor(...CONFIG.grayLight);
                 pdf.rect(CONFIG.margin, y, pageW - (CONFIG.margin * 2), 8, 'F');
-                text(\`PLACEMENT: ${placement.type.toUpperCase()}\`, CONFIG.margin + 2, y + 5.5, 11, true, CONFIG.primaryColor);
+                text(`PLACEMENT: ${placement.type.toUpperCase()}`, CONFIG.margin + 2, y + 5.5, 11, true, CONFIG.primaryColor);
                 y += 12;
                 
                 // --- Detalles e Imagen ---
@@ -114,7 +114,7 @@ window.PdfGenerator = {
                 text("Tinta:", CONFIG.col2X, y, 8, true);
                 text(placement.inkType, CONFIG.col2X + 15, y, 8, false);
                 text("Dimensiones:", CONFIG.col2X, y + 6, 8, true);
-                text(\`\${placement.width || '##'}" x \${placement.height || '##'}"\`, CONFIG.col2X + 25, y + 6, 8, false);
+                text(`${placement.width || '##'}" x ${placement.height || '##'}"`, CONFIG.col2X + 25, y + 6, 8, false);
                 text("Ubicación:", CONFIG.col2X, y + 12, 8, true);
                 const detailsLines = pdf.splitTextToSize(placement.placementDetails || '---', 70);
                 text(detailsLines, CONFIG.col2X + 20, y + 12, 8, false);
@@ -187,7 +187,7 @@ window.PdfGenerator = {
             if (options.output === 'blob') {
                 resolve(pdf.output('blob'));
             } else {
-                const fileName = \`TegraSpec_\${data.style || 'Spec'}_\${data.folder || '00000'}.pdf\`;
+                const fileName = `TegraSpec_${data.style || 'Spec'}_${data.folder || '00000'}.pdf`;
                 pdf.save(fileName);
                 resolve();
             }
