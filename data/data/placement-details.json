@@ -1,0 +1,30 @@
+{
+    "placementTypes": {
+        "screen-print": {
+            "name": "Screen Print",
+            "fields": ["type", "ink_type", "colors", "specialties", "artwork", "notes"]
+        },
+        "heat-transfer": {
+            "name": "Heat Transfer",
+            "fields": ["type", "transfer_type", "artwork", "notes"]
+        },
+        "embroidery": {
+            "name": "Embroidery",
+            "fields": ["type", "artwork", "notes"]
+        },
+        "twill": {
+            "name": "Twill / Applique",
+            "fields": ["type", "artwork", "notes"]
+        }
+    },
+    "specialtyInks": [
+        "High Density",
+        "Puff",
+        "Gel",
+        "Suede",
+        "Metallic",
+        "Glitter",
+        "Reflective",
+        "Glow in the Dark"
+    ]
+}
