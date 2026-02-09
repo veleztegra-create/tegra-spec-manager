@@ -2,7 +2,7 @@
 // =================================================================================
 // TEGRA SPEC MANAGER - APP.JS (REFACTORIZADO)
 // Descripción: Script principal que orquesta la interfaz de usuario, eventos y lógica de negocio.
-// Versión: 3.2 (Selectores de ID robustos)
+// Versión: 3.3 (Carga de Placements completa)
 // =================================================================================
 
 // ========== INICIALIZACIÓN DE LA APLICACIÓN ==========
@@ -40,7 +40,7 @@ function setupEventListeners() {
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 
     // ======== SELECCIÓN POR ID (ROBUSTO) ========
-    document.getElementById('add-placement-btn').addEventListener('click', addNewPlacement);
+    document.getElementById('add-placement-btn').addEventListener('click', () => addNewPlacement());
     document.getElementById('export-pdf-btn').addEventListener('click', exportPDF);
     document.getElementById('export-excel-btn').addEventListener('click', exportToExcel);
     document.getElementById('clear-form-btn').addEventListener('click', clearForm);
@@ -104,30 +104,22 @@ function handleGearForSportLogic() {
     const po = document.getElementById('po').value.trim().toUpperCase();
     const nameTeamInput = document.getElementById('name-team');
 
-    // 1. Intento de búsqueda específica de GFS con el nuevo helper.
     let teamName = getGfsTeamName(style, po);
 
-    // 2. Si no se encuentra, usar la lógica de código de liga estándar.
     if (!teamName) {
         let teamCode = '';
-        if (style.startsWith('N')) { // NCAA
-            teamCode = style.substring(1, 4);
-        } else if (po.startsWith('PO')) { // Pro league
-            teamCode = po.substring(2, 5);
-        }
+        const styleMatch = style.match(/^N([A-Z0-9]{3})/);
+        const poMatch = po.match(/^PO([A-Z0-9]{3})/);
+        if (styleMatch) teamCode = styleMatch[1];
+        else if (poMatch) teamCode = poMatch[1];
 
         if (teamCode) {
             const teamInfo = window.AppConfig.findTeam(teamCode);
-            if (teamInfo) {
-                teamName = teamInfo.name;
-            }
+            if (teamInfo) teamName = teamInfo.name;
         }
     }
 
-    // 3. Asignar el valor si se encontró un nombre de equipo.
-    if (teamName) {
-        nameTeamInput.value = teamName;
-    }
+    if (teamName) nameTeamInput.value = teamName;
 }
 
 /**
@@ -178,7 +170,6 @@ function updatePlacementColorPreview(colorName, colorPreviewElement) {
     }
 }
 
-
 // ========== MANEJO DE LA INTERFAZ (UI) ==========
 
 function showTab(tabId) {
@@ -221,124 +212,106 @@ function showStatusMessage(message, type = 'info') {
     const statusEl = document.getElementById('statusMessage');
     statusEl.textContent = message;
     statusEl.className = `status-message ${type} show`;
-    setTimeout(() => {
-        statusEl.classList.remove('show');
-    }, 3000);
+    setTimeout(() => statusEl.classList.remove('show'), 3000);
 }
 
 // ========== MANEJO DE PLACEMENTS ==========
 
 let placementCounter = 0;
 
-function addNewPlacement() {
+function addNewPlacement(pData = null) {
     placementCounter++;
-    const placementId = `p${placementCounter}`;
-    const placementHTML = renderPlacementHTML(placementId);
+    const id = `p${placementCounter}`;
+    const placementHTML = renderPlacementHTML(id, pData?.name);
     document.getElementById('placements-container').insertAdjacentHTML('beforeend', placementHTML);
-    const newTab = document.querySelector(`.placement-tab[data-id='${placementId}']`);
-    if(newTab) newTab.click();
+
+    if (pData) {
+        // Rellenar datos si se proporcionan
+        document.getElementById(`placement-type-${id}`).value = pData.type;
+        document.getElementById(`placement-ink-type-${id}`).value = pData.inkType;
+        document.getElementById(`placement-notes-${id}`).value = pData.notes;
+
+        const specialtiesSelect = document.getElementById(`placement-specialties-${id}`);
+        pData.specialties.forEach(specialty => {
+            const option = Array.from(specialtiesSelect.options).find(opt => opt.value === specialty);
+            if (option) option.selected = true;
+        });
+
+        pData.colors.forEach(color => addColorToPlacement(id, color));
+    }
+    
+    // Lógica de Tabs (si aplica)
+    // const newTab = document.querySelector(`.placement-tab[data-id='${id}']`);
+    // if(newTab) newTab.click();
 }
 
-function renderPlacementHTML(id) {
-    const placementTypes = window.AppConfig.placementDetails.placementTypes;
-    const specialtyInks = window.AppConfig.placementDetails.specialtyInks;
+function renderPlacementHTML(id, name = `Placement ${placementCounter}`) {
+    const { placementTypes, specialtyInks } = window.AppConfig.placementDetails;
     let typeOptions = Object.keys(placementTypes).map(key => `<option value="${key}">${placementTypes[key].name}</option>`).join('');
     let specialtyOptions = specialtyInks.map(ink => `<option value="${ink}">${ink}</option>`).join('');
 
     return `
         <div class="placement-card" id="placement-card-${id}" data-id="${id}">
             <div class="card-header">
-                <input type="text" id="placement-name-${id}" class="form-control form-control-sm" value="Placement ${placementCounter}">
+                <input type="text" id="placement-name-${id}" class="form-control form-control-sm" value="${name}">
                 <button type="button" class="btn btn-danger btn-sm" onclick="removePlacement('${id}')"><i class="fas fa-trash"></i></button>
             </div>
             <div class="card-body form-grid">
-                <div class="form-group">
-                    <label>Tipo de Placement</label>
-                    <select id="placement-type-${id}" class="form-control">${typeOptions}</select>
-                </div>
-                <div class="form-group">
-                    <label>Tipo de Tinta</label>
-                    <select id="placement-ink-type-${id}" class="form-control">
-                        <option value="plastisol">Plastisol</option>
-                        <option value="water-based">Water-Based</option>
-                        <option value="discharge">Discharge</option>
-                    </select>
-                </div>
-                 <div class="form-group">
-                    <label>Tintas Especiales</label>
-                    <select multiple id="placement-specialties-${id}" class="form-control">${specialtyOptions}</select>
-                </div>
-                <div class="form-group span-2">
-                    <label>Colores (Nombre, Pantone, o Código)</label>
-                    <div id="colors-container-${id}"></div>
-                    <button type="button" class="btn btn-sm btn-outline" onclick="addColorToPlacement('${id}')"><i class="fas fa-plus"></i> Añadir Color</button>
-                </div>
-                <div class="form-group span-3">
-                    <label>Notas del Placement</label>
-                    <textarea id="placement-notes-${id}" class="form-control" rows="2"></textarea>
-                </div>
+                <div class="form-group"><label>Tipo de Placement</label><select id="placement-type-${id}" class="form-control">${typeOptions}</select></div>
+                <div class="form-group"><label>Tipo de Tinta</label><select id="placement-ink-type-${id}" class="form-control"><option value="plastisol">Plastisol</option><option value="water-based">Water-Based</option><option value="discharge">Discharge</option></select></div>
+                <div class="form-group"><label>Tintas Especiales</label><select multiple id="placement-specialties-${id}" class="form-control">${specialtyOptions}</select></div>
+                <div class="form-group span-2"><label>Colores (Nombre, Pantone, o Código)</label><div id="colors-container-${id}"></div><button type="button" class="btn btn-sm btn-outline" onclick="addColorToPlacement('${id}')"><i class="fas fa-plus"></i> Añadir Color</button></div>
+                <div class="form-group span-3"><label>Notas del Placement</label><textarea id="placement-notes-${id}" class="form-control" rows="2"></textarea></div>
             </div>
-        </div>
-    `;
+        </div>`;
 }
 
 function removePlacement(id) {
     document.getElementById(`placement-card-${id}`)?.remove();
-    document.querySelector(`.placement-tab[data-id='${id}']`)?.remove();
-    const firstTab = document.querySelector('.placement-tab');
-    if(firstTab) firstTab.click();
+    // Lógica de tabs si es necesaria
 }
 
-function addColorToPlacement(placementId) {
+function addColorToPlacement(placementId, colorValue = '') {
     const colorId = `c${Date.now()}`;
     const container = document.getElementById(`colors-container-${placementId}`);
     const colorHTML = `
         <div class="color-input-group" id="color-group-${colorId}">
             <div class="color-preview" id="color-preview-${colorId}"></div>
-            <input type="text" class="form-control" placeholder="Ej: NAVY, PANTONE 123 C" oninput="updatePlacementColorPreview(this.value, document.getElementById('color-preview-${colorId}'))">
-            <button type="button" class="btn btn-sm btn-danger-outline" onclick="document.getElementById('color-group-${colorId}').remove()"><i class="fas fa-times"></i></button>
-        </div>
-    `;
+            <input type="text" class="form-control" placeholder="Ej: NAVY, PANTONE 123 C" value="${colorValue}" oninput="updatePlacementColorPreview(this.value, document.getElementById('color-preview-${colorId}'))">
+            <button type="button" class="btn btn-sm btn-danger-outline" onclick="this.closest('.color-input-group').remove()"><i class="fas fa-times"></i></button>
+        </div>`;
     container.insertAdjacentHTML('beforeend', colorHTML);
+    if (colorValue) {
+        updatePlacementColorPreview(colorValue, document.getElementById(`color-preview-${colorId}`));
+    }
 }
 
 // ========== ACCIONES PRINCIPALES Y EXPORTACIÓN ==========
 
 function exportPDF() {
-    console.log('📦 [Export] Iniciando exportación a PDF...');
     if (!validateForm()) {
-        showStatusMessage('Por favor, completa los campos requeridos antes de exportar.', 'error');
-        console.error('[Export] Validación de formulario fallida.');
+        showStatusMessage('Por favor, completa los campos requeridos.', 'error');
         return;
     }
     const data = collectDataForExport();
-    console.log('📝 [Export] Datos recolectados:', data);
     showStatusMessage('Generando PDF, por favor espera...', 'info');
     try {
         window.PdfGenerator.generate(data);
         showStatusMessage('PDF exportado con éxito.', 'success');
         saveSpecLocally(data);
     } catch (error) {
-        logError('exportPDF', 'Error al delegar la generación del PDF.', error);
+        logError('exportPDF', 'Error al generar el PDF.', error);
         showStatusMessage('Error al generar el PDF. Revisa la consola.', 'error');
     }
 }
 
 function collectDataForExport() {
-    const data = {
-        general: {
-            customer: document.getElementById('customer').value,
-            style: document.getElementById('style').value,
-            season: document.getElementById('season').value,
-            colorway: document.getElementById('colorway').value,
-            po: document.getElementById('po').value,
-            nameTeam: document.getElementById('name-team').value,
-            program: document.getElementById('program').value,
-            specDate: document.getElementById('spec-date').value,
-            folderNum: document.getElementById('folder-num').value,
-        },
-        placements: []
-    };
+    const data = { general: {}, placements: [] };
+    ['customer', 'style', 'season', 'colorway', 'po', 'name-team', 'program', 'spec-date', 'folder-num'].forEach(id => {
+        const key = id.replace(/-(\w)/g, (m, p1) => p1.toUpperCase());
+        data.general[key] = document.getElementById(id).value;
+    });
+
     document.querySelectorAll('.placement-card').forEach(pCard => {
         const id = pCard.dataset.id;
         const placementData = {
@@ -348,13 +321,8 @@ function collectDataForExport() {
             inkType: document.getElementById(`placement-ink-type-${id}`).value,
             specialties: Array.from(document.getElementById(`placement-specialties-${id}`).selectedOptions).map(opt => opt.value),
             notes: document.getElementById(`placement-notes-${id}`).value,
-            colors: []
+            colors: Array.from(pCard.querySelectorAll('.color-input-group input')).map(input => input.value).filter(Boolean)
         };
-        pCard.querySelectorAll(`#colors-container-${id} .color-input-group input`).forEach(colorInput => {
-            if (colorInput.value) {
-                placementData.colors.push(colorInput.value);
-            }
-        });
         data.placements.push(placementData);
     });
     data.id = `spec-${data.general.style}-${Date.now()}`;
@@ -362,19 +330,12 @@ function collectDataForExport() {
 }
 
 function validateForm() {
-    const requiredFields = ['customer', 'style', 'spec-date'];
-    for (const fieldId of requiredFields) {
-        if (!document.getElementById(fieldId).value) {
-            return false;
-        }
-    }
-    return true;
+    return ['customer', 'style', 'spec-date'].every(id => document.getElementById(id).value);
 }
 
 function clearForm() {
     document.getElementById('spec-creator-form').reset();
     document.getElementById('placements-container').innerHTML = '';
-    document.getElementById('placements-tabs').innerHTML = '';
     placementCounter = 0;
     document.getElementById('spec-date').valueAsDate = new Date();
     updateClientLogo();
@@ -383,21 +344,17 @@ function clearForm() {
 
 function exportToExcel() {
     showStatusMessage('Funcionalidad "Exportar a Excel" aún no implementada.', 'info');
-    console.warn('exportToExcel no está implementado.');
 }
 
 function downloadProjectZip() {
     showStatusMessage('Funcionalidad "Descargar Proyecto" aún no implementada.', 'info');
-    console.warn('downloadProjectZip no está implementado.');
 }
 
 // ========== MANEJO DE ARCHIVOS (CARGA) ==========
 
 function handleFileSelect(evt) {
     const file = evt.target.files[0];
-    if (!file) return;
-    showStatusMessage(`Cargando archivo: ${file.name}`, 'info');
-    // Lógica futura para carga de archivos
+    if (file) showStatusMessage(`Cargando archivo: ${file.name}`, 'info');
     evt.target.value = '';
 }
 
@@ -407,39 +364,29 @@ function saveSpecLocally(specData) {
     try {
         const savedSpecs = StateManager.getState('savedSpecs') || [];
         const existingIndex = savedSpecs.findIndex(s => s.id === specData.id);
-        if (existingIndex > -1) {
-            savedSpecs[existingIndex] = specData;
-        } else {
-            savedSpecs.push(specData);
-        }
+        if (existingIndex > -1) savedSpecs[existingIndex] = specData;
+        else savedSpecs.push(specData);
         StateManager.setState('savedSpecs', savedSpecs);
         showStatusMessage('Spec guardada localmente.', 'success');
         updateDashboardStats();
     } catch (error) {
-        logError('saveSpecLocally', 'No se pudo guardar la spec en LocalStorage.', error);
-        showStatusMessage('Error al guardar la spec.', 'error');
+        logError('saveSpecLocally', 'No se pudo guardar la spec.', error);
     }
 }
 
 function loadSavedSpecsList() {
     const specs = StateManager.getState('savedSpecs') || [];
     const container = document.getElementById('saved-specs-list');
-    if (specs.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">No hay specs guardadas.</p>';
-        return;
-    }
-    container.innerHTML = specs.map(spec => `
-        <div class="saved-spec-item">
-            <div>
-                <strong>${spec.general.style || 'Sin Estilo'}</strong> - ${spec.general.nameTeam || 'Sin Equipo'}
-                <small>${new Date(spec.id.split('-').pop()).toLocaleString()}</small>
-            </div>
-            <div>
-                <button class="btn btn-sm btn-primary-outline" onclick="loadSpec('${spec.id}')"><i class="fas fa-folder-open"></i> Cargar</button>
-                <button class="btn btn-sm btn-danger-outline" onclick="deleteSpec('${spec.id}')"><i class="fas fa-trash"></i> Borrar</button>
-            </div>
-        </div>
-    `).join('');
+    container.innerHTML = specs.length === 0 
+        ? '<p style="text-align:center; color:var(--text-secondary);">No hay specs guardadas.</p>'
+        : specs.map(spec => `
+            <div class="saved-spec-item">
+                <div><strong>${spec.general.style || 'Sin Estilo'}</strong> - ${spec.general.nameTeam || 'Sin Equipo'}<small>${new Date(parseInt(spec.id.split('-').pop())).toLocaleString()}</small></div>
+                <div>
+                    <button class="btn btn-sm btn-primary-outline" onclick="loadSpec('${spec.id}')"><i class="fas fa-folder-open"></i> Cargar</button>
+                    <button class="btn btn-sm btn-danger-outline" onclick="deleteSpec('${spec.id}')"><i class="fas fa-trash"></i> Borrar</button>
+                </div>
+            </div>`).join('');
 }
 
 function loadSpec(specId) {
@@ -450,32 +397,30 @@ function loadSpec(specId) {
         return;
     }
     clearForm();
-    showTab('spec-creator');
     Object.keys(specData.general).forEach(key => {
-        const input = document.getElementById(key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`));
+        const elementId = key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+        const input = document.getElementById(elementId);
         if (input) input.value = specData.general[key];
     });
     updateClientLogo();
-    specData.placements.forEach(pData => {
-        addNewPlacement();
-        const id = `p${placementCounter}`;
-        // TODO: Implementar relleno completo de datos de placement
-    });
+    if (specData.placements) {
+        specData.placements.forEach(pData => addNewPlacement(pData));
+    }
+    showTab('spec-creator');
     showStatusMessage(`Spec ${specData.general.style} cargada.`, 'success');
 }
 
 function deleteSpec(specId) {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta spec guardada?')) return;
+    if (!confirm('¿Estás seguro de que quieres eliminar esta spec?')) return;
     let specs = StateManager.getState('savedSpecs') || [];
-    specs = specs.filter(s => s.id !== specId);
-    StateManager.setState('savedSpecs', specs);
+    StateManager.setState('savedSpecs', specs.filter(s => s.id !== specId));
     loadSavedSpecsList();
     updateDashboardStats();
     showStatusMessage('Spec eliminada.', 'info');
 }
 
 function clearAllSpecs() {
-    if (!confirm('¡ADVERTENCIA! ¿Estás seguro de que quieres eliminar TODAS las specs guardadas? Esta acción no se puede deshacer.')) return;
+    if (!confirm('¡ADVERTENCIA! ¿Eliminar TODAS las specs? Esta acción no se puede deshacer.')) return;
     StateManager.removeState('savedSpecs');
     loadSavedSpecsList();
     updateDashboardStats();
@@ -491,31 +436,26 @@ function updateDashboardStats() {
     document.getElementById('total-specs').textContent = totalSpecs;
     if (lastSpec) {
         document.getElementById('last-spec-name').textContent = lastSpec.general.style || 'N/A';
-        document.getElementById('last-spec-date').textContent = new Date(lastSpec.id.split('-').pop()).toLocaleDateString();
+        document.getElementById('last-spec-date').textContent = new Date(parseInt(lastSpec.id.split('-').pop())).toLocaleDateString();
     } else {
         document.getElementById('last-spec-name').textContent = 'Ninguna';
         document.getElementById('last-spec-date').textContent = '-';
     }
     document.getElementById('active-projects').textContent = new Set(specs.map(s => s.general.style)).size;
-    document.getElementById('total-placements').textContent = specs.reduce((acc, s) => acc + s.placements.length, 0);
+    document.getElementById('total-placements').textContent = specs.reduce((acc, s) => acc + (s.placements?.length || 0), 0);
 }
 
 function displayErrorLog() {
     const errors = ErrorHandler.getErrors();
     const container = document.getElementById('error-log-content');
-    if (errors.length === 0) {
-        container.innerHTML = '<p>No hay errores registrados. ¡Todo va bien!</p>';
-        return;
-    }
-    container.innerHTML = errors.map(e => `
-        <div class="error-item">
-            <div class="error-header">
-                <strong>[${e.timestamp}]</strong> Error en <code>${e.context}</code>
-            </div>
-            <div class="error-body">${e.message}</div>
-            ${e.error ? `<pre>${e.error.stack || e.error}</pre>` : ''}
-        </div>
-    `).join('');
+    container.innerHTML = errors.length === 0
+        ? '<p>No hay errores registrados. ¡Todo va bien!</p>'
+        : errors.map(e => `
+            <div class="error-item">
+                <div class="error-header"><strong>[${e.timestamp}]</strong> Error en <code>${e.context}</code></div>
+                <div class="error-body">${e.message}</div>
+                ${e.error ? `<pre>${e.error.stack || e.error}</pre>` : ''}
+            </div>`).join('');
 }
 
 function clearErrorLog() {
