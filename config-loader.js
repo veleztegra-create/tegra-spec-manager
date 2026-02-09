@@ -7,7 +7,8 @@
         colorDatabases: 'data/color-databases.json',
         teamsAndColors: 'data/teams-and-colors.json',
         placementDetails: 'data/placement-details.json',
-        clientLogos: 'data/client-logos.json'
+        clientLogos: 'data/client-logos.json',
+        gfsMappings: 'data/gfs-mappings.json'
     };
 
     try {
