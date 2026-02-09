@@ -2,7 +2,7 @@
 // =================================================================================
 // TEGRA SPEC MANAGER - APP.JS (REFACTORIZADO)
 // Descripción: Script principal que orquesta la interfaz de usuario, eventos y lógica de negocio.
-// Versión: 3.1 (Lógica de GFS Unificada)
+// Versión: 3.2 (Selectores de ID robustos)
 // =================================================================================
 
 // ========== INICIALIZACIÓN DE LA APLICACIÓN ==========
@@ -38,11 +38,14 @@ function setupEventListeners() {
     document.getElementById('po').addEventListener('input', handleGearForSportLogic);
     document.getElementById('spec-date').valueAsDate = new Date();
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-    document.querySelector('.btn-primary[onclick*="addNewPlacement"]').addEventListener('click', addNewPlacement);
-    document.querySelector('.btn-success[onclick*="exportPDF"]').addEventListener('click', exportPDF);
-    document.querySelector('.btn-secondary[onclick*="exportToExcel"]').addEventListener('click', exportToExcel);
-    document.querySelector('.btn-danger[onclick*="clearForm"]').addEventListener('click', clearForm);
-    document.querySelector('.btn-primary[onclick*="downloadProjectZip"]').addEventListener('click', downloadProjectZip);
+
+    // ======== SELECCIÓN POR ID (ROBUSTO) ========
+    document.getElementById('add-placement-btn').addEventListener('click', addNewPlacement);
+    document.getElementById('export-pdf-btn').addEventListener('click', exportPDF);
+    document.getElementById('export-excel-btn').addEventListener('click', exportToExcel);
+    document.getElementById('clear-form-btn').addEventListener('click', clearForm);
+    document.getElementById('download-zip-btn').addEventListener('click', downloadProjectZip);
+
     console.log('🎧 [App] Listeners de eventos configurados.');
 }
 
