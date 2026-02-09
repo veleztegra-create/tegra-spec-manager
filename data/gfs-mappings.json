@@ -1,0 +1,41 @@
+{
+    "team_map": {
+        "UM9110-PMD0": "Maryland Terrapins",
+        "UM9110-N042": "Notre Dame Fighting Irish",
+        "UM9111-PWI0": "Wisconsin Badgers",
+        "UY9112-PGT1": "Georgia Tech Yellow Jackets",
+        "UM9110": "Generic Team",
+        "UM9111": "Generic Team",
+        "UY9112": "Generic Team",
+        "MD0": "Maryland",
+        "N042": "Notre Dame",
+        "PWI0": "Wisconsin",
+        "PGT1": "Georgia Tech",
+        "MD": "Maryland",
+        "ND": "Notre Dame",
+        "WIS": "Wisconsin",
+        "GT": "Georgia Tech"
+    },
+    "gender_map": {
+        "UM": "Men",
+        "UW": "Women",
+        "UY": "Youth",
+        "UB": "Boys",
+        "UG": "Girls",
+        "UK": "Kids",
+        "UT": "Toddler",
+        "UI": "Infant",
+        "UA": "Adult",
+        "UN": "Unisex",
+        "M": "Men",
+        "W": "Women",
+        "Y": "Youth",
+        "B": "Boys",
+        "G": "Girls",
+        "K": "Kids",
+        "T": "Toddler",
+        "I": "Infant",
+        "A": "Adult",
+        "N": "Unisex"
+    }
+}
