@@ -52,6 +52,23 @@
           if (window.Utils && typeof window.Utils.getInkPreset === 'function') {
               const preset = window.Utils.getInkPreset(inkType);
               if (preset && preset.color) {
+                  if (inkType === 'PLASTISOL') {
+                      const customerValue = (document.getElementById('customerName')?.value || '').toUpperCase();
+                      if (customerValue.includes('FANATICS') || customerValue.includes('FANATIC')) {
+                          return {
+                              ...preset,
+                              blocker: { ...preset.blocker, name: 'BARRIER CHT' },
+                              white: { ...preset.white, name: 'NCB POLY WHITE' }
+                          };
+                      }
+
+                      return {
+                          ...preset,
+                          blocker: { ...preset.blocker, name: 'BARRIER BASE' },
+                          white: { ...preset.white, name: 'TXT POLY WHITE' }
+                      };
+                  }
+
                   return preset;
               }
           }
@@ -1068,13 +1085,14 @@ function updateAllPlacementTitles(placementId) {
           
           let initialLetter = '';
           let initialVal = '';
+          const preset = getInkPresetSafe(placement.inkType || 'WATER');
           
           if (type === 'BLOCKER') {
               initialLetter = 'A';
-              initialVal = 'BLOCKER CHT';
+              initialVal = preset.blocker?.name || 'BLOCKER CHT';
           } else if (type === 'WHITE_BASE') {
               initialLetter = 'B';
-              initialVal = 'AQUAFLEX WHITE';
+              initialVal = preset.white?.name || 'AQUAFLEX V2 WHITE';
           } else if (type === 'METALLIC') {
               const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
               initialLetter = String(colorItems.length + 1);
@@ -3307,13 +3325,14 @@ function addPlacementColorItem(placementId, type) {
     
     let screenLetter = '';
     let initialVal = '';
+    const preset = getInkPresetSafe(placement.inkType || 'WATER');
     
     if (type === 'BLOCKER') {
         screenLetter = 'A';
-        initialVal = 'BLOCKER CHT';
+        initialVal = preset.blocker?.name || 'BLOCKER CHT';
     } else if (type === 'WHITE_BASE') {
         screenLetter = 'B';
-        initialVal = 'AQUAFLEX WHITE';
+        initialVal = preset.white?.name || 'AQUAFLEX V2 WHITE';
     } else if (type === 'METALLIC') {
         const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         screenLetter = String(colorItems.length + 1);

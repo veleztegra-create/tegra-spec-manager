@@ -131,7 +131,7 @@ const AppConfig = {
                 additives: 'N/A' 
             },
             white: { 
-                name: 'AQUAFLEX WHITE', 
+                name: 'AQUAFLEX V2 WHITE', 
                 mesh1: '198/40', 
                 mesh2: '157/48', 
                 durometer: '70', 
@@ -190,9 +190,9 @@ const AppConfig = {
         
         'SILICONE': { 
             temp: '320 °F', 
-            time: '1:00 min',
+            time: '1:40 min',
             blocker: { 
-                name: 'Bloquer Libra', 
+                name: 'BLOCKER LIBRA', 
                 mesh1: '110/64', 
                 mesh2: '157/48', 
                 durometer: '70', 
@@ -203,7 +203,7 @@ const AppConfig = {
                 additives: 'N/A' 
             },
             white: { 
-                name: 'White Libra', 
+                name: 'BASE WHITE LIBRA', 
                 mesh1: '122/55', 
                 mesh2: '157/48', 
                 durometer: '70', 
