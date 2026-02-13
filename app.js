@@ -163,6 +163,15 @@
           document.addEventListener('paste', function(e) {
               const activePlacement = document.querySelector('.placement-section.active');
               if (!activePlacement) return;
+
+              const target = e.target;
+              const isEditableTarget = target && target.closest('input, textarea, [contenteditable]');
+              const clipboardText = e.clipboardData?.getData('text/plain') || '';
+
+              // Si el usuario está pegando en un campo editable, priorizar siempre el texto.
+              if (isEditableTarget || clipboardText.trim().length > 0) {
+                  return;
+              }
               
               const items = e.clipboardData.items;
               
@@ -289,7 +298,7 @@
                 imageData: null,
                 colors: [],
                 placementDetails: '#.#" FROM COLLAR SEAM',
-                dimensions: 'SIZE: (W) ##" X (H) ##"',
+                dimensions: 'SIZE: (W) ## X (H) ##',
                 temp: '320 °F',
                 time: '1:40 min',
                 specialties: '',
@@ -471,7 +480,8 @@
                                                      class="form-control placement-dimension-w"
                                                      placeholder="Ancho"
                                                      value="${placement.width || dimensions.width.replace('"', '')}"
-                                                     oninput="updatePlacementDimension(${placement.id}, 'width', this.value)"
+                                                     oninput="handleDimensionInput(${placement.id}, 'width', this)"
+                                                     onpaste="handleDimensionPaste(event, ${placement.id}, 'width')"
                                                      style="width: 100px;">
                                               <span style="color: var(--text-secondary);">X</span>
                                               <input type="text" 
@@ -479,9 +489,10 @@
                                                      class="form-control placement-dimension-h"
                                                      placeholder="Alto"
                                                      value="${placement.height || dimensions.height.replace('"', '')}"
-                                                     oninput="updatePlacementDimension(${placement.id}, 'height', this.value)"
+                                                     oninput="handleDimensionInput(${placement.id}, 'height', this)"
+                                                     onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
                                                      style="width: 100px;">
-                                              <span style="color: var(--text-secondary);">pulgadas</span>
+                                              <span style="color: var(--text-secondary);">&nbsp;</span>
                                           </div>
                                       </div>
                                       
@@ -1058,23 +1069,135 @@ function updateAllPlacementTitles(placementId) {
           return { width: '15.34', height: '12' };
       }
 
+      function parseDimensionValue(rawValue) {
+          const raw = String(rawValue || '').trim();
+          if (!raw) return null;
+
+          const normalized = raw.replace(',', '.').toLowerCase();
+          const numberMatch = normalized.match(/\d+(?:\.\d+)?/);
+          if (!numberMatch) return null;
+
+          const numericText = Number(parseFloat(numberMatch[0]).toFixed(2)).toString();
+          const isCentimeters = /(^|[^a-z])cm([^a-z]|$)|cent[ií]metros?/.test(normalized);
+          const isInches = /(^|[^a-z])in([^a-z]|$)|inch|pulgad/.test(normalized) || /["″”]/.test(raw);
+          const unit = isCentimeters ? 'cm' : (isInches ? 'in' : '');
+
+          return {
+              displayValue: `${numericText}${unit}`,
+              unit
+          };
+      }
+
+      function parseDimensionPair(rawText) {
+          const text = String(rawText || '').trim();
+          if (!text) return null;
+
+          const normalized = text
+              .replace(/″|”|“/g, '"')
+              .replace(/×/g, 'x')
+              .replace(',', '.')
+              .replace(/\s+/g, ' ')
+              .trim();
+
+          const parts = normalized.split(/\s*[xX]\s*/);
+          if (parts.length < 2) return null;
+
+          const widthParsed = parseDimensionValue(parts[0]);
+          const heightParsed = parseDimensionValue(parts[1]);
+          if (!widthParsed || !heightParsed) return null;
+
+          return {
+              width: widthParsed.displayValue,
+              height: heightParsed.displayValue,
+              detectedUnit: widthParsed.unit || heightParsed.unit || ''
+          };
+      }
+
+      function applyDimensionPair(placementId, width, height, detectedUnit = '') {
+          const wField = document.getElementById(`dimension-w-${placementId}`);
+          const hField = document.getElementById(`dimension-h-${placementId}`);
+
+          if (wField) wField.value = width;
+          if (hField) hField.value = height;
+
+          updatePlacementDimension(placementId, 'width', width);
+          updatePlacementDimension(placementId, 'height', height);
+
+          const unitLabel = detectedUnit ? `${detectedUnit} detectado` : 'sin unidad explícita';
+          showStatus(`✅ Medidas pegadas automáticamente (${unitLabel})`);
+      }
+
+      function handleDimensionPaste(event, placementId, type) {
+          const pastedText = event.clipboardData?.getData('text/plain') || '';
+          const pair = parseDimensionPair(pastedText);
+
+          if (pair) {
+              event.preventDefault();
+              applyDimensionPair(placementId, pair.width, pair.height, pair.detectedUnit);
+              return;
+          }
+
+          const parsedSingle = parseDimensionValue(pastedText);
+          if (parsedSingle) {
+              event.preventDefault();
+              const targetField = event.target;
+              targetField.value = parsedSingle.displayValue;
+              updatePlacementDimension(placementId, type, parsedSingle.displayValue);
+
+              if (type === 'width') {
+                  const hField = document.getElementById(`dimension-h-${placementId}`);
+                  if (hField) hField.focus();
+              }
+          }
+      }
+
+      function handleDimensionInput(placementId, type, inputElement) {
+          const value = inputElement.value;
+          if (type === 'width' && /[xX]/.test(value)) {
+              const pair = parseDimensionPair(value);
+              if (pair) {
+                  applyDimensionPair(placementId, pair.width, pair.height, pair.detectedUnit);
+                  const hField = document.getElementById(`dimension-h-${placementId}`);
+                  if (hField) hField.focus();
+                  return;
+              }
+
+              const [widthCandidate, heightCandidate] = value.split(/[xX]/).map(part => part.trim());
+              if (widthCandidate) {
+                  const parsedWidth = parseDimensionValue(widthCandidate);
+                  inputElement.value = parsedWidth ? parsedWidth.displayValue : widthCandidate;
+                  updatePlacementDimension(placementId, 'width', inputElement.value);
+              }
+
+              const hField = document.getElementById(`dimension-h-${placementId}`);
+              if (hField && heightCandidate) {
+                  const parsedHeight = parseDimensionValue(heightCandidate);
+                  hField.value = parsedHeight ? parsedHeight.displayValue : heightCandidate;
+                  updatePlacementDimension(placementId, 'height', hField.value);
+              }
+
+              if (hField) hField.focus();
+              return;
+          }
+
+          updatePlacementDimension(placementId, type, value);
+      }
+
       function updatePlacementDimension(placementId, type, value) {
           const placement = placements.find(p => p.id === placementId);
           if (placement) {
               const wField = document.getElementById(`dimension-w-${placementId}`);
               const hField = document.getElementById(`dimension-h-${placementId}`);
-              
+
               const width = type === 'width' ? value : (wField ? wField.value : '');
               const height = type === 'height' ? value : (hField ? hField.value : '');
-              
+
               // Guardar valores separados
               placement.width = width;
               placement.height = height;
-              
+
               // Actualizar el campo de dimensiones combinado
-              placement.dimensions = `SIZE: (W) ${width || '##'}" X (H) ${height || '##'}"`;
-              
-              showStatus(`✅ Dimensión ${type === 'width' ? 'ancho' : 'alto'} actualizada`);
+              placement.dimensions = `SIZE: (W) ${width || '##'} X (H) ${height || '##'}`;
           }
       }
 
