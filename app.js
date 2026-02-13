@@ -163,6 +163,15 @@
           document.addEventListener('paste', function(e) {
               const activePlacement = document.querySelector('.placement-section.active');
               if (!activePlacement) return;
+
+              const target = e.target;
+              const isEditableTarget = target && target.closest('input, textarea, [contenteditable]');
+              const clipboardText = e.clipboardData?.getData('text/plain') || '';
+
+              // Si el usuario está pegando en un campo editable, priorizar siempre el texto.
+              if (isEditableTarget || clipboardText.trim().length > 0) {
+                  return;
+              }
               
               const items = e.clipboardData.items;
               
