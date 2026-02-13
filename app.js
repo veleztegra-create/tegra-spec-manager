@@ -2448,8 +2448,8 @@ function updateAllPlacementTitles(placementId) {
                       img.src = src;
                   });
 
-                  // CABECERA AJUSTADA PARA TAMAÑO CARTA (evita superposición)
-                  const headerHeight = 24;
+                  // CABECERA EN 4 COLUMNAS
+                  const headerHeight = 28;
                   pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
                   pdf.rect(0, 0, pageW, headerHeight, 'F');
 
@@ -2457,19 +2457,46 @@ function updateAllPlacementTitles(placementId) {
                   const tegraLogo = window.LogoConfig?.TEGRA || null;
                   const customerLogoUrl = resolveCustomerLogoUrl(customerName);
 
+                  const headerX = 10;
+                  const headerInnerW = pageW - 20;
+                  const colW = [34, 55, 70, headerInnerW - 34 - 55 - 70];
+                  const colX = [
+                      headerX,
+                      headerX + colW[0],
+                      headerX + colW[0] + colW[1],
+                      headerX + colW[0] + colW[1] + colW[2]
+                  ];
+
                   if (tegraLogo) {
                       try {
                           const tegraInfo = await imageToPngInfo(tegraLogo);
-                          const tegraMaxW = 30;
-                          const tegraMaxH = 10;
+                          const tegraMaxW = colW[0] - 6;
+                          const tegraMaxH = 14;
                           const tegraScale = Math.min(tegraMaxW / tegraInfo.width, tegraMaxH / tegraInfo.height);
                           const tegraW = tegraInfo.width * tegraScale;
                           const tegraH = tegraInfo.height * tegraScale;
-                          pdf.addImage(tegraInfo.dataUrl, 'PNG', 12, 4 + (tegraMaxH - tegraH) / 2, tegraW, tegraH);
+                          const tegraX = colX[0] + (colW[0] - tegraW) / 2;
+                          const tegraY = 5 + (tegraMaxH - tegraH) / 2;
+                          pdf.addImage(tegraInfo.dataUrl, 'PNG', tegraX, tegraY, tegraW, tegraH);
                       } catch (e) {
                           console.warn('No se pudo agregar logo TEGRA al PDF:', e);
                       }
                   }
+
+                  pdf.setTextColor(255, 255, 255);
+                  pdf.setFontSize(8);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text("TECHNICAL SPEC MANAGER", colX[1] + 2, 14.5);
+
+                  const customerBoxX = colX[2] + 2;
+                  const customerBoxY = 4;
+                  const customerBoxW = colW[2] - 4;
+                  const customerBoxH = 8;
+                  drawRect(customerBoxX, customerBoxY, customerBoxW, customerBoxH, [230, 230, 230], [230, 230, 230], 0);
+                  pdf.setTextColor(90, 90, 90);
+                  pdf.setFontSize(6);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text('CUSTOMER / CLIENTE', customerBoxX + (customerBoxW / 2), customerBoxY + 5.3, { align: 'center' });
 
                   if (customerLogoUrl) {
                       try {
@@ -2478,45 +2505,30 @@ function updateAllPlacementTitles(placementId) {
                               const logoBlob = await response.blob();
                               const customerLogoDataUrl = await blobToDataURL(logoBlob);
                               const customerInfo = await imageToPngInfo(customerLogoDataUrl);
-                              const maxLogoW = 36;
-                              const maxLogoH = 10;
+                              const maxLogoW = colW[2] - 10;
+                              const maxLogoH = 12;
                               const scale = Math.min(maxLogoW / customerInfo.width, maxLogoH / customerInfo.height);
                               const logoW = customerInfo.width * scale;
                               const logoH = customerInfo.height * scale;
-                              const centerLogoX = (pageW - logoW) / 2;
-                              const centerLogoY = 3 + (maxLogoH - logoH) / 2;
-                              pdf.addImage(customerInfo.dataUrl, 'PNG', centerLogoX, centerLogoY, logoW, logoH);
+                              const logoX = colX[2] + (colW[2] - logoW) / 2;
+                              const logoY = 14 + (maxLogoH - logoH) / 2;
+                              pdf.addImage(customerInfo.dataUrl, 'PNG', logoX, logoY, logoW, logoH);
                           }
                       } catch (e) {
                           console.warn('No se pudo agregar logo de cliente al PDF:', e);
                       }
                   }
 
-                  pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(8);
-                  pdf.setFont("helvetica", "normal");
-                  pdf.text("TECHNICAL SPEC MANAGER", pageW / 2, 18, { align: 'center' });
-
                   const folderNum = getInputValue('folder-num', '#####') || '#####';
                   const safeFolder = String(folderNum).slice(0, 14);
-
-                  const customerBoxX = pageW - 62;
-                  const customerBoxY = 4;
-                  const customerBoxW = 47;
-                  const customerBoxH = 8;
-                  drawRect(customerBoxX, customerBoxY, customerBoxW, customerBoxH, [230, 230, 230], [230, 230, 230], 0);
-
-                  pdf.setTextColor(90, 90, 90);
-                  pdf.setFontSize(6);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text('CUSTOMER / CLIENTE', customerBoxX + (customerBoxW / 2), customerBoxY + 5.3, { align: 'center' });
-
                   pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(13);
+                  pdf.setFontSize(8);
                   pdf.setFont("helvetica", "bold");
-                  pdf.text(`#${safeFolder}`, pageW - 15, 20, { align: 'right' });
+                  pdf.text(`# FOLDER:`, colX[3] + 2, 12);
+                  pdf.setFontSize(15);
+                  pdf.text(`${safeFolder}`, colX[3] + 2, 21);
 
-                  let y = 30;
+                  let y = 34;
 
                   if (placements.length > 0) {
                       const fields = [
@@ -2645,8 +2657,8 @@ function updateAllPlacementTitles(placementId) {
                           });
                           
                           if (uniqueColors.length > 0) {
-                              const colorsPerRow = 2;
-                              const rowHeight = 10;
+                              const colorsPerRow = 3;
+                              const rowHeight = 8;
                               const colorsRows = Math.ceil(uniqueColors.length / colorsPerRow);
                               const colorsBlockHeight = 12 + (colorsRows * rowHeight) + 4;
 
@@ -2669,12 +2681,12 @@ function updateAllPlacementTitles(placementId) {
                                   pdf.rect(xPos, rowY - 4, colorBoxSize, colorBoxSize);
 
                                   const colorLabel = `${color.screenLetter}: ${color.val}`;
-                                  const colorLines = pdf.splitTextToSize(colorLabel, 52);
+                                  const colorLines = pdf.splitTextToSize(colorLabel, 35);
                                   pdf.setFontSize(7);
                                   pdf.setTextColor(20, 20, 20);
                                   pdf.text(colorLines, xPos + colorBoxSize + 3, rowY);
 
-                                  xPos += 88;
+                                  xPos += 58;
                                   colorsInRow++;
 
                                   if (colorsInRow >= colorsPerRow) {
