@@ -298,7 +298,7 @@
                 imageData: null,
                 colors: [],
                 placementDetails: '#.#" FROM COLLAR SEAM',
-                dimensions: 'SIZE: (W) ##" X (H) ##"',
+                dimensions: 'SIZE: (W) ## X (H) ##',
                 temp: '320 °F',
                 time: '1:40 min',
                 specialties: '',
@@ -492,7 +492,7 @@
                                                      oninput="handleDimensionInput(${placement.id}, 'height', this)"
                                                      onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
                                                      style="width: 100px;">
-                                              <span style="color: var(--text-secondary);">pulgadas</span>
+                                              <span style="color: var(--text-secondary);">&nbsp;</span>
                                           </div>
                                       </div>
                                       
@@ -1077,13 +1077,13 @@ function updateAllPlacementTitles(placementId) {
           const numberMatch = normalized.match(/\d+(?:\.\d+)?/);
           if (!numberMatch) return null;
 
-          const numericValue = parseFloat(numberMatch[0]);
-          const isCentimeters = /\bcm\b|cent[ií]metros?/.test(normalized);
-          const unit = isCentimeters ? 'cm' : 'in';
-          const inchesValue = isCentimeters ? numericValue / 2.54 : numericValue;
+          const numericText = Number(parseFloat(numberMatch[0]).toFixed(2)).toString();
+          const isCentimeters = /(^|[^a-z])cm([^a-z]|$)|cent[ií]metros?/.test(normalized);
+          const isInches = /(^|[^a-z])in([^a-z]|$)|inch|pulgad/.test(normalized) || /["″”]/.test(raw);
+          const unit = isCentimeters ? 'cm' : (isInches ? 'in' : '');
 
           return {
-              displayValue: Number(inchesValue.toFixed(2)).toString(),
+              displayValue: `${numericText}${unit}`,
               unit
           };
       }
@@ -1109,11 +1109,11 @@ function updateAllPlacementTitles(placementId) {
           return {
               width: widthParsed.displayValue,
               height: heightParsed.displayValue,
-              detectedUnit: widthParsed.unit === 'cm' || heightParsed.unit === 'cm' ? 'cm' : 'in'
+              detectedUnit: widthParsed.unit || heightParsed.unit || ''
           };
       }
 
-      function applyDimensionPair(placementId, width, height, detectedUnit = 'in') {
+      function applyDimensionPair(placementId, width, height, detectedUnit = '') {
           const wField = document.getElementById(`dimension-w-${placementId}`);
           const hField = document.getElementById(`dimension-h-${placementId}`);
 
@@ -1123,7 +1123,7 @@ function updateAllPlacementTitles(placementId) {
           updatePlacementDimension(placementId, 'width', width);
           updatePlacementDimension(placementId, 'height', height);
 
-          const unitLabel = detectedUnit === 'cm' ? 'cm detectado y convertido a pulgadas' : 'pulgadas detectadas';
+          const unitLabel = detectedUnit ? `${detectedUnit} detectado` : 'sin unidad explícita';
           showStatus(`✅ Medidas pegadas automáticamente (${unitLabel})`);
       }
 
@@ -1197,7 +1197,7 @@ function updateAllPlacementTitles(placementId) {
               placement.height = height;
 
               // Actualizar el campo de dimensiones combinado
-              placement.dimensions = `SIZE: (W) ${width || '##'}" X (H) ${height || '##'}"`;
+              placement.dimensions = `SIZE: (W) ${width || '##'} X (H) ${height || '##'}`;
           }
       }
 
