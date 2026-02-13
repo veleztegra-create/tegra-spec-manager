@@ -229,12 +229,32 @@ const TeamsConfig = {
                 "BROWN": { "hex": "#4E3629" }
             },
             
-            metallic: {
-                "SILVER": { "hex": "#A5ACAF" },
-                "SILVER_METALLIC": { "hex": "#8A8D8F" },
-                "ALUMINUM_METALLIC": { "hex": "#9EA2A2" },
-                "GOLD_METALLIC": { "hex": "#B3995D" }
-            }
+           metallic: {
+    "SILVER": { "hex": "#A5ACAF" },
+    "SILVER_METALLIC": { "hex": "#8A8D8F" },
+    "ALUMINUM_METALLIC": { "hex": "#9EA2A2" },
+    "GOLD_METALLIC": { "hex": "#B3995D" },
+
+    // --- PANTONE METALLIC COATED (Aproximaciones HEX) ---
+    "PANTONE_871_C": { "hex": "#85714D" },  // Rich Gold
+    "PANTONE_872_C": { "hex": "#8A6F3B" },
+    "PANTONE_873_C": { "hex": "#9A7B3E" },
+    "PANTONE_874_C": { "hex": "#A37F2C" },
+    "PANTONE_875_C": { "hex": "#B68E2E" },
+    "PANTONE_876_C": { "hex": "#C69214" },
+    "PANTONE_877_C": { "hex": "#8A8D8F" },  // Silver
+
+    // Serie 8000 (Metallics Premium – aproximación pantalla)
+    "PANTONE_8001_C": { "hex": "#8C734B" },
+    "PANTONE_8002_C": { "hex": "#9B7E46" },
+    "PANTONE_8003_C": { "hex": "#A7893C" },
+    "PANTONE_8004_C": { "hex": "#B68B2E" },
+    "PANTONE_8005_C": { "hex": "#C49102" },
+    "PANTONE_8006_C": { "hex": "#C6A052" },
+    "PANTONE_8007_C": { "hex": "#D4AF37" },
+    "PANTONE_8008_C": { "hex": "#E0B84F" }
+}
+
         }
     }
 };
