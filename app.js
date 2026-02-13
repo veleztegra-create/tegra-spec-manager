@@ -2397,35 +2397,33 @@ function updateAllPlacementTitles(placementId) {
                       pdf.line(x1, y1, x2, y2);
                   };
 
-                  // CABECERA - ESPACIO REDUCIDO
+                  // CABECERA AJUSTADA PARA TAMAÑO CARTA (evita superposición)
+                  const headerHeight = 24;
                   pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                  pdf.rect(0, 0, pageW, 18, 'F'); // Reducido de 20 a 18
-                  
+                  pdf.rect(0, 0, pageW, headerHeight, 'F');
+
                   pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(20);
+                  pdf.setFontSize(18);
                   pdf.setFont("helvetica", "bold");
-                  pdf.text("TEGRA", 15, 16); // Ajustado
-                  
-                  pdf.setFontSize(11);
-                  pdf.text("TECHNICAL SPEC MANAGER", 15, 22); // Ajustado
-                  
+                  pdf.text("TEGRA", 15, 10.5);
+
+                  pdf.setFontSize(9);
+                  pdf.setFont("helvetica", "normal");
+                  pdf.text("TECHNICAL SPEC MANAGER", 15, 17);
+
                   const folderNum = getInputValue('folder-num', '#####') || '#####';
-                  
-                  // FOLDER SUBIDO 3 PUNTOS
+                  const safeFolder = String(folderNum).slice(0, 18);
+
                   pdf.setFontSize(7);
-                  pdf.text('FOLDER', pageW - 25, 15, { align: 'right' }); // Subido de 18 a 15
-                  
-                  pdf.setFontSize(16);
-                  pdf.text(`#${folderNum}`, pageW - 25, 19, { align: 'right' }); // Ajustado
-                  
-                  let y = 42; // Reducido de 45
-                  
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text('FOLDER', pageW - 15, 9, { align: 'right' });
+
+                  pdf.setFontSize(13);
+                  pdf.text(`#${safeFolder}`, pageW - 15, 17, { align: 'right' });
+
+                  let y = 30;
+
                   if (placements.length > 0) {
-                      drawRect(10, y, pageW - 20, 40, [250, 250, 250], grayLight);
-                      text('INFORMACIÓN GENERAL', 15, y + 8, 12, true, primaryColor);
-                      
-                      y += 5;
-                      
                       const fields = [
                           { l: 'CLIENTE:', v: getInputValue('customer') },
                           { l: 'STYLE:', v: getInputValue('style') },
@@ -2438,15 +2436,48 @@ function updateAllPlacementTitles(placementId) {
                           { l: 'GENDER:', v: getInputValue('gender') },
                           { l: 'DESIGNER:', v: getInputValue('designer') },
                       ];
-                      
-                      let fieldY = y + 12;
-                      fields.forEach((f, i) => {
-                          const xPos = i % 2 === 0 ? 15 : 115;
-                          text(f.l, xPos, fieldY, 9, true);
-                          text(f.v || '---', xPos + 25, fieldY, 9, false);
-                          if (i % 2 !== 0) fieldY += 5;
-                      });
-                      y += 45;
+
+                      const measureLines = (value, maxWidth) => {
+                          const lines = pdf.splitTextToSize(String(value || '---'), maxWidth);
+                          return Math.max(1, lines.length);
+                      };
+
+                      let contentHeight = 0;
+                      for (let i = 0; i < fields.length; i += 2) {
+                          const leftLines = measureLines(fields[i].v, 52);
+                          const rightLines = fields[i + 1] ? measureLines(fields[i + 1].v, 52) : 1;
+                          contentHeight += (Math.max(leftLines, rightLines) * 4.2) + 2;
+                      }
+
+                      const infoHeight = Math.max(34, contentHeight + 12);
+                      drawRect(10, y, pageW - 20, infoHeight, [250, 250, 250], grayLight);
+                      text('INFORMACIÓN GENERAL', 15, y + 7, 11, true, primaryColor);
+
+                      let fieldY = y + 13;
+                      for (let i = 0; i < fields.length; i += 2) {
+                          const left = fields[i];
+                          const right = fields[i + 1];
+
+                          text(left.l, 15, fieldY, 8, true);
+                          const leftLines = pdf.splitTextToSize(String(left.v || '---'), 52);
+                          pdf.setFont('helvetica', 'normal');
+                          pdf.setFontSize(8);
+                          pdf.text(leftLines, 37, fieldY);
+
+                          let rowLines = Math.max(1, leftLines.length);
+                          if (right) {
+                              text(right.l, 112, fieldY, 8, true);
+                              const rightLines = pdf.splitTextToSize(String(right.v || '---'), 52);
+                              pdf.setFont('helvetica', 'normal');
+                              pdf.setFontSize(8);
+                              pdf.text(rightLines, 134, fieldY);
+                              rowLines = Math.max(rowLines, rightLines.length);
+                          }
+
+                          fieldY += (rowLines * 4.2) + 2;
+                      }
+
+                      y += infoHeight + 8;
                   }
                   
                   placements.forEach((placement, index) => {
@@ -2481,7 +2512,7 @@ function updateAllPlacementTitles(placementId) {
                               
                               const details = [
                                   `Tipo de tinta: ${placement.inkType || '---'}`,
-                                  `Dimensiones: ${placement.width || '##'}" X ${placement.height || '##'}"`,
+                                  `Dimensiones: ${placement.width || '##'} X ${placement.height || '##'}`,
                                   `Ubicación: ${displayType || '---'}`,
                                   `Placement: ${placement.placementDetails || '---'}`,
                                   `Especialidades: ${placement.specialties || '---'}`
