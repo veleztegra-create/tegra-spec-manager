@@ -2600,87 +2600,111 @@ function updateAllPlacementTitles(placementId) {
                           drawRect(15, y, pageW - 30, 8, primaryColor, primaryColor, 0);
                           
                           const pdfHeaders = ['Est', 'Scr.', 'Screen (Tinta/Proceso)', 'Aditivos', 'Malla', 'Strokes', 'Angle', 'Pressure', 'Speed', 'Duro'];
-                          const pdfColW = [10, 12, 60, 55, 15, 15, 15, 15, 15, 15];
-                          let x = 15;
-                          
+                          // Anchos optimizados para mantenerse dentro de márgenes carta (pageW - 30)
+                          const pdfColW = [8, 10, 40, 44, 11, 12, 12, 14, 12, 12];
+                          const tableStartX = 15;
+                          const tableWidth = pdfColW.reduce((a, b) => a + b, 0);
+                          let x = tableStartX;
+
                           pdf.setTextColor(255, 255, 255);
-                          pdf.setFontSize(8);
+                          pdf.setFontSize(7);
                           pdf.setFont('helvetica', 'bold');
-                          
+
                           pdfHeaders.forEach((h, i) => {
-                              pdf.text(h, x + 2, y + 5);
+                              const headerLines = pdf.splitTextToSize(h, pdfColW[i] - 2);
+                              pdf.text(headerLines, x + 1, y + 3.5);
                               x += pdfColW[i];
                           });
-                          y += 9;
-                          
-                          decorativeLine(15, y - 1, pageW - 15, y - 1, grayDark, 0.3);
-                          
+                          y += 8;
+
+                          decorativeLine(tableStartX, y - 1, tableStartX + tableWidth, y - 1, grayDark, 0.3);
+
                           pdf.setTextColor(0, 0, 0);
                           pdf.setFont('helvetica', 'normal');
-                          pdf.setFontSize(8);
-                          
+                          pdf.setFontSize(7);
+
                           let rowCount = 0;
-                          stationsData.forEach((row, idx) => {
-                              if (y > 240) {
+                          stationsData.forEach((row) => {
+                              const screenLines = pdf.splitTextToSize(String(row.screenCombined || ''), pdfColW[2] - 2);
+                              const addLines = pdf.splitTextToSize(String(row.add || ''), pdfColW[3] - 2);
+                              const rowLines = Math.max(1, screenLines.length, addLines.length);
+                              const rowHeight = (rowLines * 3.2) + 2;
+
+                              if (y + rowHeight > 240) {
                                   pdf.addPage();
                                   y = 25;
+
+                                  // Repetir cabecera de tabla en nueva página
+                                  pdf.setFillColor(...primaryColor);
+                                  drawRect(tableStartX, y, tableWidth, 8, primaryColor, primaryColor, 0);
+                                  x = tableStartX;
+                                  pdf.setTextColor(255, 255, 255);
+                                  pdf.setFontSize(7);
+                                  pdf.setFont('helvetica', 'bold');
+                                  pdfHeaders.forEach((h, i) => {
+                                      const headerLines = pdf.splitTextToSize(h, pdfColW[i] - 2);
+                                      pdf.text(headerLines, x + 1, y + 3.5);
+                                      x += pdfColW[i];
+                                  });
+                                  y += 8;
+                                  decorativeLine(tableStartX, y - 1, tableStartX + tableWidth, y - 1, grayDark, 0.3);
+                                  pdf.setTextColor(0, 0, 0);
+                                  pdf.setFont('helvetica', 'normal');
+                                  pdf.setFontSize(7);
                               }
-                              
+
                               if (row.screenCombined !== 'FLASH' && row.screenCombined !== 'COOL') {
                                   if (rowCount % 2 === 0) {
                                       pdf.setFillColor(248, 248, 248);
-                                      pdf.rect(15, y - 3, pageW - 30, 6, 'F');
+                                      pdf.rect(tableStartX, y - 2.5, tableWidth, rowHeight, 'F');
                                   }
                                   rowCount++;
                               }
-                              
+
                               if (rowCount > 0 && (row.screenCombined === 'FLASH' || row.screenCombined === 'COOL')) {
-                                  decorativeLine(15, y + 1.5, pageW - 15, y + 1.5, [240, 240, 240], 0.1);
+                                  decorativeLine(tableStartX, y + 1.2, tableStartX + tableWidth, y + 1.2, [240, 240, 240], 0.1);
                               }
-                              
-                              x = 15;
-                              const data = [
-                                  row.st, 
-                                  row.screenLetter, 
-                                  row.screenCombined, 
-                                  row.add, 
-                                  row.mesh, 
-                                  row.strokes,
-                                  row.angle,
-                                  row.pressure,
-                                  row.speed,
-                                  row.duro
+
+                              x = tableStartX;
+                              const cells = [
+                                  String(row.st || ''),
+                                  String(row.screenLetter || ''),
+                                  screenLines,
+                                  addLines,
+                                  String(row.mesh || ''),
+                                  String(row.strokes || ''),
+                                  String(row.angle || ''),
+                                  String(row.pressure || ''),
+                                  String(row.speed || ''),
+                                  String(row.duro || '')
                               ];
-                              
-                              data.forEach((d, i) => {
-                                  let safeText = String(d || '');
-                                  
-                                  if (i === 3 && safeText.length > 35) {
-                                      safeText = safeText.substring(0, 22) + '...';
-                                  }
-                                  
+
+                              cells.forEach((cell, i) => {
                                   if (i === 1) {
                                       pdf.setFont('helvetica', 'bold');
                                       pdf.setTextColor(...primaryColor);
                                   }
                                   if (i === 3) {
                                       pdf.setTextColor(...accentColor);
-                                      pdf.setFontSize(7);
                                   }
-                                  
-                                  pdf.text(safeText, x + 2, y);
+
+                                  const textValue = Array.isArray(cell) ? cell : [cell];
+                                  pdf.text(textValue, x + 1, y);
                                   x += pdfColW[i];
-                                  
-                                  if (i === 1) pdf.setFont('helvetica', 'normal');
+
+                                  if (i === 1) {
+                                      pdf.setFont('helvetica', 'normal');
+                                      pdf.setTextColor(0, 0, 0);
+                                  }
                                   if (i === 3) {
                                       pdf.setTextColor(0, 0, 0);
-                                      pdf.setFontSize(8);
                                   }
                               });
-                              y += 6;
+
+                              y += rowHeight;
                           });
-                          
-                          y += 8;
+
+                          y += 7;
                           
                           const timeTempY = y;
                           const timeTempHeight = 22;
