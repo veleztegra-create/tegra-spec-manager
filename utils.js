@@ -264,26 +264,68 @@ const Utils = {
                 return `#${hexMatch[1]}`;
             }
             
-            // SEGUNDO: Buscar en bases de datos de Config (si existen)
+            // SEGUNDO: Buscar coincidencia exacta en bases de datos de Config
             if (window.Config && window.Config.COLOR_DATABASES) {
-                // Buscar en todas las bases de datos
                 for (const dbName of Object.keys(window.Config.COLOR_DATABASES)) {
                     const db = window.Config.COLOR_DATABASES[dbName];
-                    if (db && typeof db === 'object') {
-                        for (const [key, data] of Object.entries(db)) {
-                            if (key && data && data.hex) {
-                                if (name === key.toUpperCase() || 
-                                    name.includes(key.toUpperCase()) || 
-                                    key.toUpperCase().includes(name)) {
-                                    return data.hex;
-                                }
+                    if (!db || typeof db !== 'object') continue;
+
+                    for (const [key, data] of Object.entries(db)) {
+                        if (!key || !data || !data.hex) continue;
+
+                        const keyNormalized = key.toUpperCase().replace(/_/g, ' ').trim();
+                        if (name === keyNormalized) {
+                            return data.hex;
+                        }
+                    }
+                }
+            }
+
+            // TERCERO: Buscar en TeamsConfig (NCAA/NBA/NFL) con catálogo extendido
+            if (window.TeamsConfig) {
+                const leagues = ['NCAA', 'NBA', 'NFL'];
+                const categories = ['institutional', 'metallic', 'alt', 'uni'];
+
+                for (const league of leagues) {
+                    const leagueData = window.TeamsConfig[league];
+                    if (!leagueData || !leagueData.colors) continue;
+
+                    for (const category of categories) {
+                        const categoryColors = leagueData.colors[category];
+                        if (!categoryColors || typeof categoryColors !== 'object') continue;
+
+                        for (const [key, data] of Object.entries(categoryColors)) {
+                            if (!key || !data || !data.hex) continue;
+
+                            const keyNormalized = key.toUpperCase().replace(/_/g, ' ').trim();
+                            if (name === keyNormalized ||
+                                name.includes(keyNormalized) ||
+                                keyNormalized.includes(name)) {
+                                return data.hex;
                             }
                         }
                     }
                 }
             }
-            
-            // TERCERO: Buscar en colores básicos (fallback)
+
+            // CUARTO: Buscar coincidencia parcial en bases de datos de Config
+            if (window.Config && window.Config.COLOR_DATABASES) {
+                for (const dbName of Object.keys(window.Config.COLOR_DATABASES)) {
+                    const db = window.Config.COLOR_DATABASES[dbName];
+                    if (!db || typeof db !== 'object') continue;
+
+                    for (const [key, data] of Object.entries(db)) {
+                        if (!key || !data || !data.hex) continue;
+
+                        const keyNormalized = key.toUpperCase().replace(/_/g, ' ').trim();
+                        if (name.includes(keyNormalized) || keyNormalized.includes(name)) {
+                            return data.hex;
+                        }
+                    }
+                }
+            }
+
+            // QUINTO: Buscar en colores básicos (fallback)
             const basicColors = {
                 'RED': '#FF0000',
                 'GREEN': '#00FF00',
