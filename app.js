@@ -2397,29 +2397,88 @@ function updateAllPlacementTitles(placementId) {
                       pdf.line(x1, y1, x2, y2);
                   };
 
+                  const blobToDataURL = (blob) => new Promise((resolve, reject) => {
+                      const reader = new FileReader();
+                      reader.onload = () => resolve(reader.result);
+                      reader.onerror = reject;
+                      reader.readAsDataURL(blob);
+                  });
+
+                  const resolveCustomerLogoUrl = (customerRaw) => {
+                      const customer = String(customerRaw || '').toUpperCase().trim();
+                      if (!customer || !window.LogoConfig) return null;
+
+                      const gfsVariations = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S', 'GEAR', 'G-F-S'];
+                      if (customer.includes('NIKE') || customer.includes('NIQUE')) return window.LogoConfig.NIKE;
+                      if (customer.includes('FANATICS') || customer.includes('FANATIC')) return window.LogoConfig.FANATICS;
+                      if (customer.includes('ADIDAS')) return window.LogoConfig.ADIDAS;
+                      if (customer.includes('PUMA')) return window.LogoConfig.PUMA;
+                      if (customer.includes('UNDER ARMOUR') || customer === 'UA') return window.LogoConfig.UNDER_ARMOUR;
+                      if (gfsVariations.some(v => customer.includes(v))) return window.LogoConfig.GEAR_FOR_SPORT;
+                      return null;
+                  };
+
+                  const getImageType = (dataUrl) => {
+                      if (!dataUrl || typeof dataUrl !== 'string') return 'PNG';
+                      if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) return 'JPEG';
+                      if (dataUrl.startsWith('data:image/svg+xml')) return 'SVG';
+                      return 'PNG';
+                  };
+
                   // CABECERA AJUSTADA PARA TAMAÑO CARTA (evita superposición)
                   const headerHeight = 24;
                   pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
                   pdf.rect(0, 0, pageW, headerHeight, 'F');
 
-                  pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(18);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text("TEGRA", 15, 10.5);
+                  const customerName = getInputValue('customer', '');
+                  const tegraLogo = window.LogoConfig?.TEGRA || null;
+                  const customerLogoUrl = resolveCustomerLogoUrl(customerName);
 
-                  pdf.setFontSize(9);
+                  if (tegraLogo) {
+                      try {
+                          const type = getImageType(tegraLogo);
+                          if (type !== 'SVG') {
+                              pdf.addImage(tegraLogo, type, 12, 4, 24, 7);
+                          }
+                      } catch (e) {
+                          console.warn('No se pudo agregar logo TEGRA al PDF:', e);
+                      }
+                  }
+
+                  if (customerLogoUrl) {
+                      try {
+                          const response = await fetch(customerLogoUrl);
+                          if (response.ok) {
+                              const logoBlob = await response.blob();
+                              const customerLogoDataUrl = await blobToDataURL(logoBlob);
+                              const type = getImageType(customerLogoDataUrl);
+                              if (type !== 'SVG') {
+                                  pdf.addImage(customerLogoDataUrl, type, pageW - 44, 3, 28, 9);
+                              }
+                          }
+                      } catch (e) {
+                          console.warn('No se pudo agregar logo de cliente al PDF:', e);
+                      }
+                  }
+
+                  pdf.setTextColor(255, 255, 255);
+                  pdf.setFontSize(15);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text("TEGRA", 38, 10.5);
+
+                  pdf.setFontSize(8);
                   pdf.setFont("helvetica", "normal");
-                  pdf.text("TECHNICAL SPEC MANAGER", 15, 17);
+                  pdf.text("TECHNICAL SPEC MANAGER", 38, 17);
 
                   const folderNum = getInputValue('folder-num', '#####') || '#####';
-                  const safeFolder = String(folderNum).slice(0, 18);
+                  const safeFolder = String(folderNum).slice(0, 14);
 
                   pdf.setFontSize(7);
                   pdf.setFont("helvetica", "bold");
-                  pdf.text('FOLDER', pageW - 15, 9, { align: 'right' });
+                  pdf.text('FOLDER', pageW - 15, 14, { align: 'right' });
 
-                  pdf.setFontSize(13);
-                  pdf.text(`#${safeFolder}`, pageW - 15, 17, { align: 'right' });
+                  pdf.setFontSize(11);
+                  pdf.text(`#${safeFolder}`, pageW - 15, 20, { align: 'right' });
 
                   let y = 30;
 
@@ -2550,38 +2609,46 @@ function updateAllPlacementTitles(placementId) {
                           });
                           
                           if (uniqueColors.length > 0) {
-                              drawRect(10, y, pageW - 20, 35, [250, 250, 250], grayLight);
-                              text('COLORES Y TINTAS', 15, y + 8, 11, true, primaryColor);
-                              y += 10;
-                              
+                              const colorsPerRow = 2;
+                              const rowHeight = 10;
+                              const colorsRows = Math.ceil(uniqueColors.length / colorsPerRow);
+                              const colorsBlockHeight = 12 + (colorsRows * rowHeight) + 4;
+
+                              drawRect(10, y, pageW - 20, colorsBlockHeight, [250, 250, 250], grayLight);
+                              text('COLORES Y TINTAS', 15, y + 7, 10, true, primaryColor);
+
                               let xPos = 15;
-                              let rowY = y + 10;
+                              let rowY = y + 12;
                               let colorsInRow = 0;
-                              
-                              uniqueColors.forEach((color, idx) => {
+
+                              uniqueColors.forEach((color) => {
                                   const colorHex = getColorHex(color.val) || '#cccccc';
                                   const rgb = hexToRgb(colorHex);
-                                  
-                                  const colorBoxSize = 8;
+
+                                  const colorBoxSize = 6;
                                   pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
-                                  pdf.rect(xPos, rowY, colorBoxSize, colorBoxSize, 'F');
+                                  pdf.rect(xPos, rowY - 4, colorBoxSize, colorBoxSize, 'F');
                                   pdf.setDrawColor(0, 0, 0);
                                   pdf.setLineWidth(0.1);
-                                  pdf.rect(xPos, rowY, colorBoxSize, colorBoxSize);
-                                  
-                                  text(`${color.screenLetter}: ${color.val}`, xPos + colorBoxSize + 4, rowY + 5, 7);
-                                  
-                                  xPos += 70;
+                                  pdf.rect(xPos, rowY - 4, colorBoxSize, colorBoxSize);
+
+                                  const colorLabel = `${color.screenLetter}: ${color.val}`;
+                                  const colorLines = pdf.splitTextToSize(colorLabel, 52);
+                                  pdf.setFontSize(7);
+                                  pdf.setTextColor(20, 20, 20);
+                                  pdf.text(colorLines, xPos + colorBoxSize + 3, rowY);
+
+                                  xPos += 88;
                                   colorsInRow++;
-                                  
-                                  if (colorsInRow >= 3) {
+
+                                  if (colorsInRow >= colorsPerRow) {
                                       xPos = 15;
-                                      rowY += 15;
+                                      rowY += rowHeight;
                                       colorsInRow = 0;
                                   }
                               });
-                              
-                              y += 40;
+
+                              y += colorsBlockHeight + 4;
                           } else {
                               y += 5;
                           }
@@ -2597,7 +2664,9 @@ function updateAllPlacementTitles(placementId) {
                           y += 6; // Reducido espacio
                           
                           pdf.setFillColor(...primaryColor);
-                          drawRect(15, y, pageW - 30, 8, primaryColor, primaryColor, 0);
+                          const headerLinesMax = 2;
+                          const tableHeaderHeight = (headerLinesMax * 3.1) + 2;
+                          drawRect(15, y, pageW - 30, tableHeaderHeight, primaryColor, primaryColor, 0);
                           
                           const pdfHeaders = ['Est', 'Scr.', 'Screen (Tinta/Proceso)', 'Aditivos', 'Malla', 'Strokes', 'Angle', 'Pressure', 'Speed', 'Duro'];
                           // Anchos optimizados para mantenerse dentro de márgenes carta (pageW - 30)
@@ -2612,10 +2681,10 @@ function updateAllPlacementTitles(placementId) {
 
                           pdfHeaders.forEach((h, i) => {
                               const headerLines = pdf.splitTextToSize(h, pdfColW[i] - 2);
-                              pdf.text(headerLines, x + 1, y + 3.5);
+                              pdf.text(headerLines, x + 1, y + 3);
                               x += pdfColW[i];
                           });
-                          y += 8;
+                          y += tableHeaderHeight;
 
                           decorativeLine(tableStartX, y - 1, tableStartX + tableWidth, y - 1, grayDark, 0.3);
 
@@ -2636,17 +2705,17 @@ function updateAllPlacementTitles(placementId) {
 
                                   // Repetir cabecera de tabla en nueva página
                                   pdf.setFillColor(...primaryColor);
-                                  drawRect(tableStartX, y, tableWidth, 8, primaryColor, primaryColor, 0);
+                                  drawRect(tableStartX, y, tableWidth, tableHeaderHeight, primaryColor, primaryColor, 0);
                                   x = tableStartX;
                                   pdf.setTextColor(255, 255, 255);
                                   pdf.setFontSize(7);
                                   pdf.setFont('helvetica', 'bold');
                                   pdfHeaders.forEach((h, i) => {
                                       const headerLines = pdf.splitTextToSize(h, pdfColW[i] - 2);
-                                      pdf.text(headerLines, x + 1, y + 3.5);
+                                      pdf.text(headerLines, x + 1, y + 3);
                                       x += pdfColW[i];
                                   });
-                                  y += 8;
+                                  y += tableHeaderHeight;
                                   decorativeLine(tableStartX, y - 1, tableStartX + tableWidth, y - 1, grayDark, 0.3);
                                   pdf.setTextColor(0, 0, 0);
                                   pdf.setFont('helvetica', 'normal');
