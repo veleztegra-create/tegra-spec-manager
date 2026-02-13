@@ -2425,6 +2425,25 @@ function updateAllPlacementTitles(placementId) {
                       return 'PNG';
                   };
 
+                  const imageToPngDataUrl = (src) => new Promise((resolve, reject) => {
+                      const img = new Image();
+                      img.crossOrigin = 'anonymous';
+                      img.onload = () => {
+                          try {
+                              const canvas = document.createElement('canvas');
+                              canvas.width = img.naturalWidth || img.width;
+                              canvas.height = img.naturalHeight || img.height;
+                              const ctx = canvas.getContext('2d');
+                              ctx.drawImage(img, 0, 0);
+                              resolve(canvas.toDataURL('image/png'));
+                          } catch (err) {
+                              reject(err);
+                          }
+                      };
+                      img.onerror = reject;
+                      img.src = src;
+                  });
+
                   // CABECERA AJUSTADA PARA TAMAÑO CARTA (evita superposición)
                   const headerHeight = 24;
                   pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -2436,10 +2455,8 @@ function updateAllPlacementTitles(placementId) {
 
                   if (tegraLogo) {
                       try {
-                          const type = getImageType(tegraLogo);
-                          if (type !== 'SVG') {
-                              pdf.addImage(tegraLogo, type, 12, 4, 24, 7);
-                          }
+                          const tegraPng = await imageToPngDataUrl(tegraLogo);
+                          pdf.addImage(tegraPng, 'PNG', 12, 4, 28, 9);
                       } catch (e) {
                           console.warn('No se pudo agregar logo TEGRA al PDF:', e);
                       }
@@ -2451,10 +2468,10 @@ function updateAllPlacementTitles(placementId) {
                           if (response.ok) {
                               const logoBlob = await response.blob();
                               const customerLogoDataUrl = await blobToDataURL(logoBlob);
-                              const type = getImageType(customerLogoDataUrl);
-                              if (type !== 'SVG') {
-                                  pdf.addImage(customerLogoDataUrl, type, pageW - 44, 3, 28, 9);
-                              }
+                              const customerPng = await imageToPngDataUrl(customerLogoDataUrl);
+                              const centerLogoW = 34;
+                              const centerLogoX = (pageW - centerLogoW) / 2;
+                              pdf.addImage(customerPng, 'PNG', centerLogoX, 3, centerLogoW, 10);
                           }
                       } catch (e) {
                           console.warn('No se pudo agregar logo de cliente al PDF:', e);
@@ -2462,13 +2479,9 @@ function updateAllPlacementTitles(placementId) {
                   }
 
                   pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(15);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text("TEGRA", 38, 10.5);
-
                   pdf.setFontSize(8);
                   pdf.setFont("helvetica", "normal");
-                  pdf.text("TECHNICAL SPEC MANAGER", 38, 17);
+                  pdf.text("TECHNICAL SPEC MANAGER", pageW / 2, 18, { align: 'center' });
 
                   const folderNum = getInputValue('folder-num', '#####') || '#####';
                   const safeFolder = String(folderNum).slice(0, 14);
