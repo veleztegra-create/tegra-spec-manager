@@ -2425,7 +2425,7 @@ function updateAllPlacementTitles(placementId) {
                       return 'PNG';
                   };
 
-                  const imageToPngDataUrl = (src) => new Promise((resolve, reject) => {
+                  const imageToPngInfo = (src) => new Promise((resolve, reject) => {
                       const img = new Image();
                       img.crossOrigin = 'anonymous';
                       img.onload = () => {
@@ -2435,7 +2435,11 @@ function updateAllPlacementTitles(placementId) {
                               canvas.height = img.naturalHeight || img.height;
                               const ctx = canvas.getContext('2d');
                               ctx.drawImage(img, 0, 0);
-                              resolve(canvas.toDataURL('image/png'));
+                              resolve({
+                                  dataUrl: canvas.toDataURL('image/png'),
+                                  width: canvas.width,
+                                  height: canvas.height
+                              });
                           } catch (err) {
                               reject(err);
                           }
@@ -2455,8 +2459,13 @@ function updateAllPlacementTitles(placementId) {
 
                   if (tegraLogo) {
                       try {
-                          const tegraPng = await imageToPngDataUrl(tegraLogo);
-                          pdf.addImage(tegraPng, 'PNG', 12, 4, 28, 9);
+                          const tegraInfo = await imageToPngInfo(tegraLogo);
+                          const tegraMaxW = 30;
+                          const tegraMaxH = 10;
+                          const tegraScale = Math.min(tegraMaxW / tegraInfo.width, tegraMaxH / tegraInfo.height);
+                          const tegraW = tegraInfo.width * tegraScale;
+                          const tegraH = tegraInfo.height * tegraScale;
+                          pdf.addImage(tegraInfo.dataUrl, 'PNG', 12, 4 + (tegraMaxH - tegraH) / 2, tegraW, tegraH);
                       } catch (e) {
                           console.warn('No se pudo agregar logo TEGRA al PDF:', e);
                       }
@@ -2468,10 +2477,15 @@ function updateAllPlacementTitles(placementId) {
                           if (response.ok) {
                               const logoBlob = await response.blob();
                               const customerLogoDataUrl = await blobToDataURL(logoBlob);
-                              const customerPng = await imageToPngDataUrl(customerLogoDataUrl);
-                              const centerLogoW = 34;
-                              const centerLogoX = (pageW - centerLogoW) / 2;
-                              pdf.addImage(customerPng, 'PNG', centerLogoX, 3, centerLogoW, 10);
+                              const customerInfo = await imageToPngInfo(customerLogoDataUrl);
+                              const maxLogoW = 36;
+                              const maxLogoH = 10;
+                              const scale = Math.min(maxLogoW / customerInfo.width, maxLogoH / customerInfo.height);
+                              const logoW = customerInfo.width * scale;
+                              const logoH = customerInfo.height * scale;
+                              const centerLogoX = (pageW - logoW) / 2;
+                              const centerLogoY = 3 + (maxLogoH - logoH) / 2;
+                              pdf.addImage(customerInfo.dataUrl, 'PNG', centerLogoX, centerLogoY, logoW, logoH);
                           }
                       } catch (e) {
                           console.warn('No se pudo agregar logo de cliente al PDF:', e);
@@ -2486,11 +2500,20 @@ function updateAllPlacementTitles(placementId) {
                   const folderNum = getInputValue('folder-num', '#####') || '#####';
                   const safeFolder = String(folderNum).slice(0, 14);
 
-                  pdf.setFontSize(7);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text('FOLDER', pageW - 15, 14, { align: 'right' });
+                  const customerBoxX = pageW - 62;
+                  const customerBoxY = 4;
+                  const customerBoxW = 47;
+                  const customerBoxH = 8;
+                  drawRect(customerBoxX, customerBoxY, customerBoxW, customerBoxH, [230, 230, 230], [230, 230, 230], 0);
 
-                  pdf.setFontSize(11);
+                  pdf.setTextColor(90, 90, 90);
+                  pdf.setFontSize(6);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text('CUSTOMER / CLIENTE', customerBoxX + (customerBoxW / 2), customerBoxY + 5.3, { align: 'center' });
+
+                  pdf.setTextColor(255, 255, 255);
+                  pdf.setFontSize(13);
+                  pdf.setFont("helvetica", "bold");
                   pdf.text(`#${safeFolder}`, pageW - 15, 20, { align: 'right' });
 
                   let y = 30;
@@ -2672,10 +2695,12 @@ function updateAllPlacementTitles(placementId) {
                       const stationsData = updatePlacementStations(placement.id, true);
                       
                       if (stationsData.length > 0) {
-                          // SECUENCIA SUBIDA
-                          text(`SECUENCIA DE IMPRESIÓN - ${displayType}`, 15, y - 5, 12, true, primaryColor); // Subido 5 puntos
-                          y += 6; // Reducido espacio
-                          
+                          // Encabezado de secuencia en bloque rojo independiente
+                          y += 3;
+                          drawRect(10, y, pageW - 20, 8, primaryColor, primaryColor, 0);
+                          text(`SECUENCIA DE IMPRESIÓN - ${displayType}`, 14, y + 5.4, 10, true, [255, 255, 255]);
+                          y += 10;
+
                           pdf.setFillColor(...primaryColor);
                           const headerLinesMax = 2;
                           const tableHeaderHeight = (headerLinesMax * 3.1) + 2;
