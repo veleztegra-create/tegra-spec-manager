@@ -1296,6 +1296,12 @@ function updateAllPlacementTitles(placementId) {
                   <div class="color-preview" 
                        id="placement-color-preview-${placementId}-${color.id}" 
                        title="Vista previa del color"></div>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementColorItem(${placementId}, ${color.id}, -1)" title="Subir en secuencia">
+                      <i class="fas fa-arrow-up"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementColorItem(${placementId}, ${color.id}, 1)" title="Bajar en secuencia">
+                      <i class="fas fa-arrow-down"></i>
+                  </button>
                   <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${placementId}, ${color.id})">
                       <i class="fas fa-times"></i>
                   </button>
@@ -3708,6 +3714,28 @@ function removePlacementColorItem(placementId, colorId) {
     showStatus('🗑️ Color eliminado');
 }
 
+function movePlacementColorItem(placementId, colorId, direction) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement || !Array.isArray(placement.colors)) return;
+
+    const currentIndex = placement.colors.findIndex(c => c.id === colorId);
+    if (currentIndex < 0) return;
+
+    const targetIndex = currentIndex + direction;
+    if (targetIndex < 0 || targetIndex >= placement.colors.length) return;
+
+    const temp = placement.colors[currentIndex];
+    placement.colors[currentIndex] = placement.colors[targetIndex];
+    placement.colors[targetIndex] = temp;
+
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+
+    showStatus('↕️ Secuencia de colores actualizada');
+}
+
 function updatePlacementColorValue(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
@@ -3873,6 +3901,7 @@ window.openImagePickerForPlacement = openImagePickerForPlacement;
 window.removePlacementImage = removePlacementImage;
 window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
+window.movePlacementColorItem = movePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
 window.updatePlacementParam = updatePlacementParam;
