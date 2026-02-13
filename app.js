@@ -2366,7 +2366,7 @@ function updateAllPlacementTitles(placementId) {
                   const pageW = pdf.internal.pageSize.getWidth();
                   const pageH = pdf.internal.pageSize.getHeight();
                   
-                  const primaryColor = [255, 82, 82];
+                  const primaryColor = [162, 43, 42];
                   const accentColor = [255, 138, 128];
                   const grayLight = [240, 240, 240];
                   const grayDark = [100, 100, 100];
@@ -2473,9 +2473,8 @@ function updateAllPlacementTitles(placementId) {
                       headerX + colW[0] + colW[1] + colW[2]
                   ];
 
-                  // Fondos gris claro para áreas de logo
-                  drawRect(colX[0] + 2, 4, colW[0] - 4, 18, [236, 236, 236], [236, 236, 236], 0);
-                  drawRect(colX[2] + 2, 4, colW[2] - 4, 18, [236, 236, 236], [236, 236, 236], 0);
+                  // Fondo gris claro para bloque de customer/logo cliente a todo lo alto
+                  drawRect(colX[2] + 2, 1.5, colW[2] - 4, headerHeight - 3, [236, 236, 236], [236, 236, 236], 0);
 
                   if (tegraLogo) {
                       try {
@@ -2492,13 +2491,13 @@ function updateAllPlacementTitles(placementId) {
                           }
 
                           if (tegraInfo) {
-                              const tegraMaxW = colW[0] - 6;
-                              const tegraMaxH = 16;
+                              const tegraMaxW = colW[0] - 1;
+                              const tegraMaxH = 20;
                               const tegraScale = Math.min(tegraMaxW / tegraInfo.width, tegraMaxH / tegraInfo.height);
                               const tegraW = tegraInfo.width * tegraScale;
                               const tegraH = tegraInfo.height * tegraScale;
                               const tegraX = colX[0] + (colW[0] - tegraW) / 2;
-                              const tegraY = 5 + (16 - tegraH) / 2;
+                              const tegraY = 4 + (20 - tegraH) / 2;
                               pdf.addImage(tegraInfo.dataUrl, 'PNG', tegraX, tegraY, tegraW, tegraH);
                           }
                       } catch (e) {
@@ -2513,9 +2512,9 @@ function updateAllPlacementTitles(placementId) {
                   pdf.text("TECHNICAL SPEC MANAGER", colX[1] + 2, 14.5);
 
                   const customerBoxX = colX[2] + 2;
-                  const customerBoxY = 4;
+                  const customerBoxY = 3;
                   const customerBoxW = colW[2] - 4;
-                  const customerBoxH = 8;
+                  const customerBoxH = 7;
                   drawRect(customerBoxX, customerBoxY, customerBoxW, customerBoxH, [220, 220, 220], [220, 220, 220], 0);
                   pdf.setTextColor(60, 60, 60);
                   pdf.setFontSize(6);
@@ -2535,7 +2534,7 @@ function updateAllPlacementTitles(placementId) {
                               const logoW = customerInfo.width * scale;
                               const logoH = customerInfo.height * scale;
                               const logoX = colX[2] + (colW[2] - logoW) / 2;
-                              const logoY = 14 + (9 - logoH) / 2;
+                              const logoY = 15 + (9 - logoH) / 2;
                               pdf.addImage(customerInfo.dataUrl, 'PNG', logoX, logoY, logoW, logoH);
                           }
                       } catch (e) {
