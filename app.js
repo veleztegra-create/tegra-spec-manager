@@ -2465,13 +2465,17 @@ function updateAllPlacementTitles(placementId) {
 
                   const headerX = 10;
                   const headerInnerW = pageW - 20;
-                  const colW = [34, 55, 70, headerInnerW - 34 - 55 - 70];
+                  const colW = [38, 58, 64, headerInnerW - 38 - 58 - 64];
                   const colX = [
                       headerX,
                       headerX + colW[0],
                       headerX + colW[0] + colW[1],
                       headerX + colW[0] + colW[1] + colW[2]
                   ];
+
+                  // Fondos gris claro para áreas de logo
+                  drawRect(colX[0] + 2, 4, colW[0] - 4, 18, [236, 236, 236], [236, 236, 236], 0);
+                  drawRect(colX[2] + 2, 4, colW[2] - 4, 18, [236, 236, 236], [236, 236, 236], 0);
 
                   if (tegraLogo) {
                       try {
@@ -2489,12 +2493,12 @@ function updateAllPlacementTitles(placementId) {
 
                           if (tegraInfo) {
                               const tegraMaxW = colW[0] - 6;
-                              const tegraMaxH = 14;
+                              const tegraMaxH = 16;
                               const tegraScale = Math.min(tegraMaxW / tegraInfo.width, tegraMaxH / tegraInfo.height);
                               const tegraW = tegraInfo.width * tegraScale;
                               const tegraH = tegraInfo.height * tegraScale;
                               const tegraX = colX[0] + (colW[0] - tegraW) / 2;
-                              const tegraY = 5 + (tegraMaxH - tegraH) / 2;
+                              const tegraY = 5 + (16 - tegraH) / 2;
                               pdf.addImage(tegraInfo.dataUrl, 'PNG', tegraX, tegraY, tegraW, tegraH);
                           }
                       } catch (e) {
@@ -2502,8 +2506,9 @@ function updateAllPlacementTitles(placementId) {
                       }
                   }
 
-                  pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(8);
+                  // Texto más oscuro y más grande
+                  pdf.setTextColor(50, 50, 50);
+                  pdf.setFontSize(9);
                   pdf.setFont("helvetica", "bold");
                   pdf.text("TECHNICAL SPEC MANAGER", colX[1] + 2, 14.5);
 
@@ -2511,8 +2516,8 @@ function updateAllPlacementTitles(placementId) {
                   const customerBoxY = 4;
                   const customerBoxW = colW[2] - 4;
                   const customerBoxH = 8;
-                  drawRect(customerBoxX, customerBoxY, customerBoxW, customerBoxH, [230, 230, 230], [230, 230, 230], 0);
-                  pdf.setTextColor(90, 90, 90);
+                  drawRect(customerBoxX, customerBoxY, customerBoxW, customerBoxH, [220, 220, 220], [220, 220, 220], 0);
+                  pdf.setTextColor(60, 60, 60);
                   pdf.setFontSize(6);
                   pdf.setFont("helvetica", "bold");
                   pdf.text('CUSTOMER / CLIENTE', customerBoxX + (customerBoxW / 2), customerBoxY + 5.3, { align: 'center' });
@@ -2524,13 +2529,13 @@ function updateAllPlacementTitles(placementId) {
                               const logoBlob = await response.blob();
                               const customerLogoDataUrl = await blobToDataURL(logoBlob);
                               const customerInfo = await imageToPngInfo(customerLogoDataUrl);
-                              const maxLogoW = colW[2] - 10;
-                              const maxLogoH = 12;
+                              const maxLogoW = colW[2] - 20;
+                              const maxLogoH = 9;
                               const scale = Math.min(maxLogoW / customerInfo.width, maxLogoH / customerInfo.height);
                               const logoW = customerInfo.width * scale;
                               const logoH = customerInfo.height * scale;
                               const logoX = colX[2] + (colW[2] - logoW) / 2;
-                              const logoY = 14 + (maxLogoH - logoH) / 2;
+                              const logoY = 14 + (9 - logoH) / 2;
                               pdf.addImage(customerInfo.dataUrl, 'PNG', logoX, logoY, logoW, logoH);
                           }
                       } catch (e) {
@@ -2543,9 +2548,9 @@ function updateAllPlacementTitles(placementId) {
                   pdf.setTextColor(255, 255, 255);
                   pdf.setFontSize(8);
                   pdf.setFont("helvetica", "bold");
-                  pdf.text(`# FOLDER:`, colX[3] + 2, 12);
+                  pdf.text(`# FOLDER:`, pageW - 10, 12, { align: 'right' });
                   pdf.setFontSize(15);
-                  pdf.text(`${safeFolder}`, colX[3] + 2, 21);
+                  pdf.text(`${safeFolder}`, pageW - 10, 21, { align: 'right' });
 
                   let y = 34;
 
