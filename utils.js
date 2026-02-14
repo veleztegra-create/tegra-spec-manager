@@ -254,36 +254,17 @@ const Utils = {
     
     getColorHex: function(colorName) {
         if (!colorName) return null;
-        
+
         try {
+            // 1) Resolver con capa unificada (config-color.js)
+            if (window.ColorConfig && typeof window.ColorConfig.findColorHex === 'function') {
+                const resolved = window.ColorConfig.findColorHex(colorName);
+                if (resolved) return resolved;
+            }
+
             const name = colorName.toUpperCase().trim();
-            
-            // PRIMERO: Verificar si es un código hex directo
-            const hexMatch = name.match(/#([0-9A-F]{6})/i);
-            if (hexMatch) {
-                return `#${hexMatch[1]}`;
-            }
-            
-            // SEGUNDO: Buscar en bases de datos de Config (si existen)
-            if (window.Config && window.Config.COLOR_DATABASES) {
-                // Buscar en todas las bases de datos
-                for (const dbName of Object.keys(window.Config.COLOR_DATABASES)) {
-                    const db = window.Config.COLOR_DATABASES[dbName];
-                    if (db && typeof db === 'object') {
-                        for (const [key, data] of Object.entries(db)) {
-                            if (key && data && data.hex) {
-                                if (name === key.toUpperCase() || 
-                                    name.includes(key.toUpperCase()) || 
-                                    key.toUpperCase().includes(name)) {
-                                    return data.hex;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // TERCERO: Buscar en colores básicos (fallback)
+
+            // 2) Fallback básico mínimo
             const basicColors = {
                 'RED': '#FF0000',
                 'GREEN': '#00FF00',
@@ -309,31 +290,26 @@ const Utils = {
                 'AQUA': '#00FFFF',
                 'FUCHSIA': '#FF00FF'
             };
-            
-            if (basicColors[name]) {
-                return basicColors[name];
-            }
-            
-            // Buscar coincidencia parcial en colores básicos
+
+            if (basicColors[name]) return basicColors[name];
+
             for (const [color, hex] of Object.entries(basicColors)) {
-                if (name.includes(color) || color.includes(name)) {
-                    return hex;
-                }
+                if (name.includes(color) || color.includes(name)) return hex;
             }
-            
+
         } catch (error) {
             console.warn('Error en getColorHex:', error);
         }
-        
-        // ÚLTIMO RECURSO: Generar color basado en hash del nombre
+
+        // 3) Último recurso: color determinístico por hash
         try {
             const hash = this.stringToHash(colorName);
             return `hsl(${hash % 360}, 70%, 60%)`;
         } catch (e) {
-            return '#CCCCCC'; // Color gris por defecto
+            return '#CCCCCC';
         }
     },
-    
+
     isMetallicColor: function(colorName) {
         if (!colorName) return false;
         
