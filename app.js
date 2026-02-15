@@ -163,6 +163,15 @@
           document.addEventListener('paste', function(e) {
               const activePlacement = document.querySelector('.placement-section.active');
               if (!activePlacement) return;
+
+              const target = e.target;
+              const isEditableTarget = target && target.closest('input, textarea, [contenteditable]');
+              const clipboardText = e.clipboardData?.getData('text/plain') || '';
+
+              // Si el usuario está pegando en un campo editable, priorizar siempre el texto.
+              if (isEditableTarget || clipboardText.trim().length > 0) {
+                  return;
+              }
               
               const items = e.clipboardData.items;
               
@@ -289,7 +298,7 @@
                 imageData: null,
                 colors: [],
                 placementDetails: '#.#" FROM COLLAR SEAM',
-                dimensions: 'SIZE: (W) ##" X (H) ##"',
+                dimensions: 'SIZE: (W) ## X (H) ##',
                 temp: '320 °F',
                 time: '1:40 min',
                 specialties: '',
@@ -471,7 +480,8 @@
                                                      class="form-control placement-dimension-w"
                                                      placeholder="Ancho"
                                                      value="${placement.width || dimensions.width.replace('"', '')}"
-                                                     oninput="updatePlacementDimension(${placement.id}, 'width', this.value)"
+                                                     oninput="handleDimensionInput(${placement.id}, 'width', this)"
+                                                     onpaste="handleDimensionPaste(event, ${placement.id}, 'width')"
                                                      style="width: 100px;">
                                               <span style="color: var(--text-secondary);">X</span>
                                               <input type="text" 
@@ -479,9 +489,10 @@
                                                      class="form-control placement-dimension-h"
                                                      placeholder="Alto"
                                                      value="${placement.height || dimensions.height.replace('"', '')}"
-                                                     oninput="updatePlacementDimension(${placement.id}, 'height', this.value)"
+                                                     oninput="handleDimensionInput(${placement.id}, 'height', this)"
+                                                     onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
                                                      style="width: 100px;">
-                                              <span style="color: var(--text-secondary);">pulgadas</span>
+                                              <span style="color: var(--text-secondary);">&nbsp;</span>
                                           </div>
                                       </div>
                                       
@@ -1058,23 +1069,135 @@ function updateAllPlacementTitles(placementId) {
           return { width: '15.34', height: '12' };
       }
 
+      function parseDimensionValue(rawValue) {
+          const raw = String(rawValue || '').trim();
+          if (!raw) return null;
+
+          const normalized = raw.replace(',', '.').toLowerCase();
+          const numberMatch = normalized.match(/\d+(?:\.\d+)?/);
+          if (!numberMatch) return null;
+
+          const numericText = Number(parseFloat(numberMatch[0]).toFixed(2)).toString();
+          const isCentimeters = /(^|[^a-z])cm([^a-z]|$)|cent[ií]metros?/.test(normalized);
+          const isInches = /(^|[^a-z])in([^a-z]|$)|inch|pulgad/.test(normalized) || /["″”]/.test(raw);
+          const unit = isCentimeters ? 'cm' : (isInches ? 'in' : '');
+
+          return {
+              displayValue: `${numericText}${unit}`,
+              unit
+          };
+      }
+
+      function parseDimensionPair(rawText) {
+          const text = String(rawText || '').trim();
+          if (!text) return null;
+
+          const normalized = text
+              .replace(/″|”|“/g, '"')
+              .replace(/×/g, 'x')
+              .replace(',', '.')
+              .replace(/\s+/g, ' ')
+              .trim();
+
+          const parts = normalized.split(/\s*[xX]\s*/);
+          if (parts.length < 2) return null;
+
+          const widthParsed = parseDimensionValue(parts[0]);
+          const heightParsed = parseDimensionValue(parts[1]);
+          if (!widthParsed || !heightParsed) return null;
+
+          return {
+              width: widthParsed.displayValue,
+              height: heightParsed.displayValue,
+              detectedUnit: widthParsed.unit || heightParsed.unit || ''
+          };
+      }
+
+      function applyDimensionPair(placementId, width, height, detectedUnit = '') {
+          const wField = document.getElementById(`dimension-w-${placementId}`);
+          const hField = document.getElementById(`dimension-h-${placementId}`);
+
+          if (wField) wField.value = width;
+          if (hField) hField.value = height;
+
+          updatePlacementDimension(placementId, 'width', width);
+          updatePlacementDimension(placementId, 'height', height);
+
+          const unitLabel = detectedUnit ? `${detectedUnit} detectado` : 'sin unidad explícita';
+          showStatus(`✅ Medidas pegadas automáticamente (${unitLabel})`);
+      }
+
+      function handleDimensionPaste(event, placementId, type) {
+          const pastedText = event.clipboardData?.getData('text/plain') || '';
+          const pair = parseDimensionPair(pastedText);
+
+          if (pair) {
+              event.preventDefault();
+              applyDimensionPair(placementId, pair.width, pair.height, pair.detectedUnit);
+              return;
+          }
+
+          const parsedSingle = parseDimensionValue(pastedText);
+          if (parsedSingle) {
+              event.preventDefault();
+              const targetField = event.target;
+              targetField.value = parsedSingle.displayValue;
+              updatePlacementDimension(placementId, type, parsedSingle.displayValue);
+
+              if (type === 'width') {
+                  const hField = document.getElementById(`dimension-h-${placementId}`);
+                  if (hField) hField.focus();
+              }
+          }
+      }
+
+      function handleDimensionInput(placementId, type, inputElement) {
+          const value = inputElement.value;
+          if (type === 'width' && /[xX]/.test(value)) {
+              const pair = parseDimensionPair(value);
+              if (pair) {
+                  applyDimensionPair(placementId, pair.width, pair.height, pair.detectedUnit);
+                  const hField = document.getElementById(`dimension-h-${placementId}`);
+                  if (hField) hField.focus();
+                  return;
+              }
+
+              const [widthCandidate, heightCandidate] = value.split(/[xX]/).map(part => part.trim());
+              if (widthCandidate) {
+                  const parsedWidth = parseDimensionValue(widthCandidate);
+                  inputElement.value = parsedWidth ? parsedWidth.displayValue : widthCandidate;
+                  updatePlacementDimension(placementId, 'width', inputElement.value);
+              }
+
+              const hField = document.getElementById(`dimension-h-${placementId}`);
+              if (hField && heightCandidate) {
+                  const parsedHeight = parseDimensionValue(heightCandidate);
+                  hField.value = parsedHeight ? parsedHeight.displayValue : heightCandidate;
+                  updatePlacementDimension(placementId, 'height', hField.value);
+              }
+
+              if (hField) hField.focus();
+              return;
+          }
+
+          updatePlacementDimension(placementId, type, value);
+      }
+
       function updatePlacementDimension(placementId, type, value) {
           const placement = placements.find(p => p.id === placementId);
           if (placement) {
               const wField = document.getElementById(`dimension-w-${placementId}`);
               const hField = document.getElementById(`dimension-h-${placementId}`);
-              
+
               const width = type === 'width' ? value : (wField ? wField.value : '');
               const height = type === 'height' ? value : (hField ? hField.value : '');
-              
+
               // Guardar valores separados
               placement.width = width;
               placement.height = height;
-              
+
               // Actualizar el campo de dimensiones combinado
-              placement.dimensions = `SIZE: (W) ${width || '##'}" X (H) ${height || '##'}"`;
-              
-              showStatus(`✅ Dimensión ${type === 'width' ? 'ancho' : 'alto'} actualizada`);
+              placement.dimensions = `SIZE: (W) ${width || '##'} X (H) ${height || '##'}`;
           }
       }
 
@@ -1173,6 +1296,12 @@ function updateAllPlacementTitles(placementId) {
                   <div class="color-preview" 
                        id="placement-color-preview-${placementId}-${color.id}" 
                        title="Vista previa del color"></div>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementColorItem(${placementId}, ${color.id}, -1)" title="Subir en secuencia">
+                      <i class="fas fa-arrow-up"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementColorItem(${placementId}, ${color.id}, 1)" title="Bajar en secuencia">
+                      <i class="fas fa-arrow-down"></i>
+                  </button>
                   <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${placementId}, ${color.id})">
                       <i class="fas fa-times"></i>
                   </button>
@@ -1348,26 +1477,18 @@ function updateAllPlacementTitles(placementId) {
 
       function getColorHex(colorName) {
           if (!colorName) return null;
-          
-          const name = colorName.toUpperCase().trim();
-          
-          // Buscar en todas las bases de datos
-          if (Config?.COLOR_DATABASES) {
-              for (const db of Object.values(Config.COLOR_DATABASES)) {
-                  for (const [key, data] of Object.entries(db)) {
-                      if (name === key || name.includes(key) || key.includes(name)) {
-                          return data.hex;
-                      }
-                  }
-              }
+
+          if (window.ColorConfig && window.ColorConfig.findColorHex) {
+              const resolved = window.ColorConfig.findColorHex(colorName);
+              if (resolved) return resolved;
           }
-          
-          const hexMatch = name.match(/#([0-9A-F]{6})/i);
-          if (hexMatch) {
-              return `#${hexMatch[1]}`;
+
+          if (window.Utils && window.Utils.getColorHex) {
+              return window.Utils.getColorHex(colorName);
           }
-          
-          return null;
+
+          const hexMatch = String(colorName).match(/#([0-9A-F]{6})/i);
+          return hexMatch ? `#${hexMatch[1]}` : null;
       }
 
       function updatePlacementColorsPreview(placementId) {
@@ -1897,8 +2018,10 @@ function updateAllPlacementTitles(placementId) {
       // ========== FUNCIONES DE STORAGE ==========
       function loadSavedSpecsList() {
           const list = document.getElementById('saved-specs-list');
+          const searchInput = document.getElementById('saved-specs-search');
+          const query = (searchInput?.value || '').toUpperCase().trim();
           const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
-          
+
           if (specs.length === 0) {
               list.innerHTML = `
                   <p style="text-align: center; color: var(--text-secondary); padding: 30px;">
@@ -1908,17 +2031,33 @@ function updateAllPlacementTitles(placementId) {
               `;
               return;
           }
-          
+
           list.innerHTML = '';
+          let visibleCount = 0;
+
           specs.forEach(key => {
               try {
                   const data = JSON.parse(localStorage.getItem(key));
+
+                  const searchableText = [
+                      key,
+                      data.style || '',
+                      data.customer || '',
+                      data.po || '',
+                      data.colorway || ''
+                  ].join(' ').toUpperCase();
+
+                  if (query && !searchableText.includes(query)) {
+                      return;
+                  }
+
+                  visibleCount += 1;
                   const div = document.createElement('div');
                   div.style.cssText = "padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition);";
                   div.innerHTML = `
                       <div style="flex: 1;">
                           <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                          <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'}</div>
+                          <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'} | PO: ${data.po || 'N/A'}</div>
                           <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
                       </div>
                       <div style="display: flex; gap: 8px;">
@@ -1933,6 +2072,15 @@ function updateAllPlacementTitles(placementId) {
                   localStorage.removeItem(key);
               }
           });
+
+          if (visibleCount === 0) {
+              list.innerHTML = `
+                  <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                      <i class="fas fa-search" style="margin-right: 6px;"></i>
+                      No se encontraron specs para <strong>${query}</strong>
+                  </p>
+              `;
+          }
       }
 
       function loadSpecData(data) {
@@ -2203,6 +2351,15 @@ function updateAllPlacementTitles(placementId) {
       }
 
       async function generatePDFBlob() {
+          if (window.generateProfessionalPDF) {
+              try {
+                  const data = collectData();
+                  return await window.generateProfessionalPDF(data);
+              } catch (proError) {
+                  console.warn('Fallo PDF profesional, usando generador legacy:', proError);
+              }
+          }
+
           return new Promise(async (resolve, reject) => {
               try {
                   const { jsPDF } = window.jspdf;
@@ -2210,7 +2367,7 @@ function updateAllPlacementTitles(placementId) {
                   const pageW = pdf.internal.pageSize.getWidth();
                   const pageH = pdf.internal.pageSize.getHeight();
                   
-                  const primaryColor = [255, 82, 82];
+                  const primaryColor = [162, 43, 42];
                   const accentColor = [255, 138, 128];
                   const grayLight = [240, 240, 240];
                   const grayDark = [100, 100, 100];
@@ -2247,35 +2404,157 @@ function updateAllPlacementTitles(placementId) {
                       pdf.line(x1, y1, x2, y2);
                   };
 
-                  // CABECERA - ESPACIO REDUCIDO
+                  const blobToDataURL = (blob) => new Promise((resolve, reject) => {
+                      const reader = new FileReader();
+                      reader.onload = () => resolve(reader.result);
+                      reader.onerror = reject;
+                      reader.readAsDataURL(blob);
+                  });
+
+                  const resolveCustomerLogoUrl = (customerRaw) => {
+                      const customer = String(customerRaw || '').toUpperCase().trim();
+                      if (!customer || !window.LogoConfig) return null;
+
+                      const gfsVariations = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S', 'GEAR', 'G-F-S'];
+                      if (customer.includes('NIKE') || customer.includes('NIQUE')) return window.LogoConfig.NIKE;
+                      if (customer.includes('FANATICS') || customer.includes('FANATIC')) return window.LogoConfig.FANATICS;
+                      if (customer.includes('ADIDAS')) return window.LogoConfig.ADIDAS;
+                      if (customer.includes('PUMA')) return window.LogoConfig.PUMA;
+                      if (customer.includes('UNDER ARMOUR') || customer === 'UA') return window.LogoConfig.UNDER_ARMOUR;
+                      if (gfsVariations.some(v => customer.includes(v))) return window.LogoConfig.GEAR_FOR_SPORT;
+                      return null;
+                  };
+
+                  const getImageType = (dataUrl) => {
+                      if (!dataUrl || typeof dataUrl !== 'string') return 'PNG';
+                      if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) return 'JPEG';
+                      if (dataUrl.startsWith('data:image/svg+xml')) return 'SVG';
+                      return 'PNG';
+                  };
+
+                  const imageToPngInfo = (src) => new Promise((resolve, reject) => {
+                      const img = new Image();
+                      img.crossOrigin = 'anonymous';
+                      img.onload = () => {
+                          try {
+                              const canvas = document.createElement('canvas');
+                              canvas.width = img.naturalWidth || img.width;
+                              canvas.height = img.naturalHeight || img.height;
+                              const ctx = canvas.getContext('2d');
+                              ctx.drawImage(img, 0, 0);
+                              resolve({
+                                  dataUrl: canvas.toDataURL('image/png'),
+                                  width: canvas.width,
+                                  height: canvas.height
+                              });
+                          } catch (err) {
+                              reject(err);
+                          }
+                      };
+                      img.onerror = reject;
+                      img.src = src;
+                  });
+
+                  // CABECERA EN 4 COLUMNAS
+                  const headerHeight = 28;
                   pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                  pdf.rect(0, 0, pageW, 18, 'F'); // Reducido de 20 a 18
-                  
-                  pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(20);
+                  pdf.rect(0, 0, pageW, headerHeight, 'F');
+
+                  const customerName = getInputValue('customer', '');
+                  const tegraLogo = window.LogoConfig?.TEGRA || 'https://raw.githubusercontent.com/veleztegra-create/costos/main/tegra%20logo.png';
+                  const customerLogoUrl = resolveCustomerLogoUrl(customerName);
+
+                  const headerX = 10;
+                  const headerInnerW = pageW - 20;
+                  const colW = [38, 58, 64, headerInnerW - 38 - 58 - 64];
+                  const colX = [
+                      headerX,
+                      headerX + colW[0],
+                      headerX + colW[0] + colW[1],
+                      headerX + colW[0] + colW[1] + colW[2]
+                  ];
+
+                  // Fondo gris claro para bloque de customer/logo cliente a todo lo alto
+                  drawRect(colX[2] + 2, 1.5, colW[2] - 4, headerHeight - 3, [236, 236, 236], [236, 236, 236], 0);
+
+                  if (tegraLogo) {
+                      try {
+                          const tegraCandidates = [
+                              tegraLogo,
+                              'https://raw.githubusercontent.com/veleztegra-create/costos/main/tegra%20logo.png'
+                          ];
+                          let tegraInfo = null;
+                          for (const candidate of tegraCandidates) {
+                              try {
+                                  tegraInfo = await imageToPngInfo(candidate);
+                                  if (tegraInfo) break;
+                              } catch (_) {}
+                          }
+
+                          if (tegraInfo) {
+                              const tegraMaxW = colW[0] - 1;
+                              const tegraMaxH = 20;
+                              const tegraScale = Math.min(tegraMaxW / tegraInfo.width, tegraMaxH / tegraInfo.height);
+                              const tegraW = tegraInfo.width * tegraScale;
+                              const tegraH = tegraInfo.height * tegraScale;
+                              const tegraX = colX[0] + (colW[0] - tegraW) / 2;
+                              const tegraY = 4 + (20 - tegraH) / 2;
+                              pdf.addImage(tegraInfo.dataUrl, 'PNG', tegraX, tegraY, tegraW, tegraH);
+                          }
+                      } catch (e) {
+                          console.warn('No se pudo agregar logo TEGRA al PDF:', e);
+                      }
+                  }
+
+                  // Texto más oscuro y más grande
+                  pdf.setTextColor(50, 50, 50);
+                  pdf.setFontSize(9);
                   pdf.setFont("helvetica", "bold");
-                  pdf.text("TEGRA", 15, 16); // Ajustado
-                  
-                  pdf.setFontSize(11);
-                  pdf.text("TECHNICAL SPEC MANAGER", 15, 22); // Ajustado
-                  
+                  pdf.text("TECHNICAL SPEC MANAGER", colX[1] + 2, 14.5);
+
+                  const customerBoxX = colX[2] + 2;
+                  const customerBoxY = 3;
+                  const customerBoxW = colW[2] - 4;
+                  const customerBoxH = 7;
+                  drawRect(customerBoxX, customerBoxY, customerBoxW, customerBoxH, [220, 220, 220], [220, 220, 220], 0);
+                  pdf.setTextColor(60, 60, 60);
+                  pdf.setFontSize(6);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text('CUSTOMER / CLIENTE', customerBoxX + (customerBoxW / 2), customerBoxY + 5.3, { align: 'center' });
+
+                  if (customerLogoUrl) {
+                      try {
+                          const response = await fetch(customerLogoUrl);
+                          if (response.ok) {
+                              const logoBlob = await response.blob();
+                              const customerLogoDataUrl = await blobToDataURL(logoBlob);
+                              const customerInfo = await imageToPngInfo(customerLogoDataUrl);
+                              const maxLogoW = colW[2] - 20;
+                              const maxLogoH = 9;
+                              const scale = Math.min(maxLogoW / customerInfo.width, maxLogoH / customerInfo.height);
+                              const logoW = customerInfo.width * scale;
+                              const logoH = customerInfo.height * scale;
+                              const logoX = colX[2] + (colW[2] - logoW) / 2;
+                              const logoY = 15 + (9 - logoH) / 2;
+                              pdf.addImage(customerInfo.dataUrl, 'PNG', logoX, logoY, logoW, logoH);
+                          }
+                      } catch (e) {
+                          console.warn('No se pudo agregar logo de cliente al PDF:', e);
+                      }
+                  }
+
                   const folderNum = getInputValue('folder-num', '#####') || '#####';
-                  
-                  // FOLDER SUBIDO 3 PUNTOS
-                  pdf.setFontSize(7);
-                  pdf.text('FOLDER', pageW - 25, 15, { align: 'right' }); // Subido de 18 a 15
-                  
-                  pdf.setFontSize(16);
-                  pdf.text(`#${folderNum}`, pageW - 25, 19, { align: 'right' }); // Ajustado
-                  
-                  let y = 42; // Reducido de 45
-                  
+                  const safeFolder = String(folderNum).slice(0, 14);
+                  pdf.setTextColor(255, 255, 255);
+                  pdf.setFontSize(8);
+                  pdf.setFont("helvetica", "bold");
+                  pdf.text(`# FOLDER:`, pageW - 10, 12, { align: 'right' });
+                  pdf.setFontSize(15);
+                  pdf.text(`${safeFolder}`, pageW - 10, 21, { align: 'right' });
+
+                  let y = 34;
+
                   if (placements.length > 0) {
-                      drawRect(10, y, pageW - 20, 40, [250, 250, 250], grayLight);
-                      text('INFORMACIÓN GENERAL', 15, y + 8, 12, true, primaryColor);
-                      
-                      y += 5;
-                      
                       const fields = [
                           { l: 'CLIENTE:', v: getInputValue('customer') },
                           { l: 'STYLE:', v: getInputValue('style') },
@@ -2288,15 +2567,48 @@ function updateAllPlacementTitles(placementId) {
                           { l: 'GENDER:', v: getInputValue('gender') },
                           { l: 'DESIGNER:', v: getInputValue('designer') },
                       ];
-                      
-                      let fieldY = y + 12;
-                      fields.forEach((f, i) => {
-                          const xPos = i % 2 === 0 ? 15 : 115;
-                          text(f.l, xPos, fieldY, 9, true);
-                          text(f.v || '---', xPos + 25, fieldY, 9, false);
-                          if (i % 2 !== 0) fieldY += 5;
-                      });
-                      y += 45;
+
+                      const measureLines = (value, maxWidth) => {
+                          const lines = pdf.splitTextToSize(String(value || '---'), maxWidth);
+                          return Math.max(1, lines.length);
+                      };
+
+                      let contentHeight = 0;
+                      for (let i = 0; i < fields.length; i += 2) {
+                          const leftLines = measureLines(fields[i].v, 52);
+                          const rightLines = fields[i + 1] ? measureLines(fields[i + 1].v, 52) : 1;
+                          contentHeight += (Math.max(leftLines, rightLines) * 4.2) + 2;
+                      }
+
+                      const infoHeight = Math.max(34, contentHeight + 12);
+                      drawRect(10, y, pageW - 20, infoHeight, [250, 250, 250], grayLight);
+                      text('INFORMACIÓN GENERAL', 15, y + 7, 11, true, primaryColor);
+
+                      let fieldY = y + 13;
+                      for (let i = 0; i < fields.length; i += 2) {
+                          const left = fields[i];
+                          const right = fields[i + 1];
+
+                          text(left.l, 15, fieldY, 8, true);
+                          const leftLines = pdf.splitTextToSize(String(left.v || '---'), 52);
+                          pdf.setFont('helvetica', 'normal');
+                          pdf.setFontSize(8);
+                          pdf.text(leftLines, 37, fieldY);
+
+                          let rowLines = Math.max(1, leftLines.length);
+                          if (right) {
+                              text(right.l, 112, fieldY, 8, true);
+                              const rightLines = pdf.splitTextToSize(String(right.v || '---'), 52);
+                              pdf.setFont('helvetica', 'normal');
+                              pdf.setFontSize(8);
+                              pdf.text(rightLines, 134, fieldY);
+                              rowLines = Math.max(rowLines, rightLines.length);
+                          }
+
+                          fieldY += (rowLines * 4.2) + 2;
+                      }
+
+                      y += infoHeight + 8;
                   }
                   
                   placements.forEach((placement, index) => {
@@ -2331,7 +2643,7 @@ function updateAllPlacementTitles(placementId) {
                               
                               const details = [
                                   `Tipo de tinta: ${placement.inkType || '---'}`,
-                                  `Dimensiones: ${placement.width || '##'}" X ${placement.height || '##'}"`,
+                                  `Dimensiones: ${placement.width || '##'} X ${placement.height || '##'}`,
                                   `Ubicación: ${displayType || '---'}`,
                                   `Placement: ${placement.placementDetails || '---'}`,
                                   `Especialidades: ${placement.specialties || '---'}`
@@ -2369,38 +2681,46 @@ function updateAllPlacementTitles(placementId) {
                           });
                           
                           if (uniqueColors.length > 0) {
-                              drawRect(10, y, pageW - 20, 35, [250, 250, 250], grayLight);
-                              text('COLORES Y TINTAS', 15, y + 8, 11, true, primaryColor);
-                              y += 10;
-                              
+                              const colorsPerRow = 3;
+                              const rowHeight = 8;
+                              const colorsRows = Math.ceil(uniqueColors.length / colorsPerRow);
+                              const colorsBlockHeight = 12 + (colorsRows * rowHeight) + 4;
+
+                              drawRect(10, y, pageW - 20, colorsBlockHeight, [250, 250, 250], grayLight);
+                              text('COLORES Y TINTAS', 15, y + 7, 10, true, primaryColor);
+
                               let xPos = 15;
-                              let rowY = y + 10;
+                              let rowY = y + 12;
                               let colorsInRow = 0;
-                              
-                              uniqueColors.forEach((color, idx) => {
+
+                              uniqueColors.forEach((color) => {
                                   const colorHex = getColorHex(color.val) || '#cccccc';
                                   const rgb = hexToRgb(colorHex);
-                                  
-                                  const colorBoxSize = 8;
+
+                                  const colorBoxSize = 6;
                                   pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
-                                  pdf.rect(xPos, rowY, colorBoxSize, colorBoxSize, 'F');
+                                  pdf.rect(xPos, rowY - 4, colorBoxSize, colorBoxSize, 'F');
                                   pdf.setDrawColor(0, 0, 0);
                                   pdf.setLineWidth(0.1);
-                                  pdf.rect(xPos, rowY, colorBoxSize, colorBoxSize);
-                                  
-                                  text(`${color.screenLetter}: ${color.val}`, xPos + colorBoxSize + 4, rowY + 5, 7);
-                                  
-                                  xPos += 70;
+                                  pdf.rect(xPos, rowY - 4, colorBoxSize, colorBoxSize);
+
+                                  const colorLabel = `${color.screenLetter}: ${color.val}`;
+                                  const colorLines = pdf.splitTextToSize(colorLabel, 35);
+                                  pdf.setFontSize(7);
+                                  pdf.setTextColor(20, 20, 20);
+                                  pdf.text(colorLines, xPos + colorBoxSize + 3, rowY);
+
+                                  xPos += 58;
                                   colorsInRow++;
-                                  
-                                  if (colorsInRow >= 3) {
+
+                                  if (colorsInRow >= colorsPerRow) {
                                       xPos = 15;
-                                      rowY += 15;
+                                      rowY += rowHeight;
                                       colorsInRow = 0;
                                   }
                               });
-                              
-                              y += 40;
+
+                              y += colorsBlockHeight + 4;
                           } else {
                               y += 5;
                           }
@@ -2411,95 +2731,123 @@ function updateAllPlacementTitles(placementId) {
                       const stationsData = updatePlacementStations(placement.id, true);
                       
                       if (stationsData.length > 0) {
-                          // SECUENCIA SUBIDA
-                          text(`SECUENCIA DE IMPRESIÓN - ${displayType}`, 15, y - 5, 12, true, primaryColor); // Subido 5 puntos
-                          y += 6; // Reducido espacio
-                          
+                          // Encabezado de secuencia en bloque rojo independiente
+                          y += 3;
+                          drawRect(10, y, pageW - 20, 8, primaryColor, primaryColor, 0);
+                          text(`SECUENCIA DE IMPRESIÓN - ${displayType}`, 14, y + 5.4, 10, true, [255, 255, 255]);
+                          y += 10;
+
                           pdf.setFillColor(...primaryColor);
-                          drawRect(15, y, pageW - 30, 8, primaryColor, primaryColor, 0);
+                          const headerLinesMax = 2;
+                          const tableHeaderHeight = (headerLinesMax * 3.1) + 2;
+                          drawRect(15, y, pageW - 30, tableHeaderHeight, primaryColor, primaryColor, 0);
                           
                           const pdfHeaders = ['Est', 'Scr.', 'Screen (Tinta/Proceso)', 'Aditivos', 'Malla', 'Strokes', 'Angle', 'Pressure', 'Speed', 'Duro'];
-                          const pdfColW = [10, 12, 60, 55, 15, 15, 15, 15, 15, 15];
-                          let x = 15;
-                          
+                          // Anchos optimizados para mantenerse dentro de márgenes carta (pageW - 30)
+                          const pdfColW = [8, 10, 40, 44, 11, 12, 12, 14, 12, 12];
+                          const tableStartX = 15;
+                          const tableWidth = pdfColW.reduce((a, b) => a + b, 0);
+                          let x = tableStartX;
+
                           pdf.setTextColor(255, 255, 255);
-                          pdf.setFontSize(8);
+                          pdf.setFontSize(7);
                           pdf.setFont('helvetica', 'bold');
-                          
+
                           pdfHeaders.forEach((h, i) => {
-                              pdf.text(h, x + 2, y + 5);
+                              const headerLines = pdf.splitTextToSize(h, pdfColW[i] - 2);
+                              pdf.text(headerLines, x + 1, y + 3);
                               x += pdfColW[i];
                           });
-                          y += 9;
-                          
-                          decorativeLine(15, y - 1, pageW - 15, y - 1, grayDark, 0.3);
-                          
+                          y += tableHeaderHeight;
+
+                          decorativeLine(tableStartX, y - 1, tableStartX + tableWidth, y - 1, grayDark, 0.3);
+
                           pdf.setTextColor(0, 0, 0);
                           pdf.setFont('helvetica', 'normal');
-                          pdf.setFontSize(8);
-                          
+                          pdf.setFontSize(7);
+
                           let rowCount = 0;
-                          stationsData.forEach((row, idx) => {
-                              if (y > 240) {
+                          stationsData.forEach((row) => {
+                              const screenLines = pdf.splitTextToSize(String(row.screenCombined || ''), pdfColW[2] - 2);
+                              const addLines = pdf.splitTextToSize(String(row.add || ''), pdfColW[3] - 2);
+                              const rowLines = Math.max(1, screenLines.length, addLines.length);
+                              const rowHeight = (rowLines * 3.2) + 2;
+
+                              if (y + rowHeight > 240) {
                                   pdf.addPage();
                                   y = 25;
+
+                                  // Repetir cabecera de tabla en nueva página
+                                  pdf.setFillColor(...primaryColor);
+                                  drawRect(tableStartX, y, tableWidth, tableHeaderHeight, primaryColor, primaryColor, 0);
+                                  x = tableStartX;
+                                  pdf.setTextColor(255, 255, 255);
+                                  pdf.setFontSize(7);
+                                  pdf.setFont('helvetica', 'bold');
+                                  pdfHeaders.forEach((h, i) => {
+                                      const headerLines = pdf.splitTextToSize(h, pdfColW[i] - 2);
+                                      pdf.text(headerLines, x + 1, y + 3);
+                                      x += pdfColW[i];
+                                  });
+                                  y += tableHeaderHeight;
+                                  decorativeLine(tableStartX, y - 1, tableStartX + tableWidth, y - 1, grayDark, 0.3);
+                                  pdf.setTextColor(0, 0, 0);
+                                  pdf.setFont('helvetica', 'normal');
+                                  pdf.setFontSize(7);
                               }
-                              
+
                               if (row.screenCombined !== 'FLASH' && row.screenCombined !== 'COOL') {
                                   if (rowCount % 2 === 0) {
                                       pdf.setFillColor(248, 248, 248);
-                                      pdf.rect(15, y - 3, pageW - 30, 6, 'F');
+                                      pdf.rect(tableStartX, y - 2.5, tableWidth, rowHeight, 'F');
                                   }
                                   rowCount++;
                               }
-                              
+
                               if (rowCount > 0 && (row.screenCombined === 'FLASH' || row.screenCombined === 'COOL')) {
-                                  decorativeLine(15, y + 1.5, pageW - 15, y + 1.5, [240, 240, 240], 0.1);
+                                  decorativeLine(tableStartX, y + 1.2, tableStartX + tableWidth, y + 1.2, [240, 240, 240], 0.1);
                               }
-                              
-                              x = 15;
-                              const data = [
-                                  row.st, 
-                                  row.screenLetter, 
-                                  row.screenCombined, 
-                                  row.add, 
-                                  row.mesh, 
-                                  row.strokes,
-                                  row.angle,
-                                  row.pressure,
-                                  row.speed,
-                                  row.duro
+
+                              x = tableStartX;
+                              const cells = [
+                                  String(row.st || ''),
+                                  String(row.screenLetter || ''),
+                                  screenLines,
+                                  addLines,
+                                  String(row.mesh || ''),
+                                  String(row.strokes || ''),
+                                  String(row.angle || ''),
+                                  String(row.pressure || ''),
+                                  String(row.speed || ''),
+                                  String(row.duro || '')
                               ];
-                              
-                              data.forEach((d, i) => {
-                                  let safeText = String(d || '');
-                                  
-                                  if (i === 3 && safeText.length > 35) {
-                                      safeText = safeText.substring(0, 22) + '...';
-                                  }
-                                  
+
+                              cells.forEach((cell, i) => {
                                   if (i === 1) {
                                       pdf.setFont('helvetica', 'bold');
                                       pdf.setTextColor(...primaryColor);
                                   }
                                   if (i === 3) {
                                       pdf.setTextColor(...accentColor);
-                                      pdf.setFontSize(7);
                                   }
-                                  
-                                  pdf.text(safeText, x + 2, y);
+
+                                  const textValue = Array.isArray(cell) ? cell : [cell];
+                                  pdf.text(textValue, x + 1, y);
                                   x += pdfColW[i];
-                                  
-                                  if (i === 1) pdf.setFont('helvetica', 'normal');
+
+                                  if (i === 1) {
+                                      pdf.setFont('helvetica', 'normal');
+                                      pdf.setTextColor(0, 0, 0);
+                                  }
                                   if (i === 3) {
                                       pdf.setTextColor(0, 0, 0);
-                                      pdf.setFontSize(8);
                                   }
                               });
-                              y += 6;
+
+                              y += rowHeight;
                           });
-                          
-                          y += 8;
+
+                          y += 7;
                           
                           const timeTempY = y;
                           const timeTempHeight = 22;
@@ -3371,6 +3719,28 @@ function removePlacementColorItem(placementId, colorId) {
     showStatus('🗑️ Color eliminado');
 }
 
+function movePlacementColorItem(placementId, colorId, direction) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement || !Array.isArray(placement.colors)) return;
+
+    const currentIndex = placement.colors.findIndex(c => c.id === colorId);
+    if (currentIndex < 0) return;
+
+    const targetIndex = currentIndex + direction;
+    if (targetIndex < 0 || targetIndex >= placement.colors.length) return;
+
+    const temp = placement.colors[currentIndex];
+    placement.colors[currentIndex] = placement.colors[targetIndex];
+    placement.colors[targetIndex] = temp;
+
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+
+    showStatus('↕️ Secuencia de colores actualizada');
+}
+
 function updatePlacementColorValue(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
@@ -3398,12 +3768,17 @@ function updatePlacementColorPreview(placementId, colorId) {
     const colorName = (color.val || '').toUpperCase().trim();
     let colorHex = null;
 
-    // ========== USAR Utils.getColorHex si está disponible ==========
-    if (window.Utils && window.Utils.getColorHex) {
+    // ========== Resolver primero con capa unificada ==========
+    if (window.ColorConfig && window.ColorConfig.findColorHex) {
+        colorHex = window.ColorConfig.findColorHex(color.val);
+    }
+
+    // ========== Fallback: Utils.getColorHex ==========
+    if (!colorHex && window.Utils && window.Utils.getColorHex) {
         colorHex = window.Utils.getColorHex(color.val);
     }
 
-    // ========== BUSCAR EN TeamsConfig ==========
+    // ========== BUSCAR EN TeamsConfig (legacy/fallback) ==========
     if (!colorHex && window.TeamsConfig) {
         const leagues = ['NCAA', 'NBA', 'NFL'];
 
@@ -3536,6 +3911,7 @@ window.openImagePickerForPlacement = openImagePickerForPlacement;
 window.removePlacementImage = removePlacementImage;
 window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
+window.movePlacementColorItem = movePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
 window.updatePlacementParam = updatePlacementParam;
