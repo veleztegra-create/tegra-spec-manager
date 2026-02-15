@@ -25,9 +25,10 @@ async function generateProfessionalPDF(data) {
     const canvases = [];
     for (let i = 0; i < placements.length; i++) {
       host.innerHTML = buildSpecPageHtml(data, placements[i], i, placements.length, logos);
-      await waitForImages(host.firstElementChild);
+      const target = host.querySelector('.mockup-container');
+      if (!target) throw new Error('No se pudo construir el layout del PDF.');
+      await waitForImages(target);
 
-      const target = host.firstElementChild;
       const captureWidth = Math.max(target.scrollWidth, target.offsetWidth, 1050);
       const captureHeight = Math.max(target.scrollHeight, target.offsetHeight, 1400);
 
@@ -160,7 +161,7 @@ function buildSpecPageHtml(data, placement, index, total, logos = {}) {
 
   const colorsHtml = colors.length ? colors.map((c, i) => {
     const name = escaped(c?.val || 'N/A');
-    const hex = escapeCssColor(window.Utils?.getColorHex?.(c?.val) || '#999999');
+    const hex = escapeCssColor(safeResolveColor(c?.val));
     return `<div class="color-swatch"><div class="color-box" style="background:${hex};"></div><div class="color-info"><span class="color-number">${i + 1}</span><span class="color-name">${name}</span></div></div>`;
   }).join('') : '<div class="muted">Sin colores registrados.</div>';
 
@@ -190,8 +191,7 @@ function buildSpecPageHtml(data, placement, index, total, logos = {}) {
   const now = new Date().toLocaleString('es-ES', { hour12: false });
 
   return `
-  <div class="mockup-container">
-    <style>
+  <style>
       :root { --tegra-red:#E31837; --tegra-red-dark:#8B0000; --tegra-gray-dark:#1A1A1A; --tegra-gray-light:#F5F5F5; --text-dark:#1A1A1A; --text-muted:#666; --border-light:#E0E0E0; }
       *{ box-sizing:border-box; margin:0; padding:0; }
       .mockup-container{ width:1050px; background:white; color:var(--text-dark); font-family:Arial,Helvetica,sans-serif; }
@@ -256,7 +256,7 @@ function buildSpecPageHtml(data, placement, index, total, logos = {}) {
       .spec-footer{ background:var(--tegra-gray-dark); color:#fff; margin-top:14px; padding:10px 14px; display:flex; justify-content:space-between; font-size:11px; }
       .muted{ color:#777; text-align:center; padding:8px; }
     </style>
-
+  <div class="mockup-container">
     <header class="spec-header">
       <div class="header-logo">${tegraLogoHtml}</div>
       <div class="header-title"><h1>Technical Spec Manager</h1><p>Sistema de gestión de especificaciones técnicas</p></div>
@@ -299,6 +299,16 @@ function buildSpecPageHtml(data, placement, index, total, logos = {}) {
 
     <footer class="spec-footer"><div>Generado: ${escaped(now)}</div><div><strong>TEGRA SPEC MANAGER</strong></div><div>Placement ${index + 1} de ${total}</div></footer>
   </div>`;
+}
+
+function safeResolveColor(input) {
+  try {
+    if (window.ColorConfig?.findColorHex) return window.ColorConfig.findColorHex(input) || '#999999';
+    if (window.Utils?.getColorHex) return window.Utils.getColorHex(input) || '#999999';
+  } catch (_) {
+    return '#999999';
+  }
+  return '#999999';
 }
 
 function escapeCssColor(hex) {
