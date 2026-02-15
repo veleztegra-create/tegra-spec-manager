@@ -1,18 +1,31 @@
-// pdf-generator-mejorado.js
+// pdf-generator-mejorado-fix.js
 // Plan C refinado: HTML mockup -> canvas -> PDF (sin distorsión + logos reales)
+// VERSIÓN CORREGIDA - Incluye manejo de errores mejorado y campos faltantes
 
 async function generateProfessionalPDF(data) {
+  console.log('[PDF] Iniciando generación de PDF con datos:', data);
+  
   if (typeof window.jspdf === 'undefined') throw new Error('jsPDF no está cargado.');
   if (typeof window.html2canvas === 'undefined') throw new Error('html2canvas no está cargado.');
 
   const { jsPDF } = window.jspdf;
   const placements = Array.isArray(data?.placements) && data.placements.length ? data.placements : [{}];
-  const logos = await resolvePdfLogos(data);
+  
+  console.log('[PDF] Procesando', placements.length, 'placement(s)');
+  
+  let logos;
+  try {
+    logos = await resolvePdfLogos(data);
+    console.log('[PDF] Logos resueltos:', { tegra: !!logos.tegra, customer: !!logos.customer });
+  } catch (e) {
+    console.warn('[PDF] Error al resolver logos:', e);
+    logos = { tegra: '', customer: '' };
+  }
 
   const host = document.createElement('div');
   host.id = 'tegra-pdf-render-host';
   host.style.position = 'absolute';
-  host.style.left = '0';
+  host.style.left = '-9999px';
   host.style.top = '0';
   host.style.opacity = '0';
   host.style.pointerEvents = 'none';
@@ -24,29 +37,63 @@ async function generateProfessionalPDF(data) {
   try {
     const canvases = [];
     for (let i = 0; i < placements.length; i++) {
-      host.innerHTML = buildSpecPageHtml(data, placements[i], i, placements.length, logos);
+      console.log(`[PDF] Procesando placement ${i + 1}/${placements.length}`);
+      
+      const placement = placements[i];
+      // Asegurar que el placement tenga un título
+      if (!placement.title && placement.type) {
+        placement.title = placement.type;
+      }
+      
+      host.innerHTML = buildSpecPageHtml(data, placement, i, placements.length, logos);
       const target = host.querySelector('.mockup-container');
-      if (!target) throw new Error('No se pudo construir el layout del PDF.');
+      
+      if (!target) {
+        console.error('[PDF] No se pudo construir el layout del PDF');
+        throw new Error('No se pudo construir el layout del PDF.');
+      }
+      
+      // Esperar a que las imágenes se carguen
       await waitForImages(target);
+      // Dar tiempo adicional para que el DOM se renderice completamente
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const captureWidth = Math.max(target.scrollWidth, target.offsetWidth, 1050);
       const captureHeight = Math.max(target.scrollHeight, target.offsetHeight, 1400);
 
-      const canvas = await window.html2canvas(target, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        width: captureWidth,
-        height: captureHeight,
-        windowWidth: captureWidth,
-        windowHeight: captureHeight,
-        scrollX: 0,
-        scrollY: 0
-      });
-      canvases.push(canvas);
+      console.log(`[PDF] Capturando canvas: ${captureWidth}x${captureHeight}`);
+
+      try {
+        const canvas = await window.html2canvas(target, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+          allowTaint: true, // Permitir imágenes de otros dominios
+          logging: false,
+          width: captureWidth,
+          height: captureHeight,
+          windowWidth: captureWidth,
+          windowHeight: captureHeight,
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (clonedDoc) => {
+            // Asegurar que el elemento clonado sea visible
+            const clonedHost = clonedDoc.getElementById('tegra-pdf-render-host');
+            if (clonedHost) {
+              clonedHost.style.opacity = '1';
+              clonedHost.style.left = '0';
+            }
+          }
+        });
+        canvases.push(canvas);
+        console.log(`[PDF] Canvas ${i + 1} capturado exitosamente`);
+      } catch (canvasError) {
+        console.error(`[PDF] Error al capturar canvas ${i + 1}:`, canvasError);
+        throw canvasError;
+      }
     }
+
+    console.log('[PDF] Creando PDF final con', canvases.length, 'página(s)');
 
     const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
     const pdfW = pdf.internal.pageSize.getWidth();
@@ -56,7 +103,7 @@ async function generateProfessionalPDF(data) {
     const printableH = pdfH - (marginMm * 2);
 
     let pageIndex = 0;
-    canvases.forEach((canvas) => {
+    for (const canvas of canvases) {
       const imgW = canvas.width;
       const imgH = canvas.height;
       const slicePx = Math.floor((printableH / printableW) * imgW);
@@ -68,19 +115,32 @@ async function generateProfessionalPDF(data) {
         sliceCanvas.height = currentSliceHeight;
 
         const ctx = sliceCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
         ctx.drawImage(canvas, 0, offsetY, imgW, currentSliceHeight, 0, 0, imgW, currentSliceHeight);
 
         if (pageIndex > 0) pdf.addPage('letter', 'p');
-        const sliceImg = sliceCanvas.toDataURL('image/jpeg', 0.95);
-        const renderH = (currentSliceHeight / imgW) * printableW;
-        pdf.addImage(sliceImg, 'JPEG', marginMm, marginMm, printableW, renderH, undefined, 'FAST');
-        pageIndex += 1;
+        
+        try {
+          const sliceImg = sliceCanvas.toDataURL('image/jpeg', 0.95);
+          const renderH = (currentSliceHeight / imgW) * printableW;
+          pdf.addImage(sliceImg, 'JPEG', marginMm, marginMm, printableW, renderH, undefined, 'FAST');
+          pageIndex += 1;
+        } catch (imgError) {
+          console.error('[PDF] Error al agregar imagen al PDF:', imgError);
+        }
       }
-    });
+    }
 
+    console.log('[PDF] PDF generado exitosamente con', pageIndex, 'página(s)');
     return pdf.output('blob');
+    
+  } catch (error) {
+    console.error('[PDF] Error en generateProfessionalPDF:', error);
+    throw error;
   } finally {
     host.remove();
+    console.log('[PDF] Host de renderizado eliminado');
   }
 }
 
@@ -88,7 +148,9 @@ async function resolvePdfLogos(data) {
   const logoCfg = window.LogoConfig || {};
   const customerKey = normalizeLogoKey(data?.customer || '');
   const customerSrc = logoCfg[customerKey] || '';
-  const tegraSrc = logoCfg.TEGRA || '';
+  const tegraSrc = logoCfg.TEGRA || 'https://raw.githubusercontent.com/veleztegra-create/costos/main/tegra%20logo.png';
+
+  console.log('[PDF] Resolviendo logos - Customer key:', customerKey, 'Src:', customerSrc);
 
   return {
     tegra: await toDataUrlIfPossible(tegraSrc),
@@ -119,7 +181,8 @@ async function toDataUrlIfPossible(src) {
       fr.onerror = reject;
       fr.readAsDataURL(blob);
     });
-  } catch (_) {
+  } catch (e) {
+    console.warn('[PDF] No se pudo cargar imagen:', src, e.message);
     // Evita canvas tainted por URLs sin CORS al exportar con html2canvas
     return '';
   }
@@ -129,18 +192,35 @@ function waitForImages(root) {
   const images = Array.from(root.querySelectorAll('img'));
   if (!images.length) return Promise.resolve();
 
+  console.log('[PDF] Esperando', images.length, 'imagen(es)');
+
   return Promise.all(images.map((img) => new Promise((resolve) => {
-    if (img.complete) return resolve();
-    const done = () => resolve();
+    if (img.complete && img.naturalWidth > 0) {
+      console.log('[PDF] Imagen ya cargada:', img.alt || 'sin alt');
+      return resolve();
+    }
+    const done = () => {
+      console.log('[PDF] Imagen cargada:', img.alt || 'sin alt');
+      resolve();
+    };
     img.addEventListener('load', done, { once: true });
-    img.addEventListener('error', done, { once: true });
+    img.addEventListener('error', () => {
+      console.warn('[PDF] Error al cargar imagen:', img.alt || 'sin alt');
+      resolve(); // Resolver de todos modos para no bloquear
+    }, { once: true });
+    // Timeout de seguridad
+    setTimeout(() => {
+      console.warn('[PDF] Timeout esperando imagen:', img.alt || 'sin alt');
+      resolve();
+    }, 3000);
   })));
 }
 
 function buildSpecPageHtml(data, placement, index, total, logos = {}) {
-  const escaped = (v) => String(v ?? '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  const escaped = (v) => String(v ?? '').replace(/[&<"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
   const customer = escaped((data.customer || 'N/A').toUpperCase());
+  // CORRECCIÓN: Usar placement.type si no hay title
   const placementType = escaped((placement.title || placement.type || 'FRONT').toUpperCase());
   const colors = Array.isArray(placement.colors) ? placement.colors : [];
   const stations = generateStationsDataProfessional(placement);
@@ -185,10 +265,19 @@ function buildSpecPageHtml(data, placement, index, total, logos = {}) {
 
   const technicalComments = escaped(placement.technicalComments || placement.specialInstructions || data.technicalComments || 'Ningún comentario técnico registrado.');
   const placementImage = placement.imageData && String(placement.imageData).startsWith('data:') ? String(placement.imageData) : '';
-  const tegraLogoHtml = logos.tegra ? `<img class="tegra-logo" src="${logos.tegra}" alt="TEGRA">` : '<div class="tegra-fallback">TEGRA</div>';
-  const customerLogoHtml = logos.customer ? `<img class="customer-logo" src="${logos.customer}" alt="${customer}">` : `<span class="customer-fallback">${customer}</span>`;
+  const tegraLogoHtml = logos.tegra ? `<img class="tegra-logo" src="${logos.tegra}" alt="TEGRA" crossorigin="anonymous">` : '<div class="tegra-fallback">TEGRA</div>';
+  const customerLogoHtml = logos.customer ? `<img class="customer-logo" src="${logos.customer}" alt="${customer}" crossorigin="anonymous">` : `<span class="customer-fallback">${customer}</span>`;
 
   const now = new Date().toLocaleString('es-ES', { hour12: false });
+  
+  // CORRECCIÓN: Asegurar que todos los campos tengan valores por defecto
+  const inkType = placement.inkType || 'WATER';
+  const width = placement.width || '--';
+  const height = placement.height || '--';
+  const placementDetails = placement.placementDetails || '---';
+  const specialties = placement.specialties || '—';
+  const temp = placement.temp || '320°F';
+  const time = placement.time || '1:40 min';
 
   return `
   <style>
@@ -271,13 +360,13 @@ function buildSpecPageHtml(data, placement, index, total, logos = {}) {
       <div class="placement-content">
         <div class="placement-image-container">
           <span class="placement-badge">${placementType}</span>
-          ${placementImage ? `<img class="placement-image" src="${placementImage}" alt="placement">` : '<div class="placement-placeholder">Sin imagen de referencia</div>'}
+          ${placementImage ? `<img class="placement-image" src="${placementImage}" alt="placement" crossorigin="anonymous">` : '<div class="placement-placeholder">Sin imagen de referencia</div>'}
         </div>
         <div class="placement-details-panel">
-          <div class="detail-row"><span class="detail-label">Tipo de Tinta</span><span class="detail-value highlight">${escaped(placement.inkType || 'WATER')}</span></div>
-          <div class="detail-row"><span class="detail-label">Dimensiones</span><span class="detail-value">${escaped(`${placement.width || '--'} x ${placement.height || '--'}`)}</span></div>
-          <div class="detail-row"><span class="detail-label">Ubicación</span><span class="detail-value">${escaped(placement.placementDetails || '---')}</span></div>
-          <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${escaped(placement.specialties || '—')}</span></div>
+          <div class="detail-row"><span class="detail-label">Tipo de Tinta</span><span class="detail-value highlight">${escaped(inkType)}</span></div>
+          <div class="detail-row"><span class="detail-label">Dimensiones</span><span class="detail-value">${escaped(`${width} x ${height}`)}</span></div>
+          <div class="detail-row"><span class="detail-label">Ubicación</span><span class="detail-value">${escaped(placementDetails)}</span></div>
+          <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${escaped(specialties)}</span></div>
         </div>
       </div>
 
@@ -289,9 +378,9 @@ function buildSpecPageHtml(data, placement, index, total, logos = {}) {
       </div>
 
       <div class="curing-section"><h3 class="curing-title">Condiciones de Curado</h3><div class="curing-grid">
-        <div><div class="curing-label">Temperatura</div><div class="curing-value">${escaped(placement.temp || '320°F')}</div></div>
-        <div><div class="curing-label">Tiempo</div><div class="curing-value">${escaped(placement.time || '1:40 min')}</div></div>
-        <div><div class="curing-label">Tipo de Tinta</div><div class="curing-value" style="font-size:16px;color:#E31837;">${escaped(placement.inkType || 'WATER')}</div></div>
+        <div><div class="curing-label">Temperatura</div><div class="curing-value">${escaped(temp)}</div></div>
+        <div><div class="curing-label">Tiempo</div><div class="curing-value">${escaped(time)}</div></div>
+        <div><div class="curing-label">Tipo de Tinta</div><div class="curing-value" style="font-size:16px;color:#E31837;">${escaped(inkType)}</div></div>
       </div></div>
 
       <div class="comments-section"><div class="comments-title">Technical Comments / Comentarios Técnicos</div><div class="comments-body">${technicalComments}</div></div>
@@ -328,6 +417,7 @@ function generateStationsDataProfessional(placement) {
   const strokes = placement.strokes || preset.color.strokes;
   const angle = placement.angle || preset.color.angle;
   const pressure = placement.pressure || preset.color.pressure;
+  // CORRECCIÓN: Agregar speed que faltaba
   const speed = placement.speed || preset.color.speed;
   const additives = placement.additives || preset.color.additives;
 
@@ -338,6 +428,7 @@ function generateStationsDataProfessional(placement) {
       let duro = durometer;
       let ang = angle;
       let press = pressure;
+      // CORRECCIÓN: Incluir speed en cada estación
       let spd = speed;
       let add = additives;
 
@@ -365,6 +456,7 @@ function generateStationsDataProfessional(placement) {
         duro,
         angle: ang,
         pressure: press,
+        // CORRECCIÓN: Incluir speed
         speed: spd,
         add
       });
