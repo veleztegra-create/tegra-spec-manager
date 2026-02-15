@@ -11,9 +11,11 @@ async function generateProfessionalPDF(data) {
 
   const host = document.createElement('div');
   host.id = 'tegra-pdf-render-host';
-  host.style.position = 'fixed';
-  host.style.left = '-30000px';
+  host.style.position = 'absolute';
+  host.style.left = '0';
   host.style.top = '0';
+  host.style.opacity = '0';
+  host.style.pointerEvents = 'none';
   host.style.width = '1050px';
   host.style.zIndex = '-1';
   host.style.background = '#ffffff';
@@ -25,12 +27,22 @@ async function generateProfessionalPDF(data) {
       host.innerHTML = buildSpecPageHtml(data, placements[i], i, placements.length, logos);
       await waitForImages(host.firstElementChild);
 
-      const canvas = await window.html2canvas(host.firstElementChild, {
+      const target = host.firstElementChild;
+      const captureWidth = Math.max(target.scrollWidth, target.offsetWidth, 1050);
+      const captureHeight = Math.max(target.scrollHeight, target.offsetHeight, 1400);
+
+      const canvas = await window.html2canvas(target, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
         allowTaint: false,
-        logging: false
+        logging: false,
+        width: captureWidth,
+        height: captureHeight,
+        windowWidth: captureWidth,
+        windowHeight: captureHeight,
+        scrollX: 0,
+        scrollY: 0
       });
       canvases.push(canvas);
     }
