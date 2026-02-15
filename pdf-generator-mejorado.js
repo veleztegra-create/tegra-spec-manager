@@ -38,13 +38,15 @@ async function generateProfessionalPDF(data) {
     const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
     const pdfW = pdf.internal.pageSize.getWidth();
     const pdfH = pdf.internal.pageSize.getHeight();
+    const marginMm = 6.35; // 1/4"
+    const printableW = pdfW - (marginMm * 2);
+    const printableH = pdfH - (marginMm * 2);
 
     let pageIndex = 0;
     canvases.forEach((canvas) => {
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const imgW = canvas.width;
       const imgH = canvas.height;
-      const slicePx = Math.floor((pdfH / pdfW) * imgW);
+      const slicePx = Math.floor((printableH / printableW) * imgW);
 
       for (let offsetY = 0; offsetY < imgH; offsetY += slicePx) {
         const currentSliceHeight = Math.min(slicePx, imgH - offsetY);
@@ -57,8 +59,8 @@ async function generateProfessionalPDF(data) {
 
         if (pageIndex > 0) pdf.addPage('letter', 'p');
         const sliceImg = sliceCanvas.toDataURL('image/jpeg', 0.95);
-        const renderH = (currentSliceHeight / imgW) * pdfW;
-        pdf.addImage(sliceImg, 'JPEG', 0, 0, pdfW, renderH, undefined, 'FAST');
+        const renderH = (currentSliceHeight / imgW) * printableW;
+        pdf.addImage(sliceImg, 'JPEG', marginMm, marginMm, printableW, renderH, undefined, 'FAST');
         pageIndex += 1;
       }
     });
@@ -105,7 +107,8 @@ async function toDataUrlIfPossible(src) {
       fr.readAsDataURL(blob);
     });
   } catch (_) {
-    return input;
+    // Evita canvas tainted por URLs sin CORS al exportar con html2canvas
+    return '';
   }
 }
 
