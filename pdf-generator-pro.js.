@@ -1,0 +1,171 @@
+/**
+ * pdf-generator-pro.js
+ * Generador de PDF profesional basado en plantillas HTML.
+ * Utiliza un enfoque de plantillas para separar el diseÃ±o (HTML/CSS) de la lÃ³gica (JS).
+ */
+
+async function generateProfessionalPDF(data) {
+    console.log('[PDF-PRO] Iniciando generaciÃ³n de PDF con nuevo motor...');
+
+    // 1. Cargar las plantillas HTML
+    const [mainTemplate, placementTemplate] = await Promise.all([
+        fetch('templates/pdf-template.html').then(res => res.text()),
+        fetch('templates/placement-template.html').then(res => res.text())
+    ]);
+
+    console.log('[PDF-PRO] Plantillas HTML cargadas.');
+
+    // 2. FunciÃ³n de utilidad para reemplazar marcadores
+    const replacePlaceholders = (template, replacements) => {
+        let result = template;
+        for (const [key, value] of Object.entries(replacements)) {
+            // Usamos una expresiÃ³n regular global para reemplazar todas las instancias
+            result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value || '');
+        }
+        return result;
+    };
+
+    // 3. Generar el HTML para cada placement
+    let allPlacementsHtml = '';
+    for (const placement of data.placements) {
+        console.log(`[PDF-PRO] Procesando placement: ${placement.name}`);
+        
+        // 3a. Generar HTML para los colores (swatches)
+        let colorsHtml = '';
+        if(placement.colors && placement.colors.length > 0) {
+            const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+            colorItems.forEach(color => {
+                const colorHex = window.getColorHex ? window.getColorHex(color.val) : '#cccccc';
+                colorsHtml += `
+                    <div class="color-swatch">
+                        <div class="color-box" style="background-color: ${colorHex};"></div>
+                        <div class="color-info">
+                            <span class="color-number">${color.screenLetter}</span>
+                            <span class="color-name">${color.val}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 3b. Generar HTML para la tabla de secuencia
+        let sequenceRowsHtml = '';
+        const stations = window.updatePlacementStations(placement.id, true); // Usamos la lÃ³gica existente
+        if(stations && stations.length > 0) {
+            stations.forEach(station => {
+                 if (station.screenCombined === 'FLASH' || station.screenCombined === 'COOL') {
+                    sequenceRowsHtml += `
+                        <tr class="flash-row">
+                            <td class="station-number">${station.st}</td>
+                            <td colspan="8">${station.screenCombined}</td>
+                        </tr>
+                    `;
+                } else {
+                    sequenceRowsHtml += `
+                        <tr>
+                            <td class="station-number">${station.st}</td>
+                            <td class="screen-letter">${station.screenLetter}</td>
+                            <td class="ink-name">${station.screenCombined}</td>
+                            <td class="additives">${station.add}</td>
+                            <td>${station.mesh}</td>
+                            <td>${station.strokes}</td>
+                            <td>${station.angle}</td>
+                            <td>${station.pressure}</td>
+                            <td>${station.duro}</td>
+                        </tr>
+                    `;
+                }
+            });
+        }
+
+        // 3c. Generar HTML para instrucciones especiales
+        let specialInstructionsHtml = '';
+        if (placement.specialInstructions) {
+            specialInstructionsHtml = `
+                <div class="special-instructions">
+                     <h2 class="section-title">Instrucciones Especiales</h2>
+                     <p class="instructions-text">${placement.specialInstructions}</p>
+                </div>`;
+        }
+
+        // 3d. Rellenar la plantilla del placement
+        const placementReplacements = {
+            'placement.name': placement.name,
+            'placement.imageData': placement.imageData || 'https://via.placeholder.com/400x300/E31837/FFFFFF?text=No+Image',
+            'placement.inkType': placement.inkType,
+            'placement.dimensions': placement.dimensions,
+            'placement.placementDetails': placement.placementDetails,
+            'placement.specialties': placement.specialties || 'N/A',
+            'placement.temp': placement.temp,
+            'placement.time': placement.time,
+            'COLORS_HTML': colorsHtml,
+            'SEQUENCE_ROWS_HTML': sequenceRowsHtml,
+            'SPECIAL_INSTRUCTIONS_HTML': specialInstructionsHtml
+        };
+        allPlacementsHtml += replacePlaceholders(placementTemplate, placementReplacements);
+    }
+
+    // 4. Rellenar la plantilla principal
+    console.log('[PDF-PRO] Rellenando plantilla principal...');
+    const mainReplacements = {
+        'tegraLogoUrl': window.LogoConfig?.TEGRA || '',
+        'customerLogoUrl': window.resolveCustomerLogoUrl ? window.resolveCustomerLogoUrl(data.customer) : '',
+        'appName': window.Config?.APP?.NAME || 'Tegra Spec Manager',
+        'appVersion': window.Config?.APP?.VERSION || '2.0',
+        'folder': data.folder,
+        'customer': data.customer,
+        'season': data.season,
+        'style': data.style,
+        'colorway': data.colorway,
+        'po': data.po,
+        'nameTeam': data.nameTeam,
+        'sampleType': data.sampleType,
+        'gender': data.gender,
+        'pattern': data.pattern,
+        'designer': data.designer,
+        'generatedDate': new Date().toLocaleString('es-ES'),
+        'PLACEMENTS_HTML': allPlacementsHtml
+    };
+    const finalHtml = replacePlaceholders(mainTemplate, mainReplacements);
+
+    // 5. Renderizar el HTML a un canvas
+    console.log('[PDF-PRO] Renderizando HTML a Canvas...');
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px'; // Moverlo fuera de la pantalla
+    container.innerHTML = finalHtml;
+    document.body.appendChild(container);
+
+    const pdfContent = container.querySelector('#pdf-content');
+    const canvas = await html2canvas(pdfContent, {
+        scale: 2, // Mejorar la resoluciÃ³n
+        useCORS: true, // Permitir imÃ¡genes de otros dominios
+        logging: true
+    });
+    
+    console.log('[PDF-PRO] Canvas generado. Creando PDF...');
+
+    // 6. Crear el PDF desde el canvas
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'pt', 'letter'); // Usar puntos para que coincida con el tamaÃ±o de CSS
+    
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const ratio = canvasWidth / canvasHeight;
+    const newCanvasHeight = pdfWidth / ratio;
+
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pdfWidth, newCanvasHeight);
+
+    // Limpiar el contenedor del DOM
+    document.body.removeChild(container);
+    console.log('[PDF-PRO] Limpieza del DOM completa.');
+
+    // 7. Devolver el PDF como un Blob
+    console.log('[PDF-PRO] GeneraciÃ³n de PDF completada.');
+    return pdf.output('blob');
+}
+
+// Hacer la funciÃ³n accesible globalmente
+window.generateProfessionalPDF = generateProfessionalPDF;
