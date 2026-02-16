@@ -1,0 +1,83 @@
+<div class="placement-section">
+    <div class="placement-header-bar">
+        <div class="placement-icon"><i class="fas fa-tshirt"></i></div>
+        <span class="placement-title-text">Placement: {{placement.name}}</span>
+    </div>
+
+    <div class="placement-content">
+        <div class="placement-image-container">
+            <img src="{{placement.imageData}}" alt="{{placement.name}} Image" class="placement-image">
+        </div>
+        <div class="placement-details-panel">
+            <div class="detail-row">
+                <span class="detail-label">Tipo de Tinta</span>
+                <span class="detail-value highlight">{{placement.inkType}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Dimensiones</span>
+                <span class="detail-value">{{placement.dimensions}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Ubicación</span>
+                <span class="detail-value">{{placement.placementDetails}}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Especialidades</span>
+                <span class="detail-value">{{placement.specialties}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="colors-section">
+        <h3 class="colors-section-title">Colores y Tintas</h3>
+        <div class="colors-grid">
+            {{COLORS_HTML}}
+        </div>
+    </div>
+
+    <div class="sequence-section">
+        <div class="sequence-header">
+            <i class="fas fa-list-ol"></i>
+            Secuencia de Impresión - {{placement.name}}
+        </div>
+        <table class="sequence-table">
+            <thead>
+                <tr>
+                    <th>Est</th>
+                    <th>Scr.</th>
+                    <th>Screen (Tinta/Proceso)</th>
+                    <th>Aditivos</th>
+                    <th>Malla</th>
+                    <th>Strokes</th>
+                    <th>Angle</th>
+                    <th>Pressure</th>
+                    <th>Duro</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{SEQUENCE_ROWS_HTML}}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="curing-section">
+        <div class="curing-title">Condiciones de Curado</div>
+        <div class="curing-grid">
+            <div class="curing-item">
+                <div class="curing-label">Temperatura</div>
+                <div class="curing-value">{{placement.temp}}</div>
+            </div>
+            <div class="curing-item">
+                <div class="curing-label">Tiempo</div>
+                <div class="curing-value">{{placement.time}}</div>
+            </div>
+            <div class="curing-item">
+                <div class="curing-label">Tipo de Tinta</div>
+                <div class="curing-value" style="font-size: 1.2rem;">{{placement.inkType}}</div>
+            </div>
+        </div>
+    </div>
+
+    {{SPECIAL_INSTRUCTIONS_HTML}}
+
+</div>
