@@ -1,201 +1,485 @@
-// pdf-generator.js
+// pdf-generator-mejorado-fix.js
+// Plan C refinado: HTML mockup -> canvas -> PDF (sin distorsión + logos reales)
+// VERSIÓN CORREGIDA - Incluye manejo de errores mejorado y campos faltantes
 
-// Objeto de configuración centralizado para el diseño del PDF, como sugeriste.
-const CONFIG = {
-    pageSize: 'letter',
-    orientation: 'p',
-    unit: 'mm',
-    primaryColor: [0, 51, 153], // Azul TEGRA corporativo
-    grayLight: [240, 240, 240],
-    grayDark: [100, 100, 100],
-    margin: 15,
-    labelWidth: 35, // Ancho para etiquetas como "CLIENTE:"
-    col2X: 115,     // Posición X de inicio para la segunda columna de datos
-    // Coordenadas X fijas para la tabla de secuencia, para un control preciso
-    tableCols: {
-        est: 17,
-        scr: 28,
-        screen: 40,
-        add: 105,
-        mesh: 150,
-        strokes: 165,
-        angle: 178,
-        pressure: 190,
-        duro: 205
+async function generateProfessionalPDF(data) {
+  console.log('[PDF] Iniciando generación de PDF con datos:', data);
+  
+  if (typeof window.jspdf === 'undefined') throw new Error('jsPDF no está cargado.');
+  if (typeof window.html2canvas === 'undefined') throw new Error('html2canvas no está cargado.');
+
+  const { jsPDF } = window.jspdf;
+  const placements = Array.isArray(data?.placements) && data.placements.length ? data.placements : [{}];
+  
+  console.log('[PDF] Procesando', placements.length, 'placement(s)');
+  
+  let logos;
+  try {
+    logos = await resolvePdfLogos(data);
+    console.log('[PDF] Logos resueltos:', { tegra: !!logos.tegra, customer: !!logos.customer });
+  } catch (e) {
+    console.warn('[PDF] Error al resolver logos:', e);
+    logos = { tegra: '', customer: '' };
+  }
+
+  const host = document.createElement('div');
+  host.id = 'tegra-pdf-render-host';
+  host.style.position = 'absolute';
+  host.style.left = '-9999px';
+  host.style.top = '0';
+  host.style.opacity = '0';
+  host.style.pointerEvents = 'none';
+  host.style.width = '1050px';
+  host.style.zIndex = '-1';
+  host.style.background = '#ffffff';
+  document.body.appendChild(host);
+
+  try {
+    const canvases = [];
+    for (let i = 0; i < placements.length; i++) {
+      console.log(`[PDF] Procesando placement ${i + 1}/${placements.length}`);
+      
+      const placement = placements[i];
+      // Asegurar que el placement tenga un título
+      if (!placement.title && placement.type) {
+        placement.title = placement.type;
+      }
+      
+      host.innerHTML = buildSpecPageHtml(data, placement, i, placements.length, logos);
+      const target = host.querySelector('.mockup-container');
+      
+      if (!target) {
+        console.error('[PDF] No se pudo construir el layout del PDF');
+        throw new Error('No se pudo construir el layout del PDF.');
+      }
+      
+      // Esperar a que las imágenes se carguen
+      await waitForImages(target);
+      // Dar tiempo adicional para que el DOM se renderice completamente
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const captureWidth = Math.max(target.scrollWidth, target.offsetWidth, 1050);
+      const captureHeight = Math.max(target.scrollHeight, target.offsetHeight, 1400);
+
+      console.log(`[PDF] Capturando canvas: ${captureWidth}x${captureHeight}`);
+
+      try {
+        const canvas = await window.html2canvas(target, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+          allowTaint: true, // Permitir imágenes de otros dominios
+          logging: false,
+          width: captureWidth,
+          height: captureHeight,
+          windowWidth: captureWidth,
+          windowHeight: captureHeight,
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (clonedDoc) => {
+            // Asegurar que el elemento clonado sea visible
+            const clonedHost = clonedDoc.getElementById('tegra-pdf-render-host');
+            if (clonedHost) {
+              clonedHost.style.opacity = '1';
+              clonedHost.style.left = '0';
+            }
+          }
+        });
+        canvases.push(canvas);
+        console.log(`[PDF] Canvas ${i + 1} capturado exitosamente`);
+      } catch (canvasError) {
+        console.error(`[PDF] Error al capturar canvas ${i + 1}:`, canvasError);
+        throw canvasError;
+      }
     }
-};
 
-window.PdfGenerator = {
-  generate: async function(data, colorDatabases, options = {}) {
-    return new Promise((resolve, reject) => {
+    console.log('[PDF] Creando PDF final con', canvases.length, 'página(s)');
+
+    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const marginMm = 6.35; // 1/4"
+    const printableW = pdfW - (marginMm * 2);
+    const printableH = pdfH - (marginMm * 2);
+
+    let pageIndex = 0;
+    for (const canvas of canvases) {
+      const imgW = canvas.width;
+      const imgH = canvas.height;
+      const slicePx = Math.floor((printableH / printableW) * imgW);
+
+      for (let offsetY = 0; offsetY < imgH; offsetY += slicePx) {
+        const currentSliceHeight = Math.min(slicePx, imgH - offsetY);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = imgW;
+        sliceCanvas.height = currentSliceHeight;
+
+        const ctx = sliceCanvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, offsetY, imgW, currentSliceHeight, 0, 0, imgW, currentSliceHeight);
+
+        if (pageIndex > 0) pdf.addPage('letter', 'p');
+        
         try {
-            if (typeof window.jspdf === 'undefined') {
-                throw new Error('jsPDF no está cargado.');
-            }
-
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF(CONFIG.orientation, CONFIG.unit, CONFIG.pageSize);
-            const pageW = pdf.internal.pageSize.getWidth();
-            const pageH = pdf.internal.pageSize.getHeight();
-            let y = 20; // y inicial
-
-            // --- Helpers ---
-            const text = (str, x, y, size = 10, bold = false, color = [0,0,0], align = 'left') => {
-                pdf.setTextColor(...color);
-                pdf.setFont('helvetica', bold ? 'bold' : 'normal');
-                pdf.setFontSize(size);
-                pdf.text(String(str || '---'), x, y, { align });
-            };
-
-            const drawFooter = (pageIndex, totalPages) => {
-                const footerY = pageH - 15;
-                pdf.setDrawColor(220, 220, 220);
-                pdf.line(CONFIG.margin, footerY - 2, pageW - CONFIG.margin, footerY - 2);
-                text(\`Generado: ${new Date().toLocaleString('es-ES')}\`, CONFIG.margin, footerY, 8, false, CONFIG.grayDark);
-                text(\`Página ${pageIndex} de ${totalPages}\`, pageW / 2, footerY, 8, false, CONFIG.grayDark, 'center');
-                text('TEGRA Spec Manager', pageW - CONFIG.margin, footerY, 8, true, CONFIG.primaryColor, 'right');
-            };
-            
-            // --- Cabecera ---
-            pdf.setFillColor(...CONFIG.primaryColor);
-            pdf.rect(0, 0, pageW, 18, 'F');
-            text('TEGRA', CONFIG.margin, 12, 20, true, [255, 255, 255]);
-            text('TECHNICAL SPECIFICATION', CONFIG.margin, 17, 10, false, [255, 255, 255]);
-            const folderNum = data.folder || '#####';
-            text('FOLDER', pageW - 40, 10, 8, false, [255, 255, 255], 'right');
-            text(\`#${folderNum}\`, pageW - 40, 15, 16, true, [255, 255, 255], 'right');
-            y = 30;
-
-            // --- Información General (2 Columnas Manual) ---
-            text('INFORMACIÓN GENERAL', CONFIG.margin, y - 4, 12, true, CONFIG.primaryColor);
-            const genFields = [
-                { l: 'CLIENTE:', v: data.customer }, { l: 'SEASON:', v: data.season },
-                { l: 'STYLE:', v: data.style }, { l: 'COLORWAY:', v: data.colorway },
-                { l: 'P.O. #:', v: data.po }, { l: 'TEAM:', v: data.nameTeam },
-                { l: 'SAMPLE:', v: data.sampleType }, { l: 'GENDER:', v: data.gender },
-            ];
-            
-            pdf.setFontSize(9);
-            genFields.forEach((field, i) => {
-                const xPos = (i % 2 === 0) ? CONFIG.margin : CONFIG.col2X;
-                text(field.l, xPos, y, 9, true);
-                text(field.v, xPos + 22, y, 9, false);
-                if (i % 2 !== 0) y += 6;
-            });
-
-            y += 10; // Espacio después de la info general
-
-            // --- Placements ---
-            data.placements.forEach((placement, index) => {
-                if (index > 0 && y > 40) { // Si no es el primero, añadir página
-                    pdf.addPage();
-                    y = 20;
-                }
-
-                if (y > pageH - 60) { // Salto de página si queda poco espacio
-                    pdf.addPage(); y = 20;
-                }
-
-                // --- Título del Placement ---
-                pdf.setFillColor(...CONFIG.grayLight);
-                pdf.rect(CONFIG.margin, y, pageW - (CONFIG.margin * 2), 8, 'F');
-                text(\`PLACEMENT: ${placement.type.toUpperCase()}\`, CONFIG.margin + 2, y + 5.5, 11, true, CONFIG.primaryColor);
-                y += 12;
-                
-                // --- Detalles e Imagen ---
-                if (placement.imageData) {
-                    try {
-                        pdf.addImage(placement.imageData, 'JPEG', CONFIG.margin, y, 85, 60);
-                    } catch(e) { console.warn("Could not add placement image to PDF"); }
-                }
-                
-                // Tabla de detalles al lado de la imagen
-                pdf.setFontSize(8);
-                text("Tinta:", CONFIG.col2X, y, 8, true);
-                text(placement.inkType, CONFIG.col2X + 15, y, 8, false);
-                text("Dimensiones:", CONFIG.col2X, y + 6, 8, true);
-                text(\`\${placement.width || '##'}" x \${placement.height || '##'}"\`, CONFIG.col2X + 25, y + 6, 8, false);
-                text("Ubicación:", CONFIG.col2X, y + 12, 8, true);
-                const detailsLines = pdf.splitTextToSize(placement.placementDetails || '---', 70);
-                text(detailsLines, CONFIG.col2X + 20, y + 12, 8, false);
-
-                y += 65; // Espacio para la imagen y detalles
-
-
-                // --- Tabla de Secuencia de Impresión (Manual) ---
-                if (placement.stationsData && placement.stationsData.length > 0) {
-                    text('SECUENCIA DE IMPRESIÓN', CONFIG.margin, y, 11, true, CONFIG.primaryColor);
-                    y += 6;
-
-                    // Encabezados
-                    pdf.setFontSize(7);
-                    text('Est', CONFIG.tableCols.est, y, 7, true);
-                    text('Scr.', CONFIG.tableCols.scr, y, 7, true);
-                    text('Screen (Tinta/Proceso)', CONFIG.tableCols.screen, y, 7, true);
-                    text('Aditivos', CONFIG.tableCols.add, y, 7, true);
-                    text('Malla', CONFIG.tableCols.mesh, y, 7, true);
-                    text('Strokes', CONFIG.tableCols.strokes, y, 7, true);
-                    text('Angle', CONFIG.tableCols.angle, y, 7, true);
-                    text('Pressure', CONFIG.tableCols.pressure, y, 7, true);
-                    pdf.setDrawColor(...CONFIG.grayDark).line(CONFIG.margin, y + 2, pageW - CONFIG.margin, y + 2);
-                    y += 7;
-
-                    // Filas
-                    placement.stationsData.forEach(row => {
-                        if (y > pageH - 30) { pdf.addPage(); y = 20; }
-
-                        const isFlash = row.screenCombined.includes('FLASH') || row.screenCombined.includes('COOL');
-                        if (isFlash) {
-                            pdf.setFillColor(...CONFIG.grayLight);
-                            pdf.rect(CONFIG.margin, y - 4, pageW - (CONFIG.margin * 2), 5, 'F');
-                            text(row.screenCombined, CONFIG.tableCols.screen, y, 8, true, CONFIG.grayDark);
-                            y += 6;
-                            return; // Saltar al siguiente
-                        }
-
-                        pdf.setFontSize(8);
-                        text(row.st, CONFIG.tableCols.est, y, 8, true);
-                        text(row.screenLetter, CONFIG.tableCols.scr, y, 8, true, CONFIG.primaryColor);
-                        
-                        const screenText = pdf.splitTextToSize(row.screenCombined, 60); // Ancho de 60mm
-                        const additivesText = pdf.splitTextToSize(row.add || 'N/A', 45); // Ancho de 45mm
-                        
-                        text(screenText, CONFIG.tableCols.screen, y, 8, false);
-                        text(additivesText, CONFIG.tableCols.add, y, 8, false);
-                        
-                        text(row.mesh, CONFIG.tableCols.mesh, y, 8, false);
-                        text(row.strokes, CONFIG.tableCols.strokes, y, 8, false);
-                        text(row.angle, CONFIG.tableCols.angle, y, 8, false);
-                        text(row.pressure, CONFIG.tableCols.pressure, y, 8, false);
-
-                        // Incrementar 'y' basado en la línea más alta (tinta o aditivos)
-                        const maxHeight = Math.max(screenText.length, additivesText.length);
-                        y += (maxHeight * 4) + 3; // 4mm por línea + 3mm de espacio
-                    });
-                }
-                 y += 10;
-            });
-
-            // --- Footer en todas las páginas ---
-            const totalPages = pdf.internal.getNumberOfPages();
-            for (let i = 1; i <= totalPages; i++) {
-                pdf.setPage(i);
-                drawFooter(i, totalPages);
-            }
-
-            // --- Salida ---
-            if (options.output === 'blob') {
-                resolve(pdf.output('blob'));
-            } else {
-                const fileName = \`TegraSpec_\${data.style || 'Spec'}_\${data.folder || '00000'}.pdf\`;
-                pdf.save(fileName);
-                resolve();
-            }
-
-        } catch (error) {
-            console.error("Error al generar PDF:", error);
-            reject(error);
+          const sliceImg = sliceCanvas.toDataURL('image/jpeg', 0.95);
+          const renderH = (currentSliceHeight / imgW) * printableW;
+          pdf.addImage(sliceImg, 'JPEG', marginMm, marginMm, printableW, renderH, undefined, 'FAST');
+          pageIndex += 1;
+        } catch (imgError) {
+          console.error('[PDF] Error al agregar imagen al PDF:', imgError);
         }
+      }
+    }
+
+    console.log('[PDF] PDF generado exitosamente con', pageIndex, 'página(s)');
+    return pdf.output('blob');
+    
+  } catch (error) {
+    console.error('[PDF] Error en generateProfessionalPDF:', error);
+    throw error;
+  } finally {
+    host.remove();
+    console.log('[PDF] Host de renderizado eliminado');
+  }
+}
+
+async function resolvePdfLogos(data) {
+  const logoCfg = window.LogoConfig || {};
+  const customerKey = normalizeLogoKey(data?.customer || '');
+  const customerSrc = logoCfg[customerKey] || '';
+  const tegraSrc = logoCfg.TEGRA || 'https://raw.githubusercontent.com/veleztegra-create/costos/main/tegra%20logo.png';
+
+  console.log('[PDF] Resolviendo logos - Customer key:', customerKey, 'Src:', customerSrc);
+
+  return {
+    tegra: await toDataUrlIfPossible(tegraSrc),
+    customer: await toDataUrlIfPossible(customerSrc)
+  };
+}
+
+function normalizeLogoKey(customer) {
+  return String(customer || '')
+    .toUpperCase()
+    .replace(/&/g, 'AND')
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+async function toDataUrlIfPossible(src) {
+  const input = String(src || '').trim();
+  if (!input) return '';
+  if (input.startsWith('data:')) return input;
+
+  try {
+    const res = await fetch(input, { mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onloadend = () => resolve(fr.result);
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn('[PDF] No se pudo cargar imagen:', src, e.message);
+    // Evita canvas tainted por URLs sin CORS al exportar con html2canvas
+    return '';
+  }
+}
+
+function waitForImages(root) {
+  const images = Array.from(root.querySelectorAll('img'));
+  if (!images.length) return Promise.resolve();
+
+  console.log('[PDF] Esperando', images.length, 'imagen(es)');
+
+  return Promise.all(images.map((img) => new Promise((resolve) => {
+    if (img.complete && img.naturalWidth > 0) {
+      console.log('[PDF] Imagen ya cargada:', img.alt || 'sin alt');
+      return resolve();
+    }
+    const done = () => {
+      console.log('[PDF] Imagen cargada:', img.alt || 'sin alt');
+      resolve();
+    };
+    img.addEventListener('load', done, { once: true });
+    img.addEventListener('error', () => {
+      console.warn('[PDF] Error al cargar imagen:', img.alt || 'sin alt');
+      resolve(); // Resolver de todos modos para no bloquear
+    }, { once: true });
+    // Timeout de seguridad
+    setTimeout(() => {
+      console.warn('[PDF] Timeout esperando imagen:', img.alt || 'sin alt');
+      resolve();
+    }, 3000);
+  })));
+}
+
+function buildSpecPageHtml(data, placement, index, total, logos = {}) {
+  const escaped = (v) => String(v ?? '').replace(/[&<"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+  const customer = escaped((data.customer || 'N/A').toUpperCase());
+  // CORRECCIÓN: Usar placement.type si no hay title
+  const placementType = escaped((placement.title || placement.type || 'FRONT').toUpperCase());
+  const colors = Array.isArray(placement.colors) ? placement.colors : [];
+  const stations = generateStationsDataProfessional(placement);
+
+  const infoRows = [
+    ['Cliente', data.customer], ['Season', data.season],
+    ['Style', data.style], ['Colorway', data.colorway],
+    ['P.O. #', data.po], ['Team', data.nameTeam],
+    ['Sample Type', data.sampleType], ['Gender', data.gender],
+    ['Designer', data.designer], ['Desarrollado por', data.developedBy || data.sampleDevelopedBy]
+  ];
+
+  const infoHtml = infoRows.map(([label, val]) => `
+    <div class="info-row">
+      <span class="info-label">${escaped(label)}:</span>
+      <span class="info-value">${escaped(val || '---')}</span>
+    </div>`).join('');
+
+  const colorsHtml = colors.length ? colors.map((c, i) => {
+    const name = escaped(c?.val || 'N/A');
+    const hex = escapeCssColor(safeResolveColor(c?.val));
+    return `<div class="color-swatch"><div class="color-box" style="background:${hex};"></div><div class="color-info"><span class="color-number">${i + 1}</span><span class="color-name">${name}</span></div></div>`;
+  }).join('') : '<div class="muted">Sin colores registrados.</div>';
+
+  const seqRowsHtml = stations.length ? stations.map((row) => {
+    const isFlash = /FLASH|COOL/.test(String(row.screenCombined || '').toUpperCase());
+    if (isFlash) {
+      return `<tr class="flash-row"><td class="station-number">${escaped(row.st)}</td><td></td><td colspan="7">${escaped(row.screenCombined)}</td></tr>`;
+    }
+    return `<tr>
+      <td class="station-number">${escaped(row.st)}</td>
+      <td class="screen-letter">${escaped(row.screenLetter)}</td>
+      <td class="ink-name">${escaped(row.screenCombined)}</td>
+      <td class="additives">${escaped(row.add || '')}</td>
+      <td>${escaped(row.mesh)}</td>
+      <td>${escaped(row.strokes)}</td>
+      <td>${escaped(row.angle)}</td>
+      <td>${escaped(row.pressure)}</td>
+      <td>${escaped(row.duro)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="9" class="muted">Sin secuencia de impresión.</td></tr>';
+
+  const technicalComments = escaped(placement.technicalComments || placement.specialInstructions || data.technicalComments || 'Ningún comentario técnico registrado.');
+  const placementImage = placement.imageData && String(placement.imageData).startsWith('data:') ? String(placement.imageData) : '';
+  const tegraLogoHtml = logos.tegra ? `<img class="tegra-logo" src="${logos.tegra}" alt="TEGRA" crossorigin="anonymous">` : '<div class="tegra-fallback">TEGRA</div>';
+  const customerLogoHtml = logos.customer ? `<img class="customer-logo" src="${logos.customer}" alt="${customer}" crossorigin="anonymous">` : `<span class="customer-fallback">${customer}</span>`;
+
+  const now = new Date().toLocaleString('es-ES', { hour12: false });
+  
+  // CORRECCIÓN: Asegurar que todos los campos tengan valores por defecto
+  const inkType = placement.inkType || 'WATER';
+  const width = placement.width || '--';
+  const height = placement.height || '--';
+  const placementDetails = placement.placementDetails || '---';
+  const specialties = placement.specialties || '—';
+  const temp = placement.temp || '320°F';
+  const time = placement.time || '1:40 min';
+
+  return `
+  <style>
+      :root { --tegra-red:#E31837; --tegra-red-dark:#8B0000; --tegra-gray-dark:#1A1A1A; --tegra-gray-light:#F5F5F5; --text-dark:#1A1A1A; --text-muted:#666; --border-light:#E0E0E0; }
+      *{ box-sizing:border-box; margin:0; padding:0; }
+      .mockup-container{ width:1050px; background:white; color:var(--text-dark); font-family:Arial,Helvetica,sans-serif; }
+      .spec-header{ background:linear-gradient(135deg,var(--tegra-red-dark),var(--tegra-red)); color:#fff; display:grid; grid-template-columns:180px 1fr 200px 140px; min-height:90px; align-items:center; }
+      .header-logo,.header-title,.header-customer,.header-folder{ padding:14px; }
+      .header-logo{ border-right:1px solid rgba(255,255,255,.22); display:flex; align-items:center; justify-content:center; }
+      .tegra-logo{ max-width:145px; max-height:52px; object-fit:contain; filter:brightness(0) invert(1); }
+      .tegra-fallback{ font-weight:800; font-size:34px; }
+      .header-title h1{ font-size:30px; letter-spacing:.6px; text-transform:uppercase; }
+      .header-title p{ margin-top:5px; font-size:12px; opacity:.9; }
+      .header-customer{ border-left:1px solid rgba(255,255,255,.22); border-right:1px solid rgba(255,255,255,.22); text-align:center; }
+      .header-customer-label{ font-size:10px; text-transform:uppercase; opacity:.86; margin-bottom:7px; font-weight:700; }
+      .header-customer-logo{ background:rgba(255,255,255,.95); border-radius:4px; padding:8px 10px; min-height:42px; display:flex; align-items:center; justify-content:center; }
+      .customer-logo{ max-width:150px; max-height:26px; object-fit:contain; }
+      .customer-fallback{ font-size:13px; font-weight:700; color:#1a1a1a; }
+      .header-folder{ text-align:right; }
+      .folder-label{ font-size:10px; text-transform:uppercase; opacity:.86; }
+      .folder-number{ font-size:35px; font-weight:800; line-height:1.1; }
+      .info-section{ background:var(--tegra-gray-light); padding:18px 22px; border-bottom:3px solid var(--tegra-red); }
+      .section-title{ font-size:22px; text-transform:uppercase; color:var(--tegra-red); margin-bottom:10px; }
+      .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 30px; }
+      .info-row{ display:flex; align-items:baseline; gap:8px; }
+      .info-label{ font-weight:700; font-size:12px; text-transform:uppercase; min-width:115px; }
+      .info-value{ font-size:13px; font-weight:600; border-bottom:1px solid #ccc; flex:1; }
+      .placement-section{ padding:18px 22px; }
+      .placement-header-bar{ margin:-18px -22px 14px; background:var(--tegra-red); color:white; padding:10px 14px; font-size:22px; font-weight:700; text-transform:uppercase; }
+      .placement-content{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+      .placement-image-container{ position:relative; min-height:250px; background:linear-gradient(135deg,#f8f8f8,#e8e8e8); border-radius:8px; border:2px solid var(--border-light); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+      .placement-image{ width:100%; height:100%; object-fit:contain; }
+      .placement-placeholder{ font-size:14px; color:#777; }
+      .placement-badge{ position:absolute; top:8px; right:8px; background:var(--tegra-red); color:white; padding:5px 9px; border-radius:4px; font-size:11px; font-weight:700; }
+      .placement-details-panel{ background:var(--tegra-gray-light); border-radius:8px; padding:12px; border-left:4px solid var(--tegra-red); }
+      .detail-row{ display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid #ddd; }
+      .detail-row:last-child{ border-bottom:none; }
+      .detail-label{ font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); }
+      .detail-value{ font-size:13px; font-weight:700; text-align:right; }
+      .detail-value.highlight{ color:var(--tegra-red); }
+      .colors-section,.sequence-section,.curing-section,.comments-section{ margin-top:14px; }
+      .colors-grid{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+      .color-swatch{ display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f5f5f5; border:1px solid #e0e0e0; border-radius:6px; min-width:170px; }
+      .color-box{ width:20px; height:20px; border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,.2); border-radius:4px; }
+      .color-number{ font-size:11px; font-weight:700; color:var(--tegra-red); display:block; }
+      .color-name{ font-size:11px; color:#444; }
+      .sequence-header{ background:var(--tegra-red); color:#fff; padding:9px 12px; font-size:14px; font-weight:700; text-transform:uppercase; }
+      .sequence-table{ width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
+      .sequence-table th{ background:var(--tegra-gray-dark); color:#fff; padding:6px 5px; text-align:left; font-size:9px; }
+      .sequence-table td{ border-bottom:1px solid #eee; padding:5px; vertical-align:top; overflow-wrap:anywhere; }
+      .sequence-table th:nth-child(1), .sequence-table td:nth-child(1){ width:34px; text-align:center; }
+      .sequence-table th:nth-child(2), .sequence-table td:nth-child(2){ width:34px; }
+      .sequence-table th:nth-child(3), .sequence-table td:nth-child(3){ width:190px; }
+      .sequence-table th:nth-child(4), .sequence-table td:nth-child(4){ width:170px; }
+      .flash-row{ background:#f5f5f5; font-style:italic; }
+      .station-number,.screen-letter{ font-weight:700; color:var(--tegra-red); }
+      .curing-section{ background:linear-gradient(135deg,var(--tegra-gray-light),#e8e8e8); border-left:4px solid var(--tegra-red); border-radius:8px; padding:10px; }
+      .curing-title{ font-size:13px; font-weight:800; color:var(--tegra-red); text-transform:uppercase; margin-bottom:6px; }
+      .curing-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center; }
+      .curing-label{ font-size:10px; text-transform:uppercase; color:var(--text-muted); }
+      .curing-value{ font-size:19px; font-weight:800; }
+      .comments-section{ border:1px solid #e0b100; border-radius:6px; overflow:hidden; }
+      .comments-title{ background:#ffc107; padding:7px 10px; font-size:12px; font-weight:800; text-transform:uppercase; }
+      .comments-body{ background:#fffde7; padding:10px; font-size:12px; min-height:42px; }
+      .spec-footer{ background:var(--tegra-gray-dark); color:#fff; margin-top:14px; padding:10px 14px; display:flex; justify-content:space-between; font-size:11px; }
+      .muted{ color:#777; text-align:center; padding:8px; }
+    </style>
+  <div class="mockup-container">
+    <header class="spec-header">
+      <div class="header-logo">${tegraLogoHtml}</div>
+      <div class="header-title"><h1>Technical Spec Manager</h1><p>Sistema de gestión de especificaciones técnicas</p></div>
+      <div class="header-customer"><div class="header-customer-label">Customer / Cliente</div><div class="header-customer-logo">${customerLogoHtml}</div></div>
+      <div class="header-folder"><div class="folder-label"># Folder</div><div class="folder-number">${escaped(data.folder || '#####')}</div></div>
+    </header>
+
+    <section class="info-section"><h2 class="section-title">Información General</h2><div class="info-grid">${infoHtml}</div></section>
+
+    <section class="placement-section">
+      <div class="placement-header-bar">Placement: ${placementType}</div>
+      <div class="placement-content">
+        <div class="placement-image-container">
+          <span class="placement-badge">${placementType}</span>
+          ${placementImage ? `<img class="placement-image" src="${placementImage}" alt="placement" crossorigin="anonymous">` : '<div class="placement-placeholder">Sin imagen de referencia</div>'}
+        </div>
+        <div class="placement-details-panel">
+          <div class="detail-row"><span class="detail-label">Tipo de Tinta</span><span class="detail-value highlight">${escaped(inkType)}</span></div>
+          <div class="detail-row"><span class="detail-label">Dimensiones</span><span class="detail-value">${escaped(`${width} x ${height}`)}</span></div>
+          <div class="detail-row"><span class="detail-label">Ubicación</span><span class="detail-value">${escaped(placementDetails)}</span></div>
+          <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${escaped(specialties)}</span></div>
+        </div>
+      </div>
+
+      <div class="colors-section"><div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#555;">Colores y Tintas</div><div class="colors-grid">${colorsHtml}</div></div>
+
+      <div class="sequence-section">
+        <div class="sequence-header">Secuencia de Impresión - ${placementType}</div>
+        <table class="sequence-table"><thead><tr><th>Est</th><th>Scr.</th><th>Screen (Tinta/Proceso)</th><th>Aditivos</th><th>Malla</th><th>Strokes</th><th>Angle</th><th>Pressure</th><th>Duro</th></tr></thead><tbody>${seqRowsHtml}</tbody></table>
+      </div>
+
+      <div class="curing-section"><h3 class="curing-title">Condiciones de Curado</h3><div class="curing-grid">
+        <div><div class="curing-label">Temperatura</div><div class="curing-value">${escaped(temp)}</div></div>
+        <div><div class="curing-label">Tiempo</div><div class="curing-value">${escaped(time)}</div></div>
+        <div><div class="curing-label">Tipo de Tinta</div><div class="curing-value" style="font-size:16px;color:#E31837;">${escaped(inkType)}</div></div>
+      </div></div>
+
+      <div class="comments-section"><div class="comments-title">Technical Comments / Comentarios Técnicos</div><div class="comments-body">${technicalComments}</div></div>
+    </section>
+
+    <footer class="spec-footer"><div>Generado: ${escaped(now)}</div><div><strong>TEGRA SPEC MANAGER</strong></div><div>Placement ${index + 1} de ${total}</div></footer>
+  </div>`;
+}
+
+function safeResolveColor(input) {
+  try {
+    if (window.ColorConfig?.findColorHex) return window.ColorConfig.findColorHex(input) || '#999999';
+    if (window.Utils?.getColorHex) return window.Utils.getColorHex(input) || '#999999';
+  } catch (_) {
+    return '#999999';
+  }
+  return '#999999';
+}
+
+function escapeCssColor(hex) {
+  const clean = String(hex || '').trim();
+  return /^#?[0-9a-fA-F]{3,8}$/.test(clean) ? (clean.startsWith('#') ? clean : `#${clean}`) : '#999999';
+}
+
+function generateStationsDataProfessional(placement) {
+  const stations = [];
+  let stNum = 1;
+  const preset = getInkPresetForPDFProfessional(placement.inkType || 'WATER');
+
+  const meshColor = placement.meshColor || preset.color.mesh;
+  const meshWhite = placement.meshWhite || preset.white.mesh1;
+  const meshBlocker = placement.meshBlocker || preset.blocker.mesh1;
+  const durometer = placement.durometer || preset.color.durometer;
+  const strokes = placement.strokes || preset.color.strokes;
+  const angle = placement.angle || preset.color.angle;
+  const pressure = placement.pressure || preset.color.pressure;
+  // CORRECCIÓN: Agregar speed que faltaba
+  const speed = placement.speed || preset.color.speed;
+  const additives = placement.additives || preset.color.additives;
+
+  if (Array.isArray(placement.colors)) {
+    placement.colors.forEach((item, idx) => {
+      let mesh = meshColor;
+      let strokesVal = strokes;
+      let duro = durometer;
+      let ang = angle;
+      let press = pressure;
+      // CORRECCIÓN: Incluir speed en cada estación
+      let spd = speed;
+      let add = additives;
+
+      if (item.type === 'BLOCKER') {
+        mesh = meshBlocker;
+        add = preset.blocker.additives;
+      }
+      if (item.type === 'WHITE_BASE') {
+        mesh = meshWhite;
+        add = preset.white.additives;
+      }
+      if (item.type === 'METALLIC') {
+        mesh = '110/64';
+        strokesVal = '1';
+        duro = '70';
+        add = 'Catalizador especial';
+      }
+
+      stations.push({
+        st: stNum++,
+        screenLetter: item.screenLetter || '',
+        screenCombined: item.val || '---',
+        mesh,
+        strokes: strokesVal,
+        duro,
+        angle: ang,
+        pressure: press,
+        // CORRECCIÓN: Incluir speed
+        speed: spd,
+        add
+      });
+
+      if (idx < placement.colors.length - 1) {
+        stations.push({ st: stNum++, screenLetter: '', screenCombined: 'FLASH', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-', add: '' });
+        stations.push({ st: stNum++, screenLetter: '', screenCombined: 'COOL', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-', add: '' });
+      }
     });
   }
-};
+
+  return stations;
+}
+
+function getInkPresetForPDFProfessional(inkType = 'WATER') {
+  if (window.Config?.INK_PRESETS?.[inkType]) return window.Config.INK_PRESETS[inkType];
+  return {
+    temp: '320°F',
+    time: '1:40 min',
+    blocker: { name: 'BLOCKER CHT', mesh1: '122/55', additives: 'N/A' },
+    white: { name: 'AQUAFLEX V2 WHITE', mesh1: '198/40', additives: 'N/A' },
+    color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3% cross-linker 500 · 1.5% antitack' }
+  };
+}
+
+window.generateProfessionalPDF = generateProfessionalPDF;
