@@ -34,4 +34,37 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('showTab no está definido');
         }
     }, 1000);
+
+    // --- INICIO DE LA OPERACIÓN "EL INTERCEPTOR" ---
+    console.log('[Fixes.js] Preparando el interceptor de PDF...');
+
+    // Esperar un poco para asegurar que el generador original esté cargado
+    setTimeout(() => {
+        if (window.generateProfessionalPDF) {
+            const originalPdfGenerator = window.generateProfessionalPDF;
+
+            window.generateProfessionalPDF = function(data) {
+                console.log("DATA ENVIADA AL PDF:", JSON.stringify(data, null, 2));
+                
+                // Llamar a la función original para que el PDF se genere normalmente
+                return originalPdfGenerator(data);
+            };
+
+            console.log('[Fixes.js] ✅ Interceptor de PDF instalado y activo.');
+        } else {
+            console.error('[Fixes.js] ❌ No se pudo instalar el interceptor: window.generateProfessionalPDF no existe.');
+            // Intentar de nuevo por si acaso
+            setTimeout(() => {
+                 if (window.generateProfessionalPDF) {
+                    const originalPdfGenerator = window.generateProfessionalPDF;
+                    window.generateProfessionalPDF = function(data) {
+                        console.log("DATA ENVIADA AL PDF:", JSON.stringify(data, null, 2));
+                        return originalPdfGenerator(data);
+                    };
+                    console.log('[Fixes.js] ✅ Interceptor de PDF instalado en el segundo intento.');
+                 }
+            }, 2000);
+        }
+    }, 500); // Un pequeño retraso para asegurar que pdf-generator.js se cargue primero.
+    // --- FIN DE LA OPERACIÓN ---
 });
