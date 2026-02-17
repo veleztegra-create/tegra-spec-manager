@@ -1,12 +1,49 @@
-<div class="placement-section">
+
+<style>
+    .placement-section { page-break-inside: avoid; padding: 30px; border-bottom: 1px solid #E0E0E0; animation: slideIn 0.5s ease; }
+    .placement-header-bar { background: var(--tegra-red); color: white; padding: 12px 20px; margin: -30px -30px 25px -30px; display: flex; align-items: center; gap: 15px; }
+    .placement-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .placement-title-text { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .placement-content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    .placement-image-container { position: relative; background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%); border-radius: 8px; padding: 15px; border: 1px solid var(--border-light); }
+    .placement-image { width: 100%; height: auto; max-height: 350px; object-fit: contain; border-radius: 4px; }
+    .placement-details-panel { background: #F5F5F5; border-radius: 8px; padding: 20px; border-left: 4px solid var(--tegra-red); }
+    .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e0e0e0; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-family: var(--font-condensed); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); }
+    .detail-value { font-weight: 600; font-size: 0.95rem; }
+    .detail-value.highlight { color: var(--tegra-red); font-weight: 700; }
+    .colors-section { margin-top: 25px; padding: 20px; background: white; border-radius: 8px; border: 1px solid var(--border-light); }
+    .colors-grid { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px; }
+    .color-swatch { display: flex; align-items: center; gap: 10px; background: #F5F5F5; padding: 10px; border-radius: 6px; border: 1px solid var(--border-light); }
+    .color-box { width: 30px; height: 30px; border-radius: 4px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .color-info { display: flex; flex-direction: column; }
+    .color-number { font-family: var(--font-condensed); font-weight: 700; font-size: 0.9rem; color: var(--tegra-red); }
+    .color-name { font-size: 0.8rem; color: var(--text-muted); }
+    .sequence-section { margin-top: 25px; page-break-inside: avoid; }
+    .sequence-header { background: var(--tegra-red); color: white; padding: 12px 20px; font-family: var(--font-display); font-size: 1rem; text-transform: uppercase; }
+    .sequence-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .sequence-table th { background: #1A1A1A; color: white; padding: 10px; text-align: left; font-family: var(--font-condensed); font-size: 0.7rem; text-transform: uppercase; }
+    .sequence-table td { padding: 10px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+    .sequence-table tr:nth-child(even) { background: #fafafa; }
+    .station-number { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--tegra-red); text-align: center; }
+    .screen-letter { font-weight: 700; color: var(--tegra-red); font-size: 0.9rem; }
+    .ink-name { font-weight: 600; }
+    .additives { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
+    .flash-row { background: #f5f5f5 !important; font-style: italic; color: var(--text-muted); }
+    .flash-row td { padding: 8px 10px; font-weight: 500; text-align: center; }
+    .special-instructions { margin-top: 20px; padding: 15px; background: #fffbe6; border-left: 4px solid #FFC107; border-radius: 4px; }
+    .special-instructions .section-title { color: #FFC107; font-size: 0.9rem; margin-bottom: 8px; }
+    .special-instructions .instructions-text { font-size: 0.85rem; color: #555; }
+</style>
+<section class="placement-section">
     <div class="placement-header-bar">
         <div class="placement-icon"><i class="fas fa-tshirt"></i></div>
         <span class="placement-title-text">Placement: {{placement.name}}</span>
     </div>
-
     <div class="placement-content">
         <div class="placement-image-container">
-            <img src="{{placement.imageData}}" alt="{{placement.name}} Image" class="placement-image">
+            <img src="{{placement.imageData}}" alt="Placement Image" class="placement-image">
         </div>
         <div class="placement-details-panel">
             <div class="detail-row">
@@ -25,11 +62,21 @@
                 <span class="detail-label">Especialidades</span>
                 <span class="detail-value">{{placement.specialties}}</span>
             </div>
+             <div class="detail-row">
+                <span class="detail-label">Temperatura</span>
+                <span class="detail-value">{{placement.temp}}</span>
+            </div>
+             <div class="detail-row">
+                <span class="detail-label">Tiempo</span>
+                <span class="detail-value">{{placement.time}}</span>
+            </div>
         </div>
     </div>
 
+    {{SPECIAL_INSTRUCTIONS_HTML}}
+
     <div class="colors-section">
-        <h3 class="colors-section-title">Colores y Tintas</h3>
+        <h3 style="font-family: var(--font-condensed); font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">Colores y Tintas</h3>
         <div class="colors-grid">
             {{COLORS_HTML}}
         </div>
@@ -37,21 +84,13 @@
 
     <div class="sequence-section">
         <div class="sequence-header">
-            <i class="fas fa-list-ol"></i>
-            Secuencia de Impresión - {{placement.name}}
+            <i class="fas fa-list-ol"></i>&nbsp;Secuencia de Impresión - {{placement.name}}
         </div>
         <table class="sequence-table">
             <thead>
                 <tr>
-                    <th>Est</th>
-                    <th>Scr.</th>
-                    <th>Screen (Tinta/Proceso)</th>
-                    <th>Aditivos</th>
-                    <th>Malla</th>
-                    <th>Strokes</th>
-                    <th>Angle</th>
-                    <th>Pressure</th>
-                    <th>Duro</th>
+                    <th>Est</th><th>Scr.</th><th>Screen (Tinta/Proceso)</th><th>Aditivos</th>
+                    <th>Malla</th><th>Strokes</th><th>Angle</th><th>Pressure</th><th>Duro</th>
                 </tr>
             </thead>
             <tbody>
@@ -59,25 +98,4 @@
             </tbody>
         </table>
     </div>
-
-    <div class="curing-section">
-        <div class="curing-title">Condiciones de Curado</div>
-        <div class="curing-grid">
-            <div class="curing-item">
-                <div class="curing-label">Temperatura</div>
-                <div class="curing-value">{{placement.temp}}</div>
-            </div>
-            <div class="curing-item">
-                <div class="curing-label">Tiempo</div>
-                <div class="curing-value">{{placement.time}}</div>
-            </div>
-            <div class="curing-item">
-                <div class="curing-label">Tipo de Tinta</div>
-                <div class="curing-value" style="font-size: 1.2rem;">{{placement.inkType}}</div>
-            </div>
-        </div>
-    </div>
-
-    {{SPECIAL_INSTRUCTIONS_HTML}}
-
-</div>
+</section>
