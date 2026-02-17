@@ -1,3 +1,4 @@
+
 /**
  * pdf-generator-pro.js - v2.0 FINAL
  * Generador de PDF profesional basado en plantillas HTML.
@@ -111,7 +112,7 @@ async function generateProfessionalPDF(data) {
         console.log('[PDF-PRO] Renderizando HTML a Canvas...');
         const container = document.createElement('div');
         container.style.position = 'absolute';
-        container.style.left = '-9999px';
+        container.style.left = '-9999px';//-9999px
         container.innerHTML = finalHtml;
         document.body.appendChild(container);
 
