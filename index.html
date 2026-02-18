@@ -17,33 +17,37 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
-  <!-- 3. CONFIGURACIÓN PRIMERO (son datos, no dependencias) -->
-  <script src="config.js"></script>
-  <script src="config-teams.js"></script>
+ <!-- 3. NUESTROS MÓDULOS - ORDEN CORREGIDO -->
+<!-- PRIMERO: Configuración base -->
+<script src="config.js"></script> <!-- Necesitas crear este archivo o asegurarte que existe -->
+
+<!-- SEGUNDO: Configuración de equipos -->
+<script src="config-teams.js"></script>
   <script src="config-color.js"></script>
-  <script src="config-logos.js"></script>
-  
-  <!-- 4. UTILS (depende de Config) -->
-  <script src="utils.js"></script>
-  
-  <!-- 5. ERROR HANDLER (independiente, debe ir antes que otros que puedan generar errores) -->
-  <script src="error-handler.js"></script>
-  
-  <!-- 6. APLICACIÓN PRINCIPAL - ESTO ES CRÍTICO -->
-  <script src="app.js"></script>
-  
-  <!-- 7. MÓDULOS QUE DEPENDEN DE app.js -->
-  <script src="state-manager.js"></script>
-  <script src="validators.js"></script>
-  <script src="specialties-detector.js"></script>
-  <script src="render-helpers.js"></script>
-  
-  <!-- 8. GENERADORES DE PDF (dependen de app.js y utils) -->
-  <script src="pdf-generator-mejorado.js"></script>
-  <script src="pdf-diagnostic.js"></script>
-  
-  <!-- 9. FIXES DEBE IR AL FINAL SIEMPRE -->
-  <script src="fixes.js"></script>
+
+<!-- TERCERO: Configuración de logos -->
+<script src="config-logos.js"></script>
+
+<!-- CUARTO: Utils (necesita Config) -->
+<script src="utils.js"></script>
+
+<!-- QUINTO: State Manager (usa Config y Utils) -->
+<script src="state-manager.js"></script>
+
+<!-- SEXTO: Error Handler (independiente) -->
+<script src="error-handler.js"></script>
+
+<!-- SÉPTIMO: Validators (usa Config) -->
+<script src="validators.js"></script>
+
+<!-- OCTAVO: Specialties Detector (usa Config) -->
+<script src="specialties-detector.js"></script>
+
+<!-- NOVENO: Render Helpers (usa todo lo anterior) -->
+<script src="render-helpers.js"></script>
+
+<!-- DÉCIMO: Fixes (debe ir ÚLTIMO, corrige todo) -->
+<script src="fixes.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -146,31 +150,10 @@
   <input type="file" id="imageInput" accept="image/*" style="display: none;">
   <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
 
-  <!-- Script de respaldo para asegurar que showTab existe incluso si app.js falla -->
-  <script>
-    // Script de emergencia - se ejecuta inmediatamente
-    window.showTab = window.showTab || function(tabName) {
-      console.log('⚠️ showTab llamado antes de que app.js cargue completamente:', tabName);
-      // Intentar de nuevo después de 500ms
-      setTimeout(() => {
-        if (window.showTab && window.showTab !== arguments.callee) {
-          window.showTab(tabName);
-        } else {
-          alert('La aplicación aún no está lista. Por favor espera un momento y vuelve a intentar.');
-        }
-      }, 500);
-    };
-    
-    window.loadSavedSpecsList = window.loadSavedSpecsList || function() { console.log('loadSavedSpecsList no disponible'); };
-    window.clearErrorLog = window.clearErrorLog || function() { console.log('clearErrorLog no disponible'); };
-    window.clearAllSpecs = window.clearAllSpecs || function() { console.log('clearAllSpecs no disponible'); };
-    window.addNewPlacement = window.addNewPlacement || function() { console.log('addNewPlacement no disponible'); };
-    window.saveCurrentSpec = window.saveCurrentSpec || function() { console.log('saveCurrentSpec no disponible'); };
-    window.clearForm = window.clearForm || function() { console.log('clearForm no disponible'); };
-    window.exportToExcel = window.exportToExcel || function() { console.log('exportToExcel no disponible'); };
-    window.exportPDF = window.exportPDF || function() { console.log('exportPDF no disponible'); };
-    window.downloadProjectZip = window.downloadProjectZip || function() { console.log('downloadProjectZip no disponible'); };
-    window.updateClientLogo = window.updateClientLogo || function() { console.log('updateClientLogo no disponible'); };
-  </script>
+  <!-- JavaScript principal con todas las correcciones -->
+  <script src="app.js"></script>
+  <script src="pdf-generator-mejorado.js"></script>
+  <script src="pdf-diagnostic.js"></script>
+
 </body>
 </html>
