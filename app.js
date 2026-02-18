@@ -1,4 +1,4 @@
-// ========== app.js - VERSIÓN CON MANEJO DE ELEMENTOS NO ENCONTRADOS ==========
+// ========== app.js - VERSIÓN FINAL CON CARGA DE TEMPLATES ==========
 // ========== VARIABLES GLOBALES ==========
 let placements = [];
 let currentPlacementId = 1;
@@ -7,21 +7,18 @@ let templatesLoaded = false;
 
 // ========== FUNCIONES AUXILIARES ==========
 function $(id) { 
-    const el = document.getElementById(id);
-    if (!el && id !== 'statusMessage') {
-        console.warn(`⚠️ Elemento no encontrado: #${id}`);
-    }
-    return el;
+    return document.getElementById(id);
 }
 function $$(sel) { return document.querySelectorAll(sel); }
 
 function showStatus(msg, type = 'success') {
     const el = $('statusMessage');
-    if (!el) return;
-    el.textContent = msg;
-    el.className = `status-message status-${type}`;
-    el.style.display = 'block';
-    setTimeout(() => el.style.display = 'none', 4000);
+    if (el) {
+        el.textContent = msg;
+        el.className = `status-message status-${type}`;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 4000);
+    }
 }
 
 function getVal(id, fallback = '') {
@@ -34,65 +31,117 @@ function setVal(id, val) {
     if (el) el.value = val || '';
 }
 
-// ========== VERIFICAR QUE LOS TEMPLATES ESTÉN CARGADOS ==========
-function waitForElement(id, callback, maxAttempts = 10) {
-    let attempts = 0;
-    const check = setInterval(() => {
-        attempts++;
-        const el = $(id);
-        if (el) {
-            clearInterval(check);
-            callback(el);
-        } else if (attempts >= maxAttempts) {
-            clearInterval(check);
-            console.warn(`⚠️ Elemento #${id} no encontrado después de ${maxAttempts} intentos`);
+// ========== CARGA DE TEMPLATES ==========
+async function loadTabTemplates() {
+    console.log('Cargando templates...');
+    const templateSections = $$('[data-template]');
+    
+    for (const section of templateSections) {
+        const templatePath = section.dataset.template;
+        if (!templatePath) continue;
+        
+        try {
+            const response = await fetch(templatePath);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            section.innerHTML = await response.text();
+            console.log(`✅ Template cargado: ${templatePath}`);
+        } catch (error) {
+            console.error(`❌ Error cargando ${templatePath}:`, error);
         }
-    }, 100);
-}
-
-// ========== NAVEGACIÓN ==========
-function showTab(tabName) {
-    console.log('showTab llamado con:', tabName);
-    
-    // Desactivar todos los tabs
-    $$('.tab-content').forEach(t => t.classList.remove('active'));
-    $$('.nav-tab').forEach(t => t.classList.remove('active'));
-    
-    // Activar el tab seleccionado
-    const target = $(tabName);
-    if (target) {
-        target.classList.add('active');
-    } else {
-        console.warn(`⚠️ Tab #${tabName} no encontrado`);
-        // Intentar de nuevo después de que carguen los templates
-        setTimeout(() => {
-            const retry = $(tabName);
-            if (retry) retry.classList.add('active');
-        }, 500);
     }
     
-    // Activar el botón de navegación
-    $$('.nav-tab').forEach(tab => {
-        if (tab.textContent.toLowerCase().includes(tabName.replace('-', ' '))) {
-            tab.classList.add('active');
-        }
-    });
+    templatesLoaded = true;
+    console.log('✅ Todos los templates cargados');
     
-    // Acciones específicas - con verificación de elementos
-    setTimeout(() => {
-        if (tabName === 'saved-specs') {
-            waitForElement('saved-specs-list', () => loadSavedSpecsList());
+    // Inicializar después de cargar templates
+    initializeAfterTemplates();
+}
+
+// ========== INICIALIZACIÓN DESPUÉS DE TEMPLATES ==========
+function initializeAfterTemplates() {
+    console.log('Inicializando después de templates...');
+    
+    loadThemePreference();
+    setupPasteHandler();
+    updateDateTime();
+    updateDashboard();
+    loadSavedSpecsList();
+    
+    if (placements.length === 0) {
+        initializePlacements();
+    }
+    
+    // Configurar event listeners
+    const themeBtn = $('themeToggle');
+    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+    
+    const excelInput = $('excelFile');
+    if (excelInput) {
+        excelInput.addEventListener('change', handleFileUpload);
+    }
+    
+    const imageInput = $('placementImageInput');
+    if (imageInput) {
+        imageInput.addEventListener('change', handleImageUpload);
+    }
+    
+    // Actualizar fecha cada minuto
+    setInterval(updateDateTime, 60000);
+}
+
+// ========== ACTUALIZAR FECHA ==========
+function updateDateTime() {
+    const el = $('current-datetime');
+    if (el) {
+        el.textContent = new Date().toLocaleDateString('es-ES', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+}
+
+// ========== MANEJO DE ARCHIVOS ==========
+function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.name.endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                loadSpecData(JSON.parse(ev.target.result));
+            } catch (err) {
+                showStatus('❌ Error leyendo JSON', 'error');
+            }
+        };
+        reader.readAsText(file);
+    } else {
+        showStatus('⚠️ Solo se aceptan archivos .json', 'warning');
+    }
+    e.target.value = '';
+}
+
+function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file || !currentPlacementId) return;
+    
+    const p = placements.find(p => p.id === currentPlacementId);
+    if (!p) return;
+    
+    const reader = new FileReader();
+    reader.onload = ev => {
+        p.imageData = ev.target.result;
+        const img = $(`img-preview-${currentPlacementId}`);
+        const act = $(`img-actions-${currentPlacementId}`);
+        if (img && act) {
+            img.src = ev.target.result;
+            img.style.display = 'block';
+            act.style.display = 'flex';
         }
-        if (tabName === 'dashboard') {
-            waitForElement('total-specs', () => updateDashboard());
-        }
-        if (tabName === 'error-log') {
-            waitForElement('error-log-content', () => loadErrorLog());
-        }
-        if (tabName === 'spec-creator' && placements.length === 0) {
-            waitForElement('placements-container', () => initializePlacements());
-        }
-    }, 100);
+        showStatus('✅ Imagen cargada');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
 }
 
 // ========== TEMA ==========
@@ -134,6 +183,39 @@ function updateClientLogo() {
     }
 }
 
+// ========== NAVEGACIÓN ==========
+function showTab(tabName) {
+    console.log('showTab:', tabName);
+    
+    if (!templatesLoaded) {
+        console.log('⏳ Templates no listos, esperando...');
+        setTimeout(() => showTab(tabName), 200);
+        return;
+    }
+    
+    // Desactivar todos
+    $$('.tab-content').forEach(t => t.classList.remove('active'));
+    $$('.nav-tab').forEach(t => t.classList.remove('active'));
+    
+    // Activar seleccionado
+    const target = $(tabName);
+    if (target) target.classList.add('active');
+    
+    // Activar botón
+    $$('.nav-tab').forEach(tab => {
+        if (tab.textContent.toLowerCase().includes(tabName.replace('-', ' '))) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Acciones específicas
+    setTimeout(() => {
+        if (tabName === 'saved-specs') loadSavedSpecsList();
+        if (tabName === 'dashboard') updateDashboard();
+        if (tabName === 'error-log') loadErrorLog();
+    }, 50);
+}
+
 // ========== GESTIÓN DE PLACEMENTS ==========
 function initializePlacements() {
     console.log('Inicializando placements...');
@@ -169,12 +251,12 @@ function addNewPlacement(type = null, isFirst = false) {
     
     if (isFirst) {
         placements = [placement];
-        // No renderizar inmediatamente, esperar a que el contenedor exista
-        waitForElement('placements-container', () => {
+        const container = $('placements-container');
+        if (container) {
             renderPlacementHTML(placement);
             updateTabs();
             showPlacement(id);
-        });
+        }
     } else {
         placements.push(placement);
         renderPlacementHTML(placement);
@@ -236,15 +318,10 @@ function duplicatePlacement(id) {
     showStatus('✅ Placement duplicado');
 }
 
-// ========== RENDERIZADO BÁSICO ==========
+// ========== RENDERIZADO ==========
 function renderPlacementHTML(p) {
     const container = $('placements-container');
-    if (!container) {
-        console.warn('⚠️ placements-container no disponible, reintentando...');
-        setTimeout(() => renderPlacementHTML(p), 200);
-        return;
-    }
-    if ($(`placement-section-${p.id}`)) return;
+    if (!container || $(`placement-section-${p.id}`)) return;
     
     const isCustom = p.type.includes('CUSTOM:');
     const type = isCustom ? p.type.replace('CUSTOM: ', '') : p.type;
@@ -282,7 +359,7 @@ function renderPlacementHTML(p) {
                         <div class="card-header"><h3 class="card-title"><i class="fas fa-image"></i> Imagen</h3></div>
                         <div class="card-body">
                             <div class="file-upload-area" onclick="openImagePickerForPlacement(${p.id})">
-                                <i class="fas fa-cloud-upload-alt"></i><p>Subir imagen</p>
+                                <i class="fas fa-cloud-upload-alt"></i><p>Subir imagen (Ctrl+V)</p>
                             </div>
                             <div class="image-preview-container">
                                 <img id="img-preview-${p.id}" class="image-preview" style="display: none;">
@@ -304,9 +381,9 @@ function renderPlacementHTML(p) {
                             <div class="form-group">
                                 <label>DIMENSIONES:</label>
                                 <div style="display:flex; gap:10px;">
-                                    <input type="text" class="form-control" style="width:100px;" placeholder="Ancho" value="${p.width}" oninput="p.width=this.value; p.dimensions='SIZE: (W) '+p.width+' X (H) '+p.height">
+                                    <input type="text" class="form-control" style="width:100px;" placeholder="Ancho" value="${p.width}" oninput="p.width=this.value">
                                     <span>X</span>
-                                    <input type="text" class="form-control" style="width:100px;" placeholder="Alto" value="${p.height}" oninput="p.height=this.value; p.dimensions='SIZE: (W) '+p.width+' X (H) '+p.height">
+                                    <input type="text" class="form-control" style="width:100px;" placeholder="Alto" value="${p.height}" oninput="p.height=this.value">
                                 </div>
                             </div>
                         </div>
@@ -474,6 +551,70 @@ function setupPasteHandler() {
     });
 }
 
+// ========== DASHBOARD ==========
+function updateDashboard() {
+    const totalEl = $('total-specs');
+    const activeEl = $('active-projects');
+    const todayEl = $('today-specs');
+    const rateEl = $('completion-rate');
+    
+    if (!totalEl || !activeEl || !todayEl || !rateEl) return;
+    
+    const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
+    
+    totalEl.textContent = specs.length;
+    activeEl.textContent = specs.length;
+    
+    if (specs.length) {
+        try {
+            const lastSpec = JSON.parse(localStorage.getItem(specs[specs.length - 1]));
+            todayEl.innerHTML = `
+                <div style="font-size:0.9rem;">Última Spec:</div>
+                <div style="font-size:1.2rem; font-weight:bold;">${lastSpec?.style || 'Sin nombre'}</div>
+                <div style="font-size:0.8rem;">${new Date(lastSpec?.savedAt || Date.now()).toLocaleDateString()}</div>
+            `;
+        } catch (e) {
+            todayEl.innerHTML = '<div style="font-size:0.9rem;">Error cargando datos</div>';
+        }
+    } else {
+        todayEl.innerHTML = '<div style="font-size:0.9rem;">Sin specs creadas</div>';
+    }
+    
+    rateEl.innerHTML = `<div style="font-size:1.5rem; font-weight:bold;">${specs.length}</div>`;
+}
+
+// ========== SPECS GUARDADAS ==========
+function loadSavedSpecsList() {
+    const list = $('saved-specs-list');
+    if (!list) return;
+    
+    const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
+    
+    if (!specs.length) {
+        list.innerHTML = '<p style="text-align:center; padding:20px;">No hay specs guardadas</p>';
+        return;
+    }
+    
+    let html = '';
+    specs.reverse().forEach(key => {
+        try {
+            const data = JSON.parse(localStorage.getItem(key));
+            html += `
+                <div style="padding:10px; border-bottom:1px solid #ccc;">
+                    <div><strong>${data.style || 'N/A'}</strong> - ${data.customer || 'N/A'}</div>
+                    <div style="font-size:0.8rem;">${new Date(data.savedAt || Date.now()).toLocaleString()}</div>
+                    <div style="display:flex; gap:5px; margin-top:5px;">
+                        <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'>Cargar</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')">Eliminar</button>
+                    </div>
+                </div>
+            `;
+        } catch (e) {}
+    });
+    
+    list.innerHTML = html || '<p>Error cargando specs</p>';
+}
+
 // ========== RECOLECCIÓN DE DATOS ==========
 function collectData() {
     return {
@@ -487,6 +628,7 @@ function collectData() {
         nameTeam: getVal('name-team'),
         gender: getVal('gender'),
         designer: getVal('designer'),
+        savedAt: new Date().toISOString(),
         placements: placements.map(p => ({
             type: p.type,
             imageData: p.imageData,
@@ -505,7 +647,6 @@ function saveCurrentSpec() {
     try {
         const data = collectData();
         const key = `spec_${data.style || 'SinEstilo'}_${Date.now()}`;
-        data.savedAt = new Date().toISOString();
         localStorage.setItem(key, JSON.stringify(data));
         loadSavedSpecsList();
         updateDashboard();
@@ -548,85 +689,38 @@ function loadSpecData(data) {
     showStatus('📂 Spec cargada');
 }
 
-// ========== DASHBOARD ==========
-function updateDashboard() {
-    console.log('Actualizando dashboard...');
-    
-    const totalEl = $('total-specs');
-    const activeEl = $('active-projects');
-    const todayEl = $('today-specs');
-    const rateEl = $('completion-rate');
-    
-    if (!totalEl || !activeEl || !todayEl || !rateEl) {
-        console.warn('⚠️ Elementos del dashboard no disponibles, reintentando...');
-        setTimeout(updateDashboard, 300);
-        return;
-    }
-    
-    const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
-    
-    totalEl.textContent = specs.length;
-    activeEl.textContent = specs.length;
-    
-    todayEl.innerHTML = specs.length ? 
-        `<div>Última spec: ${new Date().toLocaleDateString()}</div>` : 
-        '<div>Sin specs</div>';
-    
-    rateEl.innerHTML = `<div>Total: ${specs.length}</div>`;
-}
-
-// ========== SPECS GUARDADAS ==========
-function loadSavedSpecsList() {
-    console.log('Cargando lista de specs...');
-    
-    const list = $('saved-specs-list');
-    if (!list) {
-        console.warn('⚠️ saved-specs-list no disponible, reintentando...');
-        setTimeout(loadSavedSpecsList, 300);
-        return;
-    }
-    
-    const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
-    
-    if (!specs.length) {
-        list.innerHTML = '<p style="text-align:center;">No hay specs guardadas</p>';
-        return;
-    }
-    
-    list.innerHTML = specs.map(key => {
-        try {
-            const data = JSON.parse(localStorage.getItem(key));
-            return `
-                <div style="padding:10px; border-bottom:1px solid #ccc;">
-                    <div><strong>${data.style || 'N/A'}</strong> - ${data.customer || 'N/A'}</div>
-                    <div style="display:flex; gap:5px; margin-top:5px;">
-                        <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'>Cargar</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')">Eliminar</button>
-                    </div>
-                </div>
-            `;
-        } catch (e) {
-            return '';
-        }
-    }).join('');
-}
-
 function deleteSpec(key) {
-    if (confirm('¿Eliminar?')) {
+    if (confirm('¿Eliminar esta spec?')) {
         localStorage.removeItem(key);
         loadSavedSpecsList();
         updateDashboard();
+        showStatus('🗑️ Spec eliminada');
     }
 }
 
 function clearAllSpecs() {
-    if (confirm('¿Eliminar TODAS?')) {
+    if (confirm('⚠️ ¿Eliminar TODAS las specs?')) {
         Object.keys(localStorage).forEach(k => {
             if (k.startsWith('spec_')) localStorage.removeItem(k);
         });
         loadSavedSpecsList();
         updateDashboard();
+        showStatus('🗑️ Todas las specs eliminadas');
     }
+}
+
+// ========== ERROR LOG ==========
+function loadErrorLog() {
+    const container = $('error-log-content');
+    if (container) {
+        container.innerHTML = '<p>Log de errores vacío - Sistema funcionando correctamente</p>';
+    }
+}
+
+function clearErrorLog() {
+    const container = $('error-log-content');
+    if (container) container.innerHTML = '<p>Log de errores vacío</p>';
+    showStatus('🗑️ Log limpiado');
 }
 
 // ========== EXPORTACIÓN ==========
@@ -654,21 +748,6 @@ function downloadProjectZip() {
     }, 1000);
 }
 
-// ========== ERROR LOG ==========
-function loadErrorLog() {
-    const container = $('error-log-content');
-    if (!container) {
-        console.warn('⚠️ error-log-content no disponible');
-        return;
-    }
-    container.innerHTML = '<p>Log de errores vacío</p>';
-}
-
-function clearErrorLog() {
-    loadErrorLog();
-    showStatus('🗑️ Log limpiado');
-}
-
 function clearForm() {
     if (!confirm('¿Limpiar formulario?')) return;
     $$('input, textarea, select').forEach(i => {
@@ -684,81 +763,14 @@ function clearForm() {
 }
 
 // ========== INICIALIZACIÓN ==========
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM cargado, iniciando app...');
     
-    loadThemePreference();
-    setupPasteHandler();
+    // Cargar templates primero
+    await loadTabTemplates();
     
-    // Esperar a que los templates se carguen
-    setTimeout(() => {
-        updateDashboard();
-        loadSavedSpecsList();
-        
-        if (placements.length === 0) {
-            waitForElement('placements-container', () => initializePlacements());
-        }
-    }, 500);
-    
-    const themeBtn = $('themeToggle');
-    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
-    
-    setInterval(() => {
-        const dt = $('current-datetime');
-        if (dt) {
-            dt.textContent = new Date().toLocaleDateString('es-ES', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            });
-        }
-    }, 60000);
+    // El resto se ejecuta en initializeAfterTemplates()
 });
-
-// ========== INPUT FILE HANDLER ==========
-const excelInput = $('excelFile');
-if (excelInput) {
-    excelInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file && file.name.endsWith('.json')) {
-            const reader = new FileReader();
-            reader.onload = ev => {
-                try {
-                    loadSpecData(JSON.parse(ev.target.result));
-                } catch (err) {
-                    showStatus('❌ Error leyendo JSON', 'error');
-                }
-            };
-            reader.readAsText(file);
-        }
-        e.target.value = '';
-    });
-}
-
-const imageInput = $('placementImageInput');
-if (imageInput) {
-    imageInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file || !currentPlacementId) return;
-        
-        const p = placements.find(p => p.id === currentPlacementId);
-        if (!p) return;
-        
-        const reader = new FileReader();
-        reader.onload = ev => {
-            p.imageData = ev.target.result;
-            const img = $(`img-preview-${currentPlacementId}`);
-            const act = $(`img-actions-${currentPlacementId}`);
-            if (img && act) {
-                img.src = ev.target.result;
-                img.style.display = 'block';
-                act.style.display = 'flex';
-            }
-            showStatus('✅ Imagen cargada');
-        };
-        reader.readAsDataURL(file);
-        e.target.value = '';
-    });
-}
 
 // ========== EXPORTAR FUNCIONES GLOBALES ==========
 window.showTab = showTab;
@@ -781,5 +793,7 @@ window.openImagePickerForPlacement = openImagePickerForPlacement;
 window.removePlacementImage = removePlacementImage;
 window.addColor = addColor;
 window.removeColor = removeColor;
+window.deleteSpec = deleteSpec;
+window.loadSpecData = loadSpecData;
 
-console.log('✅ app.js cargado - Versión con manejo de elementos dinámicos');
+console.log('✅ app.js cargado - Versión final con carga de templates');
