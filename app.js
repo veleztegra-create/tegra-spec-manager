@@ -1,37 +1,35 @@
-// ========== app.js - VERSIÓN LIMPIA Y OPTIMIZADA ==========
+// ========== app.js - VERSIÓN FINAL COMPLETA ==========
 // ========== VARIABLES GLOBALES ==========
 let placements = [];
 let currentPlacementId = 1;
 let isDarkMode = true;
 
 // ========== FUNCIONES AUXILIARES ==========
+function $(id) { return document.getElementById(id); }
+function $$(selector) { return document.querySelectorAll(selector); }
+
 function stringToHash(str) {
     if (!str) return 0;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
         hash = hash & hash;
     }
     return Math.abs(hash);
 }
 
 function updateDateTime() {
-    const now = new Date();
-    const options = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    };
-    const el = document.getElementById('current-datetime');
-    if (el) el.textContent = now.toLocaleDateString('es-ES', options);
+    const el = $('current-datetime');
+    if (el) {
+        el.textContent = new Date().toLocaleDateString('es-ES', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
 }
 
 function showStatus(msg, type = 'success') {
-    const el = document.getElementById('statusMessage');
+    const el = $('statusMessage');
     if (!el) return;
     el.textContent = msg;
     el.className = `status-message status-${type}`;
@@ -40,132 +38,119 @@ function showStatus(msg, type = 'success') {
 }
 
 function getInputValue(id, fallback = '') {
-    const el = document.getElementById(id);
+    const el = $(id);
     return el ? el.value : fallback;
 }
 
 function setInputValue(id, value) {
-    const el = document.getElementById(id);
+    const el = $(id);
     if (el) el.value = value || '';
 }
 
 // ========== TEMA ==========
 function toggleTheme() {
     isDarkMode = !isDarkMode;
-    const body = document.body;
-    const themeToggle = document.getElementById('themeToggle');
-    
-    if (isDarkMode) {
-        body.classList.remove('light-mode');
-        themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
-        localStorage.setItem('tegraspec-theme', 'dark');
-        showStatus('🌙 Modo oscuro activado');
-    } else {
-        body.classList.add('light-mode');
-        themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
-        localStorage.setItem('tegraspec-theme', 'light');
-        showStatus('☀️ Modo claro activado');
+    document.body.classList.toggle('light-mode', !isDarkMode);
+    const btn = $('themeToggle');
+    if (btn) {
+        btn.innerHTML = isDarkMode ? '<i class="fas fa-sun"></i> Modo Claro' : '<i class="fas fa-moon"></i> Modo Oscuro';
     }
+    localStorage.setItem('tegraspec-theme', isDarkMode ? 'dark' : 'light');
+    showStatus(isDarkMode ? '🌙 Modo oscuro activado' : '☀️ Modo claro activado');
 }
 
 function loadThemePreference() {
-    const savedTheme = localStorage.getItem('tegraspec-theme');
-    const themeToggle = document.getElementById('themeToggle');
-    if (!themeToggle) return;
+    const saved = localStorage.getItem('tegraspec-theme');
+    const btn = $('themeToggle');
+    if (!btn) return;
     
-    if (savedTheme === 'light') {
+    if (saved === 'light') {
         isDarkMode = false;
         document.body.classList.add('light-mode');
-        themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
+        btn.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
     } else {
         isDarkMode = true;
-        document.body.classList.add('dark-mode');
-        themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
+        btn.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
     }
 }
 
-// ========== NAVEGACIÓN DE TABS ==========
+// ========== NAVEGACIÓN ==========
 function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+    $$('.tab-content').forEach(t => t.classList.remove('active'));
+    $$('.nav-tab').forEach(t => t.classList.remove('active'));
     
-    const targetTab = document.getElementById(tabName);
-    if (targetTab) targetTab.classList.add('active');
+    const target = $(tabName);
+    if (target) target.classList.add('active');
     
-    // Activar el botón de navegación correspondiente
-    document.querySelectorAll('.nav-tab').forEach(tab => {
+    $$('.nav-tab').forEach(tab => {
         if (tab.textContent.toLowerCase().includes(tabName.replace('-', ' '))) {
             tab.classList.add('active');
         }
     });
     
     // Acciones específicas por tab
-    switch(tabName) {
-        case 'saved-specs':
-            loadSavedSpecsList();
-            break;
-        case 'dashboard':
-            updateDashboard();
-            break;
-        case 'error-log':
-            loadErrorLog();
-            break;
-        case 'spec-creator':
-            if (placements.length === 0) initializePlacements();
-            break;
-    }
+    if (tabName === 'saved-specs') loadSavedSpecsList();
+    if (tabName === 'dashboard') updateDashboard();
+    if (tabName === 'error-log') loadErrorLog();
+    if (tabName === 'spec-creator' && placements.length === 0) initializePlacements();
 }
 
 // ========== CLIENTE Y LOGOS ==========
 function updateClientLogo() {
-    const customer = document.getElementById('customer')?.value.toUpperCase().trim() || '';
-    const logoElement = document.getElementById('logoCliente');
-    if (!logoElement) return;
+    const customer = getInputValue('customer').toUpperCase();
+    const logo = $('logoCliente');
+    if (!logo) return;
     
-    // Mapa de logos usando window.LogoConfig si existe
-    const logoMap = {
-        'NIKE': window.LogoConfig?.NIKE || 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png',
-        'FANATICS': window.LogoConfig?.FANATICS || 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png',
-        'ADIDAS': window.LogoConfig?.ADIDAS || 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png',
-        'PUMA': window.LogoConfig?.PUMA || 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png',
-        'UNDER ARMOUR': window.LogoConfig?.UNDER_ARMOUR || 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png',
-        'GEAR FOR SPORT': window.LogoConfig?.GEAR_FOR_SPORT || 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png'
+    const logos = window.LogoConfig || {
+        NIKE: 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png',
+        FANATICS: 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png',
+        ADIDAS: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png',
+        'GEAR FOR SPORT': 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png'
     };
     
-    // Detectar cliente
-    let logoUrl = '';
-    if (customer.includes('NIKE')) logoUrl = logoMap.NIKE;
-    else if (customer.includes('FANATICS')) logoUrl = logoMap.FANATICS;
-    else if (customer.includes('ADIDAS')) logoUrl = logoMap.ADIDAS;
-    else if (customer.includes('PUMA')) logoUrl = logoMap.PUMA;
-    else if (customer.includes('UNDER ARMOUR')) logoUrl = logoMap['UNDER ARMOUR'];
-    else if (customer.includes('GEAR FOR SPORT') || customer.includes('GFS')) logoUrl = logoMap['GEAR FOR SPORT'];
+    let url = '';
+    if (customer.includes('NIKE')) url = logos.NIKE;
+    else if (customer.includes('FANATICS')) url = logos.FANATICS;
+    else if (customer.includes('ADIDAS')) url = logos.ADIDAS;
+    else if (customer.includes('GEAR FOR SPORT') || customer.includes('GFS')) url = logos['GEAR FOR SPORT'];
     
-    if (logoUrl) {
-        logoElement.src = logoUrl;
-        logoElement.style.display = 'block';
+    if (url) {
+        logo.src = url;
+        logo.style.display = 'block';
     } else {
-        logoElement.style.display = 'none';
+        logo.style.display = 'none';
     }
 }
 
 function handleGearForSportLogic() {
-    const customer = document.getElementById('customer')?.value.toUpperCase().trim() || '';
-    if (customer !== 'GEAR FOR SPORT' && !customer.includes('GFS')) return;
+    const customer = getInputValue('customer').toUpperCase();
+    if (!customer.includes('GEAR FOR SPORT') && !customer.includes('GFS')) return;
     
-    const style = document.getElementById('style')?.value || '';
-    const po = document.getElementById('po')?.value || '';
-    const searchTerm = style || po;
+    const style = getInputValue('style');
+    const po = getInputValue('po');
+    const searchTerm = (style + po).toUpperCase();
     
-    if (window.Config?.GEARFORSPORT_TEAM_MAP) {
-        const teamKey = Object.keys(window.Config.GEARFORSPORT_TEAM_MAP).find(key =>
-            searchTerm.toUpperCase().includes(key)
-        );
-        if (teamKey) {
-            const teamInput = document.getElementById('name-team');
-            if (teamInput) teamInput.value = window.Config.GEARFORSPORT_TEAM_MAP[teamKey];
-        }
+    const map = window.Config?.GEARFORSPORT_TEAM_MAP;
+    if (map) {
+        const key = Object.keys(map).find(k => searchTerm.includes(k));
+        if (key) setInputValue('name-team', map[key]);
     }
+}
+
+// ========== PRESETS DE TINTA ==========
+function getInkPresetSafe(inkType = 'WATER') {
+    const base = {
+        temp: '320 °F',
+        time: inkType === 'WATER' ? '1:00 min' : '1:40 min',
+        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', additives: 'N/A' },
+        white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', additives: 'N/A' },
+        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3% cross-linker 500 · 1.5% antitack' }
+    };
+    
+    if (window.Utils?.getInkPreset) {
+        return window.Utils.getInkPreset(inkType) || base;
+    }
+    return base;
 }
 
 // ========== GESTIÓN DE PLACEMENTS ==========
@@ -176,15 +161,13 @@ function initializePlacements() {
 }
 
 function addNewPlacement(type = null, isFirst = false) {
-    const placementId = isFirst ? 1 : Date.now();
-    const placementType = type || getNextPlacementType();
-    
+    const id = isFirst ? 1 : Date.now();
     const preset = getInkPresetSafe();
     
-    const newPlacement = {
-        id: placementId,
-        type: placementType,
-        title: placementType,
+    const placement = {
+        id: id,
+        type: type || getNextPlacementType(),
+        title: type,
         imageData: null,
         colors: [],
         placementDetails: '#.#" FROM COLLAR SEAM',
@@ -196,7 +179,6 @@ function addNewPlacement(type = null, isFirst = false) {
         inkType: 'WATER',
         width: '',
         height: '',
-        // Parámetros editables (se llenan con preset)
         meshColor: preset.color.mesh,
         meshWhite: preset.white.mesh1,
         meshBlocker: preset.blocker.mesh1,
@@ -209,168 +191,143 @@ function addNewPlacement(type = null, isFirst = false) {
     };
     
     if (isFirst) {
-        placements = [newPlacement];
+        placements = [placement];
     } else {
-        placements.push(newPlacement);
-        renderPlacementHTML(newPlacement);
+        placements.push(placement);
+        renderPlacementHTML(placement);
         updatePlacementsTabs();
-        showPlacement(placementId);
+        showPlacement(id);
     }
-    
-    return placementId;
+    return id;
 }
 
 function getNextPlacementType() {
-    const usedTypes = placements.map(p => p.type);
-    const allTypes = ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'];
-    return allTypes.find(t => !usedTypes.includes(t)) || 'CUSTOM';
+    const used = placements.map(p => p.type);
+    const types = ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'];
+    return types.find(t => !used.includes(t)) || 'CUSTOM';
 }
 
-function removePlacement(placementId) {
+function removePlacement(id) {
     if (placements.length <= 1) {
         showStatus('⚠️ No puedes eliminar el único placement', 'warning');
         return;
     }
-    
     if (!confirm('¿Eliminar este placement?')) return;
     
-    const index = placements.findIndex(p => p.id === placementId);
-    if (index === -1) return;
-    
-    placements.splice(index, 1);
-    document.getElementById(`placement-section-${placementId}`)?.remove();
-    
+    placements = placements.filter(p => p.id !== id);
+    $(`placement-section-${id}`)?.remove();
     updatePlacementsTabs();
     
-    if (currentPlacementId === placementId && placements.length > 0) {
+    if (currentPlacementId === id && placements.length) {
         showPlacement(placements[0].id);
     }
-    
     showStatus('🗑️ Placement eliminado');
 }
 
-function duplicatePlacement(placementId) {
-    const original = placements.find(p => p.id === placementId);
+function duplicatePlacement(id) {
+    const original = placements.find(p => p.id === id);
     if (!original) return;
     
-    const newId = Date.now();
-    const duplicate = JSON.parse(JSON.stringify(original));
-    duplicate.id = newId;
-    
-    placements.push(duplicate);
-    renderPlacementHTML(duplicate);
+    const dup = JSON.parse(JSON.stringify(original));
+    dup.id = Date.now();
+    placements.push(dup);
+    renderPlacementHTML(dup);
     updatePlacementsTabs();
-    showPlacement(newId);
-    
-    setTimeout(() => updateAllPlacementTitles(newId), 50);
+    showPlacement(dup.id);
+    setTimeout(() => updateAllPlacementTitles(dup.id), 50);
     showStatus('✅ Placement duplicado');
 }
 
 function updatePlacementsTabs() {
-    const container = document.getElementById('placements-tabs');
+    const container = $('placements-tabs');
     if (!container) return;
     
     container.innerHTML = placements.map(p => {
-        const displayType = p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type;
-        const isActive = p.id === currentPlacementId ? 'active' : '';
-        return `
-            <div class="placement-tab ${isActive}" data-placement-id="${p.id}" onclick="showPlacement(${p.id})">
-                <i class="fas fa-${getPlacementIcon(p.type)}"></i>
-                ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
-                ${placements.length > 1 ? `<span class="remove-tab" onclick="event.stopPropagation(); removePlacement(${p.id})">&times;</span>` : ''}
-            </div>
-        `;
+        const type = p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type;
+        const active = p.id === currentPlacementId ? 'active' : '';
+        const removeBtn = placements.length > 1 ? 
+            `<span class="remove-tab" onclick="event.stopPropagation(); removePlacement(${p.id})">&times;</span>` : '';
+        
+        return `<div class="placement-tab ${active}" data-placement-id="${p.id}" onclick="showPlacement(${p.id})">
+            <i class="fas fa-${getPlacementIcon(p.type)}"></i> ${type.substring(0, 15)}
+            ${removeBtn}
+        </div>`;
     }).join('');
 }
 
 function getPlacementIcon(type) {
     const icons = {
-        'FRONT': 'tshirt',
-        'BACK': 'tshirt',
-        'SLEEVE': 'hat-cowboy',
-        'CHEST': 'heart',
-        'TV. NUMBERS': 'hashtag',
-        'SHOULDER': 'user',
+        'FRONT': 'tshirt', 'BACK': 'tshirt', 'SLEEVE': 'hat-cowboy',
+        'CHEST': 'heart', 'TV. NUMBERS': 'hashtag', 'SHOULDER': 'user',
         'COLLAR': 'circle'
     };
     return icons[type] || (type.includes('CUSTOM:') ? 'star' : 'map-marker-alt');
 }
 
-function showPlacement(placementId) {
-    document.querySelectorAll('.placement-section').forEach(s => s.classList.remove('active'));
-    document.getElementById(`placement-section-${placementId}`)?.classList.add('active');
+function showPlacement(id) {
+    $$('.placement-section').forEach(s => s.classList.remove('active'));
+    $(`placement-section-${id}`)?.classList.add('active');
     
-    document.querySelectorAll('.placement-tab').forEach(tab => {
-        tab.classList.toggle('active', parseInt(tab.dataset.placementId) === placementId);
+    $$('.placement-tab').forEach(t => {
+        t.classList.toggle('active', parseInt(t.dataset.placementId) === id);
     });
     
-    currentPlacementId = placementId;
+    currentPlacementId = id;
 }
 
-// ========== PRESETS DE TINTA ==========
-function getInkPresetSafe(inkType = 'WATER') {
-    const defaultPreset = {
-        temp: '320 °F',
-        time: inkType === 'WATER' ? '1:00 min' : '1:40 min',
-        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', additives: 'N/A' },
-        white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', mesh2: '157/48', additives: 'N/A' },
-        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3% cross-linker 500 · 1.5% antitack' }
-    };
+function updateAllPlacementTitles(id) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return;
     
-    // Usar Config global si existe
-    if (window.Utils?.getInkPreset) {
-        const preset = window.Utils.getInkPreset(inkType);
-        if (preset?.color) return preset;
-    }
-    
-    return defaultPreset;
-}
-
-// ========== ACTUALIZACIÓN DE TÍTULOS ==========
-function updateAllPlacementTitles(placementId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
-    
-    const displayType = placement.type.includes('CUSTOM:') ? placement.type.replace('CUSTOM: ', '') : placement.type;
-    const section = document.getElementById(`placement-section-${placementId}`);
+    const type = p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type;
+    const section = $(`placement-section-${id}`);
     if (!section) return;
     
-    // Título principal
-    section.querySelector('.placement-title span')?.textContent = displayType;
+    section.querySelector('.placement-title span')?.textContent = type;
     
-    // Títulos de cards
-    section.querySelectorAll('.card-title').forEach(title => {
-        const text = title.textContent;
-        if (text.includes('Colores para')) title.textContent = `Colores para ${displayType}`;
-        else if (text.includes('Imagen para')) title.textContent = `Imagen para ${displayType}`;
-        else if (text.includes('Condiciones para')) title.textContent = `Condiciones para ${displayType}`;
+    section.querySelectorAll('.card-title').forEach(t => {
+        if (t.textContent.includes('Colores para')) {
+            t.textContent = `Colores para ${type}`;
+        }
+        if (t.textContent.includes('Imagen para')) {
+            t.textContent = `Imagen para ${type}`;
+        }
+        if (t.textContent.includes('Condiciones para')) {
+            t.textContent = `Condiciones para ${type}`;
+        }
     });
     
-    // Título de secuencia
-    const seqTitle = section.querySelector('h4');
-    if (seqTitle?.textContent.includes('Secuencia de')) {
-        seqTitle.textContent = `Secuencia de ${displayType}`;
+    const seq = section.querySelector('h4');
+    if (seq?.textContent.includes('Secuencia de')) {
+        seq.textContent = `Secuencia de ${type}`;
     }
     
     updatePlacementsTabs();
 }
 
-// ========== RENDERIZADO DE PLACEMENTS ==========
-function renderPlacementHTML(placement) {
-    const container = document.getElementById('placements-container');
-    if (!container || document.getElementById(`placement-section-${placement.id}`)) return;
+// ========== RENDERIZADO HTML ==========
+function renderPlacementHTML(p) {
+    const container = $('placements-container');
+    if (!container || $(`placement-section-${p.id}`)) return;
     
-    const sectionId = `placement-section-${placement.id}`;
-    const isCustom = placement.type.includes('CUSTOM:');
-    const displayType = isCustom ? placement.type.replace('CUSTOM: ', '') : placement.type;
+    const isCustom = p.type.includes('CUSTOM:');
+    const type = isCustom ? p.type.replace('CUSTOM: ', '') : p.type;
     
-    const sectionHTML = `
-        <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
+    const html = `
+        <div id="placement-section-${p.id}" class="placement-section" data-placement-id="${p.id}">
             <div class="placement-header">
-                <div class="placement-title"><i class="fas fa-map-marker-alt"></i> <span>${displayType}</span></div>
+                <div class="placement-title">
+                    <i class="fas fa-map-marker-alt"></i> <span>${type}</span>
+                </div>
                 <div class="placement-actions">
-                    <button class="btn btn-outline btn-sm" onclick="duplicatePlacement(${placement.id})"><i class="fas fa-copy"></i> Duplicar</button>
-                    ${placements.length > 1 ? `<button class="btn btn-danger btn-sm" onclick="removePlacement(${placement.id})"><i class="fas fa-trash"></i> Eliminar</button>` : ''}
+                    <button class="btn btn-outline btn-sm" onclick="duplicatePlacement(${p.id})">
+                        <i class="fas fa-copy"></i> Duplicar
+                    </button>
+                    ${placements.length > 1 ? `
+                        <button class="btn btn-danger btn-sm" onclick="removePlacement(${p.id})">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    ` : ''}
                 </div>
             </div>
             
@@ -379,31 +336,37 @@ function renderPlacementHTML(placement) {
                     <!-- Tipo de Placement -->
                     <div class="form-group">
                         <label class="form-label">TIPO DE PLACEMENT:</label>
-                        <select class="form-control placement-type-select" data-placement-id="${placement.id}" onchange="updatePlacementType(${placement.id}, this.value)">
-                            ${['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'].map(t => 
-                                `<option value="${t}" ${placement.type === t || (t === 'CUSTOM' && isCustom) ? 'selected' : ''}>${t}</option>`
-                            ).join('')}
+                        <select class="form-control" onchange="updatePlacementType(${p.id}, this.value)">
+                            ${['FRONT','BACK','SLEEVE','CHEST','TV. NUMBERS','SHOULDER','COLLAR','CUSTOM']
+                                .map(t => `<option value="${t}" ${p.type === t || (t === 'CUSTOM' && isCustom) ? 'selected' : ''}>${t}</option>`)
+                                .join('')}
                         </select>
                     </div>
                     
-                    <!-- Custom name input -->
-                    <div id="custom-placement-input-${placement.id}" style="display:${isCustom ? 'block' : 'none'}; margin-top:10px;">
+                    <!-- Custom name -->
+                    <div id="custom-placement-input-${p.id}" style="display:${isCustom ? 'block' : 'none'}; margin-top:10px;">
                         <label class="form-label">NOMBRE DEL PLACEMENT:</label>
-                        <input type="text" class="form-control" placeholder="Nombre personalizado..." 
-                               value="${isCustom ? displayType : ''}" oninput="updateCustomPlacement(${placement.id}, this.value)">
+                        <input type="text" class="form-control" value="${isCustom ? type : ''}" 
+                               oninput="updateCustomPlacement(${p.id}, this.value)">
                     </div>
                     
                     <!-- Imagen -->
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title"><i class="fas fa-image"></i> Imagen para ${displayType}</h3></div>
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-image"></i> Imagen para ${type}</h3>
+                        </div>
                         <div class="card-body">
-                            <div class="file-upload-area" onclick="openImagePickerForPlacement(${placement.id})">
-                                <i class="fas fa-cloud-upload-alt"></i><p>Haz clic para subir una imagen</p><p style="font-size:0.8rem;">Ctrl+V para pegar</p>
+                            <div class="file-upload-area" onclick="openImagePickerForPlacement(${p.id})">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Haz clic para subir una imagen</p>
+                                <p style="font-size:0.8rem;">Ctrl+V para pegar</p>
                             </div>
                             <div class="image-preview-container">
-                                <img id="placement-image-preview-${placement.id}" class="image-preview" style="display: none;">
-                                <div class="image-actions" id="placement-image-actions-${placement.id}" style="display:none;">
-                                    <button class="btn btn-danger btn-sm" onclick="removePlacementImage(${placement.id})"><i class="fas fa-trash"></i></button>
+                                <img id="placement-image-preview-${p.id}" class="image-preview" style="display: none;">
+                                <div class="image-actions" id="placement-image-actions-${p.id}" style="display:none;">
+                                    <button class="btn btn-danger btn-sm" onclick="removePlacementImage(${p.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -411,32 +374,39 @@ function renderPlacementHTML(placement) {
                     
                     <!-- Condiciones -->
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title"><i class="fas fa-print"></i> Condiciones para ${displayType}</h3></div>
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-print"></i> Condiciones para ${type}</h3>
+                        </div>
                         <div class="card-body">
                             <div class="form-grid">
                                 <div class="form-group">
                                     <label class="form-label">DETALLES DE UBICACIÓN:</label>
-                                    <input type="text" class="form-control" value="${placement.placementDetails}" oninput="updatePlacementField(${placement.id}, 'placementDetails', this.value)">
+                                    <input type="text" class="form-control" value="${p.placementDetails}" 
+                                           oninput="updatePlacementField(${p.id}, 'placementDetails', this.value)">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">DIMENSIONES:</label>
                                     <div style="display: flex; gap: 10px;">
-                                        <input type="text" class="form-control" placeholder="Ancho" value="${placement.width}" oninput="updatePlacementDimension(${placement.id}, 'width', this.value)" style="width:100px;">
+                                        <input type="text" class="form-control" style="width:100px;" 
+                                               placeholder="Ancho" value="${p.width}" 
+                                               oninput="updatePlacementDimension(${p.id}, 'width', this.value)">
                                         <span style="color: var(--text-secondary);">X</span>
-                                        <input type="text" class="form-control" placeholder="Alto" value="${placement.height}" oninput="updatePlacementDimension(${placement.id}, 'height', this.value)" style="width:100px;">
+                                        <input type="text" class="form-control" style="width:100px;" 
+                                               placeholder="Alto" value="${p.height}" 
+                                               oninput="updatePlacementDimension(${p.id}, 'height', this.value)">
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">TEMPERATURA:</label>
-                                    <input type="text" class="form-control" value="${placement.temp}" readonly>
+                                    <input type="text" class="form-control" value="${p.temp}" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">TIEMPO:</label>
-                                    <input type="text" class="form-control" value="${placement.time}" readonly>
+                                    <input type="text" class="form-control" value="${p.time}" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">SPECIALTIES:</label>
-                                    <input type="text" class="form-control" value="${placement.specialties}" readonly>
+                                    <input type="text" class="form-control" id="specialties-${p.id}" value="${p.specialties}" readonly>
                                 </div>
                             </div>
                         </div>
@@ -444,18 +414,28 @@ function renderPlacementHTML(placement) {
                     
                     <!-- Parámetros de Impresión -->
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title"><i class="fas fa-sliders-h"></i> Parámetros de Impresión</h3></div>
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-sliders-h"></i> Parámetros de Impresión</h3>
+                        </div>
                         <div class="card-body">
                             <div class="form-grid">
-                                <div class="form-group"><label>MALLA COLORES:</label><input type="text" class="form-control" value="${placement.meshColor}" oninput="updatePlacementParam(${placement.id}, 'meshColor', this.value)"></div>
-                                <div class="form-group"><label>MALLA WHITE BASE:</label><input type="text" class="form-control" value="${placement.meshWhite}" oninput="updatePlacementParam(${placement.id}, 'meshWhite', this.value)"></div>
-                                <div class="form-group"><label>MALLA BLOCKER:</label><input type="text" class="form-control" value="${placement.meshBlocker}" oninput="updatePlacementParam(${placement.id}, 'meshBlocker', this.value)"></div>
-                                <div class="form-group"><label>DURÓMETRO:</label><input type="text" class="form-control" value="${placement.durometer}" oninput="updatePlacementParam(${placement.id}, 'durometer', this.value)"></div>
-                                <div class="form-group"><label>STROKES:</label><input type="text" class="form-control" value="${placement.strokes}" oninput="updatePlacementParam(${placement.id}, 'strokes', this.value)"></div>
-                                <div class="form-group"><label>ANGLE:</label><input type="text" class="form-control" value="${placement.angle}" oninput="updatePlacementParam(${placement.id}, 'angle', this.value)"></div>
-                                <div class="form-group"><label>PRESSURE:</label><input type="text" class="form-control" value="${placement.pressure}" oninput="updatePlacementParam(${placement.id}, 'pressure', this.value)"></div>
-                                <div class="form-group"><label>SPEED:</label><input type="text" class="form-control" value="${placement.speed}" oninput="updatePlacementParam(${placement.id}, 'speed', this.value)"></div>
-                                <div class="form-group"><label>ADITIVOS:</label><input type="text" class="form-control" value="${placement.additives}" oninput="updatePlacementParam(${placement.id}, 'additives', this.value)"></div>
+                                ${[
+                                    ['meshColor', 'Malla Colores'],
+                                    ['meshWhite', 'Malla White Base'],
+                                    ['meshBlocker', 'Malla Blocker'],
+                                    ['durometer', 'Durómetro'],
+                                    ['strokes', 'Strokes'],
+                                    ['angle', 'Angle'],
+                                    ['pressure', 'Pressure'],
+                                    ['speed', 'Speed'],
+                                    ['additives', 'Aditivos']
+                                ].map(([field, label]) => `
+                                    <div class="form-group">
+                                        <label class="form-label">${label}:</label>
+                                        <input type="text" class="form-control" value="${p[field] || ''}" 
+                                               oninput="updatePlacementParam(${p.id}, '${field}', this.value)">
+                                    </div>
+                                `).join('')}
                             </div>
                         </div>
                     </div>
@@ -465,293 +445,313 @@ function renderPlacementHTML(placement) {
                     <!-- Tipo de Tinta -->
                     <div class="form-group">
                         <label class="form-label">TIPO DE TINTA:</label>
-                        <select class="form-control" onchange="updatePlacementInkType(${placement.id}, this.value)">
-                            <option value="WATER" ${placement.inkType === 'WATER' ? 'selected' : ''}>Water-base</option>
-                            <option value="PLASTISOL" ${placement.inkType === 'PLASTISOL' ? 'selected' : ''}>Plastisol</option>
-                            <option value="SILICONE" ${placement.inkType === 'SILICONE' ? 'selected' : ''}>Silicone</option>
+                        <select class="form-control" onchange="updatePlacementInkType(${p.id}, this.value)">
+                            <option value="WATER" ${p.inkType === 'WATER' ? 'selected' : ''}>Water-base</option>
+                            <option value="PLASTISOL" ${p.inkType === 'PLASTISOL' ? 'selected' : ''}>Plastisol</option>
+                            <option value="SILICONE" ${p.inkType === 'SILICONE' ? 'selected' : ''}>Silicone</option>
                         </select>
                     </div>
                     
                     <!-- Colores -->
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title"><i class="fas fa-palette"></i> Colores para ${displayType}</h3></div>
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="fas fa-palette"></i> Colores para ${type}</h3>
+                        </div>
                         <div class="card-body">
-                            <div class="no-print" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
-                                <button type="button" class="btn btn-danger btn-sm" onclick="addPlacementColorItem(${placement.id}, 'BLOCKER')"><i class="fas fa-plus"></i> Blocker</button>
-                                <button type="button" class="btn btn-white-base btn-sm" onclick="addPlacementColorItem(${placement.id}, 'WHITE_BASE')"><i class="fas fa-plus"></i> White Base</button>
-                                <button type="button" class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')"><i class="fas fa-plus"></i> Color</button>
-                                <button type="button" class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')"><i class="fas fa-star"></i> Metálico</button>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+                                <button class="btn btn-danger btn-sm" onclick="addPlacementColorItem(${p.id}, 'BLOCKER')">
+                                    <i class="fas fa-plus"></i> Blocker
+                                </button>
+                                <button class="btn btn-white-base btn-sm" onclick="addPlacementColorItem(${p.id}, 'WHITE_BASE')">
+                                    <i class="fas fa-plus"></i> White Base
+                                </button>
+                                <button class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${p.id}, 'COLOR')">
+                                    <i class="fas fa-plus"></i> Color
+                                </button>
+                                <button class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${p.id}, 'METALLIC')">
+                                    <i class="fas fa-star"></i> Metálico
+                                </button>
                             </div>
-                            <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
+                            <div id="placement-colors-container-${p.id}" class="color-sequence"></div>
                         </div>
                     </div>
                     
                     <!-- Instrucciones Especiales -->
                     <div class="form-group">
                         <label class="form-label">INSTRUCCIONES ESPECIALES:</label>
-                        <textarea class="form-control" rows="3" oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${placement.specialInstructions || ''}</textarea>
+                        <textarea class="form-control" rows="3" 
+                                  oninput="updatePlacementField(${p.id}, 'specialInstructions', this.value)">${p.specialInstructions || ''}</textarea>
                     </div>
                     
                     <!-- Vista previa de colores -->
-                    <div id="placement-colors-preview-${placement.id}" class="color-legend"></div>
+                    <div id="placement-colors-preview-${p.id}" class="color-legend"></div>
                     
                     <!-- Secuencia de Estaciones -->
-                    <h4 style="margin:15px 0 10px;"><i class="fas fa-list-ol"></i> Secuencia de ${displayType}</h4>
-                    <div id="placement-sequence-table-${placement.id}"></div>
+                    <h4 style="margin:15px 0 10px;"><i class="fas fa-list-ol"></i> Secuencia de ${type}</h4>
+                    <div id="placement-sequence-table-${p.id}"></div>
                 </div>
             </div>
         </div>
     `;
     
-    container.innerHTML += sectionHTML;
+    container.innerHTML += html;
     
-    renderPlacementColors(placement.id);
-    updatePlacementStations(placement.id);
-    updatePlacementColorsPreview(placement.id);
+    renderPlacementColors(p.id);
+    updatePlacementStations(p.id);
+    updatePlacementColorsPreview(p.id);
     
-    if (placement.imageData) {
-        const img = document.getElementById(`placement-image-preview-${placement.id}`);
-        const actions = document.getElementById(`placement-image-actions-${placement.id}`);
-        if (img && actions) {
-            img.src = placement.imageData;
+    if (p.imageData) {
+        const img = $(`placement-image-preview-${p.id}`);
+        const act = $(`placement-image-actions-${p.id}`);
+        if (img && act) {
+            img.src = p.imageData;
             img.style.display = 'block';
-            actions.style.display = 'flex';
+            act.style.display = 'flex';
         }
     }
 }
 
 // ========== FUNCIONES DE ACTUALIZACIÓN DE CAMPOS ==========
-function updatePlacementType(placementId, type) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
+function updatePlacementType(id, type) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return;
     
-    const customInput = document.getElementById(`custom-placement-input-${placementId}`);
-    
+    const custom = $(`custom-placement-input-${id}`);
     if (type === 'CUSTOM') {
-        if (customInput) customInput.style.display = 'block';
-        if (!placement.type.startsWith('CUSTOM:')) placement.type = 'CUSTOM:';
+        if (custom) custom.style.display = 'block';
+        if (!p.type.startsWith('CUSTOM:')) p.type = 'CUSTOM:';
     } else {
-        if (customInput) customInput.style.display = 'none';
-        placement.type = type;
+        if (custom) custom.style.display = 'none';
+        p.type = type;
     }
-    
-    updateAllPlacementTitles(placementId);
+    updateAllPlacementTitles(id);
     showStatus(`✅ Tipo cambiado a ${type}`);
 }
 
-function updateCustomPlacement(placementId, customName) {
-    const placement = placements.find(p => p.id === placementId);
-    if (placement && customName.trim()) {
-        placement.type = `CUSTOM: ${customName}`;
-        updateAllPlacementTitles(placementId);
-        showStatus(`✅ Placement personalizado: ${customName}`);
+function updateCustomPlacement(id, name) {
+    const p = placements.find(p => p.id === id);
+    if (p && name.trim()) {
+        p.type = `CUSTOM: ${name}`;
+        updateAllPlacementTitles(id);
+        showStatus(`✅ Placement personalizado: ${name}`);
     }
 }
 
-function updatePlacementInkType(placementId, inkType) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
+function updatePlacementInkType(id, inkType) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return;
     
-    placement.inkType = inkType;
+    p.inkType = inkType;
     const preset = getInkPresetSafe(inkType);
     
-    placement.temp = preset.temp;
-    placement.time = preset.time;
+    p.temp = preset.temp;
+    p.time = preset.time;
     
-    // Actualizar UI
-    const tempField = document.getElementById(`temp-${placementId}`);
-    const timeField = document.getElementById(`time-${placementId}`);
+    const tempField = $(`temp-${id}`);
+    const timeField = $(`time-${id}`);
     if (tempField) tempField.value = preset.temp;
     if (timeField) timeField.value = preset.time;
     
-    updatePlacementStations(placementId);
+    updatePlacementStations(id);
     showStatus(`✅ Tinta: ${inkType}`);
 }
 
-function updatePlacementField(placementId, field, value) {
-    const placement = placements.find(p => p.id === placementId);
-    if (placement) placement[field] = value;
+function updatePlacementField(id, field, value) {
+    const p = placements.find(p => p.id === id);
+    if (p) p[field] = value;
 }
 
-function updatePlacementParam(placementId, param, value) {
-    const placement = placements.find(p => p.id === placementId);
-    if (placement) {
-        placement[param] = value;
-        updatePlacementStations(placementId);
+function updatePlacementParam(id, param, value) {
+    const p = placements.find(p => p.id === id);
+    if (p) {
+        p[param] = value;
+        updatePlacementStations(id);
     }
 }
 
-function updatePlacementDimension(placementId, type, value) {
-    const placement = placements.find(p => p.id === placementId);
-    if (placement) {
-        placement[type] = value;
-        placement.dimensions = `SIZE: (W) ${placement.width || '##'} X (H) ${placement.height || '##'}`;
+function updatePlacementDimension(id, type, value) {
+    const p = placements.find(p => p.id === id);
+    if (p) {
+        p[type] = value;
+        p.dimensions = `SIZE: (W) ${p.width || '##'} X (H) ${p.height || '##'}`;
     }
 }
 
 // ========== GESTIÓN DE COLORES ==========
-function addPlacementColorItem(placementId, type) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
+function addPlacementColorItem(id, colorType) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return;
     
-    const preset = getInkPresetSafe(placement.inkType);
-    const colorCount = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC').length;
+    const preset = getInkPresetSafe(p.inkType);
+    const colorCount = p.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC').length;
     
-    const defaults = {
-        BLOCKER: { screenLetter: 'A', val: preset.blocker.name },
-        WHITE_BASE: { screenLetter: 'B', val: preset.white.name },
-        METALLIC: { screenLetter: String(colorCount + 1), val: 'METALLIC GOLD' },
-        COLOR: { screenLetter: String(colorCount + 1), val: '' }
-    };
+    let screenLetter = '';
+    let initialVal = '';
     
-    placement.colors.push({
+    if (colorType === 'BLOCKER') {
+        screenLetter = 'A';
+        initialVal = preset.blocker.name;
+    } else if (colorType === 'WHITE_BASE') {
+        screenLetter = 'B';
+        initialVal = preset.white.name;
+    } else if (colorType === 'METALLIC') {
+        screenLetter = String(colorCount + 1);
+        initialVal = 'METALLIC GOLD';
+    } else {
+        screenLetter = String(colorCount + 1);
+        initialVal = '';
+    }
+    
+    p.colors.push({
         id: Date.now() + Math.random(),
-        type: type,
-        screenLetter: defaults[type]?.screenLetter || '',
-        val: defaults[type]?.val || ''
+        type: colorType,
+        screenLetter: screenLetter,
+        val: initialVal
     });
     
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-    checkForSpecialtiesInColors(placementId);
+    renderPlacementColors(id);
+    updatePlacementStations(id);
+    updatePlacementColorsPreview(id);
+    checkForSpecialtiesInColors(id);
+    showStatus(`✅ ${colorType} agregado`);
 }
 
-function renderPlacementColors(placementId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
+function renderPlacementColors(id) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return;
     
-    const container = document.getElementById(`placement-colors-container-${placementId}`);
+    const container = $(`placement-colors-container-${id}`);
     if (!container) return;
     
-    if (placement.colors.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-secondary);"><i class="fas fa-palette" style="font-size:1.5rem; display:block; margin-bottom:10px;"></i>No hay colores agregados.</div>';
+    if (!p.colors.length) {
+        container.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-palette"></i> No hay colores</div>';
         return;
     }
     
-    container.innerHTML = placement.colors.map(color => {
+    container.innerHTML = p.colors.map(c => {
         const badgeClass = {
-            BLOCKER: 'badge-blocker',
-            WHITE_BASE: 'badge-white',
-            METALLIC: 'badge-warning'
-        }[color.type] || 'badge-color';
+            'BLOCKER': 'badge-blocker',
+            'WHITE_BASE': 'badge-white',
+            'METALLIC': 'badge-warning'
+        }[c.type] || 'badge-color';
         
         const label = {
-            BLOCKER: 'BLOQUEADOR',
-            WHITE_BASE: 'WHITE BASE',
-            METALLIC: 'METÁLICO',
-            COLOR: 'COLOR'
-        }[color.type];
+            'BLOCKER': 'BLOQUEADOR',
+            'WHITE_BASE': 'WHITE BASE',
+            'METALLIC': 'METÁLICO',
+            'COLOR': 'COLOR'
+        }[c.type];
         
         return `
             <div class="color-item">
                 <span class="badge ${badgeClass}">${label}</span>
-                <input type="text" style="width:60px; text-align:center;" value="${color.screenLetter}" class="form-control" oninput="updatePlacementScreenLetter(${placementId}, ${color.id}, this.value)">
-                <input type="text" class="form-control" placeholder="Nombre de la tinta..." value="${color.val}" oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)">
-                <div class="color-preview" id="placement-color-preview-${placementId}-${color.id}"></div>
-                <button class="btn btn-outline btn-sm" onclick="movePlacementColorItem(${placementId}, ${color.id}, -1)"><i class="fas fa-arrow-up"></i></button>
-                <button class="btn btn-outline btn-sm" onclick="movePlacementColorItem(${placementId}, ${color.id}, 1)"><i class="fas fa-arrow-down"></i></button>
-                <button class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${placementId}, ${color.id})"><i class="fas fa-times"></i></button>
+                <input type="text" style="width:60px; text-align:center;" value="${c.screenLetter}" 
+                       class="form-control" oninput="updatePlacementScreenLetter(${id}, ${c.id}, this.value)">
+                <input type="text" class="form-control" placeholder="Nombre de la tinta..." value="${c.val}" 
+                       oninput="updatePlacementColorValue(${id}, ${c.id}, this.value)">
+                <div class="color-preview" id="placement-color-preview-${id}-${c.id}"></div>
+                <button class="btn btn-outline btn-sm" onclick="movePlacementColorItem(${id}, ${c.id}, -1)">
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="movePlacementColorItem(${id}, ${c.id}, 1)">
+                    <i class="fas fa-arrow-down"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="removePlacementColorItem(${id}, ${c.id})">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         `;
     }).join('');
     
-    placement.colors.forEach(c => updatePlacementColorPreview(placementId, c.id));
+    p.colors.forEach(c => updatePlacementColorPreview(id, c.id));
 }
 
-function updatePlacementColorValue(placementId, colorId, value) {
-    const placement = placements.find(p => p.id === placementId);
-    const color = placement?.colors.find(c => c.id === colorId);
-    if (color) {
-        color.val = value;
-        updatePlacementColorPreview(placementId, colorId);
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
-        checkForSpecialtiesInColors(placementId);
+function updatePlacementColorValue(id, colorId, value) {
+    const p = placements.find(p => p.id === id);
+    const c = p?.colors.find(c => c.id === colorId);
+    if (c) {
+        c.val = value;
+        updatePlacementColorPreview(id, colorId);
+        updatePlacementStations(id);
+        updatePlacementColorsPreview(id);
+        checkForSpecialtiesInColors(id);
     }
 }
 
-function updatePlacementScreenLetter(placementId, colorId, value) {
-    const placement = placements.find(p => p.id === placementId);
-    const color = placement?.colors.find(c => c.id === colorId);
-    if (color) {
-        color.screenLetter = value.toUpperCase();
-        updatePlacementStations(placementId);
+function updatePlacementScreenLetter(id, colorId, value) {
+    const p = placements.find(p => p.id === id);
+    const c = p?.colors.find(c => c.id === colorId);
+    if (c) {
+        c.screenLetter = value.toUpperCase();
+        updatePlacementStations(id);
     }
 }
 
-function removePlacementColorItem(placementId, colorId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (placement) {
-        placement.colors = placement.colors.filter(c => c.id !== colorId);
-        renderPlacementColors(placementId);
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
-        checkForSpecialtiesInColors(placementId);
+function removePlacementColorItem(id, colorId) {
+    const p = placements.find(p => p.id === id);
+    if (p) {
+        p.colors = p.colors.filter(c => c.id !== colorId);
+        renderPlacementColors(id);
+        updatePlacementStations(id);
+        updatePlacementColorsPreview(id);
+        checkForSpecialtiesInColors(id);
     }
 }
 
-function movePlacementColorItem(placementId, colorId, direction) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
+function movePlacementColorItem(id, colorId, direction) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return;
     
-    const index = placement.colors.findIndex(c => c.id === colorId);
+    const index = p.colors.findIndex(c => c.id === colorId);
     if (index === -1) return;
     
     const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= placement.colors.length) return;
+    if (newIndex < 0 || newIndex >= p.colors.length) return;
     
-    [placement.colors[index], placement.colors[newIndex]] = [placement.colors[newIndex], placement.colors[index]];
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-    checkForSpecialtiesInColors(placementId);
+    [p.colors[index], p.colors[newIndex]] = [p.colors[newIndex], p.colors[index]];
+    renderPlacementColors(id);
+    updatePlacementStations(id);
+    updatePlacementColorsPreview(id);
+    checkForSpecialtiesInColors(id);
 }
 
-function updatePlacementColorPreview(placementId, colorId) {
-    const placement = placements.find(p => p.id === placementId);
-    const color = placement?.colors.find(c => c.id === colorId);
-    const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
-    if (!preview || !color) return;
+function updatePlacementColorPreview(id, colorId) {
+    const p = placements.find(p => p.id === id);
+    const c = p?.colors.find(c => c.id === colorId);
+    const preview = $(`placement-color-preview-${id}-${colorId}`);
+    if (!preview || !c) return;
     
-    const colorName = (color.val || '').toUpperCase().trim();
+    const name = (c.val || '').toUpperCase().trim();
     let hex = null;
     
-    // Resolver color usando múltiples fuentes
-    if (window.ColorConfig?.findColorHex) hex = window.ColorConfig.findColorHex(color.val);
-    if (!hex && window.Utils?.getColorHex) hex = window.Utils.getColorHex(color.val);
+    if (window.ColorConfig?.findColorHex) hex = window.ColorConfig.findColorHex(c.val);
+    if (!hex && window.Utils?.getColorHex) hex = window.Utils.getColorHex(c.val);
     
-    // Colores básicos
-    const basicColors = {
-        'RED': '#FF0000', 'BLUE': '#0000FF', 'GREEN': '#00FF00', 'BLACK': '#000000',
-        'WHITE': '#FFFFFF', 'YELLOW': '#FFFF00', 'PURPLE': '#800080', 'ORANGE': '#FFA500',
-        'GRAY': '#808080', 'GREY': '#808080', 'GOLD': '#FFD700', 'SILVER': '#C0C0C0',
-        'NAVY': '#000080', 'MAROON': '#800000', 'PINK': '#FFC0CB'
+    const basics = {
+        'RED': '#FF0000', 'BLUE': '#0000FF', 'GREEN': '#00FF00',
+        'BLACK': '#000000', 'WHITE': '#FFFFFF', 'GOLD': '#FFD700'
     };
     
     if (!hex) {
-        for (const [name, code] of Object.entries(basicColors)) {
-            if (colorName.includes(name)) { hex = code; break; }
+        for (const [key, val] of Object.entries(basics)) {
+            if (name.includes(key)) { hex = val; break; }
         }
     }
     
-    if (!hex) {
-        const hexMatch = colorName.match(/#([0-9A-F]{6})/i);
-        if (hexMatch) hex = `#${hexMatch[1]}`;
-    }
+    const hexMatch = name.match(/#([0-9A-F]{6})/i);
+    if (!hex && hexMatch) hex = `#${hexMatch[1]}`;
     
     preview.style.background = hex || '#CCCCCC';
     preview.style.backgroundImage = hex ? 'none' : 'repeating-linear-gradient(45deg, #999, #999 2px, #CCC 2px, #CCC 4px)';
-    preview.title = hex ? `${color.val} - ${hex}` : color.val;
 }
 
-function updatePlacementColorsPreview(placementId) {
-    const placement = placements.find(p => p.id === placementId);
-    const container = document.getElementById(`placement-colors-preview-${placementId}`);
-    if (!container || !placement) return;
+function updatePlacementColorsPreview(id) {
+    const p = placements.find(p => p.id === id);
+    const container = $(`placement-colors-preview-${id}`);
+    if (!container || !p) return;
     
     const seen = new Set();
-    const unique = placement.colors
+    const unique = p.colors
         .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
         .filter(c => {
             if (!c.val || seen.has(c.val)) return false;
@@ -759,7 +759,7 @@ function updatePlacementColorsPreview(placementId) {
             return true;
         });
     
-    if (unique.length === 0) {
+    if (!unique.length) {
         container.innerHTML = '';
         return;
     }
@@ -768,103 +768,130 @@ function updatePlacementColorsPreview(placementId) {
         <div><strong>Leyenda de Colores:</strong></div>
         <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:10px;">
             ${unique.map(c => {
-                const hex = window.Utils?.getColorHex?.(c.val) || '#ccc';
-                return `<div style="display:flex; align-items:center;"><div style="background:${hex}; width:15px; height:15px; border:1px solid #666; margin-right:5px;"></div><span style="font-size:11px;">${c.screenLetter}: ${c.val}</span></div>`;
+                const hex = getColorHex(c.val) || '#ccc';
+                return `
+                    <div style="display:flex; align-items:center;">
+                        <div style="background:${hex}; width:15px; height:15px; border:1px solid #666; margin-right:5px;"></div>
+                        <span style="font-size:11px;">${c.screenLetter}: ${c.val}</span>
+                    </div>
+                `;
             }).join('')}
         </div>
     `;
 }
 
 // ========== DETECCIÓN DE ESPECIALIDADES ==========
-function checkForSpecialtiesInColors(placementId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
+function checkForSpecialtiesInColors(id) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return;
     
     const specialties = new Set();
     
-    placement.colors.forEach(c => {
+    p.colors.forEach(c => {
         const val = (c.val || '').toUpperCase();
         if (val.includes('HD') || val.includes('HIGH DENSITY')) specialties.add('HIGH DENSITY');
         if (isMetallicColor(val)) specialties.add('METALLIC');
         if (val.includes('FOIL')) specialties.add('FOIL');
     });
     
-    placement.specialties = Array.from(specialties).join(', ');
-    
-    const field = document.getElementById(`specialties-${placementId}`);
-    if (field) field.value = placement.specialties;
+    p.specialties = Array.from(specialties).join(', ');
+    const field = $(`specialties-${id}`);
+    if (field) field.value = p.specialties;
 }
 
-function isMetallicColor(colorName) {
-    if (!colorName) return false;
-    const upper = colorName.toUpperCase();
+function isMetallicColor(name) {
+    if (!name) return false;
+    const upper = name.toUpperCase();
     if (upper.match(/(8[7-9][0-9]\s*C?)/i)) return true;
-    const metallicCodes = ['871C', '872C', '873C', '874C', '875C', '876C', '877C', 'METALLIC', 'GOLD', 'SILVER', 'BRONZE'];
-    return metallicCodes.some(code => upper.includes(code));
+    const metals = ['871C', '872C', '873C', '874C', '875C', '876C', '877C', 'METALLIC', 'GOLD', 'SILVER'];
+    return metals.some(m => upper.includes(m));
+}
+
+function getColorHex(name) {
+    if (!name) return null;
+    if (window.ColorConfig?.findColorHex) return window.ColorConfig.findColorHex(name);
+    if (window.Utils?.getColorHex) return window.Utils.getColorHex(name);
+    
+    const basics = {
+        'RED': '#FF0000', 'BLUE': '#0000FF', 'GREEN': '#00FF00',
+        'BLACK': '#000000', 'WHITE': '#FFFFFF', 'GOLD': '#FFD700'
+    };
+    
+    const upper = name.toUpperCase();
+    for (const [key, hex] of Object.entries(basics)) {
+        if (upper.includes(key)) return hex;
+    }
+    
+    const match = name.match(/#([0-9A-F]{6})/i);
+    return match ? `#${match[1]}` : null;
 }
 
 // ========== SECUENCIA DE IMPRESIÓN ==========
-function updatePlacementStations(placementId, returnOnly = false) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return returnOnly ? [] : null;
+function updatePlacementStations(id, returnOnly = false) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return returnOnly ? [] : null;
     
-    const preset = getInkPresetSafe(placement.inkType);
+    const preset = getInkPresetSafe(p.inkType);
     const stations = [];
-    let stNum = 1;
+    let st = 1;
     
-    placement.colors.forEach((item, idx) => {
+    p.colors.forEach((c, idx) => {
         const base = {
-            screenLetter: item.screenLetter || '',
-            screenCombined: item.val || '---',
-            mesh: placement.meshColor || preset.color.mesh,
-            strokes: placement.strokes || preset.color.strokes,
-            duro: placement.durometer || preset.color.durometer,
-            angle: placement.angle || preset.color.angle,
-            pressure: placement.pressure || preset.color.pressure,
-            speed: placement.speed || preset.color.speed,
-            add: placement.additives || preset.color.additives
+            screenLetter: c.screenLetter || '',
+            screenCombined: c.val || '---',
+            mesh: p.meshColor || preset.color.mesh,
+            strokes: p.strokes || preset.color.strokes,
+            duro: p.durometer || preset.color.durometer,
+            angle: p.angle || preset.color.angle,
+            pressure: p.pressure || preset.color.pressure,
+            add: p.additives || preset.color.additives
         };
         
-        // Ajustes por tipo
-        if (item.type === 'BLOCKER') {
-            base.mesh = placement.meshBlocker || preset.blocker.mesh1;
-            base.add = placement.additives || preset.blocker.additives;
+        if (c.type === 'BLOCKER') {
+            base.mesh = p.meshBlocker || preset.blocker.mesh1;
+            base.add = p.additives || preset.blocker.additives;
             base.screenCombined = preset.blocker.name;
-        } else if (item.type === 'WHITE_BASE') {
-            base.mesh = placement.meshWhite || preset.white.mesh1;
-            base.add = placement.additives || preset.white.additives;
+        } else if (c.type === 'WHITE_BASE') {
+            base.mesh = p.meshWhite || preset.white.mesh1;
+            base.add = p.additives || preset.white.additives;
             base.screenCombined = preset.white.name;
-        } else if (item.type === 'METALLIC') {
+        } else if (c.type === 'METALLIC') {
             base.mesh = '110/64';
             base.strokes = '1';
             base.duro = '70';
             base.add = 'Catalizador especial';
         }
         
-        stations.push({ st: stNum++, ...base });
+        stations.push({ st: st++, ...base });
         
-        if (idx < placement.colors.length - 1) {
-            stations.push({ st: stNum++, screenCombined: 'FLASH', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-', add: '', screenLetter: '' });
-            stations.push({ st: stNum++, screenCombined: 'COOL', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-', add: '', screenLetter: '' });
+        if (idx < p.colors.length - 1) {
+            stations.push({ st: st++, screenCombined: 'FLASH', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', add: '' });
+            stations.push({ st: st++, screenCombined: 'COOL', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', add: '' });
         }
     });
     
     if (returnOnly) return stations;
-    renderPlacementStationsTable(placementId, stations);
+    renderPlacementStationsTable(id, stations);
 }
 
-function renderPlacementStationsTable(placementId, data) {
-    const div = document.getElementById(`placement-sequence-table-${placementId}`);
+function renderPlacementStationsTable(id, data) {
+    const div = $(`placement-sequence-table-${id}`);
     if (!div) return;
     
-    if (data.length === 0) {
-        div.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:15px;">Agrega colores para generar la secuencia.</p>';
+    if (!data.length) {
+        div.innerHTML = '<p style="text-align:center; padding:15px;">Agrega colores para generar la secuencia.</p>';
         return;
     }
     
     div.innerHTML = `
         <table class="sequence-table">
-            <thead><tr><th>Est</th><th>Scr.</th><th>Screen (Tinta/Proceso)</th><th>Aditivos</th><th>Malla</th><th>Strokes</th><th>Angle</th><th>Pressure</th><th>Speed</th><th>Duro</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Est</th><th>Scr.</th><th>Screen (Tinta/Proceso)</th>
+                    <th>Aditivos</th><th>Malla</th><th>Strokes</th>
+                    <th>Angle</th><th>Pressure</th><th>Duro</th>
+                </tr>
+            </thead>
             <tbody>
                 ${data.map(row => `
                     <tr>
@@ -876,7 +903,6 @@ function renderPlacementStationsTable(placementId, data) {
                         <td>${row.strokes}</td>
                         <td>${row.angle}</td>
                         <td>${row.pressure}</td>
-                        <td>${row.speed}</td>
                         <td>${row.duro}</td>
                     </tr>
                 `).join('')}
@@ -886,35 +912,34 @@ function renderPlacementStationsTable(placementId, data) {
 }
 
 // ========== GESTIÓN DE IMÁGENES ==========
-function openImagePickerForPlacement(placementId) {
-    currentPlacementId = placementId;
-    document.getElementById('placementImageInput')?.click();
+function openImagePickerForPlacement(id) {
+    currentPlacementId = id;
+    $('placementImageInput')?.click();
 }
 
-function removePlacementImage(placementId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
+function removePlacementImage(id) {
+    const p = placements.find(p => p.id === id);
+    if (!p) return;
     
-    const img = document.getElementById(`placement-image-preview-${placementId}`);
-    const actions = document.getElementById(`placement-image-actions-${placementId}`);
+    const img = $(`placement-image-preview-${id}`);
+    const act = $(`placement-image-actions-${id}`);
     
     if (img) { img.src = ''; img.style.display = 'none'; }
-    if (actions) actions.style.display = 'none';
+    if (act) act.style.display = 'none';
     
-    placement.imageData = null;
+    p.imageData = null;
     showStatus('🗑️ Imagen eliminada');
 }
 
 function setupPasteHandler() {
     document.addEventListener('paste', e => {
-        const activeSection = document.querySelector('.placement-section.active');
-        if (!activeSection) return;
+        const active = document.querySelector('.placement-section.active');
+        if (!active) return;
         
-        const placementId = parseInt(activeSection.dataset.placementId);
-        const placement = placements.find(p => p.id === placementId);
-        if (!placement) return;
+        const id = parseInt(active.dataset.placementId);
+        const p = placements.find(p => p.id === id);
+        if (!p) return;
         
-        // Si es texto en campo editable, ignorar
         if (e.target.closest('input, textarea, [contenteditable]')) return;
         
         for (let item of e.clipboardData.items) {
@@ -922,15 +947,15 @@ function setupPasteHandler() {
                 const blob = item.getAsFile();
                 const reader = new FileReader();
                 reader.onload = ev => {
-                    placement.imageData = ev.target.result;
-                    const img = document.getElementById(`placement-image-preview-${placementId}`);
-                    const actions = document.getElementById(`placement-image-actions-${placementId}`);
-                    if (img && actions) {
+                    p.imageData = ev.target.result;
+                    const img = $(`placement-image-preview-${id}`);
+                    const act = $(`placement-image-actions-${id}`);
+                    if (img && act) {
                         img.src = ev.target.result;
                         img.style.display = 'block';
-                        actions.style.display = 'flex';
+                        act.style.display = 'flex';
                     }
-                    showStatus(`✅ Imagen pegada en ${placement.type}`);
+                    showStatus(`✅ Imagen pegada en ${p.type}`);
                 };
                 reader.readAsDataURL(blob);
                 e.preventDefault();
@@ -954,7 +979,6 @@ function collectData() {
         nameTeam: getInputValue('name-team'),
         gender: getInputValue('gender'),
         designer: getInputValue('designer'),
-        developedBy: '',
         savedAt: new Date().toISOString()
     };
     
@@ -995,10 +1019,9 @@ function saveCurrentSpec() {
         const style = data.style || 'SinEstilo_' + Date.now();
         const key = `spec_${style}_${Date.now()}`;
         
-        // Actualizar campos de placements
         placements.forEach(p => {
-            p.specialties = document.getElementById(`specialties-${p.id}`)?.value || p.specialties;
-            p.specialInstructions = document.getElementById(`special-instructions-${p.id}`)?.value || p.specialInstructions;
+            p.specialties = $(`specialties-${p.id}`)?.value || p.specialties;
+            p.specialInstructions = $(`special-instructions-${p.id}`)?.value || p.specialInstructions;
         });
         
         data.savedAt = new Date().toISOString();
@@ -1015,17 +1038,16 @@ function saveCurrentSpec() {
     } catch (error) {
         console.error('Error al guardar:', error);
         showStatus('❌ Error al guardar', 'error');
-        window.errorHandler?.log('save_spec', error);
     }
 }
 
 function loadSpecData(data) {
     // Campos generales
-    ['customer', 'style', 'folder-num', 'colorway', 'season', 'pattern', 'po', 'sample-type', 'name-team', 'gender', 'designer']
-        .forEach(id => setInputValue(id, data[id.replace('-num', '')] || ''));
+    const fields = ['customer', 'style', 'folder-num', 'colorway', 'season', 'pattern', 'po', 'sample-type', 'name-team', 'gender', 'designer'];
+    fields.forEach(id => setInputValue(id, data[id.replace('-num', '')] || ''));
     
     // Limpiar placements actuales
-    document.getElementById('placements-container').innerHTML = '';
+    $('placements-container').innerHTML = '';
     placements = [];
     
     // Cargar placements
@@ -1036,12 +1058,12 @@ function loadSpecData(data) {
             renderPlacementHTML(placement);
             
             if (placement.imageData) {
-                const img = document.getElementById(`placement-image-preview-${placement.id}`);
-                const actions = document.getElementById(`placement-image-actions-${placement.id}`);
-                if (img && actions) {
+                const img = $(`placement-image-preview-${placement.id}`);
+                const act = $(`placement-image-actions-${placement.id}`);
+                if (img && act) {
                     img.src = placement.imageData;
                     img.style.display = 'block';
-                    actions.style.display = 'flex';
+                    act.style.display = 'flex';
                 }
             }
             
@@ -1064,7 +1086,7 @@ function loadSpecData(data) {
 function updateDashboard() {
     const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
     
-    document.getElementById('total-specs').textContent = specs.length;
+    $('total-specs').textContent = specs.length;
     
     let lastSpec = null, lastDate = null;
     specs.forEach(key => {
@@ -1075,9 +1097,13 @@ function updateDashboard() {
         } catch (e) {}
     });
     
-    const todayEl = document.getElementById('today-specs');
+    const todayEl = $('today-specs');
     if (lastSpec) {
-        todayEl.innerHTML = `<div style="font-size:0.9rem;">Última Spec:</div><div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div><div style="font-size:0.8rem;">${lastDate.toLocaleDateString()}</div>`;
+        todayEl.innerHTML = `
+            <div style="font-size:0.9rem;">Última Spec:</div>
+            <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
+            <div style="font-size:0.8rem;">${lastDate.toLocaleDateString()}</div>
+        `;
     } else {
         todayEl.innerHTML = '<div style="font-size:0.9rem;">Sin specs creadas</div>';
     }
@@ -1086,24 +1112,27 @@ function updateDashboard() {
         try { return JSON.parse(localStorage.getItem(k)).placements?.length > 0; }
         catch { return false; }
     }).length;
-    document.getElementById('active-projects').textContent = active;
+    $('active-projects').textContent = active;
     
     const totalPlacements = specs.reduce((sum, k) => {
         try { return sum + (JSON.parse(localStorage.getItem(k)).placements?.length || 0); }
         catch { return sum; }
     }, 0);
     
-    document.getElementById('completion-rate').innerHTML = `<div style="font-size:0.9rem;">Placements totales:</div><div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${totalPlacements}</div>`;
+    $('completion-rate').innerHTML = `
+        <div style="font-size:0.9rem;">Placements totales:</div>
+        <div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${totalPlacements}</div>
+    `;
 }
 
 // ========== LISTA DE SPECS GUARDADAS ==========
 function loadSavedSpecsList() {
-    const list = document.getElementById('saved-specs-list');
-    const search = document.getElementById('saved-specs-search')?.value.toUpperCase().trim() || '';
+    const list = $('saved-specs-list');
+    const search = $('saved-specs-search')?.value.toUpperCase().trim() || '';
     const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
     
     if (!specs.length) {
-        list.innerHTML = '<p style="text-align:center; padding:30px;"><i class="fas fa-database" style="font-size:2rem; display:block; margin-bottom:10px;"></i>No hay specs guardadas.</p>';
+        list.innerHTML = '<p style="text-align:center; padding:30px;"><i class="fas fa-database" style="font-size:2rem; display:block;"></i>No hay specs guardadas.</p>';
         return;
     }
     
@@ -1132,7 +1161,6 @@ function loadSavedSpecsList() {
                 </div>
             `;
         } catch (e) {
-            console.warn('Error al leer spec:', key, e);
             localStorage.removeItem(key);
         }
     });
@@ -1166,7 +1194,7 @@ function deleteSpec(key) {
 }
 
 function clearAllSpecs() {
-    if (confirm('⚠️ ¿Eliminar TODAS las specs? Esta acción no se puede deshacer.')) {
+    if (confirm('⚠️ ¿Eliminar TODAS las specs?')) {
         Object.keys(localStorage).forEach(k => { if (k.startsWith('spec_')) localStorage.removeItem(k); });
         loadSavedSpecsList();
         updateDashboard();
@@ -1174,21 +1202,21 @@ function clearAllSpecs() {
     }
 }
 
-// ========== LIMPIEZA DE FORMULARIO ==========
+// ========== LIMPIEZA ==========
 function clearForm() {
-    if (!confirm('⚠️ ¿Limpiar todo el formulario? Se perderán los datos no guardados.')) return;
+    if (!confirm('⚠️ ¿Limpiar todo el formulario?')) return;
     
-    document.querySelectorAll('input:not(#folder-num), textarea, select').forEach(i => {
+    $$('input:not(#folder-num), textarea, select').forEach(i => {
         if (i.type !== 'button' && i.type !== 'submit') i.value = '';
     });
     setInputValue('designer', '');
     
     placements = [];
-    document.getElementById('placements-container').innerHTML = '';
-    document.getElementById('placements-tabs').innerHTML = '';
+    $('placements-container').innerHTML = '';
+    $('placements-tabs').innerHTML = '';
     
     initializePlacements();
-    document.getElementById('logoCliente')?.style.display = 'none';
+    $('logoCliente')?.style.display = 'none';
     showStatus('🧹 Formulario limpiado');
 }
 
@@ -1219,8 +1247,6 @@ function exportToExcel() {
         });
         
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-        ws['!cols'] = headers.map((_, i) => ({ wch: [0,1,2,3,4,6,20,23,25,27,28,29,30,34,35].includes(i) ? 12 : 3 }));
-        
         XLSX.utils.book_append_sheet(XLSX.utils.book_new(), ws, 'Hoja1');
         XLSX.writeFile(XLSX.utils.book_new(), `Calculadora_${data.style || 'Spec'}_${data.folder || '00000'}.xlsx`);
         showStatus('📊 Excel generado');
@@ -1230,13 +1256,12 @@ function exportToExcel() {
     }
 }
 
-// ========== EXPORTACIÓN A PDF (VERSIÓN OPTIMIZADA) ==========
+// ========== EXPORTACIÓN A PDF ==========
 async function exportPDF() {
     try {
         showStatus('📄 Generando PDF...', 'warning');
         const data = collectData();
         
-        // Intentar con generador profesional
         if (window.generateProfessionalPDF) {
             try {
                 const pdfBlob = await window.generateProfessionalPDF(data);
@@ -1247,14 +1272,12 @@ async function exportPDF() {
             }
         }
         
-        // Fallback a generador legacy
         const pdfBlob = await generateLegacyPDF(data);
         downloadPDF(pdfBlob, data);
         
     } catch (error) {
         console.error('Error PDF:', error);
         showStatus('❌ Error al generar PDF', 'error');
-        window.errorHandler?.log('pdf_export', error);
     }
 }
 
@@ -1270,19 +1293,16 @@ function downloadPDF(blob, data) {
     showStatus('✅ PDF generado');
 }
 
-// ========== GENERADOR LEGACY (SIMPLIFICADO) ==========
 async function generateLegacyPDF(data) {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'letter');
     const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
     
-    // Generar páginas para cada placement
     for (let i = 0; i < data.placements.length; i++) {
         if (i > 0) pdf.addPage();
         
         const p = data.placements[i];
-        const displayType = p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type;
+        const type = p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type;
         let y = 20;
         
         // Header
@@ -1292,9 +1312,9 @@ async function generateLegacyPDF(data) {
         pdf.setFontSize(16);
         pdf.text('TECHNICAL SPEC MANAGER', 10, 15);
         pdf.setFontSize(12);
-        pdf.text(`Placement ${i + 1}/${data.placements.length}: ${displayType}`, 10, 23);
+        pdf.text(`Placement ${i + 1}/${data.placements.length}: ${type}`, 10, 23);
         
-        // Información general
+        // Info general
         y = 35;
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(10);
@@ -1307,11 +1327,10 @@ async function generateLegacyPDF(data) {
         pdf.text(`Tinta: ${p.inkType || 'WATER'}`, 130, y);
         y += 10;
         
-        // Tabla de colores/secuencia
+        // Colores
         if (p.colors?.length) {
             pdf.setFillColor(240, 240, 240);
             pdf.rect(10, y, pageW - 20, 8, 'F');
-            pdf.setFontSize(9);
             pdf.setFont('helvetica', 'bold');
             pdf.text('Secuencia de Impresión', 15, y + 6);
             y += 10;
@@ -1341,11 +1360,10 @@ async function generateLegacyPDF(data) {
                     y += 5;
                 }
             });
-            
             y += 5;
         }
         
-        // Condiciones de curado
+        // Curado
         pdf.setFillColor(240, 240, 240);
         pdf.rect(10, y, pageW - 20, 18, 'F');
         pdf.setFont('helvetica', 'bold');
@@ -1358,8 +1376,8 @@ async function generateLegacyPDF(data) {
         // Footer
         pdf.setFontSize(8);
         pdf.setTextColor(150, 150, 150);
-        pdf.text(`Generado: ${new Date().toLocaleString()}`, 10, pageH - 10);
-        pdf.text('TEGRA Spec Manager', pageW - 40, pageH - 10);
+        pdf.text(`Generado: ${new Date().toLocaleString()}`, 10, pdf.internal.pageSize.getHeight() - 10);
+        pdf.text('TEGRA Spec Manager', pageW - 40, pdf.internal.pageSize.getHeight() - 10);
     }
     
     return pdf.output('blob');
@@ -1367,13 +1385,13 @@ async function generateLegacyPDF(data) {
 
 // ========== ERROR LOG ==========
 function loadErrorLog() {
-    const container = document.getElementById('error-log-content');
+    const container = $('error-log-content');
     if (!container) return;
     
     const errors = window.errorHandler?.getErrors() || [];
     
     if (!errors.length) {
-        container.innerHTML = '<p style="text-align:center; padding:30px;"><i class="fas fa-check-circle" style="font-size:2rem; color:var(--success); display:block; margin-bottom:10px;"></i>No hay errores registrados.</p>';
+        container.innerHTML = '<p style="text-align:center; padding:30px;"><i class="fas fa-check-circle" style="font-size:2rem;"></i>No hay errores registrados.</p>';
         return;
     }
     
@@ -1399,7 +1417,7 @@ function clearErrorLog() {
     }
 }
 
-// ========== CARGA DE ARCHIVOS EXCEL/SWO ==========
+// ========== CARGA DE ARCHIVOS ==========
 document.getElementById('excelFile')?.addEventListener('change', async function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -1450,18 +1468,20 @@ function processExcelData(worksheet, sheetName) {
         else if (label.includes('GENDER:')) extracted.gender = val;
     });
     
-    // Aplicar valores
-    Object.entries(extracted).forEach(([key, val]) => {
-        if (key === 'sample') setInputValue('sample-type', val);
-        else if (key === 'team') setInputValue('name-team', val);
-        else setInputValue(key, val);
-    });
+    if (extracted.customer) setInputValue('customer', extracted.customer);
+    if (extracted.style) setInputValue('style', extracted.style);
+    if (extracted.colorway) setInputValue('colorway', extracted.colorway);
+    if (extracted.season) setInputValue('season', extracted.season);
+    if (extracted.pattern) setInputValue('pattern', extracted.pattern);
+    if (extracted.po) setInputValue('po', extracted.po);
+    if (extracted.sample) setInputValue('sample-type', extracted.sample);
+    if (extracted.team) setInputValue('name-team', extracted.team);
+    if (extracted.gender) setInputValue('gender', extracted.gender);
     
     updateClientLogo();
     showStatus(`✅ "${sheetName}" procesado`);
 }
 
-// ========== PROYECTOS ZIP ==========
 async function loadProjectZip(file) {
     try {
         showStatus('📦 Cargando ZIP...', 'warning');
@@ -1493,12 +1513,12 @@ async function loadProjectZip(file) {
                 const placementIdx = parseInt(img.name.match(/placement(\d+)/)?.[1]) - 1;
                 if (placementIdx >= 0 && placements[placementIdx]) {
                     placements[placementIdx].imageData = img.data;
-                    const imgEl = document.getElementById(`placement-image-preview-${placements[placementIdx].id}`);
-                    const actions = document.getElementById(`placement-image-actions-${placements[placementIdx].id}`);
-                    if (imgEl && actions) {
+                    const imgEl = $(`placement-image-preview-${placements[placementIdx].id}`);
+                    const act = $(`placement-image-actions-${placements[placementIdx].id}`);
+                    if (imgEl && act) {
                         imgEl.src = img.data;
                         imgEl.style.display = 'block';
-                        actions.style.display = 'flex';
+                        act.style.display = 'flex';
                     }
                 }
             });
@@ -1512,6 +1532,58 @@ async function loadProjectZip(file) {
     }
 }
 
+// ========== PROYECTOS ZIP ==========
+async function downloadProjectZip() {
+    try {
+        if (typeof JSZip === 'undefined') {
+            showStatus('❌ JSZip no está cargado', 'error');
+            return;
+        }
+        
+        const data = collectData();
+        const style = data.style || 'SinEstilo';
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+        const zip = new JSZip();
+        
+        zip.file(`${style}.json`, JSON.stringify(data, null, 2));
+        
+        try {
+            const pdfBlob = await generateLegacyPDF(data);
+            zip.file(`${style}.pdf`, pdfBlob);
+        } catch (pdfError) {
+            console.warn('No se pudo generar PDF para ZIP:', pdfError);
+        }
+        
+        data.placements.forEach((p, i) => {
+            if (p.imageData?.startsWith('data:')) {
+                const blob = dataURLToBlob(p.imageData);
+                const type = p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type;
+                zip.file(`placement${i + 1}_${type}.jpg`, blob);
+            }
+        });
+        
+        const readme = `PROYECTO TEGRA SPEC MANAGER\n\nCliente: ${data.customer}\nEstilo: ${data.style}\nPlacements: ${data.placements.length}\nGenerado: ${new Date().toLocaleString()}`;
+        zip.file('LEEME.txt', readme);
+        
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        saveAs(zipBlob, `TegraSpec_${style}_${timestamp}.zip`);
+        showStatus('📦 ZIP descargado');
+        
+    } catch (error) {
+        console.error('Error al generar ZIP:', error);
+        showStatus('❌ Error al generar ZIP', 'error');
+    }
+}
+
+function dataURLToBlob(dataURL) {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    const u8arr = new Uint8Array(bstr.length);
+    for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+    return new Blob([u8arr], { type: mime });
+}
+
 // ========== INICIALIZACIÓN ==========
 document.addEventListener('DOMContentLoaded', () => {
     updateDateTime();
@@ -1520,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPasteHandler();
     loadThemePreference();
     
-    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+    $('themeToggle')?.addEventListener('click', toggleTheme);
     setInterval(updateDateTime, 60000);
     
     setTimeout(() => {
@@ -1528,13 +1600,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-// ========== AL FINAL DE app.js, DESPUÉS DE TODAS LAS FUNCIONES ==========
-
 // ========== EXPORTAR FUNCIONES AL ÁMBITO GLOBAL ==========
 window.showTab = showTab;
 window.loadSavedSpecsList = loadSavedSpecsList;
 window.clearErrorLog = clearErrorLog;
-window.exportErrorLog = exportErrorLog;
 window.clearAllSpecs = clearAllSpecs;
 window.addNewPlacement = addNewPlacement;
 window.saveCurrentSpec = saveCurrentSpec;
@@ -1545,7 +1614,6 @@ window.downloadProjectZip = downloadProjectZip;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
 
-// Funciones de placements
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
 window.showPlacement = showPlacement;
@@ -1563,11 +1631,9 @@ window.updatePlacementScreenLetter = updatePlacementScreenLetter;
 window.updatePlacementParam = updatePlacementParam;
 window.updatePlacementField = updatePlacementField;
 window.updatePlacementDimension = updatePlacementDimension;
-window.updatePlacementInkType = updatePlacementInkType;
 
-// Funciones de utilidad
 window.downloadSingleSpec = downloadSingleSpec;
 window.deleteSpec = deleteSpec;
 window.loadSpecData = loadSpecData;
 
-console.log('✅ Funciones exportadas globalmente');
+console.log('✅ app.js cargado correctamente - Funciones exportadas:', Object.keys(window).filter(k => k.includes('Placement') || k.includes('show') || k.includes('export')).length);
