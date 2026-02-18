@@ -17,18 +17,37 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
- <!-- 3. NUESTROS MÓDULOS -->
-<script src="config.js"></script>
+ <!-- 3. NUESTROS MÓDULOS - ORDEN CORREGIDO -->
+<!-- PRIMERO: Configuración base -->
+<script src="config.js"></script> <!-- Necesitas crear este archivo o asegurarte que existe -->
+
+<!-- SEGUNDO: Configuración de equipos -->
 <script src="config-teams.js"></script>
   <script src="config-color.js"></script>
+
+<!-- TERCERO: Configuración de logos -->
 <script src="config-logos.js"></script>
+
+<!-- CUARTO: Utils (necesita Config) -->
 <script src="utils.js"></script>
+
+<!-- QUINTO: State Manager (usa Config y Utils) -->
 <script src="state-manager.js"></script>
+
+<!-- SEXTO: Error Handler (independiente) -->
 <script src="error-handler.js"></script>
+
+<!-- SÉPTIMO: Validators (usa Config) -->
 <script src="validators.js"></script>
+
+<!-- OCTAVO: Specialties Detector (usa Config) -->
 <script src="specialties-detector.js"></script>
+
+<!-- NOVENO: Render Helpers (usa todo lo anterior) -->
 <script src="render-helpers.js"></script>
 
+<!-- DÉCIMO: Fixes (debe ir ÚLTIMO, corrige todo) -->
+<script src="fixes.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -131,9 +150,10 @@
   <input type="file" id="imageInput" accept="image/*" style="display: none;">
   <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
 
-  <!-- JavaScript principal en orden correcto -->
+  <!-- JavaScript principal con todas las correcciones -->
   <script src="app.js"></script>
-  <script src="pdf-generator-pro.js"></script>
+  <script src="pdf-generator-mejorado.js"></script>
+  <script src="pdf-diagnostic.js"></script>
 
 </body>
 </html>
