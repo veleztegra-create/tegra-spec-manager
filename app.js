@@ -1,11 +1,18 @@
-// ========== app.js - VERSIÓN ULTRA SIMPLIFICADA ==========
+// ========== app.js - VERSIÓN CON MANEJO DE ELEMENTOS NO ENCONTRADOS ==========
 // ========== VARIABLES GLOBALES ==========
 let placements = [];
 let currentPlacementId = 1;
 let isDarkMode = true;
+let templatesLoaded = false;
 
 // ========== FUNCIONES AUXILIARES ==========
-function $(id) { return document.getElementById(id); }
+function $(id) { 
+    const el = document.getElementById(id);
+    if (!el && id !== 'statusMessage') {
+        console.warn(`⚠️ Elemento no encontrado: #${id}`);
+    }
+    return el;
+}
 function $$(sel) { return document.querySelectorAll(sel); }
 
 function showStatus(msg, type = 'success') {
@@ -27,24 +34,65 @@ function setVal(id, val) {
     if (el) el.value = val || '';
 }
 
+// ========== VERIFICAR QUE LOS TEMPLATES ESTÉN CARGADOS ==========
+function waitForElement(id, callback, maxAttempts = 10) {
+    let attempts = 0;
+    const check = setInterval(() => {
+        attempts++;
+        const el = $(id);
+        if (el) {
+            clearInterval(check);
+            callback(el);
+        } else if (attempts >= maxAttempts) {
+            clearInterval(check);
+            console.warn(`⚠️ Elemento #${id} no encontrado después de ${maxAttempts} intentos`);
+        }
+    }, 100);
+}
+
 // ========== NAVEGACIÓN ==========
 function showTab(tabName) {
+    console.log('showTab llamado con:', tabName);
+    
+    // Desactivar todos los tabs
     $$('.tab-content').forEach(t => t.classList.remove('active'));
     $$('.nav-tab').forEach(t => t.classList.remove('active'));
     
+    // Activar el tab seleccionado
     const target = $(tabName);
-    if (target) target.classList.add('active');
+    if (target) {
+        target.classList.add('active');
+    } else {
+        console.warn(`⚠️ Tab #${tabName} no encontrado`);
+        // Intentar de nuevo después de que carguen los templates
+        setTimeout(() => {
+            const retry = $(tabName);
+            if (retry) retry.classList.add('active');
+        }, 500);
+    }
     
+    // Activar el botón de navegación
     $$('.nav-tab').forEach(tab => {
         if (tab.textContent.toLowerCase().includes(tabName.replace('-', ' '))) {
             tab.classList.add('active');
         }
     });
     
-    if (tabName === 'saved-specs') loadSavedSpecsList();
-    if (tabName === 'dashboard') updateDashboard();
-    if (tabName === 'error-log') loadErrorLog();
-    if (tabName === 'spec-creator' && placements.length === 0) initializePlacements();
+    // Acciones específicas - con verificación de elementos
+    setTimeout(() => {
+        if (tabName === 'saved-specs') {
+            waitForElement('saved-specs-list', () => loadSavedSpecsList());
+        }
+        if (tabName === 'dashboard') {
+            waitForElement('total-specs', () => updateDashboard());
+        }
+        if (tabName === 'error-log') {
+            waitForElement('error-log-content', () => loadErrorLog());
+        }
+        if (tabName === 'spec-creator' && placements.length === 0) {
+            waitForElement('placements-container', () => initializePlacements());
+        }
+    }, 100);
 }
 
 // ========== TEMA ==========
@@ -88,6 +136,7 @@ function updateClientLogo() {
 
 // ========== GESTIÓN DE PLACEMENTS ==========
 function initializePlacements() {
+    console.log('Inicializando placements...');
     placements = [];
     addNewPlacement('FRONT', true);
 }
@@ -120,6 +169,12 @@ function addNewPlacement(type = null, isFirst = false) {
     
     if (isFirst) {
         placements = [placement];
+        // No renderizar inmediatamente, esperar a que el contenedor exista
+        waitForElement('placements-container', () => {
+            renderPlacementHTML(placement);
+            updateTabs();
+            showPlacement(id);
+        });
     } else {
         placements.push(placement);
         renderPlacementHTML(placement);
@@ -146,7 +201,9 @@ function updateTabs() {
 
 function showPlacement(id) {
     $$('.placement-section').forEach(s => s.classList.remove('active'));
-    $(`placement-section-${id}`)?.classList.add('active');
+    const section = $(`placement-section-${id}`);
+    if (section) section.classList.add('active');
+    
     $$('.placement-tab').forEach(t => t.classList.toggle('active', parseInt(t.dataset.placementId) === id));
     currentPlacementId = id;
 }
@@ -156,7 +213,8 @@ function removePlacement(id) {
     if (!confirm('¿Eliminar este placement?')) return;
     
     placements = placements.filter(p => p.id !== id);
-    $(`placement-section-${id}`)?.remove();
+    const section = $(`placement-section-${id}`);
+    if (section) section.remove();
     updateTabs();
     
     if (currentPlacementId === id && placements.length) {
@@ -181,7 +239,12 @@ function duplicatePlacement(id) {
 // ========== RENDERIZADO BÁSICO ==========
 function renderPlacementHTML(p) {
     const container = $('placements-container');
-    if (!container || $(`placement-section-${p.id}`)) return;
+    if (!container) {
+        console.warn('⚠️ placements-container no disponible, reintentando...');
+        setTimeout(() => renderPlacementHTML(p), 200);
+        return;
+    }
+    if ($(`placement-section-${p.id}`)) return;
     
     const isCustom = p.type.includes('CUSTOM:');
     const type = isCustom ? p.type.replace('CUSTOM: ', '') : p.type;
@@ -361,7 +424,8 @@ function updateCustomPlacement(id, name) {
 // ========== IMÁGENES ==========
 function openImagePickerForPlacement(id) {
     currentPlacementId = id;
-    $('placementImageInput')?.click();
+    const input = $('placementImageInput');
+    if (input) input.click();
 }
 
 function removePlacementImage(id) {
@@ -463,7 +527,8 @@ function loadSpecData(data) {
     setVal('gender', data.gender);
     setVal('designer', data.designer);
     
-    $('placements-container').innerHTML = '';
+    const container = $('placements-container');
+    if (container) container.innerHTML = '';
     placements = [];
     
     if (data.placements?.length) {
@@ -485,14 +550,42 @@ function loadSpecData(data) {
 
 // ========== DASHBOARD ==========
 function updateDashboard() {
+    console.log('Actualizando dashboard...');
+    
+    const totalEl = $('total-specs');
+    const activeEl = $('active-projects');
+    const todayEl = $('today-specs');
+    const rateEl = $('completion-rate');
+    
+    if (!totalEl || !activeEl || !todayEl || !rateEl) {
+        console.warn('⚠️ Elementos del dashboard no disponibles, reintentando...');
+        setTimeout(updateDashboard, 300);
+        return;
+    }
+    
     const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
-    $('total-specs').textContent = specs.length;
-    $('active-projects').textContent = specs.length;
+    
+    totalEl.textContent = specs.length;
+    activeEl.textContent = specs.length;
+    
+    todayEl.innerHTML = specs.length ? 
+        `<div>Última spec: ${new Date().toLocaleDateString()}</div>` : 
+        '<div>Sin specs</div>';
+    
+    rateEl.innerHTML = `<div>Total: ${specs.length}</div>`;
 }
 
 // ========== SPECS GUARDADAS ==========
 function loadSavedSpecsList() {
+    console.log('Cargando lista de specs...');
+    
     const list = $('saved-specs-list');
+    if (!list) {
+        console.warn('⚠️ saved-specs-list no disponible, reintentando...');
+        setTimeout(loadSavedSpecsList, 300);
+        return;
+    }
+    
     const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
     
     if (!specs.length) {
@@ -507,7 +600,7 @@ function loadSavedSpecsList() {
                 <div style="padding:10px; border-bottom:1px solid #ccc;">
                     <div><strong>${data.style || 'N/A'}</strong> - ${data.customer || 'N/A'}</div>
                     <div style="display:flex; gap:5px; margin-top:5px;">
-                        <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'>Cargar</button>
+                        <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'>Cargar</button>
                         <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')">Eliminar</button>
                     </div>
                 </div>
@@ -538,27 +631,37 @@ function clearAllSpecs() {
 
 // ========== EXPORTACIÓN ==========
 function exportPDF() {
-    showStatus('📄 Generando PDF simple...', 'warning');
+    showStatus('📄 Generando PDF...', 'warning');
     setTimeout(() => {
-        alert('PDF generado (simulado)');
+        alert('Función PDF en desarrollo');
         showStatus('✅ PDF simulado');
     }, 1000);
 }
 
 function exportToExcel() {
-    showStatus('📊 Excel generado (simulado)');
+    showStatus('📊 Generando Excel...', 'warning');
+    setTimeout(() => {
+        alert('Función Excel en desarrollo');
+        showStatus('✅ Excel simulado');
+    }, 1000);
 }
 
 function downloadProjectZip() {
-    showStatus('📦 ZIP generado (simulado)');
+    showStatus('📦 Generando ZIP...', 'warning');
+    setTimeout(() => {
+        alert('Función ZIP en desarrollo');
+        showStatus('✅ ZIP simulado');
+    }, 1000);
 }
 
 // ========== ERROR LOG ==========
 function loadErrorLog() {
     const container = $('error-log-content');
-    if (container) {
-        container.innerHTML = '<p>Log de errores vacío</p>';
+    if (!container) {
+        console.warn('⚠️ error-log-content no disponible');
+        return;
     }
+    container.innerHTML = '<p>Log de errores vacío</p>';
 }
 
 function clearErrorLog() {
@@ -572,65 +675,90 @@ function clearForm() {
         if (i.type !== 'button' && i.type !== 'submit') i.value = '';
     });
     placements = [];
-    $('placements-container').innerHTML = '';
-    $('placements-tabs').innerHTML = '';
+    const container = $('placements-container');
+    if (container) container.innerHTML = '';
+    const tabs = $('placements-tabs');
+    if (tabs) tabs.innerHTML = '';
     initializePlacements();
     showStatus('🧹 Formulario limpiado');
 }
 
 // ========== INICIALIZACIÓN ==========
 document.addEventListener('DOMContentLoaded', () => {
-    updateDashboard();
-    loadSavedSpecsList();
-    setupPasteHandler();
+    console.log('DOM cargado, iniciando app...');
+    
     loadThemePreference();
+    setupPasteHandler();
     
-    $('themeToggle')?.addEventListener('click', toggleTheme);
-    
+    // Esperar a que los templates se carguen
     setTimeout(() => {
-        if (placements.length === 0) initializePlacements();
-    }, 100);
+        updateDashboard();
+        loadSavedSpecsList();
+        
+        if (placements.length === 0) {
+            waitForElement('placements-container', () => initializePlacements());
+        }
+    }, 500);
+    
+    const themeBtn = $('themeToggle');
+    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+    
+    setInterval(() => {
+        const dt = $('current-datetime');
+        if (dt) {
+            dt.textContent = new Date().toLocaleDateString('es-ES', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+    }, 60000);
 });
 
 // ========== INPUT FILE HANDLER ==========
-document.getElementById('excelFile')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file && file.name.endsWith('.json')) {
+const excelInput = $('excelFile');
+if (excelInput) {
+    excelInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file && file.name.endsWith('.json')) {
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    loadSpecData(JSON.parse(ev.target.result));
+                } catch (err) {
+                    showStatus('❌ Error leyendo JSON', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+        e.target.value = '';
+    });
+}
+
+const imageInput = $('placementImageInput');
+if (imageInput) {
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file || !currentPlacementId) return;
+        
+        const p = placements.find(p => p.id === currentPlacementId);
+        if (!p) return;
+        
         const reader = new FileReader();
         reader.onload = ev => {
-            try {
-                loadSpecData(JSON.parse(ev.target.result));
-            } catch (err) {
-                showStatus('❌ Error leyendo JSON', 'error');
+            p.imageData = ev.target.result;
+            const img = $(`img-preview-${currentPlacementId}`);
+            const act = $(`img-actions-${currentPlacementId}`);
+            if (img && act) {
+                img.src = ev.target.result;
+                img.style.display = 'block';
+                act.style.display = 'flex';
             }
+            showStatus('✅ Imagen cargada');
         };
-        reader.readAsText(file);
-    }
-    e.target.value = '';
-});
-
-document.getElementById('placementImageInput')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file || !currentPlacementId) return;
-    
-    const p = placements.find(p => p.id === currentPlacementId);
-    if (!p) return;
-    
-    const reader = new FileReader();
-    reader.onload = ev => {
-        p.imageData = ev.target.result;
-        const img = $(`img-preview-${currentPlacementId}`);
-        const act = $(`img-actions-${currentPlacementId}`);
-        if (img && act) {
-            img.src = ev.target.result;
-            img.style.display = 'block';
-            act.style.display = 'flex';
-        }
-        showStatus('✅ Imagen cargada');
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-});
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    });
+}
 
 // ========== EXPORTAR FUNCIONES GLOBALES ==========
 window.showTab = showTab;
@@ -644,7 +772,6 @@ window.exportToExcel = exportToExcel;
 window.exportPDF = exportPDF;
 window.downloadProjectZip = downloadProjectZip;
 window.updateClientLogo = updateClientLogo;
-
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
 window.showPlacement = showPlacement;
@@ -655,4 +782,4 @@ window.removePlacementImage = removePlacementImage;
 window.addColor = addColor;
 window.removeColor = removeColor;
 
-console.log('✅ app.js cargado - Versión ultra simplificada');
+console.log('✅ app.js cargado - Versión con manejo de elementos dinámicos');
