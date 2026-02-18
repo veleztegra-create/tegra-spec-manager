@@ -1,485 +1,674 @@
-// pdf-generator-mejorado-fix.js
-// Plan C refinado: HTML mockup -> canvas -> PDF (sin distorsión + logos reales)
-// VERSIÓN CORREGIDA - Incluye manejo de errores mejorado y campos faltantes
+// ========== pdf-generator-mejorado.js - VERSIÓN OPTIMIZADA ==========
+// Generador de PDF profesional con html2canvas
 
 async function generateProfessionalPDF(data) {
-  console.log('[PDF] Iniciando generación de PDF con datos:', data);
-  
-  if (typeof window.jspdf === 'undefined') throw new Error('jsPDF no está cargado.');
-  if (typeof window.html2canvas === 'undefined') throw new Error('html2canvas no está cargado.');
-
-  const { jsPDF } = window.jspdf;
-  const placements = Array.isArray(data?.placements) && data.placements.length ? data.placements : [{}];
-  
-  console.log('[PDF] Procesando', placements.length, 'placement(s)');
-  
-  let logos;
-  try {
-    logos = await resolvePdfLogos(data);
-    console.log('[PDF] Logos resueltos:', { tegra: !!logos.tegra, customer: !!logos.customer });
-  } catch (e) {
-    console.warn('[PDF] Error al resolver logos:', e);
-    logos = { tegra: '', customer: '' };
-  }
-
-  const host = document.createElement('div');
-  host.id = 'tegra-pdf-render-host';
-  host.style.position = 'absolute';
-  host.style.left = '-9999px';
-  host.style.top = '0';
-  host.style.opacity = '0';
-  host.style.pointerEvents = 'none';
-  host.style.width = '1050px';
-  host.style.zIndex = '-1';
-  host.style.background = '#ffffff';
-  document.body.appendChild(host);
-
-  try {
-    const canvases = [];
-    for (let i = 0; i < placements.length; i++) {
-      console.log(`[PDF] Procesando placement ${i + 1}/${placements.length}`);
-      
-      const placement = placements[i];
-      // Asegurar que el placement tenga un título
-      if (!placement.title && placement.type) {
-        placement.title = placement.type;
-      }
-      
-      host.innerHTML = buildSpecPageHtml(data, placement, i, placements.length, logos);
-      const target = host.querySelector('.mockup-container');
-      
-      if (!target) {
-        console.error('[PDF] No se pudo construir el layout del PDF');
-        throw new Error('No se pudo construir el layout del PDF.');
-      }
-      
-      // Esperar a que las imágenes se carguen
-      await waitForImages(target);
-      // Dar tiempo adicional para que el DOM se renderice completamente
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      const captureWidth = Math.max(target.scrollWidth, target.offsetWidth, 1050);
-      const captureHeight = Math.max(target.scrollHeight, target.offsetHeight, 1400);
-
-      console.log(`[PDF] Capturando canvas: ${captureWidth}x${captureHeight}`);
-
-      try {
-        const canvas = await window.html2canvas(target, {
-          backgroundColor: '#ffffff',
-          scale: 2,
-          useCORS: true,
-          allowTaint: true, // Permitir imágenes de otros dominios
-          logging: false,
-          width: captureWidth,
-          height: captureHeight,
-          windowWidth: captureWidth,
-          windowHeight: captureHeight,
-          scrollX: 0,
-          scrollY: 0,
-          onclone: (clonedDoc) => {
-            // Asegurar que el elemento clonado sea visible
-            const clonedHost = clonedDoc.getElementById('tegra-pdf-render-host');
-            if (clonedHost) {
-              clonedHost.style.opacity = '1';
-              clonedHost.style.left = '0';
-            }
-          }
-        });
-        canvases.push(canvas);
-        console.log(`[PDF] Canvas ${i + 1} capturado exitosamente`);
-      } catch (canvasError) {
-        console.error(`[PDF] Error al capturar canvas ${i + 1}:`, canvasError);
-        throw canvasError;
-      }
-    }
-
-    console.log('[PDF] Creando PDF final con', canvases.length, 'página(s)');
-
-    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = pdf.internal.pageSize.getHeight();
-    const marginMm = 6.35; // 1/4"
-    const printableW = pdfW - (marginMm * 2);
-    const printableH = pdfH - (marginMm * 2);
-
-    let pageIndex = 0;
-    for (const canvas of canvases) {
-      const imgW = canvas.width;
-      const imgH = canvas.height;
-      const slicePx = Math.floor((printableH / printableW) * imgW);
-
-      for (let offsetY = 0; offsetY < imgH; offsetY += slicePx) {
-        const currentSliceHeight = Math.min(slicePx, imgH - offsetY);
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = imgW;
-        sliceCanvas.height = currentSliceHeight;
-
-        const ctx = sliceCanvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(canvas, 0, offsetY, imgW, currentSliceHeight, 0, 0, imgW, currentSliceHeight);
-
-        if (pageIndex > 0) pdf.addPage('letter', 'p');
-        
-        try {
-          const sliceImg = sliceCanvas.toDataURL('image/jpeg', 0.95);
-          const renderH = (currentSliceHeight / imgW) * printableW;
-          pdf.addImage(sliceImg, 'JPEG', marginMm, marginMm, printableW, renderH, undefined, 'FAST');
-          pageIndex += 1;
-        } catch (imgError) {
-          console.error('[PDF] Error al agregar imagen al PDF:', imgError);
-        }
-      }
-    }
-
-    console.log('[PDF] PDF generado exitosamente con', pageIndex, 'página(s)');
-    return pdf.output('blob');
+    console.log('[PDF] Iniciando generación con datos:', data);
     
-  } catch (error) {
-    console.error('[PDF] Error en generateProfessionalPDF:', error);
-    throw error;
-  } finally {
-    host.remove();
-    console.log('[PDF] Host de renderizado eliminado');
-  }
+    // Validaciones rápidas
+    if (!window.jspdf?.jsPDF) throw new Error('jsPDF no está cargado');
+    if (!window.html2canvas) throw new Error('html2canvas no está cargado');
+    
+    const { jsPDF } = window.jspdf;
+    const placements = data?.placements?.length ? data.placements : [{}];
+    
+    // Resolver logos una sola vez
+    const logos = await resolveLogos(data);
+    
+    // Host temporal para renderizado
+    const host = createRenderHost();
+    
+    try {
+        // Generar canvas para cada placement
+        const canvases = [];
+        for (let i = 0; i < placements.length; i++) {
+            console.log(`[PDF] Renderizando placement ${i + 1}/${placements.length}`);
+            
+            host.innerHTML = buildPageHTML(data, placements[i], i, placements.length, logos);
+            const container = host.querySelector('.pdf-container');
+            if (!container) throw new Error('No se pudo crear el layout');
+            
+            await waitForImages(container);
+            await new Promise(r => setTimeout(r, 200)); // Estabilización
+            
+            const canvas = await html2canvas(container, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                allowTaint: true,
+                logging: false,
+                windowWidth: 1050,
+                windowHeight: Math.min(container.scrollHeight, 2000)
+            });
+            
+            canvases.push(canvas);
+        }
+        
+        // Crear PDF y agregar páginas
+        return createPDFFromCanvases(canvases);
+        
+    } finally {
+        host.remove();
+        console.log('[PDF] Render host eliminado');
+    }
 }
 
-async function resolvePdfLogos(data) {
-  const logoCfg = window.LogoConfig || {};
-  const customerKey = normalizeLogoKey(data?.customer || '');
-  const customerSrc = logoCfg[customerKey] || '';
-  const tegraSrc = logoCfg.TEGRA || 'https://raw.githubusercontent.com/veleztegra-create/costos/main/tegra%20logo.png';
+// ========== FUNCIONES PRIVADAS ==========
 
-  console.log('[PDF] Resolviendo logos - Customer key:', customerKey, 'Src:', customerSrc);
-
-  return {
-    tegra: await toDataUrlIfPossible(tegraSrc),
-    customer: await toDataUrlIfPossible(customerSrc)
-  };
+function createRenderHost() {
+    const host = document.createElement('div');
+    host.id = 'pdf-render-host';
+    host.style.cssText = 'position:fixed; left:-9999px; top:0; width:1050px; background:white; z-index:-1; opacity:0; pointer-events:none;';
+    document.body.appendChild(host);
+    return host;
 }
 
-function normalizeLogoKey(customer) {
-  return String(customer || '')
-    .toUpperCase()
-    .replace(/&/g, 'AND')
-    .replace(/[^A-Z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
+async function resolveLogos(data) {
+    const cfg = window.LogoConfig || {};
+    const customerKey = normalizeKey(data?.customer || '');
+    
+    return {
+        tegra: await toDataURL(cfg.TEGRA || 'https://raw.githubusercontent.com/veleztegra-create/costos/main/tegra%20logo.png'),
+        customer: await toDataURL(cfg[customerKey] || '')
+    };
 }
 
-async function toDataUrlIfPossible(src) {
-  const input = String(src || '').trim();
-  if (!input) return '';
-  if (input.startsWith('data:')) return input;
+function normalizeKey(str) {
+    return String(str || '').toUpperCase()
+        .replace(/&/g, 'AND')
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
 
-  try {
-    const res = await fetch(input, { mode: 'cors' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    return await new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onloadend = () => resolve(fr.result);
-      fr.onerror = reject;
-      fr.readAsDataURL(blob);
-    });
-  } catch (e) {
-    console.warn('[PDF] No se pudo cargar imagen:', src, e.message);
-    // Evita canvas tainted por URLs sin CORS al exportar con html2canvas
-    return '';
-  }
+async function toDataURL(src) {
+    if (!src || src.startsWith('data:')) return src;
+    
+    try {
+        const res = await fetch(src, { mode: 'cors', cache: 'force-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        console.warn('[PDF] No se pudo cargar imagen:', src);
+        return '';
+    }
 }
 
 function waitForImages(root) {
-  const images = Array.from(root.querySelectorAll('img'));
-  if (!images.length) return Promise.resolve();
-
-  console.log('[PDF] Esperando', images.length, 'imagen(es)');
-
-  return Promise.all(images.map((img) => new Promise((resolve) => {
-    if (img.complete && img.naturalWidth > 0) {
-      console.log('[PDF] Imagen ya cargada:', img.alt || 'sin alt');
-      return resolve();
-    }
-    const done = () => {
-      console.log('[PDF] Imagen cargada:', img.alt || 'sin alt');
-      resolve();
-    };
-    img.addEventListener('load', done, { once: true });
-    img.addEventListener('error', () => {
-      console.warn('[PDF] Error al cargar imagen:', img.alt || 'sin alt');
-      resolve(); // Resolver de todos modos para no bloquear
-    }, { once: true });
-    // Timeout de seguridad
-    setTimeout(() => {
-      console.warn('[PDF] Timeout esperando imagen:', img.alt || 'sin alt');
-      resolve();
-    }, 3000);
-  })));
+    const images = root.querySelectorAll('img');
+    if (!images.length) return Promise.resolve();
+    
+    return Promise.all([...images].map(img => new Promise(resolve => {
+        if (img.complete && img.naturalWidth) return resolve();
+        
+        const timeout = setTimeout(() => {
+            console.warn('[PDF] Timeout imagen:', img.alt);
+            resolve();
+        }, 2000);
+        
+        img.onload = () => { clearTimeout(timeout); resolve(); };
+        img.onerror = () => { clearTimeout(timeout); resolve(); };
+    })));
 }
 
-function buildSpecPageHtml(data, placement, index, total, logos = {}) {
-  const escaped = (v) => String(v ?? '').replace(/[&<"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-
-  const customer = escaped((data.customer || 'N/A').toUpperCase());
-  // CORRECCIÓN: Usar placement.type si no hay title
-  const placementType = escaped((placement.title || placement.type || 'FRONT').toUpperCase());
-  const colors = Array.isArray(placement.colors) ? placement.colors : [];
-  const stations = generateStationsDataProfessional(placement);
-
-  const infoRows = [
-    ['Cliente', data.customer], ['Season', data.season],
-    ['Style', data.style], ['Colorway', data.colorway],
-    ['P.O. #', data.po], ['Team', data.nameTeam],
-    ['Sample Type', data.sampleType], ['Gender', data.gender],
-    ['Designer', data.designer], ['Desarrollado por', data.developedBy || data.sampleDevelopedBy]
-  ];
-
-  const infoHtml = infoRows.map(([label, val]) => `
-    <div class="info-row">
-      <span class="info-label">${escaped(label)}:</span>
-      <span class="info-value">${escaped(val || '---')}</span>
-    </div>`).join('');
-
-  const colorsHtml = colors.length ? colors.map((c, i) => {
-    const name = escaped(c?.val || 'N/A');
-    const hex = escapeCssColor(safeResolveColor(c?.val));
-    return `<div class="color-swatch"><div class="color-box" style="background:${hex};"></div><div class="color-info"><span class="color-number">${i + 1}</span><span class="color-name">${name}</span></div></div>`;
-  }).join('') : '<div class="muted">Sin colores registrados.</div>';
-
-  const seqRowsHtml = stations.length ? stations.map((row) => {
-    const isFlash = /FLASH|COOL/.test(String(row.screenCombined || '').toUpperCase());
-    if (isFlash) {
-      return `<tr class="flash-row"><td class="station-number">${escaped(row.st)}</td><td></td><td colspan="7">${escaped(row.screenCombined)}</td></tr>`;
-    }
-    return `<tr>
-      <td class="station-number">${escaped(row.st)}</td>
-      <td class="screen-letter">${escaped(row.screenLetter)}</td>
-      <td class="ink-name">${escaped(row.screenCombined)}</td>
-      <td class="additives">${escaped(row.add || '')}</td>
-      <td>${escaped(row.mesh)}</td>
-      <td>${escaped(row.strokes)}</td>
-      <td>${escaped(row.angle)}</td>
-      <td>${escaped(row.pressure)}</td>
-      <td>${escaped(row.duro)}</td>
-    </tr>`;
-  }).join('') : '<tr><td colspan="9" class="muted">Sin secuencia de impresión.</td></tr>';
-
-  const technicalComments = escaped(placement.technicalComments || placement.specialInstructions || data.technicalComments || 'Ningún comentario técnico registrado.');
-  const placementImage = placement.imageData && String(placement.imageData).startsWith('data:') ? String(placement.imageData) : '';
-  const tegraLogoHtml = logos.tegra ? `<img class="tegra-logo" src="${logos.tegra}" alt="TEGRA" crossorigin="anonymous">` : '<div class="tegra-fallback">TEGRA</div>';
-  const customerLogoHtml = logos.customer ? `<img class="customer-logo" src="${logos.customer}" alt="${customer}" crossorigin="anonymous">` : `<span class="customer-fallback">${customer}</span>`;
-
-  const now = new Date().toLocaleString('es-ES', { hour12: false });
-  
-  // CORRECCIÓN: Asegurar que todos los campos tengan valores por defecto
-  const inkType = placement.inkType || 'WATER';
-  const width = placement.width || '--';
-  const height = placement.height || '--';
-  const placementDetails = placement.placementDetails || '---';
-  const specialties = placement.specialties || '—';
-  const temp = placement.temp || '320°F';
-  const time = placement.time || '1:40 min';
-
-  return `
-  <style>
-      :root { --tegra-red:#E31837; --tegra-red-dark:#8B0000; --tegra-gray-dark:#1A1A1A; --tegra-gray-light:#F5F5F5; --text-dark:#1A1A1A; --text-muted:#666; --border-light:#E0E0E0; }
-      *{ box-sizing:border-box; margin:0; padding:0; }
-      .mockup-container{ width:1050px; background:white; color:var(--text-dark); font-family:Arial,Helvetica,sans-serif; }
-      .spec-header{ background:linear-gradient(135deg,var(--tegra-red-dark),var(--tegra-red)); color:#fff; display:grid; grid-template-columns:180px 1fr 200px 140px; min-height:90px; align-items:center; }
-      .header-logo,.header-title,.header-customer,.header-folder{ padding:14px; }
-      .header-logo{ border-right:1px solid rgba(255,255,255,.22); display:flex; align-items:center; justify-content:center; }
-      .tegra-logo{ max-width:145px; max-height:52px; object-fit:contain; filter:brightness(0) invert(1); }
-      .tegra-fallback{ font-weight:800; font-size:34px; }
-      .header-title h1{ font-size:30px; letter-spacing:.6px; text-transform:uppercase; }
-      .header-title p{ margin-top:5px; font-size:12px; opacity:.9; }
-      .header-customer{ border-left:1px solid rgba(255,255,255,.22); border-right:1px solid rgba(255,255,255,.22); text-align:center; }
-      .header-customer-label{ font-size:10px; text-transform:uppercase; opacity:.86; margin-bottom:7px; font-weight:700; }
-      .header-customer-logo{ background:rgba(255,255,255,.95); border-radius:4px; padding:8px 10px; min-height:42px; display:flex; align-items:center; justify-content:center; }
-      .customer-logo{ max-width:150px; max-height:26px; object-fit:contain; }
-      .customer-fallback{ font-size:13px; font-weight:700; color:#1a1a1a; }
-      .header-folder{ text-align:right; }
-      .folder-label{ font-size:10px; text-transform:uppercase; opacity:.86; }
-      .folder-number{ font-size:35px; font-weight:800; line-height:1.1; }
-      .info-section{ background:var(--tegra-gray-light); padding:18px 22px; border-bottom:3px solid var(--tegra-red); }
-      .section-title{ font-size:22px; text-transform:uppercase; color:var(--tegra-red); margin-bottom:10px; }
-      .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 30px; }
-      .info-row{ display:flex; align-items:baseline; gap:8px; }
-      .info-label{ font-weight:700; font-size:12px; text-transform:uppercase; min-width:115px; }
-      .info-value{ font-size:13px; font-weight:600; border-bottom:1px solid #ccc; flex:1; }
-      .placement-section{ padding:18px 22px; }
-      .placement-header-bar{ margin:-18px -22px 14px; background:var(--tegra-red); color:white; padding:10px 14px; font-size:22px; font-weight:700; text-transform:uppercase; }
-      .placement-content{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-      .placement-image-container{ position:relative; min-height:250px; background:linear-gradient(135deg,#f8f8f8,#e8e8e8); border-radius:8px; border:2px solid var(--border-light); display:flex; align-items:center; justify-content:center; overflow:hidden; }
-      .placement-image{ width:100%; height:100%; object-fit:contain; }
-      .placement-placeholder{ font-size:14px; color:#777; }
-      .placement-badge{ position:absolute; top:8px; right:8px; background:var(--tegra-red); color:white; padding:5px 9px; border-radius:4px; font-size:11px; font-weight:700; }
-      .placement-details-panel{ background:var(--tegra-gray-light); border-radius:8px; padding:12px; border-left:4px solid var(--tegra-red); }
-      .detail-row{ display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid #ddd; }
-      .detail-row:last-child{ border-bottom:none; }
-      .detail-label{ font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); }
-      .detail-value{ font-size:13px; font-weight:700; text-align:right; }
-      .detail-value.highlight{ color:var(--tegra-red); }
-      .colors-section,.sequence-section,.curing-section,.comments-section{ margin-top:14px; }
-      .colors-grid{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
-      .color-swatch{ display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f5f5f5; border:1px solid #e0e0e0; border-radius:6px; min-width:170px; }
-      .color-box{ width:20px; height:20px; border:2px solid white; box-shadow:0 1px 3px rgba(0,0,0,.2); border-radius:4px; }
-      .color-number{ font-size:11px; font-weight:700; color:var(--tegra-red); display:block; }
-      .color-name{ font-size:11px; color:#444; }
-      .sequence-header{ background:var(--tegra-red); color:#fff; padding:9px 12px; font-size:14px; font-weight:700; text-transform:uppercase; }
-      .sequence-table{ width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
-      .sequence-table th{ background:var(--tegra-gray-dark); color:#fff; padding:6px 5px; text-align:left; font-size:9px; }
-      .sequence-table td{ border-bottom:1px solid #eee; padding:5px; vertical-align:top; overflow-wrap:anywhere; }
-      .sequence-table th:nth-child(1), .sequence-table td:nth-child(1){ width:34px; text-align:center; }
-      .sequence-table th:nth-child(2), .sequence-table td:nth-child(2){ width:34px; }
-      .sequence-table th:nth-child(3), .sequence-table td:nth-child(3){ width:190px; }
-      .sequence-table th:nth-child(4), .sequence-table td:nth-child(4){ width:170px; }
-      .flash-row{ background:#f5f5f5; font-style:italic; }
-      .station-number,.screen-letter{ font-weight:700; color:var(--tegra-red); }
-      .curing-section{ background:linear-gradient(135deg,var(--tegra-gray-light),#e8e8e8); border-left:4px solid var(--tegra-red); border-radius:8px; padding:10px; }
-      .curing-title{ font-size:13px; font-weight:800; color:var(--tegra-red); text-transform:uppercase; margin-bottom:6px; }
-      .curing-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center; }
-      .curing-label{ font-size:10px; text-transform:uppercase; color:var(--text-muted); }
-      .curing-value{ font-size:19px; font-weight:800; }
-      .comments-section{ border:1px solid #e0b100; border-radius:6px; overflow:hidden; }
-      .comments-title{ background:#ffc107; padding:7px 10px; font-size:12px; font-weight:800; text-transform:uppercase; }
-      .comments-body{ background:#fffde7; padding:10px; font-size:12px; min-height:42px; }
-      .spec-footer{ background:var(--tegra-gray-dark); color:#fff; margin-top:14px; padding:10px 14px; display:flex; justify-content:space-between; font-size:11px; }
-      .muted{ color:#777; text-align:center; padding:8px; }
-    </style>
-  <div class="mockup-container">
-    <header class="spec-header">
-      <div class="header-logo">${tegraLogoHtml}</div>
-      <div class="header-title"><h1>Technical Spec Manager</h1><p>Sistema de gestión de especificaciones técnicas</p></div>
-      <div class="header-customer"><div class="header-customer-label">Customer / Cliente</div><div class="header-customer-logo">${customerLogoHtml}</div></div>
-      <div class="header-folder"><div class="folder-label"># Folder</div><div class="folder-number">${escaped(data.folder || '#####')}</div></div>
-    </header>
-
-    <section class="info-section"><h2 class="section-title">Información General</h2><div class="info-grid">${infoHtml}</div></section>
-
-    <section class="placement-section">
-      <div class="placement-header-bar">Placement: ${placementType}</div>
-      <div class="placement-content">
-        <div class="placement-image-container">
-          <span class="placement-badge">${placementType}</span>
-          ${placementImage ? `<img class="placement-image" src="${placementImage}" alt="placement" crossorigin="anonymous">` : '<div class="placement-placeholder">Sin imagen de referencia</div>'}
-        </div>
-        <div class="placement-details-panel">
-          <div class="detail-row"><span class="detail-label">Tipo de Tinta</span><span class="detail-value highlight">${escaped(inkType)}</span></div>
-          <div class="detail-row"><span class="detail-label">Dimensiones</span><span class="detail-value">${escaped(`${width} x ${height}`)}</span></div>
-          <div class="detail-row"><span class="detail-label">Ubicación</span><span class="detail-value">${escaped(placementDetails)}</span></div>
-          <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${escaped(specialties)}</span></div>
-        </div>
-      </div>
-
-      <div class="colors-section"><div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#555;">Colores y Tintas</div><div class="colors-grid">${colorsHtml}</div></div>
-
-      <div class="sequence-section">
-        <div class="sequence-header">Secuencia de Impresión - ${placementType}</div>
-        <table class="sequence-table"><thead><tr><th>Est</th><th>Scr.</th><th>Screen (Tinta/Proceso)</th><th>Aditivos</th><th>Malla</th><th>Strokes</th><th>Angle</th><th>Pressure</th><th>Duro</th></tr></thead><tbody>${seqRowsHtml}</tbody></table>
-      </div>
-
-      <div class="curing-section"><h3 class="curing-title">Condiciones de Curado</h3><div class="curing-grid">
-        <div><div class="curing-label">Temperatura</div><div class="curing-value">${escaped(temp)}</div></div>
-        <div><div class="curing-label">Tiempo</div><div class="curing-value">${escaped(time)}</div></div>
-        <div><div class="curing-label">Tipo de Tinta</div><div class="curing-value" style="font-size:16px;color:#E31837;">${escaped(inkType)}</div></div>
-      </div></div>
-
-      <div class="comments-section"><div class="comments-title">Technical Comments / Comentarios Técnicos</div><div class="comments-body">${technicalComments}</div></div>
-    </section>
-
-    <footer class="spec-footer"><div>Generado: ${escaped(now)}</div><div><strong>TEGRA SPEC MANAGER</strong></div><div>Placement ${index + 1} de ${total}</div></footer>
-  </div>`;
-}
-
-function safeResolveColor(input) {
-  try {
-    if (window.ColorConfig?.findColorHex) return window.ColorConfig.findColorHex(input) || '#999999';
-    if (window.Utils?.getColorHex) return window.Utils.getColorHex(input) || '#999999';
-  } catch (_) {
-    return '#999999';
-  }
-  return '#999999';
-}
-
-function escapeCssColor(hex) {
-  const clean = String(hex || '').trim();
-  return /^#?[0-9a-fA-F]{3,8}$/.test(clean) ? (clean.startsWith('#') ? clean : `#${clean}`) : '#999999';
-}
-
-function generateStationsDataProfessional(placement) {
-  const stations = [];
-  let stNum = 1;
-  const preset = getInkPresetForPDFProfessional(placement.inkType || 'WATER');
-
-  const meshColor = placement.meshColor || preset.color.mesh;
-  const meshWhite = placement.meshWhite || preset.white.mesh1;
-  const meshBlocker = placement.meshBlocker || preset.blocker.mesh1;
-  const durometer = placement.durometer || preset.color.durometer;
-  const strokes = placement.strokes || preset.color.strokes;
-  const angle = placement.angle || preset.color.angle;
-  const pressure = placement.pressure || preset.color.pressure;
-  // CORRECCIÓN: Agregar speed que faltaba
-  const speed = placement.speed || preset.color.speed;
-  const additives = placement.additives || preset.color.additives;
-
-  if (Array.isArray(placement.colors)) {
-    placement.colors.forEach((item, idx) => {
-      let mesh = meshColor;
-      let strokesVal = strokes;
-      let duro = durometer;
-      let ang = angle;
-      let press = pressure;
-      // CORRECCIÓN: Incluir speed en cada estación
-      let spd = speed;
-      let add = additives;
-
-      if (item.type === 'BLOCKER') {
-        mesh = meshBlocker;
-        add = preset.blocker.additives;
-      }
-      if (item.type === 'WHITE_BASE') {
-        mesh = meshWhite;
-        add = preset.white.additives;
-      }
-      if (item.type === 'METALLIC') {
-        mesh = '110/64';
-        strokesVal = '1';
-        duro = '70';
-        add = 'Catalizador especial';
-      }
-
-      stations.push({
-        st: stNum++,
-        screenLetter: item.screenLetter || '',
-        screenCombined: item.val || '---',
-        mesh,
-        strokes: strokesVal,
-        duro,
-        angle: ang,
-        pressure: press,
-        // CORRECCIÓN: Incluir speed
-        speed: spd,
-        add
-      });
-
-      if (idx < placement.colors.length - 1) {
-        stations.push({ st: stNum++, screenLetter: '', screenCombined: 'FLASH', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-', add: '' });
-        stations.push({ st: stNum++, screenLetter: '', screenCombined: 'COOL', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-', add: '' });
-      }
+function createPDFFromCanvases(canvases) {
+    const pdf = new window.jspdf.jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'letter'
     });
-  }
-
-  return stations;
+    
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 6.35; // 1/4 pulgada
+    const printableW = pageW - margin * 2;
+    
+    let pageCount = 0;
+    
+    canvases.forEach((canvas, idx) => {
+        const imgW = canvas.width;
+        const imgH = canvas.height;
+        const sliceH = Math.floor((pageH - margin * 2) / printableW * imgW);
+        
+        for (let offset = 0; offset < imgH; offset += sliceH) {
+            if (pageCount++ > 0) pdf.addPage();
+            
+            const currentSlice = Math.min(sliceH, imgH - offset);
+            const sliceCanvas = document.createElement('canvas');
+            sliceCanvas.width = imgW;
+            sliceCanvas.height = currentSlice;
+            
+            const ctx = sliceCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, imgW, currentSlice);
+            ctx.drawImage(canvas, 0, offset, imgW, currentSlice, 0, 0, imgW, currentSlice);
+            
+            pdf.addImage(
+                sliceCanvas.toDataURL('image/jpeg', 0.95),
+                'JPEG',
+                margin,
+                margin,
+                printableW,
+                (currentSlice / imgW) * printableW,
+                undefined,
+                'FAST'
+            );
+        }
+    });
+    
+    console.log(`[PDF] Generado con ${pageCount} página(s)`);
+    return pdf.output('blob');
 }
 
-function getInkPresetForPDFProfessional(inkType = 'WATER') {
-  if (window.Config?.INK_PRESETS?.[inkType]) return window.Config.INK_PRESETS[inkType];
-  return {
-    temp: '320°F',
-    time: '1:40 min',
-    blocker: { name: 'BLOCKER CHT', mesh1: '122/55', additives: 'N/A' },
-    white: { name: 'AQUAFLEX V2 WHITE', mesh1: '198/40', additives: 'N/A' },
-    color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3% cross-linker 500 · 1.5% antitack' }
-  };
+// ========== CONSTRUCCIÓN HTML DEL PDF ==========
+function buildPageHTML(data, placement, index, total, logos) {
+    const esc = str => String(str || '').replace(/[&<>"]/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+    })[m]);
+    
+    // Datos básicos
+    const customer = esc(data.customer || 'N/A').toUpperCase();
+    const type = esc(placement.title || placement.type || 'FRONT').toUpperCase();
+    const colors = placement.colors || [];
+    const stations = generateStations(placement);
+    
+    // Información general
+    const infoRows = [
+        ['Cliente', data.customer], ['Season', data.season],
+        ['Style', data.style], ['Colorway', data.colorway],
+        ['P.O. #', data.po], ['Team', data.nameTeam],
+        ['Sample Type', data.sampleType], ['Gender', data.gender],
+        ['Designer', data.designer], ['Desarrollado por', data.developedBy || '']
+    ];
+    
+    // HTML de colores
+    const colorsHTML = colors.length ? colors.map((c, i) => {
+        const name = esc(c.val || 'N/A');
+        const hex = getColorHex(c.val) || '#999999';
+        return `
+            <div class="color-item">
+                <div class="color-box" style="background:${hex};"></div>
+                <div class="color-label">
+                    <span class="color-number">${i + 1}</span>
+                    <span class="color-name">${name}</span>
+                </div>
+            </div>
+        `;
+    }).join('') : '<div class="muted">Sin colores</div>';
+    
+    // HTML de secuencia
+    const seqHTML = stations.length ? stations.map(row => {
+        if (row.screenCombined === 'FLASH' || row.screenCombined === 'COOL') {
+            return `<tr class="flash-row"><td colspan="9">${row.screenCombined}</td></tr>`;
+        }
+        return `
+            <tr>
+                <td>${row.st}</td>
+                <td class="screen-letter">${row.screenLetter || ''}</td>
+                <td>${row.screenCombined}</td>
+                <td>${row.add || ''}</td>
+                <td>${row.mesh || ''}</td>
+                <td>${row.strokes || ''}</td>
+                <td>${row.angle || ''}</td>
+                <td>${row.pressure || ''}</td>
+                <td>${row.duro || ''}</td>
+            </tr>
+        `;
+    }).join('') : '<tr><td colspan="9" class="muted">Sin secuencia</td></tr>';
+    
+    // Comentarios
+    const comments = esc(placement.technicalComments || placement.specialInstructions || data.technicalComments || '');
+    
+    // Logos
+    const tegraLogo = logos.tegra ? `<img class="logo-tegra" src="${logos.tegra}" alt="TEGRA">` : '<div class="logo-fallback">TEGRA</div>';
+    const customerLogo = logos.customer ? `<img class="logo-customer" src="${logos.customer}" alt="${customer}">` : `<span class="customer-fallback">${customer}</span>`;
+    
+    // Fecha
+    const date = new Date().toLocaleString('es-ES', { hour12: false });
+    
+    return `
+        <style>
+            .pdf-container {
+                width: 1050px;
+                background: white;
+                font-family: Arial, Helvetica, sans-serif;
+                color: #1a1a1a;
+            }
+            .header {
+                background: linear-gradient(135deg, #8B0000, #E31837);
+                color: white;
+                display: grid;
+                grid-template-columns: 180px 1fr 200px 140px;
+                min-height: 90px;
+                align-items: center;
+            }
+            .header-logo, .header-title, .header-customer, .header-folder {
+                padding: 14px;
+            }
+            .header-logo { border-right: 1px solid rgba(255,255,255,0.2); }
+            .logo-tegra { max-width: 145px; max-height: 52px; filter: brightness(0) invert(1); }
+            .header-title h1 { font-size: 30px; margin: 0; }
+            .header-title p { font-size: 12px; opacity: 0.9; margin: 5px 0 0; }
+            .header-customer {
+                border-left: 1px solid rgba(255,255,255,0.2);
+                border-right: 1px solid rgba(255,255,255,0.2);
+                text-align: center;
+            }
+            .customer-label { font-size: 10px; opacity: 0.86; margin-bottom: 7px; }
+            .logo-customer { max-width: 150px; max-height: 26px; object-fit: contain; }
+            .folder-number { font-size: 35px; font-weight: 800; }
+            .info-section {
+                background: #f5f5f5;
+                padding: 18px 22px;
+                border-bottom: 3px solid #E31837;
+            }
+            .section-title {
+                font-size: 22px;
+                color: #E31837;
+                margin: 0 0 10px 0;
+            }
+            .info-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px 30px;
+            }
+            .info-row {
+                display: flex;
+                gap: 8px;
+            }
+            .info-label {
+                font-weight: 700;
+                font-size: 12px;
+                min-width: 115px;
+            }
+            .info-value {
+                font-size: 13px;
+                border-bottom: 1px solid #ccc;
+                flex: 1;
+            }
+            .placement-section { padding: 18px 22px; }
+            .placement-header {
+                background: #E31837;
+                color: white;
+                padding: 10px 14px;
+                font-size: 22px;
+                font-weight: 700;
+                margin: -18px -22px 14px;
+            }
+            .placement-content {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+                margin-bottom: 14px;
+            }
+            .image-container {
+                background: linear-gradient(135deg, #f8f8f8, #e8e8e8);
+                border-radius: 8px;
+                border: 2px solid #e0e0e0;
+                min-height: 250px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+            }
+            .placement-image {
+                max-width: 100%;
+                max-height: 250px;
+                object-fit: contain;
+            }
+            .placement-badge {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: #E31837;
+                color: white;
+                padding: 5px 9px;
+                border-radius: 4px;
+                font-size: 11px;
+            }
+            .details-panel {
+                background: #f5f5f5;
+                border-radius: 8px;
+                padding: 12px;
+                border-left: 4px solid #E31837;
+            }
+            .detail-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #ddd;
+            }
+            .detail-row:last-child { border-bottom: none; }
+            .detail-label {
+                font-size: 11px;
+                font-weight: 700;
+                color: #666;
+            }
+            .detail-value {
+                font-size: 13px;
+                font-weight: 700;
+            }
+            .colors-section {
+                margin: 14px 0;
+            }
+            .colors-grid {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 8px;
+            }
+            .color-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 10px;
+                background: #f5f5f5;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                min-width: 170px;
+            }
+            .color-box {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            }
+            .color-number {
+                font-size: 11px;
+                font-weight: 700;
+                color: #E31837;
+                display: block;
+            }
+            .color-name { font-size: 11px; }
+            .sequence-header {
+                background: #E31837;
+                color: white;
+                padding: 9px 12px;
+                font-weight: 700;
+            }
+            .sequence-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 10px;
+            }
+            .sequence-table th {
+                background: #1a1a1a;
+                color: white;
+                padding: 6px 5px;
+                text-align: left;
+            }
+            .sequence-table td {
+                padding: 5px;
+                border-bottom: 1px solid #eee;
+            }
+            .screen-letter { color: #E31837; font-weight: 700; }
+            .flash-row { background: #f5f5f5; font-style: italic; }
+            .curing-section {
+                background: #f5f5f5;
+                border-left: 4px solid #E31837;
+                border-radius: 8px;
+                padding: 10px;
+                margin: 14px 0;
+            }
+            .curing-title {
+                font-size: 13px;
+                font-weight: 800;
+                color: #E31837;
+                margin-bottom: 6px;
+            }
+            .curing-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                text-align: center;
+            }
+            .curing-value { font-size: 19px; font-weight: 800; }
+            .comments-section {
+                border: 1px solid #ffc107;
+                border-radius: 6px;
+                overflow: hidden;
+            }
+            .comments-title {
+                background: #ffc107;
+                padding: 7px 10px;
+                font-weight: 800;
+            }
+            .comments-body {
+                background: #fffde7;
+                padding: 10px;
+                font-size: 12px;
+                min-height: 42px;
+            }
+            .footer {
+                background: #1a1a1a;
+                color: white;
+                padding: 10px 14px;
+                display: flex;
+                justify-content: space-between;
+                font-size: 11px;
+                margin-top: 14px;
+            }
+            .muted { color: #777; text-align: center; padding: 8px; }
+        </style>
+        
+        <div class="pdf-container">
+            <!-- HEADER -->
+            <div class="header">
+                <div class="header-logo">${tegraLogo}</div>
+                <div class="header-title">
+                    <h1>Technical Spec Manager</h1>
+                    <p>Sistema de gestión de especificaciones</p>
+                </div>
+                <div class="header-customer">
+                    <div class="customer-label">CUSTOMER / CLIENTE</div>
+                    <div>${customerLogo}</div>
+                </div>
+                <div class="header-folder">
+                    <div class="customer-label"># FOLDER</div>
+                    <div class="folder-number">${esc(data.folder || '#####')}</div>
+                </div>
+            </div>
+            
+            <!-- INFO GENERAL -->
+            <div class="info-section">
+                <h2 class="section-title">Información General</h2>
+                <div class="info-grid">
+                    ${infoRows.map(([l, v]) => `
+                        <div class="info-row">
+                            <span class="info-label">${l}:</span>
+                            <span class="info-value">${esc(v || '---')}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <!-- PLACEMENT -->
+            <div class="placement-section">
+                <div class="placement-header">Placement: ${type}</div>
+                
+                <div class="placement-content">
+                    <!-- Imagen -->
+                    <div class="image-container">
+                        <span class="placement-badge">${type}</span>
+                        ${placement.imageData ? 
+                            `<img class="placement-image" src="${placement.imageData}" crossorigin="anonymous">` : 
+                            '<div class="muted">Sin imagen</div>'}
+                    </div>
+                    
+                    <!-- Detalles -->
+                    <div class="details-panel">
+                        <div class="detail-row">
+                            <span class="detail-label">Tipo de Tinta</span>
+                            <span class="detail-value">${esc(placement.inkType || 'WATER')}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Dimensiones</span>
+                            <span class="detail-value">${esc(placement.width || '##')} x ${esc(placement.height || '##')}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Ubicación</span>
+                            <span class="detail-value">${esc(placement.placementDetails || '---')}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Especialidades</span>
+                            <span class="detail-value">${esc(placement.specialties || '—')}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Colores -->
+                <div class="colors-section">
+                    <h3 style="font-size:12px; margin:0 0 8px 0;">Colores y Tintas</h3>
+                    <div class="colors-grid">${colorsHTML}</div>
+                </div>
+                
+                <!-- Secuencia -->
+                <div class="sequence-header">Secuencia de Impresión - ${type}</div>
+                <table class="sequence-table">
+                    <thead>
+                        <tr>
+                            <th>Est</th><th>Scr.</th><th>Screen (Tinta/Proceso)</th>
+                            <th>Aditivos</th><th>Malla</th><th>Strokes</th>
+                            <th>Angle</th><th>Pressure</th><th>Duro</th>
+                        </tr>
+                    </thead>
+                    <tbody>${seqHTML}</tbody>
+                </table>
+                
+                <!-- Curado -->
+                <div class="curing-section">
+                    <div class="curing-title">Condiciones de Curado</div>
+                    <div class="curing-grid">
+                        <div>
+                            <div class="detail-label">Temperatura</div>
+                            <div class="curing-value">${esc(placement.temp || '320°F')}</div>
+                        </div>
+                        <div>
+                            <div class="detail-label">Tiempo</div>
+                            <div class="curing-value">${esc(placement.time || '1:40 min')}</div>
+                        </div>
+                        <div>
+                            <div class="detail-label">Tinta</div>
+                            <div class="curing-value" style="font-size:16px;">${esc(placement.inkType || 'WATER')}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Comentarios -->
+                ${comments ? `
+                    <div class="comments-section">
+                        <div class="comments-title">Comentarios Técnicos</div>
+                        <div class="comments-body">${comments}</div>
+                    </div>
+                ` : ''}
+            </div>
+            
+            <!-- FOOTER -->
+            <div class="footer">
+                <div>Generado: ${esc(date)}</div>
+                <div><strong>TEGRA SPEC MANAGER</strong></div>
+                <div>Placement ${index + 1} de ${total}</div>
+            </div>
+        </div>
+    `;
 }
 
+// ========== GENERAR SECUENCIA DE ESTACIONES ==========
+function generateStations(placement) {
+    if (!placement?.colors?.length) return [];
+    
+    const stations = [];
+    let st = 1;
+    const preset = getInkPreset(placement.inkType || 'WATER');
+    
+    placement.colors.forEach((color, idx) => {
+        // Valores base
+        const base = {
+            screenLetter: color.screenLetter || '',
+            screenCombined: color.val || '---',
+            mesh: placement.meshColor || preset.color.mesh,
+            strokes: placement.strokes || preset.color.strokes,
+            duro: placement.durometer || preset.color.durometer,
+            angle: placement.angle || preset.color.angle,
+            pressure: placement.pressure || preset.color.pressure,
+            add: placement.additives || preset.color.additives
+        };
+        
+        // Ajustes por tipo
+        if (color.type === 'BLOCKER') {
+            base.mesh = placement.meshBlocker || preset.blocker.mesh1;
+            base.add = placement.additives || preset.blocker.additives;
+            base.screenCombined = preset.blocker.name;
+        } else if (color.type === 'WHITE_BASE') {
+            base.mesh = placement.meshWhite || preset.white.mesh1;
+            base.add = placement.additives || preset.white.additives;
+            base.screenCombined = preset.white.name;
+        } else if (color.type === 'METALLIC') {
+            base.mesh = '110/64';
+            base.strokes = '1';
+            base.duro = '70';
+            base.add = 'Catalizador especial';
+        }
+        
+        stations.push({ st: st++, ...base });
+        
+        // Flash y Cool entre colores
+        if (idx < placement.colors.length - 1) {
+            stations.push({ st: st++, screenCombined: 'FLASH', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', add: '' });
+            stations.push({ st: st++, screenCombined: 'COOL', mesh: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', add: '' });
+        }
+    });
+    
+    return stations;
+}
+
+// ========== OBTENER COLOR HEX ==========
+function getColorHex(name) {
+    if (!name) return null;
+    
+    // Usar ColorConfig si existe
+    if (window.ColorConfig?.findColorHex) {
+        const hex = window.ColorConfig.findColorHex(name);
+        if (hex) return hex;
+    }
+    
+    // Colores básicos
+    const basics = {
+        'RED': '#FF0000', 'BLUE': '#0000FF', 'GREEN': '#00FF00',
+        'BLACK': '#000000', 'WHITE': '#FFFFFF', 'YELLOW': '#FFFF00',
+        'GOLD': '#FFD700', 'SILVER': '#C0C0C0', 'NAVY': '#000080'
+    };
+    
+    const upper = name.toUpperCase();
+    for (const [key, hex] of Object.entries(basics)) {
+        if (upper.includes(key)) return hex;
+    }
+    
+    // Hex directo
+    const match = name.match(/#([0-9A-F]{6})/i);
+    return match ? `#${match[1]}` : null;
+}
+
+// ========== OBTENER PRESET DE TINTA ==========
+function getInkPreset(inkType) {
+    const base = {
+        temp: '320°F',
+        time: inkType === 'WATER' ? '1:00 min' : '1:40 min',
+        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', additives: 'N/A' },
+        white: { name: 'AQUAFLEX WHITE', mesh1: '198/40', additives: 'N/A' },
+        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3% cross-linker 500 · 1.5% antitack' }
+    };
+    
+    if (window.Config?.INK_PRESETS?.[inkType]) {
+        return window.Config.INK_PRESETS[inkType];
+    }
+    
+    return base;
+}
+
+// ========== EXPORTAR ==========
 window.generateProfessionalPDF = generateProfessionalPDF;
