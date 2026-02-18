@@ -1528,15 +1528,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
+// ========== AL FINAL DE app.js, DESPUÉS DE TODAS LAS FUNCIONES ==========
+
 // ========== EXPORTAR FUNCIONES AL ÁMBITO GLOBAL ==========
-Object.assign(window, {
-    showTab, loadSavedSpecsList, clearErrorLog, clearAllSpecs,
-    addNewPlacement, saveCurrentSpec, clearForm, exportToExcel, exportPDF,
-    updateClientLogo, handleGearForSportLogic,
-    removePlacement, duplicatePlacement, showPlacement,
-    updatePlacementType, updatePlacementInkType, updateCustomPlacement, updateAllPlacementTitles,
-    openImagePickerForPlacement, removePlacementImage,
-    addPlacementColorItem, removePlacementColorItem, movePlacementColorItem,
-    updatePlacementColorValue, updatePlacementScreenLetter, updatePlacementParam,
-    downloadSingleSpec, deleteSpec
-});
+window.showTab = showTab;
+window.loadSavedSpecsList = loadSavedSpecsList;
+window.clearErrorLog = clearErrorLog;
+window.exportErrorLog = exportErrorLog;
+window.clearAllSpecs = clearAllSpecs;
+window.addNewPlacement = addNewPlacement;
+window.saveCurrentSpec = saveCurrentSpec;
+window.clearForm = clearForm;
+window.exportToExcel = exportToExcel;
+window.exportPDF = exportPDF;
+window.downloadProjectZip = downloadProjectZip;
+window.updateClientLogo = updateClientLogo;
+window.handleGearForSportLogic = handleGearForSportLogic;
+
+// Funciones de placements
+window.removePlacement = removePlacement;
+window.duplicatePlacement = duplicatePlacement;
+window.showPlacement = showPlacement;
+window.updatePlacementType = updatePlacementType;
+window.updatePlacementInkType = updatePlacementInkType;
+window.updateCustomPlacement = updateCustomPlacement;
+window.updateAllPlacementTitles = updateAllPlacementTitles;
+window.openImagePickerForPlacement = openImagePickerForPlacement;
+window.removePlacementImage = removePlacementImage;
+window.addPlacementColorItem = addPlacementColorItem;
+window.removePlacementColorItem = removePlacementColorItem;
+window.movePlacementColorItem = movePlacementColorItem;
+window.updatePlacementColorValue = updatePlacementColorValue;
+window.updatePlacementScreenLetter = updatePlacementScreenLetter;
+window.updatePlacementParam = updatePlacementParam;
+window.updatePlacementField = updatePlacementField;
+window.updatePlacementDimension = updatePlacementDimension;
+window.updatePlacementInkType = updatePlacementInkType;
+
+// Funciones de utilidad
+window.downloadSingleSpec = downloadSingleSpec;
+window.deleteSpec = deleteSpec;
+window.loadSpecData = loadSpecData;
+
+console.log('✅ Funciones exportadas globalmente');
