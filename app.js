@@ -2318,12 +2318,33 @@ function updateAllPlacementTitles(placementId) {
           return element ? element.value : fallback;
       }
 
-      function printTechnicalSpec() {
-          window.print();
-      }
+      async function exportPDF() {
+          try {
+              if (!window.generateSpecHTMLDocument) {
+                  throw new Error('Generador HTML no disponible (window.generateSpecHTMLDocument).');
+              }
 
-      function exportPDF() {
-          printTechnicalSpec();
+              const data = collectData();
+              const htmlContent = window.generateSpecHTMLDocument(data);
+              const style = getInputValue('style', 'Spec') || 'Spec';
+              const folderNum = getInputValue('folder-num', '00000') || '00000';
+              const fileName = `TegraSpec_${style}_${folderNum}.html`;
+
+              const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = fileName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+
+              showStatus('✅ HTML descargado correctamente', 'success');
+          } catch (error) {
+              console.error('Error al exportar HTML:', error);
+              showStatus('❌ Error al generar HTML: ' + error.message, 'error');
+          }
       }
 
 
@@ -2501,7 +2522,12 @@ function updateAllPlacementTitles(placementId) {
               const jsonData = collectData();
               zip.file(`${projectName}.json`, JSON.stringify(jsonData, null, 2));
               
-              zip.file(`${projectName}_PRINT_INSTRUCTIONS.txt`, 'La exportación PDF ahora se realiza con impresión del navegador (Ctrl/Cmd+P) usando tamaño carta.');
+              if (window.generateSpecHTMLDocument) {
+                  const htmlContent = window.generateSpecHTMLDocument(collectData());
+                  zip.file(`${projectName}.html`, htmlContent);
+              } else {
+                  zip.file(`${projectName}_HTML_ERROR.txt`, 'No se pudo generar el archivo HTML del spec.');
+              }
               
               placements.forEach((placement, index) => {
                   if (placement.imageData && placement.imageData.startsWith('data:')) {
@@ -2521,7 +2547,7 @@ function updateAllPlacementTitles(placementId) {
 
 Archivos incluidos:
 - ${projectName}.json: Datos de la especificación técnica
-- PDF: Generar desde el navegador con la opción Imprimir (Ctrl/Cmd+P)
+- ${projectName}.html: Spec visual en formato HTML (layout carta)
 ${placements.some(p => p.imageData) ? `- Imágenes de placements: ${placements.filter(p => p.imageData).length} archivo(s) de imagen` : ''}
 
 Total de Placements: ${placements.length}
@@ -2865,7 +2891,6 @@ window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
 window.exportPDF = exportPDF;
-window.printTechnicalSpec = printTechnicalSpec;
 window.downloadProjectZip = downloadProjectZip;
 
 // AGREGAR ESTAS FUNCIONES FALTANTES:
@@ -3335,7 +3360,6 @@ window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
 window.exportPDF = exportPDF;
-window.printTechnicalSpec = printTechnicalSpec;
 window.downloadProjectZip = downloadProjectZip;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
