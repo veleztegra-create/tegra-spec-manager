@@ -314,7 +314,9 @@
                 strokes: '',
                 additives: '',
                 width: '',
-                height: ''
+                height: '',
+                baseSize: '',
+                fabric: ''
             };
             
             if (!isFirst) {
@@ -527,6 +529,22 @@
                                                  readonly
                                                  title="Detectado automáticamente de los colores">
                                       </div>
+                                      <div class="form-group">
+                                          <label class="form-label">TALLA BASE:</label>
+                                          <input type="text"
+                                                 id="base-size-placement-${placement.id}"
+                                                 class="form-control"
+                                                 value="${placement.baseSize || (document.getElementById('base-size')?.value || '')}"
+                                                 oninput="updatePlacementField(${placement.id}, 'baseSize', this.value)">
+                                      </div>
+                                      <div class="form-group">
+                                          <label class="form-label">TELA:</label>
+                                          <input type="text"
+                                                 id="fabric-placement-${placement.id}"
+                                                 class="form-control"
+                                                 value="${placement.fabric || (document.getElementById('fabric')?.value || '')}"
+                                                 oninput="updatePlacementField(${placement.id}, 'fabric', this.value)">
+                                      </div>
                                   </div>
                               </div>
                           </div>
@@ -540,38 +558,8 @@
                               </div>
                               <div class="card-body">
                                   <div class="form-grid">
-                                      <!-- Malla para colores regulares -->
-                                      <div class="form-group">
-                                          <label class="form-label">MALLA COLORES:</label>
-                                          <input type="text" 
-                                                 id="mesh-color-${placement.id}"
-                                                 class="form-control placement-mesh-color"
-                                                 value="${placement.meshColor || defaultMeshColor}"
-                                                 oninput="updatePlacementParam(${placement.id}, 'meshColor', this.value)"
-                                                 title="Malla para colores regulares">
-                                      </div>
                                       
-                                      <!-- Malla para White Base -->
-                                      <div class="form-group">
-                                          <label class="form-label">MALLA WHITE BASE:</label>
-                                          <input type="text" 
-                                                 id="mesh-white-${placement.id}"
-                                                 class="form-control placement-mesh-white"
-                                                 value="${placement.meshWhite || defaultMeshWhite}"
-                                                 oninput="updatePlacementParam(${placement.id}, 'meshWhite', this.value)"
-                                                 title="Malla para White Base">
-                                      </div>
                                       
-                                      <!-- Malla para Blocker -->
-                                      <div class="form-group">
-                                          <label class="form-label">MALLA BLOCKER:</label>
-                                          <input type="text" 
-                                                 id="mesh-blocker-${placement.id}"
-                                                 class="form-control placement-mesh-blocker"
-                                                 value="${placement.meshBlocker || defaultMeshBlocker}"
-                                                 oninput="updatePlacementParam(${placement.id}, 'meshBlocker', this.value)"
-                                                 title="Malla para Blocker">
-                                      </div>
                                       
                                       <!-- Durómetro -->
                                       <div class="form-group">
@@ -1293,6 +1281,13 @@ function updateAllPlacementTitles(placementId) {
                          placeholder="Nombre de la tinta..." 
                          value="${color.val}"
                          oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)">
+                  <input type="text"
+                         style="width: 82px; text-align:center;"
+                         class="form-control placement-mesh-line"
+                         value="${color.mesh || ''}"
+                         placeholder="Malla"
+                         title="Malla por tinta"
+                         oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)">
                   <div class="color-preview" 
                        id="placement-color-preview-${placementId}-${color.id}" 
                        title="Vista previa del color"></div>
@@ -1338,7 +1333,19 @@ function updateAllPlacementTitles(placementId) {
           }
       }
 
-      function removePlacementColorItem(placementId, colorId) {
+      
+function updatePlacementColorMesh(placementId, colorId, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+
+    const color = placement.colors.find(c => c.id === colorId);
+    if (!color) return;
+
+    color.mesh = value;
+    updatePlacementStations(placementId);
+}
+
+function removePlacementColorItem(placementId, colorId) {
           const placement = placements.find(p => p.id === placementId);
           if (!placement) return;
           
@@ -1563,7 +1570,7 @@ function updateAllPlacementTitles(placementId) {
               
               if (item.type === 'BLOCKER') {
                   screenTypeLabel = preset.blocker.name;
-                  mesh = stNum <= 3 ? meshBlocker : (placement.meshBlocker || preset.blocker.mesh2);
+                  mesh = item.mesh || (stNum <= 3 ? meshBlocker : (placement.meshBlocker || preset.blocker.mesh2));
                   strokesVal = strokes;
                   duro = durometer;
                   ang = angle;
@@ -1572,7 +1579,7 @@ function updateAllPlacementTitles(placementId) {
                   add = placement.additives || preset.blocker.additives;
               } else if (item.type === 'WHITE_BASE') {
                   screenTypeLabel = preset.white.name;
-                  mesh = stNum <= 9 ? meshWhite : (placement.meshWhite || preset.white.mesh2);
+                  mesh = item.mesh || (stNum <= 9 ? meshWhite : (placement.meshWhite || preset.white.mesh2));
                   strokesVal = strokes;
                   duro = durometer;
                   ang = angle;
@@ -1581,7 +1588,7 @@ function updateAllPlacementTitles(placementId) {
                   add = placement.additives || preset.white.additives;
               } else if (item.type === 'METALLIC') {
                   screenTypeLabel = item.val || '---';
-                  mesh = '110/64';
+                  mesh = item.mesh || '110/64';
                   strokesVal = '1';
                   duro = '70';
                   ang = '15';
@@ -1590,7 +1597,7 @@ function updateAllPlacementTitles(placementId) {
                   add = 'Catalizador especial para metálicos';
               } else {
                   screenTypeLabel = item.val || '---';
-                  mesh = meshColor;
+                  mesh = item.mesh || meshColor;
                   strokesVal = strokes;
                   duro = durometer;
                   ang = angle;
@@ -1885,6 +1892,15 @@ function updateAllPlacementTitles(placementId) {
               }
           }
 
+          const baseSizeCell = worksheet && worksheet['F16'] ? String(worksheet['F16'].v || '').trim().toUpperCase() : '';
+          if (baseSizeCell) {
+              const normalizedBaseSize = baseSizeCell.replace(/[^A-Z0-9]/g, '');
+              if (normalizedBaseSize) {
+                  setInputValue('base-size', normalizedBaseSize);
+                  placements.forEach(p => { p.baseSize = normalizedBaseSize; });
+              }
+          }
+
           updateClientLogo();
           showStatus(`✅ "${sheetName || 'hoja'}" procesado - Género: ${extracted.gender || 'No detectado'}`, 'success');
       }
@@ -2095,6 +2111,10 @@ function updateAllPlacementTitles(placementId) {
           setInputValue('name-team', data.nameTeam || '');
           setInputValue('gender', data.gender || '');
           setInputValue('designer', data.designer || '');
+          setInputValue('base-size', data.baseSize || '');
+          setInputValue('fabric', data.fabric || '');
+          setInputValue('technician-name', data.technicianName || '');
+          setInputValue('technical-comments', data.technicalComments || '');
           
           const placementsContainer = document.getElementById('placements-container');
           if (placementsContainer) placementsContainer.innerHTML = '';
@@ -2235,6 +2255,10 @@ function updateAllPlacementTitles(placementId) {
               nameTeam: document.getElementById('name-team').value,
               gender: document.getElementById('gender').value,
               designer: document.getElementById('designer').value,
+              baseSize: document.getElementById('base-size')?.value || '',
+              fabric: document.getElementById('fabric')?.value || '',
+              technicianName: document.getElementById('technician-name')?.value || '',
+              technicalComments: document.getElementById('technical-comments')?.value || '',
               savedAt: new Date().toISOString()
           };
           
@@ -2247,7 +2271,8 @@ function updateAllPlacementTitles(placementId) {
                   id: c.id,
                   type: c.type,
                   val: c.val,
-                  screenLetter: c.screenLetter
+                  screenLetter: c.screenLetter,
+                  mesh: c.mesh || ''
               })),
               placementDetails: placement.placementDetails,
               dimensions: placement.dimensions,
@@ -2255,6 +2280,8 @@ function updateAllPlacementTitles(placementId) {
               height: placement.height,
               temp: placement.temp,
               time: placement.time,
+              baseSize: placement.baseSize,
+              fabric: placement.fabric,
               specialties: placement.specialties,
               specialInstructions: placement.specialInstructions,
               inkType: placement.inkType,
@@ -3104,21 +3131,26 @@ function addPlacementColorItem(placementId, type) {
     
     let screenLetter = '';
     let initialVal = '';
+    let initialMesh = '';
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
     
     if (type === 'BLOCKER') {
         screenLetter = 'A';
         initialVal = preset.blocker?.name || 'BLOCKER CHT';
+        initialMesh = placement.meshBlocker || preset.blocker?.mesh1 || '122/55';
     } else if (type === 'WHITE_BASE') {
         screenLetter = 'B';
         initialVal = preset.white?.name || 'AQUAFLEX V2 WHITE';
+        initialMesh = placement.meshWhite || preset.white?.mesh1 || '198/40';
     } else if (type === 'METALLIC') {
         const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         screenLetter = String(colorItems.length + 1);
         initialVal = 'METALLIC GOLD';
+        initialMesh = '110/64';
     } else {
         const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         screenLetter = String(colorItems.length + 1);
+        initialMesh = placement.meshColor || preset.color?.mesh || '157/48';
     }
     
     const colorId = Date.now() + Math.random();
@@ -3126,7 +3158,8 @@ function addPlacementColorItem(placementId, type) {
         id: colorId,
         type: type,
         screenLetter: screenLetter,
-        val: initialVal
+        val: initialVal,
+        mesh: initialMesh
     });
     
     renderPlacementColors(placementId);
@@ -3344,6 +3377,7 @@ window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.movePlacementColorItem = movePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
+window.updatePlacementColorMesh = updatePlacementColorMesh;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
 window.updatePlacementParam = updatePlacementParam;
 window.updateCustomPlacement = updateCustomPlacement;

@@ -90,7 +90,7 @@
     return stations;
   }
 
-  function buildPlacementHtml(placement, index, total) {
+  function buildPlacementHtml(placement, index, total, data) {
     const title = esc((placement.title || placement.type || `Placement ${index + 1}`).replace('CUSTOM: ', ''));
     const imageData = placement.imageData && String(placement.imageData).startsWith('data:')
       ? String(placement.imageData)
@@ -130,6 +130,7 @@
             <div class="detail-row"><span class="detail-label">Dimensiones</span><span class="detail-value">${esc(`${placement.width || '--'} x ${placement.height || '--'}`)}</span></div>
             <div class="detail-row"><span class="detail-label">Ubicación</span><span class="detail-value">${esc(placement.placementDetails || '---')}</span></div>
             <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${esc(placement.specialties || '—')}</span></div>
+            <div class="detail-row"><span class="detail-label">Talla Base</span><span class="detail-value">${esc(placement.baseSize || data.baseSize || '---')}</span></div>
           </div>
         </div>
 
@@ -148,7 +149,15 @@
           <div class="curing-grid">
             <div class="curing-item"><div class="curing-label">Temperatura</div><div class="curing-value">${esc(placement.temp || '320°F')}</div></div>
             <div class="curing-item"><div class="curing-label">Tiempo</div><div class="curing-value">${esc(placement.time || '1:40 min')}</div></div>
-            <div class="curing-item"><div class="curing-label">Tipo de Tinta</div><div class="curing-value small">${esc(placement.inkType || 'WATER')}</div></div>
+            <div class="curing-item"><div class="curing-label">Tela</div><div class="curing-value small">${esc(placement.fabric || data.fabric || '---')}</div></div>
+          </div>
+        </div>
+
+        <div class="tech-section">
+          <div class="sub-title" style="margin-bottom:8px;">Información Técnica</div>
+          <div class="info-grid">
+            <div class="info-row"><span class="info-label">Nombre Técnico:</span><span class="info-value">${esc(data.technicianName || '________________________')}</span></div>
+            <div class="info-row"><span class="info-label">Comentarios:</span><span class="info-value">${esc(data.technicalComments || '____________________________________________')}</span></div>
           </div>
         </div>
 
@@ -164,8 +173,9 @@
     const placements = Array.isArray(data?.placements) && data.placements.length ? data.placements : [{}];
     const customerKey = getLogoKey(data.customer || '');
     const customerLogo = window.LogoConfig?.[customerKey] || '';
+    const tegraLogo = window.LogoConfig?.TEGRA || '';
 
-    const placementSections = placements.map((p, i) => buildPlacementHtml(p, i, placements.length)).join('');
+    const placementSections = placements.map((p, i) => buildPlacementHtml(p, i, placements.length, data)).join('');
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -191,7 +201,7 @@
   <div class="mockup-container">
     <header class="spec-header">
       <div class="header-logo">
-        <svg viewBox="0 0 145.94 39.05" xmlns="http://www.w3.org/2000/svg"><path fill="white" d="M42.24,12.37v1.93h6.91v15.25h4.21v-15.25h6.91v-3.88h-16.1l-1.93,1.95Z"/></svg>
+        ${tegraLogo ? `<img src="${esc(tegraLogo)}" alt="TEGRA" style="width:110px;height:auto;object-fit:contain;">` : `<span style="font-family:var(--font-display);font-size:1.2rem;font-weight:700;">TEGRA</span>`}
       </div>
       <div class="header-title"><h1>Technical Spec Manager</h1><p>Sistema de gestión de especificaciones técnicas</p></div>
       <div class="header-customer"><div class="header-customer-label">Customer / Cliente</div><div class="header-customer-logo">${customerLogo ? `<img src="${esc(customerLogo)}" alt="customer">` : `<span style="font-weight:700;color:#1a1a1a;">${esc((data.customer || 'N/A').toUpperCase())}</span>`}</div></div>
@@ -209,6 +219,7 @@
         <div class="info-row"><span class="info-label">Team:</span><span class="info-value">${esc(data.nameTeam || '---')}</span></div>
         <div class="info-row"><span class="info-label">Sample Type:</span><span class="info-value">${esc(data.sampleType || '---')}</span></div>
         <div class="info-row"><span class="info-label">Gender:</span><span class="info-value">${esc(data.gender || '---')}</span></div>
+        <div class="info-row"><span class="info-label">Designer:</span><span class="info-value">${esc(data.designer || '---')}</span></div>
       </div>
     </section>
 
