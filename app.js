@@ -2318,53 +2318,14 @@ function updateAllPlacementTitles(placementId) {
           return element ? element.value : fallback;
       }
 
-      async function exportPDF() {
-          try {
-              if (typeof window.jspdf === 'undefined') {
-                  showStatus('❌ jsPDF no está cargado', 'error');
-                  return;
-              }
-
-              showStatus('📄 Generando PDF...', 'warning');
-              
-              const pdfBlob = await generatePDFBlob();
-              
-              const style = getInputValue('style', 'SinEstilo') || 'SinEstilo';
-              const folderNum = getInputValue('folder-num', '00000') || '00000';
-              const fileName = `TegraSpec_${style}_${folderNum}.pdf`;
-              
-              const url = URL.createObjectURL(pdfBlob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = fileName;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              
-              showStatus('✅ PDF generado correctamente', 'success');
-              
-          } catch (error) {
-              console.error('Error al exportar PDF:', error);
-              showStatus('❌ Error al generar PDF: ' + error.message, 'error');
-          }
+      function printTechnicalSpec() {
+          window.print();
       }
 
-      async function generatePDFBlob() {
-          if (!window.generateProfessionalPDF) {
-              const missingError = new Error('Generador profesional no disponible (window.generateProfessionalPDF).');
-              console.error(missingError);
-              throw missingError;
-          }
-
-          try {
-              const data = collectData();
-              return await window.generateProfessionalPDF(data);
-          } catch (proError) {
-              console.error('Fallo en generador profesional de PDF:', proError);
-              throw proError;
-          }
+      function exportPDF() {
+          printTechnicalSpec();
       }
+
 
       function exportToExcel() {
           try {
@@ -2540,13 +2501,7 @@ function updateAllPlacementTitles(placementId) {
               const jsonData = collectData();
               zip.file(`${projectName}.json`, JSON.stringify(jsonData, null, 2));
               
-              try {
-                  const pdfBlob = await generatePDFBlob();
-                  zip.file(`${projectName}.pdf`, pdfBlob);
-              } catch (pdfError) {
-                  console.warn('No se pudo generar PDF para ZIP:', pdfError);
-                  zip.file(`${projectName}_PDF_ERROR.txt`, 'No se pudo generar el archivo PDF');
-              }
+              zip.file(`${projectName}_PRINT_INSTRUCTIONS.txt`, 'La exportación PDF ahora se realiza con impresión del navegador (Ctrl/Cmd+P) usando tamaño carta.');
               
               placements.forEach((placement, index) => {
                   if (placement.imageData && placement.imageData.startsWith('data:')) {
@@ -2566,7 +2521,7 @@ function updateAllPlacementTitles(placementId) {
 
 Archivos incluidos:
 - ${projectName}.json: Datos de la especificación técnica
-- ${projectName}.pdf: Documento PDF listo para imprimir
+- PDF: Generar desde el navegador con la opción Imprimir (Ctrl/Cmd+P)
 ${placements.some(p => p.imageData) ? `- Imágenes de placements: ${placements.filter(p => p.imageData).length} archivo(s) de imagen` : ''}
 
 Total de Placements: ${placements.length}
@@ -2910,6 +2865,7 @@ window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
 window.exportPDF = exportPDF;
+window.printTechnicalSpec = printTechnicalSpec;
 window.downloadProjectZip = downloadProjectZip;
 
 // AGREGAR ESTAS FUNCIONES FALTANTES:
@@ -3379,6 +3335,7 @@ window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
 window.exportPDF = exportPDF;
+window.printTechnicalSpec = printTechnicalSpec;
 window.downloadProjectZip = downloadProjectZip;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;

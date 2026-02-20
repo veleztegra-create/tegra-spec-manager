@@ -1135,9 +1135,41 @@ textarea.form-control:focus {
     background: white !important;
 }
 
+@page {
+    size: letter;
+    margin: 12mm;
+}
+
 @media print {
-    .no-print, .app-nav, .header-actions { display: none !important; }
-    .app-container { box-shadow: none; border: none; }
-    body { background: white; }
-    .card { box-shadow: none; border: 1px solid #ddd; }
+    body {
+        margin: 0;
+        background: white;
+    }
+
+    body * {
+        visibility: hidden;
+    }
+
+    #pdf-render,
+    #pdf-render * {
+        visibility: visible;
+    }
+
+    #pdf-render {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .placement-block,
+    .sequence-table,
+    .general-info-section {
+        page-break-inside: avoid;
+    }
+
+    .page-break {
+        page-break-before: always;
+    }
 }
