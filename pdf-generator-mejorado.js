@@ -1,7 +1,7 @@
 // pdf-generator-mejorado.js
 // Plan C refinado: HTML mockup -> canvas -> PDF (sin distorsión + logos reales)
 
-const PDF_HTML_DEBUG_MODE = true; // Temporal: aislar HTML antes de convertir a PDF
+const PDF_HTML_DEBUG_MODE = false; // Debug desactivado: permitir conversión PDF profesional
 
 async function generateProfessionalPDF(data) {
   if (typeof window.jspdf === 'undefined') throw new Error('jsPDF no está cargado.');
