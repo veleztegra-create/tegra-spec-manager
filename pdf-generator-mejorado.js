@@ -1,6 +1,8 @@
 // pdf-generator-mejorado.js
 // Plan C refinado: HTML mockup -> canvas -> PDF (sin distorsión + logos reales)
 
+const PDF_HTML_DEBUG_MODE = true; // Temporal: aislar HTML antes de convertir a PDF
+
 async function generateProfessionalPDF(data) {
   if (typeof window.jspdf === 'undefined') throw new Error('jsPDF no está cargado.');
   if (typeof window.html2canvas === 'undefined') throw new Error('html2canvas no está cargado.');
@@ -10,7 +12,7 @@ async function generateProfessionalPDF(data) {
   const logos = await resolvePdfLogos(data);
 
   const host = document.createElement('div');
-  host.id = 'tegra-pdf-render-host';
+  host.id = 'pdf-render';
   host.style.position = 'absolute';
   host.style.left = '0';
   host.style.top = '0';
@@ -20,6 +22,14 @@ async function generateProfessionalPDF(data) {
   host.style.zIndex = '-1';
   host.style.background = '#ffffff';
   document.body.appendChild(host);
+
+  if (PDF_HTML_DEBUG_MODE) {
+    host.style.display = 'block';
+    host.style.opacity = '1';
+    host.style.position = 'relative';
+    host.style.pointerEvents = 'auto';
+    host.style.zIndex = '9999';
+  }
 
   try {
     const canvases = [];
@@ -31,6 +41,15 @@ async function generateProfessionalPDF(data) {
 
       const captureWidth = Math.max(target.scrollWidth, target.offsetWidth, 1050);
       const captureHeight = Math.max(target.scrollHeight, target.offsetHeight, 1400);
+
+      if (PDF_HTML_DEBUG_MODE) {
+        const debugContainer = document.getElementById('pdf-render');
+        if (debugContainer) {
+          debugContainer.style.display = 'block';
+          console.log(debugContainer.innerHTML);
+        }
+        throw new Error('PDF debug mode activo: conversión desactivada temporalmente para validar HTML.');
+      }
 
       const canvas = await window.html2canvas(target, {
         backgroundColor: '#ffffff',
