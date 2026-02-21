@@ -1,0 +1,110 @@
+{
+  "WATER": {
+    "name": "Water-base",
+    "temp": "320 °F",
+    "time": "1:00 min",
+    "blocker": {
+      "name": "BLOCKER CHT",
+      "mesh1": "122/55",
+      "mesh2": "157/48",
+      "durometer": "70",
+      "speed": "35",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "N/A"
+    },
+    "white": {
+      "name": "AQUAFLEX WHITE",
+      "mesh1": "198/40",
+      "mesh2": "157/48",
+      "durometer": "70",
+      "speed": "35",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "N/A"
+    },
+    "color": {
+      "mesh": "157/48",
+      "durometer": "70",
+      "speed": "35",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "3 % cross-linker 500 · 1.5 % antitack"
+    }
+  },
+  "PLASTISOL": {
+    "name": "Plastisol",
+    "temp": "330 °F",
+    "time": "1:20 min",
+    "blocker": {
+      "name": "PLASTISOL BLOCKER",
+      "mesh1": "110/64",
+      "mesh2": "110/64",
+      "durometer": "70",
+      "speed": "40",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "N/A"
+    },
+    "white": {
+      "name": "PLASTISOL WHITE",
+      "mesh1": "160/48",
+      "mesh2": "160/48",
+      "durometer": "70",
+      "speed": "40",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "N/A"
+    },
+    "color": {
+      "mesh": "160/48",
+      "durometer": "70",
+      "speed": "40",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "Catalizador plastisol"
+    }
+  },
+  "SILICONE": {
+    "name": "Silicone",
+    "temp": "340 °F",
+    "time": "1:40 min",
+    "blocker": {
+      "name": "SILICONE BLOCKER",
+      "mesh1": "110/64",
+      "mesh2": "110/64",
+      "durometer": "70",
+      "speed": "35",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "N/A"
+    },
+    "white": {
+      "name": "SILICONE WHITE",
+      "mesh1": "160/48",
+      "mesh2": "160/48",
+      "durometer": "70",
+      "speed": "35",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "N/A"
+    },
+    "color": {
+      "mesh": "160/48",
+      "durometer": "70",
+      "speed": "35",
+      "angle": "15",
+      "strokes": "2",
+      "pressure": "40",
+      "additives": "Catalizador silicone"
+    }
+  }
+}
