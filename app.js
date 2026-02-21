@@ -447,13 +447,16 @@ function addNewPlacement(type = null, isFirst = false) {
     
     if (!isFirst) {
         renderPlacementHTML(newPlacement);
+        // AÑADE ESTA LÍNEA PARA ACTUALIZAR TÍTULOS
+        setTimeout(() => {
+            updateAllPlacementTitles(placementId);
+        }, 50);
         showPlacement(placementId);
         updatePlacementsTabs();
     }
     
     return placementId;
 }
-
 function getNextPlacementType() {
     const usedTypes = placements.map(p => p.type);
     const allTypes = ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'];
