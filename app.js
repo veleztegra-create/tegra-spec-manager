@@ -550,6 +550,27 @@ function renderPlacementHTML(placement) {
                             <option value="COLLAR" ${placement.type === 'COLLAR' || displayType === 'COLLAR' ? 'selected' : ''}>COLLAR (Cuello)</option>
                             <option value="CUSTOM" ${isCustom ? 'selected' : ''}>CUSTOM (Personalizado)</option>
                         </select>
+                        // Al final de renderPlacementHTML, después de añadir el HTML, añade esto:
+
+container.innerHTML += sectionHTML;
+
+renderPlacementColors(placement.id);
+updatePlacementStations(placement.id);
+updatePlacementColorsPreview(placement.id);
+
+// AÑADE ESTA LÍNEA PARA ACTUALIZAR TÍTULOS INMEDIATAMENTE
+updateAllPlacementTitles(placement.id);
+
+if (placement.imageData) {
+    const img = document.getElementById(`placement-image-preview-${placement.id}`);
+    const imageActions = document.getElementById(`placement-image-actions-${placement.id}`);
+    
+    if (img && imageActions) {
+        img.src = placement.imageData;
+        img.style.display = 'block';
+        imageActions.style.display = 'flex';
+    }
+}
                     </div>
                     
                     <!-- Input para custom placement con autocompletado mejorado -->
