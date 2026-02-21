@@ -36,7 +36,33 @@ const AppConfig = {
         "WIS": "Wisconsin",
         "GT": "Georgia Tech"
     },
-    
+    // [file name]: config-app.js - Añadir esta sección después de GEARFORSPORT_TEAM_MAP
+
+    // MAPA DE ESCUELAS GEAR FOR SPORT (usando SchoolsConfig)
+    get GEARFORSPORT_SCHOOL_MAP() {
+        try {
+            if (window.SchoolsConfig && window.SchoolsConfig.CODE_TO_TEAM) {
+                return window.SchoolsConfig.CODE_TO_TEAM;
+            }
+        } catch (error) {
+            console.warn('Error al cargar SchoolsConfig:', error);
+        }
+        
+        // Fallback al mapa anterior
+        return {
+            "GT": "Georgia Tech Yellow Jackets",
+            "PGT": "Georgia Tech Yellow Jackets", 
+            "M": "Maryland Terrapins",
+            "MD": "Maryland Terrapins",
+            "PMD": "Maryland Terrapins",
+            "ND": "Notre Dame Fighting Irish",
+            "N": "Notre Dame Fighting Irish",
+            "PND": "Notre Dame Fighting Irish",
+            "WI": "Wisconsin Badgers",
+            "W": "Wisconsin Badgers",
+            "PWI": "Wisconsin Badgers"
+        };
+    },
     // MAPA GENERAL DE EQUIPOS (se genera dinámicamente)
     get TEAM_CODE_MAP() {
         try {
