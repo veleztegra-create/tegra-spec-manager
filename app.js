@@ -553,13 +553,295 @@ function renderPlacementHTML(placement) {
                             <option value="COLLAR" ${placement.type === 'COLLAR' || displayType === 'COLLAR' ? 'selected' : ''}>COLLAR (Cuello)</option>
                             <option value="CUSTOM" ${isCustom ? 'selected' : ''}>CUSTOM (Personalizado)</option>
                         </select>
-                        // Al final de renderPlacementHTML, después de añadir el HTML, añade esto:
-
-container.innerHTML += sectionHTML;
-
-renderPlacementColors(placement.id);
-updatePlacementStations(placement.id);
-updatePlacementColorsPreview(placement.id);
+                    </div>
+                    
+                    <!-- Input para custom placement con autocompletado mejorado -->
+                    <div id="custom-placement-input-${placement.id}" style="display:${isCustom ? 'block' : 'none'}; margin-top:10px;">
+                        <label class="form-label">NOMBRE DEL PLACEMENT:</label>
+                        <input type="text" 
+                               class="form-control custom-placement-name"
+                               data-placement-id="${placement.id}"
+                               placeholder="Escribe el nombre del placement..."
+                               value="${customName}"
+                               oninput="updateCustomPlacement(${placement.id}, this.value)"
+                               onfocus="setupPlacementAutocomplete(this, ${placement.id})"
+                               list="placement-autocomplete-${placement.id}">
+                        <small style="color: var(--text-secondary); display: block; margin-top: 4px;">
+                            <i class="fas fa-info-circle"></i> 
+                            Escribe 'F' para Front, 'B' para Back, 'S' para Sleeve, etc.
+                        </small>
+                    </div>
+                    
+                    <!-- Imagen de Referencia -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-image"></i> Imagen para ${displayType}
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="file-upload-area" onclick="openImagePickerForPlacement(${placement.id})">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Haz clic para subir una imagen para este placement</p>
+                                <p style="font-size:0.8rem; color:var(--text-secondary);">Ctrl+V para pegar</p>
+                            </div>
+                            <div class="image-preview-container">
+                                <img id="placement-image-preview-${placement.id}" 
+                                     class="image-preview placement-image" 
+                                     alt="Vista previa"
+                                     style="display: none;">
+                                <div class="image-actions" id="placement-image-actions-${placement.id}" style="display:none;">
+                                    <button class="btn btn-danger btn-sm" onclick="removePlacementImage(${placement.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Condiciones de Impresión -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-print"></i> Condiciones para ${displayType}
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label">DETALLES DE UBICACIÓN:</label>
+                                    <input type="text" 
+                                           id="placement-details-${placement.id}"
+                                           class="form-control placement-details"
+                                           value="${placement.placementDetails}"
+                                           oninput="updatePlacementField(${placement.id}, 'placementDetails', this.value)">
+                                </div>
+                                
+                                <!-- Dimensiones separadas -->
+                                <div class="form-group">
+                                    <label class="form-label">DIMENSIONES:</label>
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <input type="text" 
+                                               id="dimension-w-${placement.id}"
+                                               class="form-control placement-dimension-w"
+                                               placeholder="Ancho"
+                                               value="${placement.width || dimensions.width.replace('"', '')}"
+                                               oninput="handleDimensionInput(${placement.id}, 'width', this)"
+                                               onpaste="handleDimensionPaste(event, ${placement.id}, 'width')"
+                                               style="width: 100px;">
+                                        <span style="color: var(--text-secondary);">X</span>
+                                        <input type="text" 
+                                               id="dimension-h-${placement.id}"
+                                               class="form-control placement-dimension-h"
+                                               placeholder="Alto"
+                                               value="${placement.height || dimensions.height.replace('"', '')}"
+                                               oninput="handleDimensionInput(${placement.id}, 'height', this)"
+                                               onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
+                                               style="width: 100px;">
+                                        <span style="color: var(--text-secondary);">&nbsp;</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Campos de temperatura y tiempo -->
+                                <div class="form-group">
+                                    <label class="form-label">TEMPERATURA:</label>
+                                    <input type="text" 
+                                           id="temp-${placement.id}"
+                                           class="form-control placement-temp"
+                                           value="${placement.temp}"
+                                           readonly
+                                           title="Determinado por el tipo de tinta seleccionado">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">TIEMPO:</label>
+                                    <input type="text" 
+                                           id="time-${placement.id}"
+                                           class="form-control placement-time"
+                                           value="${placement.time}"
+                                           readonly
+                                           title="Determinado por el tipo de tinta seleccionado">
+                                </div>
+                                
+                                <!-- CAMPO SPECIALTIES -->
+                                <div class="form-group">
+                                    <label class="form-label">SPECIALTIES:</label>
+                                    <input type="text" 
+                                           id="specialties-${placement.id}"
+                                           class="form-control placement-specialties"
+                                           placeholder="Detectado automáticamente..."
+                                           value="${placement.specialties || ''}"
+                                           readonly
+                                           title="Detectado automáticamente de los colores">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Parámetros de Impresión Editables -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-sliders-h"></i> Parámetros de Impresión
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-grid">
+                                <!-- Durómetro -->
+                                <div class="form-group">
+                                    <label class="form-label">DURÓMETRO:</label>
+                                    <input type="text" 
+                                           id="durometer-${placement.id}"
+                                           class="form-control placement-durometer"
+                                           value="${placement.durometer || defaultDurometer}"
+                                           oninput="updatePlacementParam(${placement.id}, 'durometer', this.value)"
+                                           title="Durometer (dureza de la racleta)">
+                                </div>
+                                
+                                <!-- STROKES -->
+                                <div class="form-group">
+                                    <label class="form-label">STROKES:</label>
+                                    <input type="text" 
+                                           id="strokes-${placement.id}"
+                                           class="form-control placement-strokes"
+                                           value="${placement.strokes || defaultStrokes}"
+                                           oninput="updatePlacementParam(${placement.id}, 'strokes', this.value)"
+                                           title="Número de strokes">
+                                </div>
+                                
+                                <!-- ANGLE -->
+                                <div class="form-group">
+                                    <label class="form-label">ANGLE:</label>
+                                    <input type="text" 
+                                           id="angle-${placement.id}"
+                                           class="form-control placement-angle"
+                                           value="${placement.angle || defaultAngle}"
+                                           oninput="updatePlacementParam(${placement.id}, 'angle', this.value)"
+                                           title="Ángulo de la racleta">
+                                </div>
+                                
+                                <!-- PRESSURE -->
+                                <div class="form-group">
+                                    <label class="form-label">PRESSURE:</label>
+                                    <input type="text" 
+                                           id="pressure-${placement.id}"
+                                           class="form-control placement-pressure"
+                                           value="${placement.pressure || defaultPressure}"
+                                           oninput="updatePlacementParam(${placement.id}, 'pressure', this.value)"
+                                           title="Presión de impresión">
+                                </div>
+                                
+                                <!-- SPEED -->
+                                <div class="form-group">
+                                    <label class="form-label">SPEED:</label>
+                                    <input type="text" 
+                                           id="speed-${placement.id}"
+                                           class="form-control placement-speed"
+                                           value="${placement.speed || defaultSpeed}"
+                                           oninput="updatePlacementParam(${placement.id}, 'speed', this.value)"
+                                           title="Velocidad de impresión">
+                                </div>
+                                
+                                <!-- Aditivos -->
+                                <div class="form-group">
+                                    <label class="form-label">ADITIVOS:</label>
+                                    <input type="text" 
+                                           id="additives-${placement.id}"
+                                           class="form-control placement-additives"
+                                           value="${placement.additives || defaultAdditives}"
+                                           oninput="updatePlacementParam(${placement.id}, 'additives', this.value)"
+                                           title="Aditivos para la tinta">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="placement-right-column">
+                    <!-- Tipo de Tinta -->
+                    <div class="form-group">
+                        <label class="form-label">TIPO DE TINTA:</label>
+                        <select class="form-control placement-ink-type"
+                                data-placement-id="${placement.id}"
+                                onchange="updatePlacementInkType(${placement.id}, this.value)">
+                            <option value="WATER" ${placement.inkType === 'WATER' ? 'selected' : ''}>Water-base</option>
+                            <option value="PLASTISOL" ${placement.inkType === 'PLASTISOL' ? 'selected' : ''}>Plastisol</option>
+                            <option value="SILICONE" ${placement.inkType === 'SILICONE' ? 'selected' : ''}>Silicone</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Colores y Tintas -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-palette"></i> Colores para ${displayType}
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="no-print" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="addPlacementColorItem(${placement.id}, 'BLOCKER')">
+                                    <i class="fas fa-plus"></i> Blocker
+                                </button>
+                                <button type="button" class="btn btn-white-base btn-sm" onclick="addPlacementColorItem(${placement.id}, 'WHITE_BASE')">
+                                    <i class="fas fa-plus"></i> White Base
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
+                                    <i class="fas fa-plus"></i> Color
+                                </button>
+                                <button type="button" class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')">
+                                    <i class="fas fa-star"></i> Metálico
+                                </button>
+                            </div>
+                            <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Instrucciones Especiales -->
+                    <div class="form-group">
+                        <label class="form-label">INSTRUCCIONES ESPECIALES:</label>
+                        <textarea id="special-instructions-${placement.id}"
+                                  class="form-control placement-special-instructions"
+                                  rows="3"
+                                  placeholder="Instrucciones especiales para este placement..."
+                                  oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${placement.specialInstructions}</textarea>
+                    </div>
+                    
+                    <!-- Vista previa de colores -->
+                    <div id="placement-colors-preview-${placement.id}" class="color-legend"></div>
+                    
+                    <!-- Secuencia de Estaciones -->
+                    <h4 style="margin:15px 0 10px; font-size:0.9rem; color:var(--primary);">
+                        <i class="fas fa-list-ol"></i> Secuencia de ${displayType}
+                    </h4>
+                    <div id="placement-sequence-table-${placement.id}"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // AÑADIR EL HTML AL DOM
+    container.innerHTML += sectionHTML;
+    
+    // AHORA SÍ, ACTUALIZAR TODOS LOS COMPONENTES DESPUÉS DE QUE EL HTML EXISTA EN EL DOM
+    renderPlacementColors(placement.id);
+    updatePlacementStations(placement.id);
+    updatePlacementColorsPreview(placement.id);
+    
+    // ACTUALIZAR TÍTULOS (ESTO ES CRÍTICO)
+    setTimeout(() => {
+        updateAllPlacementTitles(placement.id);
+    }, 50);
+    
+    if (placement.imageData) {
+        const img = document.getElementById(`placement-image-preview-${placement.id}`);
+        const imageActions = document.getElementById(`placement-image-actions-${placement.id}`);
+        
+        if (img && imageActions) {
+            img.src = placement.imageData;
+            img.style.display = 'block';
+            imageActions.style.display = 'flex';
+        }
+    }
+}
 
 // AÑADE ESTA LÍNEA PARA ACTUALIZAR TÍTULOS INMEDIATAMENTE
 updateAllPlacementTitles(placement.id);
