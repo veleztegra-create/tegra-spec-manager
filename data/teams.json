@@ -1,0 +1,50 @@
+{
+  "NCAA": {
+    "UNC": {
+      "name": "North Carolina Tar Heels",
+      "colors": {
+        "institutional": {
+          "CAROLINA BLUE": "#56A0D3",
+          "NAVY BLUE": "#13294B",
+          "WHITE": "#FFFFFF"
+        }
+      },
+      "abbreviations": ["UNC", "NORTH CAROLINA", "TAR HEELS"]
+    },
+    "UCLA": {
+      "name": "UCLA Bruins",
+      "colors": {
+        "institutional": {
+          "UCLA BLUE": "#2774AE",
+          "UCLA GOLD": "#FFD100"
+        }
+      },
+      "abbreviations": ["UCLA", "BRUINS"]
+    }
+  },
+  "NFL": {
+    "ARI": {
+      "name": "Arizona Cardinals",
+      "colors": {
+        "institutional": {
+          "CARDINAL RED": "#97233F",
+          "BLACK": "#000000",
+          "WHITE": "#FFFFFF"
+        }
+      },
+      "abbreviations": ["ARI", "ARIZONA", "CARDINALS"]
+    },
+    "DAL": {
+      "name": "Dallas Cowboys",
+      "colors": {
+        "institutional": {
+          "METALLIC SILVER BLUE": "#002244",
+          "ROYAL BLUE": "#002244",
+          "NAVY BLUE": "#002244",
+          "WHITE": "#FFFFFF"
+        }
+      },
+      "abbreviations": ["DAL", "DALLAS", "COWBOYS"]
+    }
+  }
+}
