@@ -935,8 +935,25 @@ function updatePlacementType(placementId, type) {
             placement.type = type;
             placement.name = type;
         }
+        function updatePlacementType(placementId, type) {
+    const placement = placements.find(p => p.id === placementId);
+    if (placement) {
+        const customInput = document.getElementById(`custom-placement-input-${placementId}`);
         
+        if (type === 'CUSTOM') {
+            if (customInput) customInput.style.display = 'block';
+            if (!placement.type.startsWith('CUSTOM:')) {
+                placement.type = 'CUSTOM:';
+            }
+        } else {
+            if (customInput) customInput.style.display = 'none';
+            placement.type = type;
+            placement.name = type;
+        }
+        
+        // ACTUALIZAR TÍTULOS INMEDIATAMENTE
         updateAllPlacementTitles(placementId);
+        
         showStatus(`✅ Tipo de placement cambiado a ${type}`);
     }
 }
