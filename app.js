@@ -517,6 +517,7 @@ function renderPlacementHTML(placement) {
     
     const dimensions = extractDimensions(placement.dimensions);
     
+    // CONSTRUIR EL HTML COMO STRING
     const sectionHTML = `
         <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
             <div class="placement-header">
@@ -562,7 +563,7 @@ function renderPlacementHTML(placement) {
                                class="form-control custom-placement-name"
                                data-placement-id="${placement.id}"
                                placeholder="Escribe el nombre del placement..."
-                               value="${customName}"
+                               value="${customName.replace(/"/g, '&quot;')}"
                                oninput="updateCustomPlacement(${placement.id}, this.value)"
                                onfocus="setupPlacementAutocomplete(this, ${placement.id})"
                                list="placement-autocomplete-${placement.id}">
@@ -818,6 +819,7 @@ function renderPlacementHTML(placement) {
         </div>
     `;
     
+    // ====== CÓDIGO JAVASCRIPT - FUERA DEL STRING HTML ======
     // AÑADIR EL HTML AL DOM
     container.innerHTML += sectionHTML;
     
