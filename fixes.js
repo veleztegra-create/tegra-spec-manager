@@ -28,10 +28,12 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
-    // Corrección para que los botones funcionen
+    // Verificar que showTab está disponible
     setTimeout(() => {
-        if (typeof showTab !== 'function') {
-            console.error('showTab no está definido');
+        if (typeof window.showTab !== 'function') {
+            console.warn('showTab aún no está disponible, esperando...');
+        } else {
+            console.log('✅ showTab está disponible globalmente');
         }
     }, 1000);
 });
