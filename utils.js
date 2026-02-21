@@ -102,54 +102,64 @@ const Utils = {
     
     // ========== FUNCIONES CON DEPENDENCIAS (con verificaciones) ==========
     
-    detectTeamFromStyle: function(style) {
-        if (!style) return '';
+  // Reemplazar la función detectTeamFromStyle existente
+
+detectTeamFromStyle: function(style) {
+    if (!style) return '';
+    
+    try {
+        const styleStr = style.toString().toUpperCase().trim();
         
-        try {
-            const styleStr = style.toString().toUpperCase().trim();
-            
-            // 1. Buscar en Gear for Sport primero
-            if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
-                for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
-                    if (styleStr === code || styleStr.includes(code)) {
+        // 1. Primero detectar si es Gear for Sport usando SchoolsConfig
+        if (window.SchoolsConfig) {
+            const schoolData = window.SchoolsConfig.detectSchoolFromStyle(styleStr);
+            if (schoolData) {
+                return schoolData.teamName;
+            }
+        }
+        
+        // 2. Buscar en Gear for Sport original
+        if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
+            for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
+                if (styleStr === code || styleStr.includes(code)) {
+                    return teamName;
+                }
+            }
+        }
+        
+        // 3. Buscar en el mapa general de equipos
+        if (window.Config && window.Config.TEAM_CODE_MAP) {
+            const teamMap = window.Config.TEAM_CODE_MAP;
+            if (typeof teamMap === 'object') {
+                for (const [code, teamName] of Object.entries(teamMap)) {
+                    if (styleStr.includes(code)) {
                         return teamName;
                     }
                 }
             }
-            
-            // 2. Buscar en el mapa general de equipos
-            if (window.Config && window.Config.TEAM_CODE_MAP) {
-                const teamMap = window.Config.TEAM_CODE_MAP;
-                if (typeof teamMap === 'object') {
-                    for (const [code, teamName] of Object.entries(teamMap)) {
-                        if (styleStr.includes(code)) {
-                            return teamName;
-                        }
-                    }
-                }
-            }
-            
-            // 3. Buscar en TeamsConfig directamente
-            if (window.TeamsConfig) {
-                const leagues = ['NCAA', 'NBA', 'NFL'];
-                
-                for (const league of leagues) {
-                    if (window.TeamsConfig[league] && window.TeamsConfig[league].teams) {
-                        for (const [code, teamData] of Object.entries(window.TeamsConfig[league].teams)) {
-                            if (styleStr.includes(code)) {
-                                return teamData.name;
-                            }
-                        }
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.warn('Error en detectTeamFromStyle:', error);
         }
         
-        return '';
-    },
+        // 4. Buscar en TeamsConfig
+        if (window.TeamsConfig) {
+            const leagues = ['NCAA', 'NBA', 'NFL'];
+            
+            for (const league of leagues) {
+                if (window.TeamsConfig[league] && window.TeamsConfig[league].teams) {
+                    for (const [code, teamData] of Object.entries(window.TeamsConfig[league].teams)) {
+                        if (styleStr.includes(code)) {
+                            return teamData.name;
+                        }
+                    }
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.warn('Error en detectTeamFromStyle:', error);
+    }
+    
+    return '';
+},
     
     extractGenderFromStyle: function(style) {
         if (!style) return '';
