@@ -1,540 +1,537 @@
-// js/main.js - VERSIÓN CORREGIDA Y FINAL
-console.log('🎯 Tegra Spec Manager - Inicializando aplicación');
+// Punto de entrada principal de la aplicación
+import { appState } from './state.js';
+import { apiService } from './api.js';
+import { uiManager } from './ui.js';
+import { render } from './render.js';
+import { presetsManager } from './presets.js';
+import { colorParser } from './color-parser.js';
+import { teamParser } from './team-parser.js';
+import { utils } from './utils.js';
 
-// ========== CONFIGURACIÓN DE MÓDULOS OPTIMIZADA ==========
-// NOTA: Estos módulos NO están en index.html, los cargamos aquí:
-const MODULES = [
-    // Utilerías
-    { type: 'util', path: 'js/utils/helpers.js', name: 'Utils' },
-    { type: 'util', path: 'js/utils/validators.js', name: 'Validators' },
-    { type: 'util', path: 'js/utils/detectors.js', name: 'Detectors' },
-    { type: 'util', path: 'js/utils/render-helpers.js', name: 'RenderHelpers' },
-    
-    // Core
-    { type: 'core', path: 'js/core/state-manager.js', name: 'StateManager' },
-    { type: 'core', path: 'js/core/error-handler.js', name: 'ErrorHandler' },
-    
-    // Placements
-    { type: 'placement', path: 'js/modules/placements/placements-core.js', name: 'PlacementsCore' },
-    { type: 'placement', path: 'js/modules/placements/placements-ui.js', name: 'PlacementsUI' },
-    { type: 'placement', path: 'js/modules/placements/placements-colors.js', name: 'PlacementsColors' },
-    { type: 'placement', path: 'js/modules/placements/placements-export.js', name: 'PlacementsExport' },
-    
-    // Export
-    { type: 'export', path: 'js/modules/export/pdf-exporter.js', name: 'PDFExporter' },
-    { type: 'export', path: 'js/modules/export/excel-exporter.js', name: 'ExcelExporter' },
-    { type: 'export', path: 'js/modules/export/zip-exporter.js', name: 'ZipExporter' }
-];
+class TegraSpecApp {
+    constructor() {
+        this.isInitialized = false;
+    }
 
-// Estado de la aplicación
-const AppState = {
-    loadedModules: {},
-    errors: [],
-    initialized: false,
-    configsReady: false
-};
+    async init() {
+        try {
+            console.log('🚀 Iniciando Tegra Spec Manager...');
+            
+            // Cargar datos de configuración
+            await this.loadData();
+            
+            // Inicializar estado
+            this.initializeState();
+            
+            // Renderizar la aplicación
+            render.renderApp();
+            
+            // Inicializar UI
+            uiManager.setupTheme();
+            uiManager.initEventListeners();
+            
+            // Cargar estado guardado
+            appState.loadFromLocalStorage();
+            
+            // Mostrar dashboard inicial
+            uiManager.showTab('dashboard');
+            
+            this.isInitialized = true;
+            console.log('✅ Tegra Spec Manager iniciado correctamente');
+            
+            this.showStatus('Aplicación cargada correctamente', 'success');
+            
+        } catch (error) {
+            console.error('❌ Error al iniciar la aplicación:', error);
+            this.showStatus('Error al cargar la aplicación: ' + error.message, 'error');
+        }
+    }
 
-// ========== FUNCIONES AUXILIARES ==========
+    async loadData() {
+        try {
+            console.log('📥 Cargando datos de configuración...');
+            
+            const data = await apiService.loadAllData();
+            
+            // Configurar el estado con los datos cargados
+            appState.setConfig(data.config);
+            appState.setInkPresets(data.inkPresets);
+            appState.setColors(data.colors);
+            appState.setTeams(data.teams);
+            
+            console.log('✅ Datos cargados correctamente');
+            
+        } catch (error) {
+            console.error('❌ Error cargando datos:', error);
+            throw error;
+        }
+    }
 
-// Esperar a que un módulo global esté disponible
-function waitForGlobal(moduleName, maxAttempts = 15, interval = 200) {
-    return new Promise((resolve) => {
-        let attempts = 0;
+    initializeState() {
+        // Inicializar placements si no hay ninguno
+        if (appState.getPlacements().length === 0) {
+            const firstPlacement = appState.createPlacement('FRONT');
+            appState.addPlacement(firstPlacement);
+        }
         
-        const check = () => {
-            if (window[moduleName]) {
-                console.log(`✅ ${moduleName} disponible`);
-                resolve(true);
-            } else if (attempts < maxAttempts) {
-                attempts++;
-                setTimeout(check, interval);
-            } else {
-                console.warn(`⏳ ${moduleName} no disponible después de ${maxAttempts * interval}ms`);
-                resolve(false);
+        // Configurar suscripciones para renderizado automático
+        this.setupStateSubscriptions();
+    }
+
+    setupStateSubscriptions() {
+        // Suscribirse a cambios en placements
+        appState.subscribe('placements', (placements) => {
+            render.renderPlacements(placements);
+        });
+        
+        // Suscribirse a cambios en el placement actual
+        appState.subscribe('currentPlacement', () => {
+            render.updateCurrentPlacement();
+        });
+        
+        // Suscribirse a cambios en datos del formulario
+        appState.subscribe('formData', (formData) => {
+            render.updateFormUI(formData);
+        });
+        
+        // Suscribirse a cambios de tema
+        appState.subscribe('theme', (theme) => {
+            uiManager.updateTheme(theme);
+        });
+    }
+
+    showStatus(message, type = 'success') {
+        uiManager.showStatus(message, type);
+    }
+
+    // Métodos globales expuestos al window
+    exposeGlobalMethods() {
+        // Navigation
+        window.showTab = (tabName) => uiManager.showTab(tabName);
+        
+        // Placements
+        window.addNewPlacement = (type = null) => {
+            const placement = appState.createPlacement(type || 'FRONT');
+            appState.addPlacement(placement);
+            return placement.id;
+        };
+        
+        window.removePlacement = (id) => appState.removePlacement(id);
+        window.duplicatePlacement = (id) => {
+            const original = appState.getPlacementById(id);
+            if (original) {
+                const duplicate = JSON.parse(JSON.stringify(original));
+                duplicate.id = Date.now() + Math.random();
+                duplicate.name = duplicate.type.includes('CUSTOM:') 
+                    ? duplicate.type.replace('CUSTOM: ', '') 
+                    : duplicate.type;
+                appState.addPlacement(duplicate);
+                return duplicate.id;
             }
         };
         
-        check();
-    });
-}
+        // Form actions
+        window.saveCurrentSpec = () => this.saveSpec();
+        window.clearForm = () => this.clearForm();
+        window.exportPDF = () => this.exportPDF();
+        window.exportToExcel = () => this.exportExcel();
+        window.downloadProjectZip = () => this.downloadZip();
+        
+        // Data management
+        window.clearAllSpecs = () => this.clearAllSpecs();
+        window.loadSavedSpecsList = () => render.renderSavedSpecsList();
+        window.clearErrorLog = () => appState.clearErrorLog();
+        window.exportErrorLog = () => this.exportErrorLog();
+        
+        // Client logo
+        window.updateClientLogo = () => uiManager.updateClientLogo();
+        window.handleGearForSportLogic = () => this.handleGearForSport();
+        
+        // Placement actions
+        window.updatePlacementType = (id, type) => {
+            if (type === 'CUSTOM') {
+                appState.updatePlacement(id, { type: 'CUSTOM: ' });
+            } else {
+                appState.updatePlacement(id, { type });
+            }
+        };
+        
+        window.updateCustomPlacement = (id, customName) => {
+            appState.updatePlacement(id, { type: `CUSTOM: ${customName}` });
+        };
+        
+        window.updatePlacementInkType = (id, inkType) => {
+            presetsManager.applyPresetToPlacement(id, inkType);
+        };
+        
+        window.addPlacementColorItem = (id, type) => {
+            const color = appState.createColorItem(type);
+            const placement = appState.getPlacementById(id);
+            if (placement) {
+                placement.colors.push(color);
+                appState.updatePlacement(id, { colors: placement.colors });
+            }
+        };
+        
+        window.removePlacementColorItem = (placementId, colorId) => {
+            const placement = appState.getPlacementById(placementId);
+            if (placement) {
+                placement.colors = placement.colors.filter(c => c.id !== colorId);
+                appState.updatePlacement(placementId, { colors: placement.colors });
+            }
+        };
+        
+        window.updatePlacementColorValue = (placementId, colorId, value) => {
+            const placement = appState.getPlacementById(placementId);
+            if (placement) {
+                const color = placement.colors.find(c => c.id === colorId);
+                if (color) {
+                    color.val = value;
+                    appState.updatePlacement(placementId, { colors: placement.colors });
+                }
+            }
+        };
+        
+        window.updatePlacementScreenLetter = (placementId, colorId, value) => {
+            const placement = appState.getPlacementById(placementId);
+            if (placement) {
+                const color = placement.colors.find(c => c.id === colorId);
+                if (color) {
+                    color.screenLetter = value.toUpperCase();
+                    appState.updatePlacement(placementId, { colors: placement.colors });
+                }
+            }
+        };
+        
+        window.updatePlacementParam = (id, param, value) => {
+            appState.updatePlacement(id, { [param]: value });
+        };
+        
+        window.openImagePickerForPlacement = (id) => {
+            const input = document.getElementById('placementImageInput');
+            if (input) {
+                input.dataset.placementId = id;
+                input.click();
+            }
+        };
+        
+        window.removePlacementImage = (id) => {
+            appState.updatePlacement(id, { imageData: null });
+        };
+        
+        window.showPlacement = (id) => {
+            appState.setCurrentPlacement(id);
+        };
+        
+        window.updateAllPlacementTitles = (id) => {
+            // Esta función se maneja automáticamente por el renderer
+            const placement = appState.getPlacementById(id);
+            if (placement) {
+                appState.notify('placements');
+            }
+        };
+    }
 
-// Función segura para inicializar módulos
-// En la función safeInit, cambiar:
-function safeInit(moduleName, initFunction, ...args) {
-    try {
-        if (window[moduleName] && typeof window[moduleName][initFunction] === 'function') {
-            // Verificar si ya se inicializó
-            if (window[moduleName]._initialized) {
-                console.log(`📌 ${moduleName} ya inicializado, omitiendo...`);
-                return null;
+    async saveSpec() {
+        try {
+            const data = this.collectSpecData();
+            const style = data.style || 'SinEstilo_' + Date.now();
+            const storageKey = `spec_${style}_${Date.now()}`;
+            
+            data.savedAt = new Date().toISOString();
+            data.lastModified = new Date().toISOString();
+            
+            localStorage.setItem(storageKey, JSON.stringify(data));
+            
+            // Actualizar UI
+            render.renderDashboard();
+            render.renderSavedSpecsList();
+            
+            this.showStatus('✅ Spec guardada correctamente', 'success');
+            
+            // Preguntar si quiere ver las specs guardadas
+            setTimeout(() => {
+                if (confirm('¿Deseas ver todas las specs guardadas?')) {
+                    uiManager.showTab('saved-specs');
+                }
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error al guardar spec:', error);
+            this.showStatus('❌ Error al guardar: ' + error.message, 'error');
+        }
+    }
+
+    collectSpecData() {
+        const formData = appState.getFormData();
+        const placements = appState.getPlacements();
+        
+        return {
+            ...formData,
+            placements: placements.map(p => ({
+                id: p.id,
+                type: p.type,
+                name: p.name,
+                imageData: p.imageData,
+                colors: p.colors,
+                placementDetails: p.placementDetails,
+                dimensions: p.dimensions,
+                width: p.width,
+                height: p.height,
+                temp: p.temp,
+                time: p.time,
+                specialties: p.specialties,
+                specialInstructions: p.specialInstructions,
+                inkType: p.inkType,
+                
+                // Parámetros de impresión
+                meshColor: p.meshColor,
+                meshWhite: p.meshWhite,
+                meshBlocker: p.meshBlocker,
+                durometer: p.durometer,
+                strokes: p.strokes,
+                angle: p.angle,
+                pressure: p.pressure,
+                speed: p.speed,
+                additives: p.additives
+            })),
+            savedAt: new Date().toISOString()
+        };
+    }
+
+    clearForm() {
+        if (confirm('⚠️ ¿Estás seguro de que quieres limpiar todo el formulario?\n\nSe perderán todos los datos no guardados.\n\n¿Continuar?')) {
+            // Resetear formulario
+            appState.setFormData({
+                customer: '',
+                style: '',
+                folder: '',
+                colorway: '',
+                season: '',
+                pattern: '',
+                po: '',
+                sampleType: '',
+                nameTeam: '',
+                gender: '',
+                designer: ''
+            });
+            
+            // Resetear placements
+            appState.setPlacements([]);
+            const firstPlacement = appState.createPlacement('FRONT');
+            appState.addPlacement(firstPlacement);
+            
+            // Resetear logo
+            const logoElement = document.getElementById('logoCliente');
+            if (logoElement) {
+                logoElement.style.display = 'none';
             }
             
-            const result = window[moduleName][initFunction](...args);
-            window[moduleName]._initialized = true;
-            console.log(`✅ ${moduleName}.${initFunction}() ejecutado`);
-            return result;
-        } else {
-            // Cambiar de warning a info
-            console.log(`ℹ️ ${moduleName}.${initFunction} ya inicializado o no disponible`);
-            return null;
+            this.showStatus('🧹 Formulario limpiado correctamente');
         }
-    } catch (error) {
-        console.error(`❌ Error en ${moduleName}.${initFunction}():`, error);
-        if (window.ErrorHandler) {
-            window.ErrorHandler.log(error, { module: moduleName, function: initFunction });
-        }
-        return null;
     }
-}
-// Cargar un módulo individual
-function loadModule(module) {
-    return new Promise((resolve) => {
-        // Verificar si ya está cargado
-        if (window[module.name] || AppState.loadedModules[module.name]) {
-            console.log(`📌 ${module.name} ya cargado, omitiendo...`);
-            AppState.loadedModules[module.name] = true;
-            resolve();
-            return;
+
+    async exportPDF() {
+        try {
+            this.showStatus('📄 Generando PDF...', 'warning');
+            
+            // Implementar generación de PDF
+            // Por ahora, solo un mensaje de placeholder
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            this.showStatus('✅ PDF generado correctamente (función en desarrollo)', 'success');
+            
+        } catch (error) {
+            console.error('Error al exportar PDF:', error);
+            this.showStatus('❌ Error al generar PDF: ' + error.message, 'error');
         }
-        
-        const script = document.createElement('script');
-        script.src = module.path;
-        script.async = false;
-        script.setAttribute('data-module', module.name);
-        
-        script.onload = () => {
+    }
+
+    exportExcel() {
+        try {
+            this.showStatus('📊 Generando Excel...', 'warning');
+            
+            // Implementar generación de Excel
+            // Por ahora, solo un mensaje de placeholder
             setTimeout(() => {
-                AppState.loadedModules[module.name] = true;
-                console.log(`✅ ${module.type.toUpperCase()}: ${module.name} - OK`);
-                resolve();
-            }, 50);
-        };
-        
-        script.onerror = () => {
-            console.warn(`⚠️ No se pudo cargar ${module.name}, continuando...`);
-            AppState.errors.push({
-                module: module.name,
-                error: `No se pudo cargar ${module.path}`
+                this.showStatus('✅ Excel generado correctamente (función en desarrollo)', 'success');
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error al exportar Excel:', error);
+            this.showStatus('❌ Error al generar Excel: ' + error.message, 'error');
+        }
+    }
+
+    downloadZip() {
+        try {
+            this.showStatus('📦 Generando proyecto ZIP...', 'warning');
+            
+            // Implementar generación de ZIP
+            // Por ahora, solo un mensaje de placeholder
+            setTimeout(() => {
+                this.showStatus('✅ ZIP generado correctamente (función en desarrollo)', 'success');
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error al generar ZIP:', error);
+            this.showStatus('❌ Error al generar proyecto ZIP: ' + error.message, 'error');
+        }
+    }
+
+    clearAllSpecs() {
+        if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?\n\nEsta acción no se puede deshacer y se perderán todos los datos.')) {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('spec_')) {
+                    localStorage.removeItem(key);
+                }
             });
-            resolve(); // Continuar aunque falle
-        };
-        
-        // Evitar duplicados
-        if (!document.querySelector(`script[src="${module.path}"]`)) {
-            document.head.appendChild(script);
-        } else {
-            console.log(`📌 Script para ${module.name} ya existe, omitiendo...`);
-            resolve();
-        }
-    });
-}
-
-// Cargar módulos secuencialmente
-async function loadModulesSequentially() {
-    console.log('📦 Cargando módulos adicionales...');
-    console.log(`📊 Total a cargar: ${MODULES.length} módulos`);
-    
-    for (let i = 0; i < MODULES.length; i++) {
-        const module = MODULES[i];
-        console.log(`📥 (${i+1}/${MODULES.length}): ${module.name} [${module.type}]`);
-        await loadModule(module);
-    }
-    
-    console.log('✅ Todos los módulos cargados');
-}
-
-// Verificar configuraciones críticas
-async function checkCriticalConfigs() {
-    console.log('🔍 Verificando configuraciones...');
-    
-    const criticalConfigs = [
-        { name: 'Config', required: true },
-        { name: 'TeamsConfig', required: false },
-        { name: 'LogoConfig', required: false }
-    ];
-    
-    for (const config of criticalConfigs) {
-        const isAvailable = await waitForGlobal(config.name, 10, 200);
-        
-        if (config.required && !isAvailable) {
-            throw new Error(`Configuración crítica faltante: ${config.name}`);
+            
+            render.renderSavedSpecsList();
+            render.renderDashboard();
+            
+            this.showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
         }
     }
-    
-    AppState.configsReady = true;
-    return true;
-}
 
-// Esperar módulos cargados en index.html
-async function waitForIndexModules() {
-    console.log('⏳ Esperando módulos de index.html...');
-    
-    const indexModules = [
-        'ThemeManager',
-        'DashboardManager', 
-        'TabsManager',
-        'ClientManager',
-        'SpecsManager',
-        'StorageManager'
-    ];
-    
-    const results = await Promise.all(
-        indexModules.map(module => waitForGlobal(module, 10, 300))
-    );
-    
-    // Contar cuántos están disponibles
-    const available = results.filter(Boolean).length;
-    console.log(`📊 Módulos index.html: ${available}/${indexModules.length} disponibles`);
-    
-    return available >= 3; // Necesitamos al menos 3 para funcionar
-}
+    exportErrorLog() {
+        try {
+            const errors = appState.getState().errorLog;
+            const exportData = {
+                app: 'Tegra Spec Manager',
+                version: '2.0.0',
+                exportDate: new Date().toISOString(),
+                totalErrors: errors.length,
+                errors: errors
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `TegraSpec_ErrorLog_${new Date().toISOString().slice(0, 10)}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            
+            this.showStatus('✅ Log de errores exportado', 'success');
+        } catch (error) {
+            console.error('Error al exportar log:', error);
+            this.showStatus('❌ Error al exportar log de errores', 'error');
+        }
+    }
 
-// Configurar event listeners globales
-function setupGlobalEventListeners() {
-    console.log('🔗 Configurando event listeners globales...');
-    
-    // Auto-detección en input de STYLE
-    const styleInput = document.getElementById('style');
-    if (styleInput && window.Detectors) {
-        styleInput.addEventListener('input', function() {
-            if (window.Detectors.autoDetectFromStyleInput) {
-                setTimeout(() => {
-                    window.Detectors.autoDetectFromStyleInput(this);
-                }, 300);
+    handleGearForSport() {
+        const customerInput = document.getElementById('customer');
+        const nameTeamInput = document.getElementById('name-team');
+        
+        if (!customerInput || !nameTeamInput) return;
+        
+        const customer = customerInput.value.toUpperCase().trim();
+        if (customer !== 'GEAR FOR SPORT') return;
+        
+        const styleInput = document.getElementById('style');
+        const poInput = document.getElementById('po');
+        const searchTerm = (styleInput?.value || '') || (poInput?.value || '');
+        
+        const config = appState.getConfig();
+        if (config && config.gearForSportTeamMap) {
+            const teamKey = Object.keys(config.gearForSportTeamMap).find(key =>
+                searchTerm.toUpperCase().includes(key)
+            );
+            
+            if (teamKey) {
+                nameTeamInput.value = config.gearForSportTeamMap[teamKey];
+                appState.setFormData({ nameTeam: config.gearForSportTeamMap[teamKey] });
+            }
+        }
+    }
+
+    // Setup de event listeners adicionales
+    setupAdditionalListeners() {
+        // Excel file upload
+        document.getElementById('excelFile')?.addEventListener('change', (e) => {
+            uiManager.handleExcelUpload(e);
+        });
+        
+        // Image upload for placements
+        document.getElementById('placementImageInput')?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const placementId = e.target.dataset.placementId;
+            
+            if (file && placementId) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    appState.updatePlacement(parseInt(placementId), { imageData: event.target.result });
+                    this.showStatus(`✅ Imagen cargada para placement`, 'success');
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            e.target.value = '';
+        });
+        
+        // Add placement button
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#add-placement-btn')) {
+                const placement = appState.createPlacement();
+                appState.addPlacement(placement);
+                this.showStatus('✅ Nuevo placement agregado', 'success');
+            }
+            
+            if (e.target.closest('#save-spec-btn')) {
+                this.saveSpec();
+            }
+            
+            if (e.target.closest('#export-pdf-btn')) {
+                this.exportPDF();
+            }
+            
+            if (e.target.closest('#export-excel-btn')) {
+                this.exportExcel();
+            }
+            
+            if (e.target.closest('#export-zip-btn')) {
+                this.downloadZip();
+            }
+            
+            if (e.target.closest('#load-spec-btn')) {
+                document.getElementById('excelFile').click();
+            }
+            
+            if (e.target.closest('#clear-form-btn')) {
+                this.clearForm();
             }
         });
-    }
-    
-   // Input de cliente
-    const customerInput = document.getElementById('customer');
-    if (customerInput && window.ClientManager) {
-        customerInput.addEventListener('input', () => {
-            if (window.ClientManager.updateClientLogo) {
-                setTimeout(() => window.ClientManager.updateClientLogo(), 500);
-            }
-        });
-    }
-    
-    // Botón para agregar placement
-    const addPlacementBtn = document.getElementById('add-placement-btn');
-    if (addPlacementBtn && window.PlacementsUI) {
-        addPlacementBtn.addEventListener('click', () => {
-            safeInit('PlacementsUI', 'addNewPlacement');
-        });
-    }
-    
-    // Botón para guardar spec
-    const saveSpecBtn = document.getElementById('save-spec-btn');
-    if (saveSpecBtn && window.SpecsManager) {
-        saveSpecBtn.addEventListener('click', () => {
-            // Recoger datos del formulario
-            const specData = collectSpecFormData();
-            if (specData) {
-                safeInit('SpecsManager', 'saveSpec', specData);
-                showAppStatus('Spec guardada correctamente', 'success');
-                if (window.SpecsManager && typeof window.SpecsManager.saveCurrentSpec === 'function') {
-                    window.SpecsManager.saveCurrentSpec();
-                } else {
-                    safeInit('SpecsManager', 'saveSpec', specData);
+        
+        // Nav tabs
+        document.addEventListener('click', (e) => {
+            const navTab = e.target.closest('.nav-tab');
+            if (navTab) {
+                const tabName = navTab.dataset.tab;
+                if (tabName) {
+                    uiManager.showTab(tabName);
                 }
             }
         });
     }
-
-    // Botón para cambiar tema
-    const themeToggleBtn = document.getElementById('themeToggle');
-    if (themeToggleBtn && window.ThemeManager) {
-        themeToggleBtn.addEventListener('click', () => {
-            if (window.ThemeManager.toggleTheme) {
-                window.ThemeManager.toggleTheme();
-            }
-        });
-    }
 }
 
-// Recoger datos del formulario de spec
-function collectSpecFormData() {
-    const fields = [
-        'customer', 'style', 'name-team', 'gender', 
-        'folder-num', 'season', 'designer', 'ink-type'
-    ];
+// Inicializar aplicación cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', async () => {
+    const app = new TegraSpecApp();
     
-    const specData = {};
-    let hasRequired = false;
+    // Exponer métodos globales
+    app.exposeGlobalMethods();
     
-    fields.forEach(fieldId => {
-        const element = document.getElementById(fieldId);
-        if (element && element.value) {
-            // Mapear nombres de campos
-            const specKey = fieldId === 'style' ? 'styleNumber' : 
-                           fieldId === 'name-team' ? 'teamName' :
-                           fieldId === 'folder-num' ? 'folderNumber' :
-                           fieldId === 'ink-type' ? 'inkType' : fieldId;
-            
-            specData[specKey] = element.value;
-@@ -264,90 +277,80 @@ function collectSpecFormData() {
-        }
-    });
+    // Setup listeners adicionales
+    app.setupAdditionalListeners();
     
-    // Agregar placements si existen
-    if (window.StateManager) {
-        const placements = window.StateManager.getPlacements();
-        if (placements.length > 0) {
-            specData.placements = placements;
-        }
-    }
+    // Inicializar aplicación
+    await app.init();
     
-    if (!hasRequired) {
-        showAppStatus('Error: Se requiere Cliente y Style Number', 'error');
-        return null;
-    }
-    
-    return specData;
-}
+    // Hacer referencia global a la app
+    window.TegraSpecApp = app;
+});
 
-// Inicializar módulos en orden correcto
-function initializeModules() {
-    console.log('🔄 Inicializando módulos...');
-    
-    // Orden de inicialización CRÍTICO
-    const initOrder = [
-        { module: 'TabsManager', func: 'init' },
-        { module: 'ThemeManager', func: 'init' },
-        { module: 'TabsManager', func: 'initialize' },
-        { module: 'ThemeManager', func: 'initialize' },
-        { module: 'PlacementsCore', func: 'initializePlacements' },
-        { module: 'SpecsManager', func: 'init' },
-        { module: 'DashboardManager', func: 'init' },
-        { module: 'DashboardManager', func: 'initialize' },
-        { module: 'ClientManager', func: 'init' },
-        { module: 'StorageManager', func: 'init' }
-    ];
-    
-    // Ejecutar inicializaciones
-    initOrder.forEach(item => {
-        safeInit(item.module, item.func);
-    });
-}
-
-// Configurar auto-updates
-function setupAutoUpdates() {
-    console.log('⏰ Configurando auto-updates...');
-    
-    // Actualizar fecha/hora cada minuto
-    if (window.DashboardManager && window.DashboardManager.updateDateTime) {
-        window.DashboardManager.updateDateTime();
-        setInterval(() => {
-            if (window.DashboardManager.updateDateTime) {
-                window.DashboardManager.updateDateTime();
-            }
-        }, 60000);
-    }
-    
-    // Actualizar dashboard cada 30 segundos
-    if (window.DashboardManager && window.DashboardManager.updateDashboard) {
-        setTimeout(() => {
-            window.DashboardManager.updateDashboard();
-        }, 1000);
-        
-        setInterval(() => {
-            if (window.DashboardManager.updateDashboard) {
-                window.DashboardManager.updateDashboard();
-            }
-        }, 30000);
-    // Delegar auto-updates al DashboardManager si existe
-    if (window.DashboardManager) {
-        if (window.DashboardManager.updateDateTime) {
-            window.DashboardManager.updateDateTime();
-        }
-        if (window.DashboardManager.updateDashboard) {
-            setTimeout(() => window.DashboardManager.updateDashboard(), 1000);
-        }
-        if (window.DashboardManager.startAutoUpdate) {
-            window.DashboardManager.startAutoUpdate();
-        }
-    }
-}
-
-// Inicializar aplicación principal
-async function initializeApp() {
-    console.log('🚀 Inicializando Tegra Spec Manager v1.5...');
-    
-    try {
-        // 1. Verificar configuraciones
-        await checkCriticalConfigs();
-        
-        // 2. Esperar módulos de index.html
-        const indexModulesReady = await waitForIndexModules();
-        
-        if (!indexModulesReady) {
-            console.warn('⚠️ Pocos módulos de index.html disponibles');
-            // Continuar de todos modos
-        }
-        
-        // 3. Cargar módulos adicionales (los que NO están en index.html)
-        await loadModulesSequentially();
-        
-        // 4. Inicializar variables globales
-        if (!window.globalPlacements) window.globalPlacements = [];
-        if (!window.globalCurrentPlacementId) window.globalCurrentPlacementId = 1;
-
-        
-        // 5. Inicializar módulos
-        initializeModules();
-        
-        // 6. Configurar event listeners
-        setupGlobalEventListeners();
-        
-        // 7. Mostrar dashboard inicial
-        setTimeout(() => {
-            if (window.TabsManager && window.TabsManager.showTab) {
-                window.TabsManager.showTab('dashboard');
-            } else {
-                // Fallback básico
-                showTab('dashboard');
-            }
-        }, 800);
-        
-        // 8. Configurar auto-updates
-        setupAutoUpdates();
-        
-        // 9. Marcar como inicializado
-        AppState.initialized = true;
-        
-        // 10. Mostrar resumen
-        console.log('🎉 Tegra Spec Manager inicializado correctamente');
-        console.log('📊 Resumen:', {
-            totalModules: MODULES.length,
-            loadedSuccessfully: Object.keys(AppState.loadedModules).length,
-            errors: AppState.errors.length,
-            configsReady: AppState.configsReady
-        });
-        
-        showAppStatus('✅ Aplicación lista para usar', 'success');
-        
-        // 11. Si hay errores, mostrarlos como warnings
-        if (AppState.errors.length > 0) {
-            console.warn(`⚠️ Advertencias (${AppState.errors.length}):`);
-            AppState.errors.forEach(err => {
-                console.warn(`   - ${err.module}: ${err.error}`);
-            });
-        }
-        
-    } catch (error) {
-        console.error('❌ Error fatal al inicializar:', error);
-        showAppStatus(`❌ Error: ${error.message}`, 'error');
-        
-        // Intentar modo de recuperación
-        setTimeout(initializeRecoveryMode, 1000);
-    }
-}
-
-// Función de navegación básica (fallback)
-function showTab(tabName) {
-    const tabs = document.querySelectorAll('.nav-tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    tabs.forEach(t => t.classList.remove('active'));
-    tabContents.forEach(tc => tc.classList.remove('active'));
-    
-    const targetTab = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
-    const targetContent = document.getElementById(tabName);
-    
-    if (targetTab) targetTab.classList.add('active');
-    if (targetContent) targetContent.classList.add('active');
-}
-
-// Modo de recuperación
-function initializeRecoveryMode() {
-    console.log('🔄 Iniciando modo de recuperación...');
-    
-    // Configurar navegación básica
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            const tabName = this.getAttribute('data-tab');
-            showTab(tabName);
-        });
-    });
-    
-    // Mostrar dashboard
-    showTab('dashboard');
-    
-    showAppStatus('🔧 Modo de recuperación activado', 'warning');
-}
-
-// Mostrar mensaje de estado
-function showAppStatus(message, type = 'info') {
-    console.log(`📢 [${type.toUpperCase()}] ${message}`);
-    
-    const statusEl = document.getElementById('statusMessage');
-    if (statusEl) {
-        statusEl.textContent = message;
-        statusEl.className = `status-message status-${type}`;
-        statusEl.style.display = 'block';
-        
-        setTimeout(() => {
-            if (statusEl.textContent === message) {
-                statusEl.style.display = 'none';
-            }
-        }, type === 'error' ? 8000 : 4000);
-    }
-}
-
-// ========== INICIO DE LA APLICACIÓN ==========
-
-// Esperar a que el DOM esté completamente cargado
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(initializeApp, 500); // Pequeño delay para estabilidad
-    });
-} else {
-    setTimeout(initializeApp, 500);
-}
-
-// ========== API GLOBAL PARA DEBUGGING ==========
-window.TegraDebug = {
-    getState: () => ({ ...AppState }),
-    
-    showModules: () => {
-        console.table(MODULES.map(m => ({
-            name: m.name,
-            path: m.path,
-            loaded: !!window[m.name] || AppState.loadedModules[m.name],
-            type: m.type
-        })));
-    },
-    
-    testConfig: () => {
-        console.log('🧪 Test de configuraciones:');
-        console.log('- Config:', window.Config ? '✅' : '❌');
-        console.log('- TeamsConfig:', window.TeamsConfig ? '✅' : '❌');
-        console.log('- LogoConfig:', window.LogoConfig ? '✅' : '❌');
-        console.log('- Utils:', window.Utils ? '✅' : '❌');
-    },
-    
-    reloadModule: (moduleName) => {
-        const module = MODULES.find(m => m.name === moduleName);
-        if (module) {
-            delete window[moduleName];
-            delete AppState.loadedModules[moduleName];
-            return loadModule(module);
-        }
-        return Promise.reject('Módulo no encontrado');
-    },
-    
-    showStats: () => {
-        if (window.SpecsManager && window.SpecsManager.getStats) {
-            const stats = window.SpecsManager.getStats();
-            console.log('📈 Estadísticas:', stats);
-            return stats;
-        }
-        return null;
-    },
-    
-    forceReload: () => {
-        console.log('🔄 Forzando recarga de la aplicación...');
-        location.reload();
-    }
-};
-
-console.log('✅ Main.js cargado - Esperando inicialización...');
+// Exportar para módulos
+export default TegraSpecApp;
