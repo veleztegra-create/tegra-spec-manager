@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "Tegra Technical Spec Manager",
+    "version": "2.0.0",
+    "defaultTheme": "dark",
+    "logo": "assets/logo.svg"
+  },
+  "colorDatabases": {
+    "pantone": {},
+    "gearForSport": {},
+    "institutional": {}
+  },
+  "gearForSportTeamMap": {
+    "UNC": "North Carolina Tar Heels",
+    "UCLA": "UCLA Bruins",
+    "UT": "Texas Longhorns",
+    "OSU": "Ohio State Buckeyes"
+  },
+  "ui": {
+    "defaultPlacementType": "FRONT",
+    "defaultInkType": "WATER",
+    "maxPlacements": 10
+  }
+}
