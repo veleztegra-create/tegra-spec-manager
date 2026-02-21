@@ -314,7 +314,9 @@
                 strokes: '',
                 additives: '',
                 width: '',
-                height: ''
+                height: '',
+                baseSize: '',
+                fabric: ''
             };
             
             if (!isFirst) {
@@ -527,6 +529,22 @@
                                                  readonly
                                                  title="Detectado automáticamente de los colores">
                                       </div>
+                                      <div class="form-group">
+                                          <label class="form-label">TALLA BASE:</label>
+                                          <input type="text"
+                                                 id="base-size-placement-${placement.id}"
+                                                 class="form-control"
+                                                 value="${placement.baseSize || (document.getElementById('base-size')?.value || '')}"
+                                                 oninput="updatePlacementField(${placement.id}, 'baseSize', this.value)">
+                                      </div>
+                                      <div class="form-group">
+                                          <label class="form-label">TELA:</label>
+                                          <input type="text"
+                                                 id="fabric-placement-${placement.id}"
+                                                 class="form-control"
+                                                 value="${placement.fabric || (document.getElementById('fabric')?.value || '')}"
+                                                 oninput="updatePlacementField(${placement.id}, 'fabric', this.value)">
+                                      </div>
                                   </div>
                               </div>
                           </div>
@@ -540,38 +558,8 @@
                               </div>
                               <div class="card-body">
                                   <div class="form-grid">
-                                      <!-- Malla para colores regulares -->
-                                      <div class="form-group">
-                                          <label class="form-label">MALLA COLORES:</label>
-                                          <input type="text" 
-                                                 id="mesh-color-${placement.id}"
-                                                 class="form-control placement-mesh-color"
-                                                 value="${placement.meshColor || defaultMeshColor}"
-                                                 oninput="updatePlacementParam(${placement.id}, 'meshColor', this.value)"
-                                                 title="Malla para colores regulares">
-                                      </div>
                                       
-                                      <!-- Malla para White Base -->
-                                      <div class="form-group">
-                                          <label class="form-label">MALLA WHITE BASE:</label>
-                                          <input type="text" 
-                                                 id="mesh-white-${placement.id}"
-                                                 class="form-control placement-mesh-white"
-                                                 value="${placement.meshWhite || defaultMeshWhite}"
-                                                 oninput="updatePlacementParam(${placement.id}, 'meshWhite', this.value)"
-                                                 title="Malla para White Base">
-                                      </div>
                                       
-                                      <!-- Malla para Blocker -->
-                                      <div class="form-group">
-                                          <label class="form-label">MALLA BLOCKER:</label>
-                                          <input type="text" 
-                                                 id="mesh-blocker-${placement.id}"
-                                                 class="form-control placement-mesh-blocker"
-                                                 value="${placement.meshBlocker || defaultMeshBlocker}"
-                                                 oninput="updatePlacementParam(${placement.id}, 'meshBlocker', this.value)"
-                                                 title="Malla para Blocker">
-                                      </div>
                                       
                                       <!-- Durómetro -->
                                       <div class="form-group">
@@ -1293,6 +1281,13 @@ function updateAllPlacementTitles(placementId) {
                          placeholder="Nombre de la tinta..." 
                          value="${color.val}"
                          oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)">
+                  <input type="text"
+                         style="width: 82px; text-align:center;"
+                         class="form-control placement-mesh-line"
+                         value="${color.mesh || ''}"
+                         placeholder="Malla"
+                         title="Malla por tinta"
+                         oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)">
                   <div class="color-preview" 
                        id="placement-color-preview-${placementId}-${color.id}" 
                        title="Vista previa del color"></div>
@@ -1338,7 +1333,19 @@ function updateAllPlacementTitles(placementId) {
           }
       }
 
-      function removePlacementColorItem(placementId, colorId) {
+      
+function updatePlacementColorMesh(placementId, colorId, value) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) return;
+
+    const color = placement.colors.find(c => c.id === colorId);
+    if (!color) return;
+
+    color.mesh = value;
+    updatePlacementStations(placementId);
+}
+
+function removePlacementColorItem(placementId, colorId) {
           const placement = placements.find(p => p.id === placementId);
           if (!placement) return;
           
@@ -1563,7 +1570,7 @@ function updateAllPlacementTitles(placementId) {
               
               if (item.type === 'BLOCKER') {
                   screenTypeLabel = preset.blocker.name;
-                  mesh = stNum <= 3 ? meshBlocker : (placement.meshBlocker || preset.blocker.mesh2);
+                  mesh = item.mesh || (stNum <= 3 ? meshBlocker : (placement.meshBlocker || preset.blocker.mesh2));
                   strokesVal = strokes;
                   duro = durometer;
                   ang = angle;
@@ -1572,7 +1579,7 @@ function updateAllPlacementTitles(placementId) {
                   add = placement.additives || preset.blocker.additives;
               } else if (item.type === 'WHITE_BASE') {
                   screenTypeLabel = preset.white.name;
-                  mesh = stNum <= 9 ? meshWhite : (placement.meshWhite || preset.white.mesh2);
+                  mesh = item.mesh || (stNum <= 9 ? meshWhite : (placement.meshWhite || preset.white.mesh2));
                   strokesVal = strokes;
                   duro = durometer;
                   ang = angle;
@@ -1581,7 +1588,7 @@ function updateAllPlacementTitles(placementId) {
                   add = placement.additives || preset.white.additives;
               } else if (item.type === 'METALLIC') {
                   screenTypeLabel = item.val || '---';
-                  mesh = '110/64';
+                  mesh = item.mesh || '110/64';
                   strokesVal = '1';
                   duro = '70';
                   ang = '15';
@@ -1590,7 +1597,7 @@ function updateAllPlacementTitles(placementId) {
                   add = 'Catalizador especial para metálicos';
               } else {
                   screenTypeLabel = item.val || '---';
-                  mesh = meshColor;
+                  mesh = item.mesh || meshColor;
                   strokesVal = strokes;
                   duro = durometer;
                   ang = angle;
@@ -1885,6 +1892,15 @@ function updateAllPlacementTitles(placementId) {
               }
           }
 
+          const baseSizeCell = worksheet && worksheet['F16'] ? String(worksheet['F16'].v || '').trim().toUpperCase() : '';
+          if (baseSizeCell) {
+              const normalizedBaseSize = baseSizeCell.replace(/[^A-Z0-9]/g, '');
+              if (normalizedBaseSize) {
+                  setInputValue('base-size', normalizedBaseSize);
+                  placements.forEach(p => { p.baseSize = normalizedBaseSize; });
+              }
+          }
+
           updateClientLogo();
           showStatus(`✅ "${sheetName || 'hoja'}" procesado - Género: ${extracted.gender || 'No detectado'}`, 'success');
       }
@@ -2095,6 +2111,10 @@ function updateAllPlacementTitles(placementId) {
           setInputValue('name-team', data.nameTeam || '');
           setInputValue('gender', data.gender || '');
           setInputValue('designer', data.designer || '');
+          setInputValue('base-size', data.baseSize || '');
+          setInputValue('fabric', data.fabric || '');
+          setInputValue('technician-name', data.technicianName || '');
+          setInputValue('technical-comments', data.technicalComments || '');
           
           const placementsContainer = document.getElementById('placements-container');
           if (placementsContainer) placementsContainer.innerHTML = '';
@@ -2235,6 +2255,10 @@ function updateAllPlacementTitles(placementId) {
               nameTeam: document.getElementById('name-team').value,
               gender: document.getElementById('gender').value,
               designer: document.getElementById('designer').value,
+              baseSize: document.getElementById('base-size')?.value || '',
+              fabric: document.getElementById('fabric')?.value || '',
+              technicianName: document.getElementById('technician-name')?.value || '',
+              technicalComments: document.getElementById('technical-comments')?.value || '',
               savedAt: new Date().toISOString()
           };
           
@@ -2247,7 +2271,8 @@ function updateAllPlacementTitles(placementId) {
                   id: c.id,
                   type: c.type,
                   val: c.val,
-                  screenLetter: c.screenLetter
+                  screenLetter: c.screenLetter,
+                  mesh: c.mesh || ''
               })),
               placementDetails: placement.placementDetails,
               dimensions: placement.dimensions,
@@ -2255,6 +2280,8 @@ function updateAllPlacementTitles(placementId) {
               height: placement.height,
               temp: placement.temp,
               time: placement.time,
+              baseSize: placement.baseSize,
+              fabric: placement.fabric,
               specialties: placement.specialties,
               specialInstructions: placement.specialInstructions,
               inkType: placement.inkType,
@@ -2320,20 +2347,18 @@ function updateAllPlacementTitles(placementId) {
 
       async function exportPDF() {
           try {
-              if (typeof window.jspdf === 'undefined') {
-                  showStatus('❌ jsPDF no está cargado', 'error');
-                  return;
+              if (!window.generateSpecHTMLDocument) {
+                  throw new Error('Generador HTML no disponible (window.generateSpecHTMLDocument).');
               }
 
-              showStatus('📄 Generando PDF...', 'warning');
-              
-              const pdfBlob = await generatePDFBlob();
-              
-              const style = getInputValue('style', 'SinEstilo') || 'SinEstilo';
+              const data = collectData();
+              const htmlContent = window.generateSpecHTMLDocument(data);
+              const style = getInputValue('style', 'Spec') || 'Spec';
               const folderNum = getInputValue('folder-num', '00000') || '00000';
-              const fileName = `TegraSpec_${style}_${folderNum}.pdf`;
-              
-              const url = URL.createObjectURL(pdfBlob);
+              const fileName = `TegraSpec_${style}_${folderNum}.html`;
+
+              const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
               a.download = fileName;
@@ -2341,580 +2366,14 @@ function updateAllPlacementTitles(placementId) {
               a.click();
               document.body.removeChild(a);
               URL.revokeObjectURL(url);
-              
-              showStatus('✅ PDF generado correctamente', 'success');
-              
+
+              showStatus('✅ HTML descargado correctamente', 'success');
           } catch (error) {
-              console.error('Error al exportar PDF:', error);
-              showStatus('❌ Error al generar PDF: ' + error.message, 'error');
+              console.error('Error al exportar HTML:', error);
+              showStatus('❌ Error al generar HTML: ' + error.message, 'error');
           }
       }
 
-      async function generatePDFBlob() {
-          if (window.generateProfessionalPDF) {
-              try {
-                  const data = collectData();
-                  return await window.generateProfessionalPDF(data);
-              } catch (proError) {
-                  console.warn('Fallo PDF profesional, usando generador legacy:', proError);
-              }
-          }
-
-          return new Promise(async (resolve, reject) => {
-              try {
-                  const { jsPDF } = window.jspdf;
-                  const pdf = new jsPDF('p', 'mm', 'letter');
-                  const pageW = pdf.internal.pageSize.getWidth();
-                  const pageH = pdf.internal.pageSize.getHeight();
-                  
-                  const primaryColor = [162, 43, 42];
-                  const accentColor = [255, 138, 128];
-                  const grayLight = [240, 240, 240];
-                  const grayDark = [100, 100, 100];
-                  
-                  const text = (str, x, y, size = 10, bold = false, color = [0, 0, 0], align = 'left', maxWidth = null) => {
-                      pdf.setTextColor(...color);
-                      pdf.setFontSize(size);
-                      pdf.setFont('helvetica', bold ? 'bold' : 'normal');
-                      const textStr = String(str || '');
-                      
-                      if (maxWidth) {
-                          const lines = pdf.splitTextToSize(textStr, maxWidth);
-                          pdf.text(lines, x, y, { align: align });
-                          return lines.length;
-                      } else {
-                          pdf.text(textStr, x, y, { align: align });
-                          return 1;
-                      }
-                  };
-
-                  const drawRect = (x, y, width, height, fillColor = null, strokeColor = [0, 0, 0], lineWidth = 0.2) => {
-                      if (fillColor) {
-                          pdf.setFillColor(...fillColor);
-                          pdf.rect(x, y, width, height, 'F');
-                      }
-                      pdf.setDrawColor(...strokeColor);
-                      pdf.setLineWidth(lineWidth);
-                      pdf.rect(x, y, width, height);
-                  };
-
-                  const decorativeLine = (x1, y1, x2, y2, color = grayLight, width = 0.2) => {
-                      pdf.setDrawColor(...color);
-                      pdf.setLineWidth(width);
-                      pdf.line(x1, y1, x2, y2);
-                  };
-
-                  const blobToDataURL = (blob) => new Promise((resolve, reject) => {
-                      const reader = new FileReader();
-                      reader.onload = () => resolve(reader.result);
-                      reader.onerror = reject;
-                      reader.readAsDataURL(blob);
-                  });
-
-                  const resolveCustomerLogoUrl = (customerRaw) => {
-                      const customer = String(customerRaw || '').toUpperCase().trim();
-                      if (!customer || !window.LogoConfig) return null;
-
-                      const gfsVariations = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S', 'GEAR', 'G-F-S'];
-                      if (customer.includes('NIKE') || customer.includes('NIQUE')) return window.LogoConfig.NIKE;
-                      if (customer.includes('FANATICS') || customer.includes('FANATIC')) return window.LogoConfig.FANATICS;
-                      if (customer.includes('ADIDAS')) return window.LogoConfig.ADIDAS;
-                      if (customer.includes('PUMA')) return window.LogoConfig.PUMA;
-                      if (customer.includes('UNDER ARMOUR') || customer === 'UA') return window.LogoConfig.UNDER_ARMOUR;
-                      if (gfsVariations.some(v => customer.includes(v))) return window.LogoConfig.GEAR_FOR_SPORT;
-                      return null;
-                  };
-
-                  const getImageType = (dataUrl) => {
-                      if (!dataUrl || typeof dataUrl !== 'string') return 'PNG';
-                      if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) return 'JPEG';
-                      if (dataUrl.startsWith('data:image/svg+xml')) return 'SVG';
-                      return 'PNG';
-                  };
-
-                  const imageToPngInfo = (src) => new Promise((resolve, reject) => {
-                      const img = new Image();
-                      img.crossOrigin = 'anonymous';
-                      img.onload = () => {
-                          try {
-                              const canvas = document.createElement('canvas');
-                              canvas.width = img.naturalWidth || img.width;
-                              canvas.height = img.naturalHeight || img.height;
-                              const ctx = canvas.getContext('2d');
-                              ctx.drawImage(img, 0, 0);
-                              resolve({
-                                  dataUrl: canvas.toDataURL('image/png'),
-                                  width: canvas.width,
-                                  height: canvas.height
-                              });
-                          } catch (err) {
-                              reject(err);
-                          }
-                      };
-                      img.onerror = reject;
-                      img.src = src;
-                  });
-
-                  // CABECERA EN 4 COLUMNAS
-                  const headerHeight = 28;
-                  pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                  pdf.rect(0, 0, pageW, headerHeight, 'F');
-
-                  const customerName = getInputValue('customer', '');
-                  const tegraLogo = window.LogoConfig?.TEGRA || 'https://raw.githubusercontent.com/veleztegra-create/costos/main/tegra%20logo.png';
-                  const customerLogoUrl = resolveCustomerLogoUrl(customerName);
-
-                  const headerX = 10;
-                  const headerInnerW = pageW - 20;
-                  const colW = [38, 58, 64, headerInnerW - 38 - 58 - 64];
-                  const colX = [
-                      headerX,
-                      headerX + colW[0],
-                      headerX + colW[0] + colW[1],
-                      headerX + colW[0] + colW[1] + colW[2]
-                  ];
-
-                  // Fondo gris claro para bloque de customer/logo cliente a todo lo alto
-                  drawRect(colX[2] + 2, 1.5, colW[2] - 4, headerHeight - 3, [236, 236, 236], [236, 236, 236], 0);
-
-                  if (tegraLogo) {
-                      try {
-                          const tegraCandidates = [
-                              tegraLogo,
-                              'https://raw.githubusercontent.com/veleztegra-create/costos/main/tegra%20logo.png'
-                          ];
-                          let tegraInfo = null;
-                          for (const candidate of tegraCandidates) {
-                              try {
-                                  tegraInfo = await imageToPngInfo(candidate);
-                                  if (tegraInfo) break;
-                              } catch (_) {}
-                          }
-
-                          if (tegraInfo) {
-                              const tegraMaxW = colW[0] - 1;
-                              const tegraMaxH = 20;
-                              const tegraScale = Math.min(tegraMaxW / tegraInfo.width, tegraMaxH / tegraInfo.height);
-                              const tegraW = tegraInfo.width * tegraScale;
-                              const tegraH = tegraInfo.height * tegraScale;
-                              const tegraX = colX[0] + (colW[0] - tegraW) / 2;
-                              const tegraY = 4 + (20 - tegraH) / 2;
-                              pdf.addImage(tegraInfo.dataUrl, 'PNG', tegraX, tegraY, tegraW, tegraH);
-                          }
-                      } catch (e) {
-                          console.warn('No se pudo agregar logo TEGRA al PDF:', e);
-                      }
-                  }
-
-                  // Texto más oscuro y más grande
-                  pdf.setTextColor(50, 50, 50);
-                  pdf.setFontSize(9);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text("TECHNICAL SPEC MANAGER", colX[1] + 2, 14.5);
-
-                  const customerBoxX = colX[2] + 2;
-                  const customerBoxY = 3;
-                  const customerBoxW = colW[2] - 4;
-                  const customerBoxH = 7;
-                  drawRect(customerBoxX, customerBoxY, customerBoxW, customerBoxH, [220, 220, 220], [220, 220, 220], 0);
-                  pdf.setTextColor(60, 60, 60);
-                  pdf.setFontSize(6);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text('CUSTOMER / CLIENTE', customerBoxX + (customerBoxW / 2), customerBoxY + 5.3, { align: 'center' });
-
-                  if (customerLogoUrl) {
-                      try {
-                          const response = await fetch(customerLogoUrl);
-                          if (response.ok) {
-                              const logoBlob = await response.blob();
-                              const customerLogoDataUrl = await blobToDataURL(logoBlob);
-                              const customerInfo = await imageToPngInfo(customerLogoDataUrl);
-                              const maxLogoW = colW[2] - 20;
-                              const maxLogoH = 9;
-                              const scale = Math.min(maxLogoW / customerInfo.width, maxLogoH / customerInfo.height);
-                              const logoW = customerInfo.width * scale;
-                              const logoH = customerInfo.height * scale;
-                              const logoX = colX[2] + (colW[2] - logoW) / 2;
-                              const logoY = 15 + (9 - logoH) / 2;
-                              pdf.addImage(customerInfo.dataUrl, 'PNG', logoX, logoY, logoW, logoH);
-                          }
-                      } catch (e) {
-                          console.warn('No se pudo agregar logo de cliente al PDF:', e);
-                      }
-                  }
-
-                  const folderNum = getInputValue('folder-num', '#####') || '#####';
-                  const safeFolder = String(folderNum).slice(0, 14);
-                  pdf.setTextColor(255, 255, 255);
-                  pdf.setFontSize(8);
-                  pdf.setFont("helvetica", "bold");
-                  pdf.text(`# FOLDER:`, pageW - 10, 12, { align: 'right' });
-                  pdf.setFontSize(15);
-                  pdf.text(`${safeFolder}`, pageW - 10, 21, { align: 'right' });
-
-                  let y = 34;
-
-                  if (placements.length > 0) {
-                      const fields = [
-                          { l: 'CLIENTE:', v: getInputValue('customer') },
-                          { l: 'STYLE:', v: getInputValue('style') },
-                          { l: 'COLORWAY:', v: getInputValue('colorway') },
-                          { l: 'SEASON:', v: getInputValue('season') },
-                          { l: 'PATTERN #:', v: getInputValue('pattern') },
-                          { l: 'P.O. #:', v: getInputValue('po') },
-                          { l: 'SAMPLE TYPE:', v: getInputValue('sample-type') },
-                          { l: 'TEAM:', v: getInputValue('name-team') },
-                          { l: 'GENDER:', v: getInputValue('gender') },
-                          { l: 'DESIGNER:', v: getInputValue('designer') },
-                      ];
-
-                      const measureLines = (value, maxWidth) => {
-                          const lines = pdf.splitTextToSize(String(value || '---'), maxWidth);
-                          return Math.max(1, lines.length);
-                      };
-
-                      let contentHeight = 0;
-                      for (let i = 0; i < fields.length; i += 2) {
-                          const leftLines = measureLines(fields[i].v, 52);
-                          const rightLines = fields[i + 1] ? measureLines(fields[i + 1].v, 52) : 1;
-                          contentHeight += (Math.max(leftLines, rightLines) * 4.2) + 2;
-                      }
-
-                      const infoHeight = Math.max(34, contentHeight + 12);
-                      drawRect(10, y, pageW - 20, infoHeight, [250, 250, 250], grayLight);
-                      text('INFORMACIÓN GENERAL', 15, y + 7, 11, true, primaryColor);
-
-                      let fieldY = y + 13;
-                      for (let i = 0; i < fields.length; i += 2) {
-                          const left = fields[i];
-                          const right = fields[i + 1];
-
-                          text(left.l, 15, fieldY, 8, true);
-                          const leftLines = pdf.splitTextToSize(String(left.v || '---'), 52);
-                          pdf.setFont('helvetica', 'normal');
-                          pdf.setFontSize(8);
-                          pdf.text(leftLines, 37, fieldY);
-
-                          let rowLines = Math.max(1, leftLines.length);
-                          if (right) {
-                              text(right.l, 112, fieldY, 8, true);
-                              const rightLines = pdf.splitTextToSize(String(right.v || '---'), 52);
-                              pdf.setFont('helvetica', 'normal');
-                              pdf.setFontSize(8);
-                              pdf.text(rightLines, 134, fieldY);
-                              rowLines = Math.max(rowLines, rightLines.length);
-                          }
-
-                          fieldY += (rowLines * 4.2) + 2;
-                      }
-
-                      y += infoHeight + 8;
-                  }
-                  
-                  placements.forEach((placement, index) => {
-                      if (index > 0) {
-                          pdf.addPage();
-                          y = 25;
-                      }
-                      
-                      const displayType = placement.type.includes('CUSTOM:') 
-                          ? placement.type.replace('CUSTOM: ', '')
-                          : placement.type;
-                      
-                      pdf.setFillColor(...primaryColor);
-                      drawRect(10, y, pageW - 20, 10, primaryColor, primaryColor, 0);
-                      text(`PLACEMENT: ${displayType}`, 15, y + 6, 11, true, [255, 255, 255]);
-                      y += 15;
-                      
-                      if (placement.imageData && placement.imageData.startsWith('data:')) {
-                          try {
-                              const imgH = 70;
-                              const imgW = 90;
-                              
-                              drawRect(15, y, imgW, imgH, [245, 245, 245], grayLight);
-                              pdf.addImage(placement.imageData, 'JPEG', 17, y + 2, imgW - 4, imgH - 4);
-                              
-                              const detailsX = 110;
-                              drawRect(detailsX, y, pageW - detailsX - 15, imgH, [250, 250, 250], grayLight);
-                              
-                              let detailY = y + 10;
-                              text('DETALLES DEL PLACEMENT', detailsX + 5, detailY, 10, true, primaryColor);
-                              detailY += 7;
-                              
-                              const details = [
-                                  `Tipo de tinta: ${placement.inkType || '---'}`,
-                                  `Dimensiones: ${placement.width || '##'} X ${placement.height || '##'}`,
-                                  `Ubicación: ${displayType || '---'}`,
-                                  `Placement: ${placement.placementDetails || '---'}`,
-                                  `Especialidades: ${placement.specialties || '---'}`
-                              ];
-                              
-                              details.forEach(detail => {
-                                  text(detail, detailsX + 5, detailY, 8);
-                                  detailY += 5;
-                              });
-                              
-                              y += imgH + 12;
-                          } catch (e) {
-                              console.warn('No se pudo agregar imagen al PDF:', e);
-                              y += 10;
-                          }
-                      } else {
-                          y += 10;
-                      }
-                      
-                      if (placement.colors && placement.colors.length > 0) {
-                          const uniqueColors = [];
-                          const seenColors = new Set();
-                          
-                          placement.colors.forEach(color => {
-                              if (color.type === 'COLOR' || color.type === 'METALLIC') {
-                                  const colorVal = (color.val || '').toUpperCase().trim();
-                                  if (colorVal && !seenColors.has(colorVal)) {
-                                      seenColors.add(colorVal);
-                                      uniqueColors.push({
-                                          val: colorVal,
-                                          screenLetter: color.screenLetter
-                                      });
-                                  }
-                              }
-                          });
-                          
-                          if (uniqueColors.length > 0) {
-                              const colorsPerRow = 3;
-                              const rowHeight = 8;
-                              const colorsRows = Math.ceil(uniqueColors.length / colorsPerRow);
-                              const colorsBlockHeight = 12 + (colorsRows * rowHeight) + 4;
-
-                              drawRect(10, y, pageW - 20, colorsBlockHeight, [250, 250, 250], grayLight);
-                              text('COLORES Y TINTAS', 15, y + 7, 10, true, primaryColor);
-
-                              let xPos = 15;
-                              let rowY = y + 12;
-                              let colorsInRow = 0;
-
-                              uniqueColors.forEach((color) => {
-                                  const colorHex = getColorHex(color.val) || '#cccccc';
-                                  const rgb = hexToRgb(colorHex);
-
-                                  const colorBoxSize = 6;
-                                  pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
-                                  pdf.rect(xPos, rowY - 4, colorBoxSize, colorBoxSize, 'F');
-                                  pdf.setDrawColor(0, 0, 0);
-                                  pdf.setLineWidth(0.1);
-                                  pdf.rect(xPos, rowY - 4, colorBoxSize, colorBoxSize);
-
-                                  const colorLabel = `${color.screenLetter}: ${color.val}`;
-                                  const colorLines = pdf.splitTextToSize(colorLabel, 35);
-                                  pdf.setFontSize(7);
-                                  pdf.setTextColor(20, 20, 20);
-                                  pdf.text(colorLines, xPos + colorBoxSize + 3, rowY);
-
-                                  xPos += 58;
-                                  colorsInRow++;
-
-                                  if (colorsInRow >= colorsPerRow) {
-                                      xPos = 15;
-                                      rowY += rowHeight;
-                                      colorsInRow = 0;
-                                  }
-                              });
-
-                              y += colorsBlockHeight + 4;
-                          } else {
-                              y += 5;
-                          }
-                      } else {
-                          y += 5;
-                      }
-                      
-                      const stationsData = updatePlacementStations(placement.id, true);
-                      
-                      if (stationsData.length > 0) {
-                          // Encabezado de secuencia en bloque rojo independiente
-                          y += 3;
-                          drawRect(10, y, pageW - 20, 8, primaryColor, primaryColor, 0);
-                          text(`SECUENCIA DE IMPRESIÓN - ${displayType}`, 14, y + 5.4, 10, true, [255, 255, 255]);
-                          y += 10;
-
-                          pdf.setFillColor(...primaryColor);
-                          const headerLinesMax = 2;
-                          const tableHeaderHeight = (headerLinesMax * 3.1) + 2;
-                          drawRect(15, y, pageW - 30, tableHeaderHeight, primaryColor, primaryColor, 0);
-                          
-                          const pdfHeaders = ['Est', 'Scr.', 'Screen (Tinta/Proceso)', 'Aditivos', 'Malla', 'Strokes', 'Angle', 'Pressure', 'Speed', 'Duro'];
-                          // Anchos optimizados para mantenerse dentro de márgenes carta (pageW - 30)
-                          const pdfColW = [8, 10, 40, 44, 11, 12, 12, 14, 12, 12];
-                          const tableStartX = 15;
-                          const tableWidth = pdfColW.reduce((a, b) => a + b, 0);
-                          let x = tableStartX;
-
-                          pdf.setTextColor(255, 255, 255);
-                          pdf.setFontSize(7);
-                          pdf.setFont('helvetica', 'bold');
-
-                          pdfHeaders.forEach((h, i) => {
-                              const headerLines = pdf.splitTextToSize(h, pdfColW[i] - 2);
-                              pdf.text(headerLines, x + 1, y + 3);
-                              x += pdfColW[i];
-                          });
-                          y += tableHeaderHeight;
-
-                          decorativeLine(tableStartX, y - 1, tableStartX + tableWidth, y - 1, grayDark, 0.3);
-
-                          pdf.setTextColor(0, 0, 0);
-                          pdf.setFont('helvetica', 'normal');
-                          pdf.setFontSize(7);
-
-                          let rowCount = 0;
-                          stationsData.forEach((row) => {
-                              const screenLines = pdf.splitTextToSize(String(row.screenCombined || ''), pdfColW[2] - 2);
-                              const addLines = pdf.splitTextToSize(String(row.add || ''), pdfColW[3] - 2);
-                              const rowLines = Math.max(1, screenLines.length, addLines.length);
-                              const rowHeight = (rowLines * 3.2) + 2;
-
-                              if (y + rowHeight > 240) {
-                                  pdf.addPage();
-                                  y = 25;
-
-                                  // Repetir cabecera de tabla en nueva página
-                                  pdf.setFillColor(...primaryColor);
-                                  drawRect(tableStartX, y, tableWidth, tableHeaderHeight, primaryColor, primaryColor, 0);
-                                  x = tableStartX;
-                                  pdf.setTextColor(255, 255, 255);
-                                  pdf.setFontSize(7);
-                                  pdf.setFont('helvetica', 'bold');
-                                  pdfHeaders.forEach((h, i) => {
-                                      const headerLines = pdf.splitTextToSize(h, pdfColW[i] - 2);
-                                      pdf.text(headerLines, x + 1, y + 3);
-                                      x += pdfColW[i];
-                                  });
-                                  y += tableHeaderHeight;
-                                  decorativeLine(tableStartX, y - 1, tableStartX + tableWidth, y - 1, grayDark, 0.3);
-                                  pdf.setTextColor(0, 0, 0);
-                                  pdf.setFont('helvetica', 'normal');
-                                  pdf.setFontSize(7);
-                              }
-
-                              if (row.screenCombined !== 'FLASH' && row.screenCombined !== 'COOL') {
-                                  if (rowCount % 2 === 0) {
-                                      pdf.setFillColor(248, 248, 248);
-                                      pdf.rect(tableStartX, y - 2.5, tableWidth, rowHeight, 'F');
-                                  }
-                                  rowCount++;
-                              }
-
-                              if (rowCount > 0 && (row.screenCombined === 'FLASH' || row.screenCombined === 'COOL')) {
-                                  decorativeLine(tableStartX, y + 1.2, tableStartX + tableWidth, y + 1.2, [240, 240, 240], 0.1);
-                              }
-
-                              x = tableStartX;
-                              const cells = [
-                                  String(row.st || ''),
-                                  String(row.screenLetter || ''),
-                                  screenLines,
-                                  addLines,
-                                  String(row.mesh || ''),
-                                  String(row.strokes || ''),
-                                  String(row.angle || ''),
-                                  String(row.pressure || ''),
-                                  String(row.speed || ''),
-                                  String(row.duro || '')
-                              ];
-
-                              cells.forEach((cell, i) => {
-                                  if (i === 1) {
-                                      pdf.setFont('helvetica', 'bold');
-                                      pdf.setTextColor(...primaryColor);
-                                  }
-                                  if (i === 3) {
-                                      pdf.setTextColor(...accentColor);
-                                  }
-
-                                  const textValue = Array.isArray(cell) ? cell : [cell];
-                                  pdf.text(textValue, x + 1, y);
-                                  x += pdfColW[i];
-
-                                  if (i === 1) {
-                                      pdf.setFont('helvetica', 'normal');
-                                      pdf.setTextColor(0, 0, 0);
-                                  }
-                                  if (i === 3) {
-                                      pdf.setTextColor(0, 0, 0);
-                                  }
-                              });
-
-                              y += rowHeight;
-                          });
-
-                          y += 7;
-                          
-                          const timeTempY = y;
-                          const timeTempHeight = 22;
-                          
-                          pdf.setFillColor(245, 245, 245);
-                          drawRect(15, timeTempY, pageW - 30, timeTempHeight, [245, 245, 245], grayLight);
-                          decorativeLine(15, timeTempY, pageW - 15, timeTempY, grayDark, 0.3);
-                          
-                          text('CONDICIONES DE CURADO', 20, timeTempY + 8, 10, true, primaryColor);
-                          
-                          const temp = placement.temp || '320 °F';
-                          const time = placement.time || '1:40 min';
-                          
-                          text(`Temp: ${temp}`, 25, timeTempY + 16, 9, true);
-                          text(`Tiempo: ${time}`, 90, timeTempY + 16, 9, true);
-                          text(`Tinta: ${placement.inkType || 'WATER'}`, 150, timeTempY + 16, 9, true);
-                          
-                          y += timeTempHeight + 8;
-                      }
-                      
-                      if (placement.specialInstructions && placement.specialInstructions.trim()) {
-                          if (y > 230) {
-                              pdf.addPage();
-                              y = 25;
-                          }
-                          
-                          drawRect(15, y, pageW - 30, 30, [255, 253, 231], [255, 193, 7]);
-                          
-                          text('INSTRUCCIONES ESPECIALES:', 25, y + 8, 9, true, [255, 193, 7]);
-                          
-                          const splitText = pdf.splitTextToSize(placement.specialInstructions, pageW - 50);
-                          pdf.setFontSize(8);
-                          pdf.setTextColor(66, 66, 66);
-                          pdf.text(splitText, 25, y + 15);
-                          
-                          y += 35;
-                      }
-                      
-                      const footerY = pageH - 15;
-                      decorativeLine(15, footerY - 5, pageW - 15, footerY - 5, grayLight, 0.3);
-                      
-                      pdf.setFontSize(8);
-                      pdf.setTextColor(150, 150, 150);
-                      
-                      const dateStr = new Date().toLocaleDateString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                      });
-                      text(`Generado: ${dateStr}`, 15, footerY);
-                      text(`Placement ${index + 1} de ${placements.length}`, pageW / 2, footerY, 8, false, [150, 150, 150], 'center');
-                      pdf.setFont('helvetica', 'bold');
-                      pdf.setTextColor(...primaryColor);
-                      text('TEGRA Spec Manager', pageW - 15, footerY, 8, true, primaryColor, 'right');
-                  });
-                  
-                  const pdfBlob = pdf.output('blob');
-                  resolve(pdfBlob);
-                  
-              } catch (error) {
-                  console.error('Error al generar PDF:', error);
-                  reject(error);
-              }
-          });
-      }
 
       function exportToExcel() {
           try {
@@ -3090,12 +2549,11 @@ function updateAllPlacementTitles(placementId) {
               const jsonData = collectData();
               zip.file(`${projectName}.json`, JSON.stringify(jsonData, null, 2));
               
-              try {
-                  const pdfBlob = await generatePDFBlob();
-                  zip.file(`${projectName}.pdf`, pdfBlob);
-              } catch (pdfError) {
-                  console.warn('No se pudo generar PDF para ZIP:', pdfError);
-                  zip.file(`${projectName}_PDF_ERROR.txt`, 'No se pudo generar el archivo PDF');
+              if (window.generateSpecHTMLDocument) {
+                  const htmlContent = window.generateSpecHTMLDocument(collectData());
+                  zip.file(`${projectName}.html`, htmlContent);
+              } else {
+                  zip.file(`${projectName}_HTML_ERROR.txt`, 'No se pudo generar el archivo HTML del spec.');
               }
               
               placements.forEach((placement, index) => {
@@ -3116,7 +2574,7 @@ function updateAllPlacementTitles(placementId) {
 
 Archivos incluidos:
 - ${projectName}.json: Datos de la especificación técnica
-- ${projectName}.pdf: Documento PDF listo para imprimir
+- ${projectName}.html: Spec visual en formato HTML (layout carta)
 ${placements.some(p => p.imageData) ? `- Imágenes de placements: ${placements.filter(p => p.imageData).length} archivo(s) de imagen` : ''}
 
 Total de Placements: ${placements.length}
@@ -3673,21 +3131,26 @@ function addPlacementColorItem(placementId, type) {
     
     let screenLetter = '';
     let initialVal = '';
+    let initialMesh = '';
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
     
     if (type === 'BLOCKER') {
         screenLetter = 'A';
         initialVal = preset.blocker?.name || 'BLOCKER CHT';
+        initialMesh = placement.meshBlocker || preset.blocker?.mesh1 || '122/55';
     } else if (type === 'WHITE_BASE') {
         screenLetter = 'B';
         initialVal = preset.white?.name || 'AQUAFLEX V2 WHITE';
+        initialMesh = placement.meshWhite || preset.white?.mesh1 || '198/40';
     } else if (type === 'METALLIC') {
         const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         screenLetter = String(colorItems.length + 1);
         initialVal = 'METALLIC GOLD';
+        initialMesh = '110/64';
     } else {
         const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         screenLetter = String(colorItems.length + 1);
+        initialMesh = placement.meshColor || preset.color?.mesh || '157/48';
     }
     
     const colorId = Date.now() + Math.random();
@@ -3695,7 +3158,8 @@ function addPlacementColorItem(placementId, type) {
         id: colorId,
         type: type,
         screenLetter: screenLetter,
-        val: initialVal
+        val: initialVal,
+        mesh: initialMesh
     });
     
     renderPlacementColors(placementId);
@@ -3913,6 +3377,7 @@ window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.movePlacementColorItem = movePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
+window.updatePlacementColorMesh = updatePlacementColorMesh;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
 window.updatePlacementParam = updatePlacementParam;
 window.updateCustomPlacement = updateCustomPlacement;
