@@ -971,6 +971,7 @@ function updatePlacementUI(placementId) {
     }
 }
 
+// ========== FUNCIÓN PARA ACTUALIZAR TODOS LOS TÍTULOS ==========
 function updateAllPlacementTitles(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
@@ -982,35 +983,45 @@ function updateAllPlacementTitles(placementId) {
     const section = document.getElementById(`placement-section-${placementId}`);
     if (!section) return;
     
-    const title = section.querySelector('.placement-title span');
-    if (title) {
-        title.textContent = displayType;
+    // 1. Título principal del placement
+    const mainTitle = section.querySelector('.placement-title span');
+    if (mainTitle) {
+        mainTitle.textContent = displayType;
     }
     
-    const colorTitle = section.querySelector('.card-title');
-    if (colorTitle && colorTitle.textContent.includes('Colores para')) {
-        colorTitle.textContent = `Colores para ${displayType}`;
-    }
-    
-    const imageTitle = section.querySelectorAll('.card-title');
-    imageTitle.forEach(title => {
-        if (title.textContent.includes('Imagen para')) {
-            title.textContent = `Imagen para ${displayType}`;
+    // 2. Actualizar TODOS los títulos de las cards
+    const cardHeaders = section.querySelectorAll('.card-header');
+    cardHeaders.forEach(header => {
+        const titleElement = header.querySelector('.card-title');
+        if (!titleElement) return;
+        
+        const titleText = titleElement.textContent;
+        
+        // Colores para X
+        if (titleText.includes('Colores para')) {
+            titleElement.innerHTML = `<i class="fas fa-palette"></i> Colores para ${displayType}`;
+        }
+        // Imagen para X
+        else if (titleText.includes('Imagen para')) {
+            titleElement.innerHTML = `<i class="fas fa-image"></i> Imagen para ${displayType}`;
+        }
+        // Condiciones para X
+        else if (titleText.includes('Condiciones para')) {
+            titleElement.innerHTML = `<i class="fas fa-print"></i> Condiciones para ${displayType}`;
+        }
+        // Parámetros de Impresión (se mantiene igual)
+        else if (titleText.includes('Parámetros de Impresión')) {
+            // No cambia
         }
     });
     
-    const conditionsTitle = section.querySelectorAll('.card-title');
-    conditionsTitle.forEach(title => {
-        if (title.textContent.includes('Condiciones para')) {
-            title.textContent = `Condiciones para ${displayType}`;
-        }
-    });
-    
+    // 3. Título de secuencia
     const sequenceTitle = section.querySelector('h4');
     if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
-        sequenceTitle.textContent = `Secuencia de ${displayType}`;
+        sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${displayType}`;
     }
     
+    // 4. Actualizar pestaña
     updatePlacementsTabs();
 }
 
