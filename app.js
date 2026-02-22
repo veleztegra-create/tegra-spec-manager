@@ -1,341 +1,11 @@
-// ========== app.js COMPLETO CON RULES ENGINE INTEGRADO ==========
+// ========== app.js COMPLETO CON TODAS LAS MEJORAS ==========
 // Variables Globales
 const stateManager = new StateManager();
 let placements = [];
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
-let currentOrderShrink = 0; // Para almacenar el valor de shrink
-// En app.js, al inicio del archivo, después de las variables globales, agrega:
 
-// Variable para verificar si los templates están cargados
-let templatesLoaded = false;
-
-// ========== FUNCIÓN PARA CONFIGURAR EVENTOS DE IMAGEN ==========
-function setupImageInputListeners() {
-    const placementImageInput = document.getElementById('placementImageInput');
-    if (placementImageInput) {
-        // Remover listeners anteriores para evitar duplicados
-        const newInput = placementImageInput.cloneNode(true);
-        placementImageInput.parentNode.replaceChild(newInput, placementImageInput);
-        
-        newInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const placementId = currentPlacementId;
-            const placement = placements.find(p => p.id === placementId);
-            if (!placement) return;
-            
-            if (!file.type.match('image.*')) {
-                showStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                const img = document.getElementById(`placement-image-preview-${placementId}`);
-                const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
-                
-                if (img) {
-                    img.src = ev.target.result;
-                    img.style.display = 'block';
-                }
-                
-                if (imageActions) {
-                    imageActions.style.display = 'flex';
-                }
-                
-                placement.imageData = ev.target.result;
-                showStatus(`✅ Imagen cargada para ${placement.type}`);
-            };
-            reader.readAsDataURL(file);
-            
-            e.target.value = '';
-        });
-        
-        console.log('✅ Image input listeners configurados');
-    } else {
-        console.warn('⚠️ placementImageInput no encontrado, reintentando en 500ms');
-        setTimeout(setupImageInputListeners, 500);
-    }
-}
-
-// ========== FUNCIÓN PARA CONFIGURAR EXCEL FILE INPUT ==========
-function setupExcelFileInput() {
-    const excelFile = document.getElementById('excelFile');
-    if (excelFile) {
-        // Remover listeners anteriores
-        const newInput = excelFile.cloneNode(true);
-        excelFile.parentNode.replaceChild(newInput, excelFile);
-        
-        newInput.addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            
-            if (file.name.toLowerCase().endsWith('.zip')) {
-                await loadProjectZip(file);
-            } else if (file.name.toLowerCase().endsWith('.json')) {
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        loadSpecData(data);
-                        showStatus('✅ JSON cargado correctamente', 'success');
-                    } catch (err) {
-                        console.error('Error al cargar JSON:', err);
-                        showStatus('❌ Error leyendo el archivo JSON', 'error');
-                    }
-                };
-                reader.readAsText(file);
-            } else {
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        
-                        const sheetPriority = ['SWO', 'PPS', 'Proto 1', 'Proto 2', 'Proto 3', 'Proto 4', 'Sheet1'];
-                        let worksheet = null;
-                        let sheetUsed = '';
-                        
-                        for (const sheetName of sheetPriority) {
-                            if (workbook.SheetNames.includes(sheetName)) {
-                                worksheet = workbook.Sheets[sheetName];
-                                sheetUsed = sheetName;
-                                break;
-                            }
-                        }
-                        
-                        if (!worksheet) {
-                            worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                            sheetUsed = workbook.SheetNames[0];
-                        }
-
-                        showStatus(`🔍 Procesando archivo: ${sheetUsed}`, 'warning');
-                        processExcelData(worksheet, sheetUsed);
-                        
-                    } catch (err) { 
-                        console.error('Error al cargar SWO:', err); 
-                        showStatus('❌ Error leyendo el archivo', 'error'); 
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            }
-            
-            e.target.value = '';
-        });
-        
-        console.log('✅ Excel file input configurado');
-    } else {
-        console.warn('⚠️ excelFile no encontrado, reintentando en 500ms');
-        setTimeout(setupExcelFileInput, 500);
-    }
-}
-
-// ========== FUNCIÓN PARA VERIFICAR ELEMENTOS NECESARIOS ==========
-function waitForElement(id, callback, timeout = 5000) {
-    const startTime = Date.now();
-    
-    function check() {
-        const element = document.getElementById(id);
-        if (element) {
-            callback(element);
-            return true;
-        }
-        
-        if (Date.now() - startTime > timeout) {
-            console.error(`❌ Tiempo de espera agotado para elemento: ${id}`);
-            return false;
-        }
-        
-        setTimeout(check, 100);
-    }
-    
-    check();
-}
-
-// Modifica la función loadTabTemplates para que marque cuando termina
-async function loadTabTemplates() {
-    const templateSections = Array.from(document.querySelectorAll('[data-template]'));
-    
-    if (templateSections.length === 0) {
-        console.warn('⚠️ No se encontraron secciones con data-template');
-        templatesLoaded = true;
-        return;
-    }
-    
-    await Promise.all(templateSections.map(async (section) => {
-        const templatePath = section.dataset.template;
-        if (!templatePath) return;
-        
-        try {
-            const response = await fetch(templatePath);
-            if (!response.ok) {
-                throw new Error(`No se pudo cargar el template: ${templatePath}`);
-            }
-            section.innerHTML = await response.text();
-            console.log(`✅ Template cargado: ${templatePath}`);
-        } catch (error) {
-            console.error(`❌ Error cargando template ${templatePath}:`, error);
-        }
-    }));
-    
-    templatesLoaded = true;
-    console.log('✅ Todos los templates cargados');
-    
-    // Ahora que los templates están cargados, configurar los listeners
-    setupImageInputListeners();
-    setupExcelFileInput();
-}
-
-// Modifica la función initializePlacements para verificar que el contenedor existe
-function initializePlacements() {
-    const container = document.getElementById('placements-container');
-    if (!container) {
-        console.warn('⚠️ placements-container no encontrado, reintentando en 500ms');
-        setTimeout(initializePlacements, 500);
-        return;
-    }
-    
-    const firstPlacementId = addNewPlacement('FRONT', true);
-    
-    if (placements.length > 0) {
-        renderPlacementHTML(placements[0]);
-    }
-    
-    updatePlacementsTabs();
-    showPlacement(firstPlacementId);
-}
-
-// Modifica renderPlacementHTML para verificar el container
-function renderPlacementHTML(placement) {
-    const container = document.getElementById('placements-container');
-    if (!container) {
-        console.error('❌ placements-container no encontrado');
-        return;
-    }
-    
-    if (document.getElementById(`placement-section-${placement.id}`)) {
-        return;
-    }
-    
-    // ... resto del código existente ...
-}
-
-// Modifica loadSavedSpecsList para verificar la lista
-function loadSavedSpecsList() {
-    const list = document.getElementById('saved-specs-list');
-    if (!list) {
-        console.warn('⚠️ saved-specs-list no encontrado, reintentando en 500ms');
-        setTimeout(loadSavedSpecsList, 500);
-        return;
-    }
-    
-    // ... resto del código existente ...
-}
-
-// Modifica updateDashboard para verificar elementos
-function updateDashboard() {
-    try {
-        const totalSpecsEl = document.getElementById('total-specs');
-        const todaySpecsEl = document.getElementById('today-specs');
-        const activeProjectsEl = document.getElementById('active-projects');
-        const completionRateEl = document.getElementById('completion-rate');
-        
-        if (!totalSpecsEl || !todaySpecsEl || !activeProjectsEl || !completionRateEl) {
-            console.warn('⚠️ Elementos del dashboard no encontrados');
-            return;
-        }
-        
-        // ... resto del código existente ...
-    } catch (error) {
-        console.error('Error en updateDashboard:', error);
-    }
-}
-
-// Modifica el DOMContentLoaded para manejar mejor los errores
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 DOMContentLoaded - Iniciando carga de templates');
-    
-    updateDateTime();
-    loadThemePreference();
-    bindSpecCreatorFormSafety();
-    
-    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
-    setInterval(updateDateTime, 60000);
-    
-    // Cargar templates primero
-    loadTabTemplates()
-        .then(() => {
-            console.log('✅ Templates cargados, inicializando aplicación');
-            
-            // Inicializar placements después de que los templates estén cargados
-            setTimeout(() => {
-                if (placements.length === 0) {
-                    initializePlacements();
-                }
-            }, 100);
-            
-            // Cargar datos guardados
-            if (stateManager) {
-                stateManager.loadFromLocalStorage();
-            }
-            
-            // Mostrar la pestaña activa
-            showTab('dashboard');
-            
-            // Configurar paste handler
-            setupPasteHandler();
-            
-            console.log('✅ Aplicación inicializada correctamente');
-        })
-        .catch((error) => {
-            console.error('❌ Error al cargar templates:', error);
-            showStatus('❌ Error al cargar los templates', 'error');
-            
-            if (errorHandler) {
-                errorHandler.log('template_load', error);
-            }
-        });
-});
-
-// También necesitas modificar la función showTab para que espere a que los templates estén cargados
-function showTab(tabName) {
-    // Esperar a que los templates estén cargados
-    if (!templatesLoaded) {
-        console.log(`⏳ Esperando a que los templates carguen antes de mostrar ${tabName}...`);
-        setTimeout(() => showTab(tabName), 200);
-        return;
-    }
-    
-    const tabContent = document.getElementById(tabName);
-    if (!tabContent) {
-        console.error(`❌ Tab content no encontrado: ${tabName}`);
-        return;
-    }
-    
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-    tabContent.classList.add('active');
-    
-    const tabs = document.querySelectorAll('.nav-tab');
-    tabs.forEach(tab => {
-        if (tab.innerText.toLowerCase().includes(tabName.replace('-', ' '))) {
-            tab.classList.add('active');
-        }
-    });
-    
-    // Cargar contenido según la pestaña
-    if (tabName === 'saved-specs') loadSavedSpecsList();
-    if (tabName === 'dashboard') updateDashboard();
-    if (tabName === 'error-log') loadErrorLog();
-    if (tabName === 'spec-creator') {
-        if (placements.length === 0) {
-            initializePlacements();
-        }
-    }
-}
 // ========== FUNCIONES AUXILIARES ==========
 function stringToHash(str) {
     if (!str) return 0;
@@ -766,9 +436,7 @@ function addNewPlacement(type = null, isFirst = false) {
         width: '',
         height: '',
         baseSize: '',
-        fabric: '',
-        position: { x: 0, y: 0 }, // Para ajustes de posición
-        adjusted: false
+        fabric: ''
     };
     
     if (!isFirst) {
@@ -779,9 +447,6 @@ function addNewPlacement(type = null, isFirst = false) {
     
     if (!isFirst) {
         renderPlacementHTML(newPlacement);
-        setTimeout(() => {
-            updateAllPlacementTitles(placementId);
-        }, 50);
         showPlacement(placementId);
         updatePlacementsTabs();
     }
@@ -805,7 +470,7 @@ function getNextPlacementNumber() {
     return placements.length + 1;
 }
 
-// ========== FUNCIÓN PARA AUTOCOMPLETADO DE PLACEMENTS ==========
+// ========== FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS ==========
 function setupPlacementAutocomplete(inputElement, placementId) {
     if (!inputElement || !window.PlacementsDB) return;
     
@@ -822,7 +487,7 @@ function setupPlacementAutocomplete(inputElement, placementId) {
     });
 }
 
-// ========== RENDER PLACEMENT HTML CORREGIDO ==========
+// ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
 function renderPlacementHTML(placement) {
     const container = document.getElementById('placements-container');
     
@@ -849,12 +514,6 @@ function renderPlacementHTML(placement) {
     
     const dimensions = extractDimensions(placement.dimensions);
     
-    // Mostrar nota de ajuste si existe
-    const adjustmentNote = placement.adjusted && placement.adjustmentNote ? 
-        `<div class="adjustment-note" style="color: var(--primary); font-size: 0.8rem; margin-top: 5px; padding: 5px; background: rgba(255,82,82,0.1); border-radius: 4px;">
-            <i class="fas fa-arrow-up"></i> ${placement.adjustmentNote}
-        </div>` : '';
-    
     const sectionHTML = `
         <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
             <div class="placement-header">
@@ -873,8 +532,6 @@ function renderPlacementHTML(placement) {
                     ` : ''}
                 </div>
             </div>
-            
-            ${adjustmentNote}
             
             <div class="placement-grid">
                 <div class="placement-left-column">
@@ -902,7 +559,7 @@ function renderPlacementHTML(placement) {
                                class="form-control custom-placement-name"
                                data-placement-id="${placement.id}"
                                placeholder="Escribe el nombre del placement..."
-                               value="${customName.replace(/"/g, '&quot;')}"
+                               value="${customName}"
                                oninput="updateCustomPlacement(${placement.id}, this.value)"
                                onfocus="setupPlacementAutocomplete(this, ${placement.id})"
                                list="placement-autocomplete-${placement.id}">
@@ -1158,18 +815,11 @@ function renderPlacementHTML(placement) {
         </div>
     `;
     
-    // AÑADIR EL HTML AL DOM
     container.innerHTML += sectionHTML;
     
-    // ACTUALIZAR TODOS LOS COMPONENTES
     renderPlacementColors(placement.id);
     updatePlacementStations(placement.id);
     updatePlacementColorsPreview(placement.id);
-    
-    // ACTUALIZAR TÍTULOS (CON PEQUEÑO DELAY PARA ASEGURAR DOM LISTO)
-    setTimeout(() => {
-        updateAllPlacementTitles(placement.id);
-    }, 50);
     
     if (placement.imageData) {
         const img = document.getElementById(`placement-image-preview-${placement.id}`);
@@ -1262,9 +912,7 @@ function updatePlacementType(placementId, type) {
             placement.name = type;
         }
         
-        // ACTUALIZAR TÍTULOS INMEDIATAMENTE
         updateAllPlacementTitles(placementId);
-        
         showStatus(`✅ Tipo de placement cambiado a ${type}`);
     }
 }
@@ -2372,7 +2020,6 @@ function updatePlacementField(placementId, field, value) {
     }
 }
 
-// ========== FUNCIÓN PROCESAR EXCEL CON RULES ENGINE ==========
 function processExcelData(worksheet, sheetName = '') {
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     const extracted = {};
@@ -2424,9 +2071,6 @@ function processExcelData(worksheet, sheetName = '') {
                 else if (label.includes('REQUESTED BY:')) extracted.requestedBy = val;
                 else if (label.includes('TEAM:')) extracted.team = val;
                 else if (label.includes('GENDER:')) extracted.gender = val;
-                else if (label.includes('APPLICATION')) extracted.application = val;
-                else if (label.includes('TECHNIQUE')) extracted.technique = val;
-                else if (label.includes('PLACEMENT')) extracted.placementText = val;
             }
         }
     } else {
@@ -2452,131 +2096,26 @@ function processExcelData(worksheet, sheetName = '') {
                     extracted.po = String(row[j + 1] || '').trim();
                 } else if (cell.includes('SAMPLE TYPE') || cell.includes('SAMPLE:')) {
                     extracted.sample = String(row[j + 1] || '').trim();
-                } else if (cell.includes('APPLICATION')) {
-                    extracted.application = String(row[j + 1] || '').trim();
-                } else if (cell.includes('TECHNIQUE')) {
-                    extracted.technique = String(row[j + 1] || '').trim();
-                } else if (cell.includes('PLACEMENT')) {
-                    extracted.placementText = String(row[j + 1] || '').trim();
                 }
             }
         }
     }
 
-    // --- NUEVO: Crear un objeto de "orden" con los datos extraídos ---
-    const rawOrder = {
-        id: `order_${Date.now()}`,
-        brand: extracted.customer || '',
-        technique: extracted.technique || 'SCREEN PRINT', // Asumir Screen Print por defecto
-        sampleType: extracted.sample || '',
-        description: extracted.application || extracted.colorway || '',
-        placements: []
-    };
-
-    // --- Detectar placements desde el texto ---
-    if (extracted.placementText) {
-        // Separar por comas, &, etc.
-        const types = extracted.placementText.split(/[,&]/).map(t => t.trim().toUpperCase());
-        types.forEach(type => {
-            if (type) {
-                rawOrder.placements.push({
-                    id: `placement_${type}`,
-                    type: type,
-                    position: { x: 0, y: 0 }
-                });
-            }
-        });
-    } else {
-        // Si no hay texto, añadir placements por defecto
-        rawOrder.placements = [
-            { id: 'placement_FRONT', type: 'FRONT', position: { x: 0, y: 0 } }
-        ];
-    }
-
-    // --- PASAR LA ORDEN POR EL MOTOR DE REGLAS ---
-    let processedOrder = rawOrder;
-    if (window.RulesEngine) {
-        processedOrder = window.RulesEngine.processOrder(rawOrder);
-        currentOrderShrink = processedOrder.shrink || 0;
-        
-        // Mostrar mensajes según el resultado
-        if (processedOrder.isStrikeoff) {
-            showStatus('🎨 Modo STRIKEOFF: Solo prueba de tinta/diseño', 'warning');
-        }
-        if (processedOrder.shrink > 0) {
-            showStatus(`📏 Shrink aplicado: ${processedOrder.shrink}mm (QRS PPF)`, 'info');
-        }
-        if (processedOrder.inkType === 'SILICONE') {
-            showStatus('🧪 Tinta Silicone detectada - Se agregaron capas Parte A/B', 'info');
-        }
-    }
-
-    // --- AHORA, USAR 'processedOrder' PARA ACTUALIZAR LA UI ---
-    
-    // Actualizar campos generales
-    if (processedOrder.brand) setInputValue('customer', processedOrder.brand);
+    if (extracted.customer) setInputValue('customer', extracted.customer);
     if (extracted.style) setInputValue('style', extracted.style);
     if (extracted.colorway) setInputValue('colorway', extracted.colorway);
     if (extracted.season) setInputValue('season', extracted.season);
     if (extracted.pattern) setInputValue('pattern', extracted.pattern);
     if (extracted.po) setInputValue('po', extracted.po);
-    if (processedOrder.sampleType) setInputValue('sample-type', processedOrder.sampleType);
+    if (extracted.sample) setInputValue('sample-type', extracted.sample);
     if (extracted.team) setInputValue('name-team', extracted.team);
-    if (extracted.gender) setInputValue('gender', extracted.gender);
 
-    // Procesar los placements resultantes
-    if (processedOrder.placements && processedOrder.placements.length > 0) {
-        // Limpiar placements existentes
-        placements = [];
-        const placementsContainer = document.getElementById('placements-container');
-        if (placementsContainer) placementsContainer.innerHTML = '';
-        
-        // Crear nuevos placements
-        processedOrder.placements.forEach((placementData, index) => {
-            // Crear un objeto de placement en el formato que espera la app
-            const newPlacement = {
-                id: index === 0 ? 1 : Date.now() + index,
-                type: placementData.type,
-                name: placementData.type,
-                colors: placementData.colors || [],
-                inkType: processedOrder.inkType || 'WATER',
-                placementDetails: '#.#" FROM COLLAR SEAM',
-                dimensions: 'SIZE: (W) ## X (H) ##',
-                temp: '320 °F',
-                time: '1:40 min',
-                specialties: '',
-                specialInstructions: '',
-                placementSelect: placementData.type,
-                isActive: true,
-                meshColor: '',
-                meshWhite: '',
-                meshBlocker: '',
-                durometer: '',
-                strokes: '',
-                additives: '',
-                width: '',
-                height: '',
-                baseSize: '',
-                fabric: '',
-                position: placementData.position || { x: 0, y: 0 },
-                adjusted: placementData.adjusted || false,
-                adjustmentNote: placementData.adjustmentNote || ''
-            };
-
-            // Si es Silicone, agregar los colores extra
-            if (processedOrder.inkType === 'SILICONE' && window.RulesEngine) {
-                const siliconeColors = window.RulesEngine.getSiliconeColors();
-                newPlacement.colors = [...newPlacement.colors, ...siliconeColors];
-            }
-
-            placements.push(newPlacement);
-            renderPlacementHTML(newPlacement);
-        });
-
-        // Actualizar pestañas y mostrar el primer placement
-        updatePlacementsTabs();
-        if (placements.length > 0) {
-            showPlacement(placements[0].id);
+    if (extracted.gender) {
+        setInputValue('gender', extracted.gender);
+    } else if (extracted.style) {
+        const detectedGender = extractGenderFromStyle(extracted.style);
+        if (detectedGender) {
+            setInputValue('gender', detectedGender);
         }
     }
 
@@ -2590,7 +2129,7 @@ function processExcelData(worksheet, sheetName = '') {
     }
 
     updateClientLogo();
-    showStatus(`✅ "${sheetName || 'hoja'}" procesado con Rules Engine - Tinta: ${processedOrder.inkType || 'WATER'}`, 'success');
+    showStatus(`✅ "${sheetName || 'hoja'}" procesado - Género: ${extracted.gender || 'No detectado'}`, 'success');
 }
 
 document.getElementById('excelFile').addEventListener('change', async function(e) {
@@ -2763,7 +2302,7 @@ function loadSavedSpecsList() {
                     <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'><i class="fas fa-edit"></i> Cargar</button>
+                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
                     <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
                 </div>
@@ -2908,7 +2447,6 @@ function saveCurrentSpec() {
         
         data.savedAt = new Date().toISOString();
         data.lastModified = new Date().toISOString();
-        data.shrink = currentOrderShrink; // Guardar shrink value
         
         localStorage.setItem(storageKey, JSON.stringify(data));
         
@@ -2979,10 +2517,7 @@ function collectData() {
         angle: placement.angle,
         pressure: placement.pressure,
         speed: placement.speed,
-        additives: placement.additives,
-        position: placement.position,
-        adjusted: placement.adjusted,
-        adjustmentNote: placement.adjustmentNote
+        additives: placement.additives
     }));
     
     return {
@@ -3013,8 +2548,6 @@ function clearForm() {
         if (logoElement) {
             logoElement.style.display = 'none';
         }
-        
-        currentOrderShrink = 0;
         
         showStatus('🧹 Formulario limpiado correctamente');
     }
@@ -3268,8 +2801,6 @@ Total de Placements: ${placements.length}
 Generado: ${new Date().toLocaleString('es-ES')}
 Cliente: ${document.getElementById('customer').value || 'N/A'}
 Estilo: ${document.getElementById('style').value || 'N/A'}
-Tinta: ${placements[0]?.inkType || 'N/A'}
-Shrink aplicado: ${currentOrderShrink}mm
 
 Para cargar este proyecto:
 1. Descomprime el archivo ZIP
@@ -3477,7 +3008,7 @@ function exportErrorLog() {
         const errors = errorHandler ? errorHandler.getErrors() : [];
         const exportData = {
             app: 'Tegra Spec Manager',
-            version: '1.5.0',
+            version: Config.APP.VERSION || '1.0.0',
             exportDate: new Date().toISOString(),
             totalErrors: errors.length,
             errors: errors
@@ -3550,13 +3081,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }, 2000);
-            
-            // Verificar que RulesEngine está cargado
-            if (window.RulesEngine) {
-                console.log('✅ RulesEngine cargado correctamente');
-            } else {
-                console.warn('⚠️ RulesEngine no encontrado');
-            }
         })
         .catch((error) => {
             console.error('Error al cargar templates:', error);
@@ -3630,5 +3154,3 @@ window.updateAllPlacementTitles = updateAllPlacementTitles;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
-window.handleDimensionInput = handleDimensionInput;
-window.handleDimensionPaste = handleDimensionPaste;

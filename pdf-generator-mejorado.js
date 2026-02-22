@@ -91,11 +91,6 @@
   }
 
   function buildPlacementHtml(placement, index, total, data) {
-    // Validar que placement existe
-    if (!placement) {
-      return '<section class="placement-section"><div class="placement-header-bar"><span class="placement-title-text">Placement no disponible</span></div></section>';
-    }
-    
     const title = esc((placement.title || placement.type || `Placement ${index + 1}`).replace('CUSTOM: ', ''));
     const imageData = placement.imageData && String(placement.imageData).startsWith('data:')
       ? String(placement.imageData)
@@ -125,16 +120,9 @@
       </tr>`;
     }).join('') || '<tr><td colspan="9">Sin secuencia</td></tr>';
 
-    // Mostrar nota de ajuste si existe
-    const adjustmentNote = placement.adjusted && placement.adjustmentNote ? 
-      `<div class="adjustment-note" style="color: #E31837; font-size: 0.8rem; margin-top: 5px; padding: 5px; background: rgba(227,24,55,0.1); border-radius: 4px; border-left: 3px solid #E31837;">
-          <i class="fas fa-arrow-up"></i> ${esc(placement.adjustmentNote)}
-      </div>` : '';
-
     return `
       <section class="placement-section">
         <div class="placement-header-bar"><div class="placement-icon">👕</div><span class="placement-title-text">Placement: ${title}</span></div>
-        ${adjustmentNote}
         <div class="placement-content">
           <div class="placement-image-container"><span class="placement-badge">${title}</span><img src="${imageData}" class="placement-image" alt="${title}"></div>
           <div class="placement-details-panel">
@@ -182,11 +170,6 @@
   }
 
   function generateSpecHTMLDocument(data) {
-    // Validar que data existe
-    if (!data) {
-      data = {};
-    }
-    
     const placements = Array.isArray(data?.placements) && data.placements.length ? data.placements : [{}];
     const customerKey = getLogoKey(data.customer || '');
     const customerLogo = window.LogoConfig?.[customerKey] || '';
