@@ -15,37 +15,31 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
- <!-- 3. NUESTROS MÓDULOS - ORDEN CORREGIDO -->
-<!-- PRIMERO: Configuración base -->
-<script src="config.js"></script> 
-
-<!-- SEGUNDO: Configuración de equipos -->
-<script src="config-teams.js"></script>
+  <!-- 3. CONFIGURACIÓN BASE (ORDEN CRÍTICO) -->
+  <script src="config.js"></script>
+  <script src="config-app.js"></script>
+  <script src="config-teams.js"></script>
   <script src="config-color.js"></script>
-
-<!-- TERCERO: Configuración de logos -->
-<script src="config-logos.js"></script>
-
-<!-- CUARTO: Utils (necesita Config) -->
-<script src="utils.js"></script>
-
-<!-- QUINTO: State Manager (usa Config y Utils) -->
-<script src="state-manager.js"></script>
-
-<!-- SEXTO: Error Handler (independiente) -->
-<script src="error-handler.js"></script>
-
-<!-- SÉPTIMO: Validators (usa Config) -->
-<script src="validators.js"></script>
-
-<!-- OCTAVO: Specialties Detector (usa Config) -->
-<script src="specialties-detector.js"></script>
-
-<!-- NOVENO: Render Helpers (usa todo lo anterior) -->
-<script src="render-helpers.js"></script>
-
-<!-- DÉCIMO: Fixes (debe ir ÚLTIMO, corrige todo) -->
-<script src="fixes.js"></script>
+  <script src="config-logos.js"></script>
+  <script src="config-schools.js"></script>
+  <script src="placements-autocomplete.js"></script>
+  
+  <!-- 4. UTILIDADES Y MANEJADORES -->
+  <script src="utils.js"></script>
+  <script src="state-manager.js"></script>
+  <script src="error-handler.js"></script>
+  <script src="validators.js"></script>
+  <script src="specialties-detector.js"></script>
+  <script src="render-helpers.js"></script>
+  
+  <!-- 5. GENERADORES -->
+  <script src="pdf-generator-mejorado.js"></script>
+  
+  <!-- 6. APLICACIÓN PRINCIPAL (SIEMPRE AL FINAL) -->
+  <script src="app.js"></script>
+  
+  <!-- 7. FIXES (OPCIONAL, DESPUÉS DE APP.JS) -->
+  <script src="fixes.js"></script>
 </head>
 <body>
   <div id="pdf-render" class="app-container">
@@ -147,12 +141,6 @@
   <input type="file" id="excelFile" accept=".xlsx, .xls, .json, .zip" style="display: none;">
   <input type="file" id="imageInput" accept="image/*" style="display: none;">
   <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
-
-  <!-- JavaScript principal con todas las correcciones -->
-  <script src="pdf-generator-mejorado.js"></script>
-  <script src="app.js"></script>
-  <script src="config-schools.js"></script>
-<script src="placements-autocomplete.js"></script>
 
 </body>
 </html>
