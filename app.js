@@ -6,7 +6,336 @@ let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
 let currentOrderShrink = 0; // Para almacenar el valor de shrink
+// En app.js, al inicio del archivo, después de las variables globales, agrega:
 
+// Variable para verificar si los templates están cargados
+let templatesLoaded = false;
+
+// ========== FUNCIÓN PARA CONFIGURAR EVENTOS DE IMAGEN ==========
+function setupImageInputListeners() {
+    const placementImageInput = document.getElementById('placementImageInput');
+    if (placementImageInput) {
+        // Remover listeners anteriores para evitar duplicados
+        const newInput = placementImageInput.cloneNode(true);
+        placementImageInput.parentNode.replaceChild(newInput, placementImageInput);
+        
+        newInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const placementId = currentPlacementId;
+            const placement = placements.find(p => p.id === placementId);
+            if (!placement) return;
+            
+            if (!file.type.match('image.*')) {
+                showStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const img = document.getElementById(`placement-image-preview-${placementId}`);
+                const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+                
+                if (img) {
+                    img.src = ev.target.result;
+                    img.style.display = 'block';
+                }
+                
+                if (imageActions) {
+                    imageActions.style.display = 'flex';
+                }
+                
+                placement.imageData = ev.target.result;
+                showStatus(`✅ Imagen cargada para ${placement.type}`);
+            };
+            reader.readAsDataURL(file);
+            
+            e.target.value = '';
+        });
+        
+        console.log('✅ Image input listeners configurados');
+    } else {
+        console.warn('⚠️ placementImageInput no encontrado, reintentando en 500ms');
+        setTimeout(setupImageInputListeners, 500);
+    }
+}
+
+// ========== FUNCIÓN PARA CONFIGURAR EXCEL FILE INPUT ==========
+function setupExcelFileInput() {
+    const excelFile = document.getElementById('excelFile');
+    if (excelFile) {
+        // Remover listeners anteriores
+        const newInput = excelFile.cloneNode(true);
+        excelFile.parentNode.replaceChild(newInput, excelFile);
+        
+        newInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            if (file.name.toLowerCase().endsWith('.zip')) {
+                await loadProjectZip(file);
+            } else if (file.name.toLowerCase().endsWith('.json')) {
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        loadSpecData(data);
+                        showStatus('✅ JSON cargado correctamente', 'success');
+                    } catch (err) {
+                        console.error('Error al cargar JSON:', err);
+                        showStatus('❌ Error leyendo el archivo JSON', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            } else {
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        const sheetPriority = ['SWO', 'PPS', 'Proto 1', 'Proto 2', 'Proto 3', 'Proto 4', 'Sheet1'];
+                        let worksheet = null;
+                        let sheetUsed = '';
+                        
+                        for (const sheetName of sheetPriority) {
+                            if (workbook.SheetNames.includes(sheetName)) {
+                                worksheet = workbook.Sheets[sheetName];
+                                sheetUsed = sheetName;
+                                break;
+                            }
+                        }
+                        
+                        if (!worksheet) {
+                            worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                            sheetUsed = workbook.SheetNames[0];
+                        }
+
+                        showStatus(`🔍 Procesando archivo: ${sheetUsed}`, 'warning');
+                        processExcelData(worksheet, sheetUsed);
+                        
+                    } catch (err) { 
+                        console.error('Error al cargar SWO:', err); 
+                        showStatus('❌ Error leyendo el archivo', 'error'); 
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+            
+            e.target.value = '';
+        });
+        
+        console.log('✅ Excel file input configurado');
+    } else {
+        console.warn('⚠️ excelFile no encontrado, reintentando en 500ms');
+        setTimeout(setupExcelFileInput, 500);
+    }
+}
+
+// ========== FUNCIÓN PARA VERIFICAR ELEMENTOS NECESARIOS ==========
+function waitForElement(id, callback, timeout = 5000) {
+    const startTime = Date.now();
+    
+    function check() {
+        const element = document.getElementById(id);
+        if (element) {
+            callback(element);
+            return true;
+        }
+        
+        if (Date.now() - startTime > timeout) {
+            console.error(`❌ Tiempo de espera agotado para elemento: ${id}`);
+            return false;
+        }
+        
+        setTimeout(check, 100);
+    }
+    
+    check();
+}
+
+// Modifica la función loadTabTemplates para que marque cuando termina
+async function loadTabTemplates() {
+    const templateSections = Array.from(document.querySelectorAll('[data-template]'));
+    
+    if (templateSections.length === 0) {
+        console.warn('⚠️ No se encontraron secciones con data-template');
+        templatesLoaded = true;
+        return;
+    }
+    
+    await Promise.all(templateSections.map(async (section) => {
+        const templatePath = section.dataset.template;
+        if (!templatePath) return;
+        
+        try {
+            const response = await fetch(templatePath);
+            if (!response.ok) {
+                throw new Error(`No se pudo cargar el template: ${templatePath}`);
+            }
+            section.innerHTML = await response.text();
+            console.log(`✅ Template cargado: ${templatePath}`);
+        } catch (error) {
+            console.error(`❌ Error cargando template ${templatePath}:`, error);
+        }
+    }));
+    
+    templatesLoaded = true;
+    console.log('✅ Todos los templates cargados');
+    
+    // Ahora que los templates están cargados, configurar los listeners
+    setupImageInputListeners();
+    setupExcelFileInput();
+}
+
+// Modifica la función initializePlacements para verificar que el contenedor existe
+function initializePlacements() {
+    const container = document.getElementById('placements-container');
+    if (!container) {
+        console.warn('⚠️ placements-container no encontrado, reintentando en 500ms');
+        setTimeout(initializePlacements, 500);
+        return;
+    }
+    
+    const firstPlacementId = addNewPlacement('FRONT', true);
+    
+    if (placements.length > 0) {
+        renderPlacementHTML(placements[0]);
+    }
+    
+    updatePlacementsTabs();
+    showPlacement(firstPlacementId);
+}
+
+// Modifica renderPlacementHTML para verificar el container
+function renderPlacementHTML(placement) {
+    const container = document.getElementById('placements-container');
+    if (!container) {
+        console.error('❌ placements-container no encontrado');
+        return;
+    }
+    
+    if (document.getElementById(`placement-section-${placement.id}`)) {
+        return;
+    }
+    
+    // ... resto del código existente ...
+}
+
+// Modifica loadSavedSpecsList para verificar la lista
+function loadSavedSpecsList() {
+    const list = document.getElementById('saved-specs-list');
+    if (!list) {
+        console.warn('⚠️ saved-specs-list no encontrado, reintentando en 500ms');
+        setTimeout(loadSavedSpecsList, 500);
+        return;
+    }
+    
+    // ... resto del código existente ...
+}
+
+// Modifica updateDashboard para verificar elementos
+function updateDashboard() {
+    try {
+        const totalSpecsEl = document.getElementById('total-specs');
+        const todaySpecsEl = document.getElementById('today-specs');
+        const activeProjectsEl = document.getElementById('active-projects');
+        const completionRateEl = document.getElementById('completion-rate');
+        
+        if (!totalSpecsEl || !todaySpecsEl || !activeProjectsEl || !completionRateEl) {
+            console.warn('⚠️ Elementos del dashboard no encontrados');
+            return;
+        }
+        
+        // ... resto del código existente ...
+    } catch (error) {
+        console.error('Error en updateDashboard:', error);
+    }
+}
+
+// Modifica el DOMContentLoaded para manejar mejor los errores
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOMContentLoaded - Iniciando carga de templates');
+    
+    updateDateTime();
+    loadThemePreference();
+    bindSpecCreatorFormSafety();
+    
+    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+    setInterval(updateDateTime, 60000);
+    
+    // Cargar templates primero
+    loadTabTemplates()
+        .then(() => {
+            console.log('✅ Templates cargados, inicializando aplicación');
+            
+            // Inicializar placements después de que los templates estén cargados
+            setTimeout(() => {
+                if (placements.length === 0) {
+                    initializePlacements();
+                }
+            }, 100);
+            
+            // Cargar datos guardados
+            if (stateManager) {
+                stateManager.loadFromLocalStorage();
+            }
+            
+            // Mostrar la pestaña activa
+            showTab('dashboard');
+            
+            // Configurar paste handler
+            setupPasteHandler();
+            
+            console.log('✅ Aplicación inicializada correctamente');
+        })
+        .catch((error) => {
+            console.error('❌ Error al cargar templates:', error);
+            showStatus('❌ Error al cargar los templates', 'error');
+            
+            if (errorHandler) {
+                errorHandler.log('template_load', error);
+            }
+        });
+});
+
+// También necesitas modificar la función showTab para que espere a que los templates estén cargados
+function showTab(tabName) {
+    // Esperar a que los templates estén cargados
+    if (!templatesLoaded) {
+        console.log(`⏳ Esperando a que los templates carguen antes de mostrar ${tabName}...`);
+        setTimeout(() => showTab(tabName), 200);
+        return;
+    }
+    
+    const tabContent = document.getElementById(tabName);
+    if (!tabContent) {
+        console.error(`❌ Tab content no encontrado: ${tabName}`);
+        return;
+    }
+    
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+    tabContent.classList.add('active');
+    
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab => {
+        if (tab.innerText.toLowerCase().includes(tabName.replace('-', ' '))) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Cargar contenido según la pestaña
+    if (tabName === 'saved-specs') loadSavedSpecsList();
+    if (tabName === 'dashboard') updateDashboard();
+    if (tabName === 'error-log') loadErrorLog();
+    if (tabName === 'spec-creator') {
+        if (placements.length === 0) {
+            initializePlacements();
+        }
+    }
+}
 // ========== FUNCIONES AUXILIARES ==========
 function stringToHash(str) {
     if (!str) return 0;
