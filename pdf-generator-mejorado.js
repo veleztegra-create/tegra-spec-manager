@@ -90,7 +90,12 @@
     return stations;
   }
 
-  function buildPlacementHtml(placement, index, total, data) {
+ if (placement.adjusted && placement.adjustmentNote) {
+        // Agregar una nota visible en el PDF
+        const adjustmentNote = `<div class="adjustment-note" style="color: #E31837; font-size: 0.7rem; margin-top: 5px; border-top: 1px dashed #E31837; padding-top: 5px;">
+            <i class="fas fa-arrow-up"></i> ${placement.adjustmentNote}
+        </div>`;
+        
     const title = esc((placement.title || placement.type || `Placement ${index + 1}`).replace('CUSTOM: ', ''));
     const imageData = placement.imageData && String(placement.imageData).startsWith('data:')
       ? String(placement.imageData)
