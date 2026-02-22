@@ -491,6 +491,7 @@ function setupPlacementAutocomplete(inputElement, placementId) {
 }
 
 // ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
+// ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
 function renderPlacementHTML(placement) {
     const container = document.getElementById('placements-container');
     
@@ -517,7 +518,7 @@ function renderPlacementHTML(placement) {
     
     const dimensions = extractDimensions(placement.dimensions);
     
-    // CONSTRUIR EL HTML COMO STRING
+    // CONSTRUIR EL HTML - SIN CÓDIGO JAVASCRIPT DENTRO
     const sectionHTML = `
         <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
             <div class="placement-header">
@@ -819,16 +820,16 @@ function renderPlacementHTML(placement) {
         </div>
     `;
     
-    // ====== CÓDIGO JAVASCRIPT - FUERA DEL STRING HTML ======
+    // ========== CÓDIGO JAVASCRIPT - FUERA DEL STRING ==========
     // AÑADIR EL HTML AL DOM
     container.innerHTML += sectionHTML;
     
-    // AHORA SÍ, ACTUALIZAR TODOS LOS COMPONENTES DESPUÉS DE QUE EL HTML EXISTA EN EL DOM
+    // AHORA SÍ, ACTUALIZAR TODOS LOS COMPONENTES
     renderPlacementColors(placement.id);
     updatePlacementStations(placement.id);
     updatePlacementColorsPreview(placement.id);
     
-    // ACTUALIZAR TÍTULOS (ESTO ES CRÍTICO)
+    // ACTUALIZAR TÍTULOS (CON PEQUEÑO DELAY PARA ASEGURAR DOM LISTO)
     setTimeout(() => {
         updateAllPlacementTitles(placement.id);
     }, 50);
