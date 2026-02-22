@@ -1,10 +1,11 @@
-// ========== app.js COMPLETO CON TODAS LAS MEJORAS ==========
+// ========== app.js COMPLETO CON RULES ENGINE INTEGRADO ==========
 // Variables Globales
 const stateManager = new StateManager();
 let placements = [];
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
+let currentOrderShrink = 0; // Para almacenar el valor de shrink
 
 // ========== FUNCIONES AUXILIARES ==========
 function stringToHash(str) {
@@ -436,7 +437,9 @@ function addNewPlacement(type = null, isFirst = false) {
         width: '',
         height: '',
         baseSize: '',
-        fabric: ''
+        fabric: '',
+        position: { x: 0, y: 0 }, // Para ajustes de posición
+        adjusted: false
     };
     
     if (!isFirst) {
@@ -447,7 +450,6 @@ function addNewPlacement(type = null, isFirst = false) {
     
     if (!isFirst) {
         renderPlacementHTML(newPlacement);
-        // AÑADE ESTA LÍNEA PARA ACTUALIZAR TÍTULOS
         setTimeout(() => {
             updateAllPlacementTitles(placementId);
         }, 50);
@@ -457,6 +459,7 @@ function addNewPlacement(type = null, isFirst = false) {
     
     return placementId;
 }
+
 function getNextPlacementType() {
     const usedTypes = placements.map(p => p.type);
     const allTypes = ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'];
@@ -473,7 +476,7 @@ function getNextPlacementNumber() {
     return placements.length + 1;
 }
 
-// ========== FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS ==========
+// ========== FUNCIÓN PARA AUTOCOMPLETADO DE PLACEMENTS ==========
 function setupPlacementAutocomplete(inputElement, placementId) {
     if (!inputElement || !window.PlacementsDB) return;
     
@@ -490,8 +493,7 @@ function setupPlacementAutocomplete(inputElement, placementId) {
     });
 }
 
-// ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
-// ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
+// ========== RENDER PLACEMENT HTML CORREGIDO ==========
 function renderPlacementHTML(placement) {
     const container = document.getElementById('placements-container');
     
@@ -518,7 +520,12 @@ function renderPlacementHTML(placement) {
     
     const dimensions = extractDimensions(placement.dimensions);
     
-    // CONSTRUIR EL HTML - SIN CÓDIGO JAVASCRIPT DENTRO
+    // Mostrar nota de ajuste si existe
+    const adjustmentNote = placement.adjusted && placement.adjustmentNote ? 
+        `<div class="adjustment-note" style="color: var(--primary); font-size: 0.8rem; margin-top: 5px; padding: 5px; background: rgba(255,82,82,0.1); border-radius: 4px;">
+            <i class="fas fa-arrow-up"></i> ${placement.adjustmentNote}
+        </div>` : '';
+    
     const sectionHTML = `
         <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
             <div class="placement-header">
@@ -537,6 +544,8 @@ function renderPlacementHTML(placement) {
                     ` : ''}
                 </div>
             </div>
+            
+            ${adjustmentNote}
             
             <div class="placement-grid">
                 <div class="placement-left-column">
@@ -820,11 +829,10 @@ function renderPlacementHTML(placement) {
         </div>
     `;
     
-    // ========== CÓDIGO JAVASCRIPT - FUERA DEL STRING ==========
     // AÑADIR EL HTML AL DOM
     container.innerHTML += sectionHTML;
     
-    // AHORA SÍ, ACTUALIZAR TODOS LOS COMPONENTES
+    // ACTUALIZAR TODOS LOS COMPONENTES
     renderPlacementColors(placement.id);
     updatePlacementStations(placement.id);
     updatePlacementColorsPreview(placement.id);
@@ -833,302 +841,6 @@ function renderPlacementHTML(placement) {
     setTimeout(() => {
         updateAllPlacementTitles(placement.id);
     }, 50);
-    
-    if (placement.imageData) {
-        const img = document.getElementById(`placement-image-preview-${placement.id}`);
-        const imageActions = document.getElementById(`placement-image-actions-${placement.id}`);
-        
-        if (img && imageActions) {
-            img.src = placement.imageData;
-            img.style.display = 'block';
-            imageActions.style.display = 'flex';
-        }
-    }
-}
-
-// AÑADE ESTA LÍNEA PARA ACTUALIZAR TÍTULOS INMEDIATAMENTE
-updateAllPlacementTitles(placement.id);
-
-if (placement.imageData) {
-    const img = document.getElementById(`placement-image-preview-${placement.id}`);
-    const imageActions = document.getElementById(`placement-image-actions-${placement.id}`);
-    
-    if (img && imageActions) {
-        img.src = placement.imageData;
-        img.style.display = 'block';
-        imageActions.style.display = 'flex';
-    }
-}
-                    </div>
-                    
-                    <!-- Input para custom placement con autocompletado mejorado -->
-                    <div id="custom-placement-input-${placement.id}" style="display:${isCustom ? 'block' : 'none'}; margin-top:10px;">
-                        <label class="form-label">NOMBRE DEL PLACEMENT:</label>
-                        <input type="text" 
-                               class="form-control custom-placement-name"
-                               data-placement-id="${placement.id}"
-                               placeholder="Escribe el nombre del placement..."
-                               value="${customName}"
-                               oninput="updateCustomPlacement(${placement.id}, this.value)"
-                               onfocus="setupPlacementAutocomplete(this, ${placement.id})"
-                               list="placement-autocomplete-${placement.id}">
-                        <small style="color: var(--text-secondary); display: block; margin-top: 4px;">
-                            <i class="fas fa-info-circle"></i> 
-                            Escribe 'F' para Front, 'B' para Back, 'S' para Sleeve, etc.
-                        </small>
-                    </div>
-                    
-                    <!-- Imagen de Referencia -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title" style="font-size: 1rem;">
-                                <i class="fas fa-image"></i> Imagen para ${displayType}
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="file-upload-area" onclick="openImagePickerForPlacement(${placement.id})">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Haz clic para subir una imagen para este placement</p>
-                                <p style="font-size:0.8rem; color:var(--text-secondary);">Ctrl+V para pegar</p>
-                            </div>
-                            <div class="image-preview-container">
-                                <img id="placement-image-preview-${placement.id}" 
-                                     class="image-preview placement-image" 
-                                     alt="Vista previa"
-                                     style="display: none;">
-                                <div class="image-actions" id="placement-image-actions-${placement.id}" style="display:none;">
-                                    <button class="btn btn-danger btn-sm" onclick="removePlacementImage(${placement.id})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Condiciones de Impresión -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title" style="font-size: 1rem;">
-                                <i class="fas fa-print"></i> Condiciones para ${displayType}
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">DETALLES DE UBICACIÓN:</label>
-                                    <input type="text" 
-                                           id="placement-details-${placement.id}"
-                                           class="form-control placement-details"
-                                           value="${placement.placementDetails}"
-                                           oninput="updatePlacementField(${placement.id}, 'placementDetails', this.value)">
-                                </div>
-                                
-                                <!-- Dimensiones separadas -->
-                                <div class="form-group">
-                                    <label class="form-label">DIMENSIONES:</label>
-                                    <div style="display: flex; gap: 10px; align-items: center;">
-                                        <input type="text" 
-                                               id="dimension-w-${placement.id}"
-                                               class="form-control placement-dimension-w"
-                                               placeholder="Ancho"
-                                               value="${placement.width || dimensions.width.replace('"', '')}"
-                                               oninput="handleDimensionInput(${placement.id}, 'width', this)"
-                                               onpaste="handleDimensionPaste(event, ${placement.id}, 'width')"
-                                               style="width: 100px;">
-                                        <span style="color: var(--text-secondary);">X</span>
-                                        <input type="text" 
-                                               id="dimension-h-${placement.id}"
-                                               class="form-control placement-dimension-h"
-                                               placeholder="Alto"
-                                               value="${placement.height || dimensions.height.replace('"', '')}"
-                                               oninput="handleDimensionInput(${placement.id}, 'height', this)"
-                                               onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
-                                               style="width: 100px;">
-                                        <span style="color: var(--text-secondary);">&nbsp;</span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Campos de temperatura y tiempo -->
-                                <div class="form-group">
-                                    <label class="form-label">TEMPERATURA:</label>
-                                    <input type="text" 
-                                           id="temp-${placement.id}"
-                                           class="form-control placement-temp"
-                                           value="${placement.temp}"
-                                           readonly
-                                           title="Determinado por el tipo de tinta seleccionado">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">TIEMPO:</label>
-                                    <input type="text" 
-                                           id="time-${placement.id}"
-                                           class="form-control placement-time"
-                                           value="${placement.time}"
-                                           readonly
-                                           title="Determinado por el tipo de tinta seleccionado">
-                                </div>
-                                
-                                <!-- CAMPO SPECIALTIES -->
-                                <div class="form-group">
-                                    <label class="form-label">SPECIALTIES:</label>
-                                    <input type="text" 
-                                           id="specialties-${placement.id}"
-                                           class="form-control placement-specialties"
-                                           placeholder="Detectado automáticamente..."
-                                           value="${placement.specialties || ''}"
-                                           readonly
-                                           title="Detectado automáticamente de los colores">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Parámetros de Impresión Editables -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title" style="font-size: 1rem;">
-                                <i class="fas fa-sliders-h"></i> Parámetros de Impresión
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-grid">
-                                <!-- Durómetro -->
-                                <div class="form-group">
-                                    <label class="form-label">DURÓMETRO:</label>
-                                    <input type="text" 
-                                           id="durometer-${placement.id}"
-                                           class="form-control placement-durometer"
-                                           value="${placement.durometer || defaultDurometer}"
-                                           oninput="updatePlacementParam(${placement.id}, 'durometer', this.value)"
-                                           title="Durometer (dureza de la racleta)">
-                                </div>
-                                
-                                <!-- STROKES -->
-                                <div class="form-group">
-                                    <label class="form-label">STROKES:</label>
-                                    <input type="text" 
-                                           id="strokes-${placement.id}"
-                                           class="form-control placement-strokes"
-                                           value="${placement.strokes || defaultStrokes}"
-                                           oninput="updatePlacementParam(${placement.id}, 'strokes', this.value)"
-                                           title="Número de strokes">
-                                </div>
-                                
-                                <!-- ANGLE -->
-                                <div class="form-group">
-                                    <label class="form-label">ANGLE:</label>
-                                    <input type="text" 
-                                           id="angle-${placement.id}"
-                                           class="form-control placement-angle"
-                                           value="${placement.angle || defaultAngle}"
-                                           oninput="updatePlacementParam(${placement.id}, 'angle', this.value)"
-                                           title="Ángulo de la racleta">
-                                </div>
-                                
-                                <!-- PRESSURE -->
-                                <div class="form-group">
-                                    <label class="form-label">PRESSURE:</label>
-                                    <input type="text" 
-                                           id="pressure-${placement.id}"
-                                           class="form-control placement-pressure"
-                                           value="${placement.pressure || defaultPressure}"
-                                           oninput="updatePlacementParam(${placement.id}, 'pressure', this.value)"
-                                           title="Presión de impresión">
-                                </div>
-                                
-                                <!-- SPEED -->
-                                <div class="form-group">
-                                    <label class="form-label">SPEED:</label>
-                                    <input type="text" 
-                                           id="speed-${placement.id}"
-                                           class="form-control placement-speed"
-                                           value="${placement.speed || defaultSpeed}"
-                                           oninput="updatePlacementParam(${placement.id}, 'speed', this.value)"
-                                           title="Velocidad de impresión">
-                                </div>
-                                
-                                <!-- Aditivos -->
-                                <div class="form-group">
-                                    <label class="form-label">ADITIVOS:</label>
-                                    <input type="text" 
-                                           id="additives-${placement.id}"
-                                           class="form-control placement-additives"
-                                           value="${placement.additives || defaultAdditives}"
-                                           oninput="updatePlacementParam(${placement.id}, 'additives', this.value)"
-                                           title="Aditivos para la tinta">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="placement-right-column">
-                    <!-- Tipo de Tinta -->
-                    <div class="form-group">
-                        <label class="form-label">TIPO DE TINTA:</label>
-                        <select class="form-control placement-ink-type"
-                                data-placement-id="${placement.id}"
-                                onchange="updatePlacementInkType(${placement.id}, this.value)">
-                            <option value="WATER" ${placement.inkType === 'WATER' ? 'selected' : ''}>Water-base</option>
-                            <option value="PLASTISOL" ${placement.inkType === 'PLASTISOL' ? 'selected' : ''}>Plastisol</option>
-                            <option value="SILICONE" ${placement.inkType === 'SILICONE' ? 'selected' : ''}>Silicone</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Colores y Tintas -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title" style="font-size: 1rem;">
-                                <i class="fas fa-palette"></i> Colores para ${displayType}
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="no-print" style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
-                                <button type="button" class="btn btn-danger btn-sm" onclick="addPlacementColorItem(${placement.id}, 'BLOCKER')">
-                                    <i class="fas fa-plus"></i> Blocker
-                                </button>
-                                <button type="button" class="btn btn-white-base btn-sm" onclick="addPlacementColorItem(${placement.id}, 'WHITE_BASE')">
-                                    <i class="fas fa-plus"></i> White Base
-                                </button>
-                                <button type="button" class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
-                                    <i class="fas fa-plus"></i> Color
-                                </button>
-                                <button type="button" class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')">
-                                    <i class="fas fa-star"></i> Metálico
-                                </button>
-                            </div>
-                            <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Instrucciones Especiales -->
-                    <div class="form-group">
-                        <label class="form-label">INSTRUCCIONES ESPECIALES:</label>
-                        <textarea id="special-instructions-${placement.id}"
-                                  class="form-control placement-special-instructions"
-                                  rows="3"
-                                  placeholder="Instrucciones especiales para este placement..."
-                                  oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${placement.specialInstructions}</textarea>
-                    </div>
-                    
-                    <!-- Vista previa de colores -->
-                    <div id="placement-colors-preview-${placement.id}" class="color-legend"></div>
-                    
-                    <!-- Secuencia de Estaciones -->
-                    <h4 style="margin:15px 0 10px; font-size:0.9rem; color:var(--primary);">
-                        <i class="fas fa-list-ol"></i> Secuencia de ${displayType}
-                    </h4>
-                    <div id="placement-sequence-table-${placement.id}"></div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    container.innerHTML += sectionHTML;
-    
-    renderPlacementColors(placement.id);
-    updatePlacementStations(placement.id);
-    updatePlacementColorsPreview(placement.id);
     
     if (placement.imageData) {
         const img = document.getElementById(`placement-image-preview-${placement.id}`);
@@ -1206,21 +918,6 @@ function getPlacementIcon(type) {
 
 // ========== FUNCIONES DE GESTIÓN DE PLACEMENTS ==========
 function updatePlacementType(placementId, type) {
-    const placement = placements.find(p => p.id === placementId);
-    if (placement) {
-        const customInput = document.getElementById(`custom-placement-input-${placementId}`);
-        
-        if (type === 'CUSTOM') {
-            if (customInput) customInput.style.display = 'block';
-            if (!placement.type.startsWith('CUSTOM:')) {
-                placement.type = 'CUSTOM:';
-            }
-        } else {
-            if (customInput) customInput.style.display = 'none';
-            placement.type = type;
-            placement.name = type;
-        }
-        function updatePlacementType(placementId, type) {
     const placement = placements.find(p => p.id === placementId);
     if (placement) {
         const customInput = document.getElementById(`custom-placement-input-${placementId}`);
@@ -2346,6 +2043,7 @@ function updatePlacementField(placementId, field, value) {
     }
 }
 
+// ========== FUNCIÓN PROCESAR EXCEL CON RULES ENGINE ==========
 function processExcelData(worksheet, sheetName = '') {
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     const extracted = {};
@@ -2397,6 +2095,9 @@ function processExcelData(worksheet, sheetName = '') {
                 else if (label.includes('REQUESTED BY:')) extracted.requestedBy = val;
                 else if (label.includes('TEAM:')) extracted.team = val;
                 else if (label.includes('GENDER:')) extracted.gender = val;
+                else if (label.includes('APPLICATION')) extracted.application = val;
+                else if (label.includes('TECHNIQUE')) extracted.technique = val;
+                else if (label.includes('PLACEMENT')) extracted.placementText = val;
             }
         }
     } else {
@@ -2422,26 +2123,131 @@ function processExcelData(worksheet, sheetName = '') {
                     extracted.po = String(row[j + 1] || '').trim();
                 } else if (cell.includes('SAMPLE TYPE') || cell.includes('SAMPLE:')) {
                     extracted.sample = String(row[j + 1] || '').trim();
+                } else if (cell.includes('APPLICATION')) {
+                    extracted.application = String(row[j + 1] || '').trim();
+                } else if (cell.includes('TECHNIQUE')) {
+                    extracted.technique = String(row[j + 1] || '').trim();
+                } else if (cell.includes('PLACEMENT')) {
+                    extracted.placementText = String(row[j + 1] || '').trim();
                 }
             }
         }
     }
 
-    if (extracted.customer) setInputValue('customer', extracted.customer);
+    // --- NUEVO: Crear un objeto de "orden" con los datos extraídos ---
+    const rawOrder = {
+        id: `order_${Date.now()}`,
+        brand: extracted.customer || '',
+        technique: extracted.technique || 'SCREEN PRINT', // Asumir Screen Print por defecto
+        sampleType: extracted.sample || '',
+        description: extracted.application || extracted.colorway || '',
+        placements: []
+    };
+
+    // --- Detectar placements desde el texto ---
+    if (extracted.placementText) {
+        // Separar por comas, &, etc.
+        const types = extracted.placementText.split(/[,&]/).map(t => t.trim().toUpperCase());
+        types.forEach(type => {
+            if (type) {
+                rawOrder.placements.push({
+                    id: `placement_${type}`,
+                    type: type,
+                    position: { x: 0, y: 0 }
+                });
+            }
+        });
+    } else {
+        // Si no hay texto, añadir placements por defecto
+        rawOrder.placements = [
+            { id: 'placement_FRONT', type: 'FRONT', position: { x: 0, y: 0 } }
+        ];
+    }
+
+    // --- PASAR LA ORDEN POR EL MOTOR DE REGLAS ---
+    let processedOrder = rawOrder;
+    if (window.RulesEngine) {
+        processedOrder = window.RulesEngine.processOrder(rawOrder);
+        currentOrderShrink = processedOrder.shrink || 0;
+        
+        // Mostrar mensajes según el resultado
+        if (processedOrder.isStrikeoff) {
+            showStatus('🎨 Modo STRIKEOFF: Solo prueba de tinta/diseño', 'warning');
+        }
+        if (processedOrder.shrink > 0) {
+            showStatus(`📏 Shrink aplicado: ${processedOrder.shrink}mm (QRS PPF)`, 'info');
+        }
+        if (processedOrder.inkType === 'SILICONE') {
+            showStatus('🧪 Tinta Silicone detectada - Se agregaron capas Parte A/B', 'info');
+        }
+    }
+
+    // --- AHORA, USAR 'processedOrder' PARA ACTUALIZAR LA UI ---
+    
+    // Actualizar campos generales
+    if (processedOrder.brand) setInputValue('customer', processedOrder.brand);
     if (extracted.style) setInputValue('style', extracted.style);
     if (extracted.colorway) setInputValue('colorway', extracted.colorway);
     if (extracted.season) setInputValue('season', extracted.season);
     if (extracted.pattern) setInputValue('pattern', extracted.pattern);
     if (extracted.po) setInputValue('po', extracted.po);
-    if (extracted.sample) setInputValue('sample-type', extracted.sample);
+    if (processedOrder.sampleType) setInputValue('sample-type', processedOrder.sampleType);
     if (extracted.team) setInputValue('name-team', extracted.team);
+    if (extracted.gender) setInputValue('gender', extracted.gender);
 
-    if (extracted.gender) {
-        setInputValue('gender', extracted.gender);
-    } else if (extracted.style) {
-        const detectedGender = extractGenderFromStyle(extracted.style);
-        if (detectedGender) {
-            setInputValue('gender', detectedGender);
+    // Procesar los placements resultantes
+    if (processedOrder.placements && processedOrder.placements.length > 0) {
+        // Limpiar placements existentes
+        placements = [];
+        const placementsContainer = document.getElementById('placements-container');
+        if (placementsContainer) placementsContainer.innerHTML = '';
+        
+        // Crear nuevos placements
+        processedOrder.placements.forEach((placementData, index) => {
+            // Crear un objeto de placement en el formato que espera la app
+            const newPlacement = {
+                id: index === 0 ? 1 : Date.now() + index,
+                type: placementData.type,
+                name: placementData.type,
+                colors: placementData.colors || [],
+                inkType: processedOrder.inkType || 'WATER',
+                placementDetails: '#.#" FROM COLLAR SEAM',
+                dimensions: 'SIZE: (W) ## X (H) ##',
+                temp: '320 °F',
+                time: '1:40 min',
+                specialties: '',
+                specialInstructions: '',
+                placementSelect: placementData.type,
+                isActive: true,
+                meshColor: '',
+                meshWhite: '',
+                meshBlocker: '',
+                durometer: '',
+                strokes: '',
+                additives: '',
+                width: '',
+                height: '',
+                baseSize: '',
+                fabric: '',
+                position: placementData.position || { x: 0, y: 0 },
+                adjusted: placementData.adjusted || false,
+                adjustmentNote: placementData.adjustmentNote || ''
+            };
+
+            // Si es Silicone, agregar los colores extra
+            if (processedOrder.inkType === 'SILICONE' && window.RulesEngine) {
+                const siliconeColors = window.RulesEngine.getSiliconeColors();
+                newPlacement.colors = [...newPlacement.colors, ...siliconeColors];
+            }
+
+            placements.push(newPlacement);
+            renderPlacementHTML(newPlacement);
+        });
+
+        // Actualizar pestañas y mostrar el primer placement
+        updatePlacementsTabs();
+        if (placements.length > 0) {
+            showPlacement(placements[0].id);
         }
     }
 
@@ -2455,7 +2261,7 @@ function processExcelData(worksheet, sheetName = '') {
     }
 
     updateClientLogo();
-    showStatus(`✅ "${sheetName || 'hoja'}" procesado - Género: ${extracted.gender || 'No detectado'}`, 'success');
+    showStatus(`✅ "${sheetName || 'hoja'}" procesado con Rules Engine - Tinta: ${processedOrder.inkType || 'WATER'}`, 'success');
 }
 
 document.getElementById('excelFile').addEventListener('change', async function(e) {
@@ -2628,7 +2434,7 @@ function loadSavedSpecsList() {
                     <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
+                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'><i class="fas fa-edit"></i> Cargar</button>
                     <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
                 </div>
@@ -2773,6 +2579,7 @@ function saveCurrentSpec() {
         
         data.savedAt = new Date().toISOString();
         data.lastModified = new Date().toISOString();
+        data.shrink = currentOrderShrink; // Guardar shrink value
         
         localStorage.setItem(storageKey, JSON.stringify(data));
         
@@ -2843,7 +2650,10 @@ function collectData() {
         angle: placement.angle,
         pressure: placement.pressure,
         speed: placement.speed,
-        additives: placement.additives
+        additives: placement.additives,
+        position: placement.position,
+        adjusted: placement.adjusted,
+        adjustmentNote: placement.adjustmentNote
     }));
     
     return {
@@ -2874,6 +2684,8 @@ function clearForm() {
         if (logoElement) {
             logoElement.style.display = 'none';
         }
+        
+        currentOrderShrink = 0;
         
         showStatus('🧹 Formulario limpiado correctamente');
     }
@@ -3127,6 +2939,8 @@ Total de Placements: ${placements.length}
 Generado: ${new Date().toLocaleString('es-ES')}
 Cliente: ${document.getElementById('customer').value || 'N/A'}
 Estilo: ${document.getElementById('style').value || 'N/A'}
+Tinta: ${placements[0]?.inkType || 'N/A'}
+Shrink aplicado: ${currentOrderShrink}mm
 
 Para cargar este proyecto:
 1. Descomprime el archivo ZIP
@@ -3334,7 +3148,7 @@ function exportErrorLog() {
         const errors = errorHandler ? errorHandler.getErrors() : [];
         const exportData = {
             app: 'Tegra Spec Manager',
-            version: Config.APP.VERSION || '1.0.0',
+            version: '1.5.0',
             exportDate: new Date().toISOString(),
             totalErrors: errors.length,
             errors: errors
@@ -3407,6 +3221,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }, 2000);
+            
+            // Verificar que RulesEngine está cargado
+            if (window.RulesEngine) {
+                console.log('✅ RulesEngine cargado correctamente');
+            } else {
+                console.warn('⚠️ RulesEngine no encontrado');
+            }
         })
         .catch((error) => {
             console.error('Error al cargar templates:', error);
@@ -3480,3 +3301,5 @@ window.updateAllPlacementTitles = updateAllPlacementTitles;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
+window.handleDimensionInput = handleDimensionInput;
+window.handleDimensionPaste = handleDimensionPaste;
