@@ -469,6 +469,42 @@ function getNextPlacementType() {
 function getNextPlacementNumber() {
     return placements.length + 1;
 }
+// En app.js, dentro de la función que crea un nuevo placement
+function addNewPlacement(type = null, isFirst = false) {
+    const customer = document.getElementById('customer')?.value || '';
+    const inkType = detectInkTypeFromCustomer(customer); // ← Nueva función
+    
+    const newPlacement = {
+        // ... otros campos ...
+        inkType: inkType, // ← Usar el tipo detectado
+        // ...
+    };
+}
+
+// Agrega esta función helper en app.js
+function detectInkTypeFromCustomer(customer) {
+    const customerUpper = (customer || '').toUpperCase();
+    
+    // Usar la misma lógica que ExcelAutomation
+    const clientDefaults = {
+        'GEAR FOR SPORT': 'PLASTISOL',
+        'GEARFORSPORT': 'PLASTISOL',
+        'GFS': 'PLASTISOL',
+        'G.F.S.': 'PLASTISOL',
+        'FANATICS': 'WATER',
+        'NIKE': 'WATER',
+        'ADIDAS': 'PLASTISOL',
+        'UNDER ARMOUR': 'WATER'
+    };
+    
+    for (const [client, ink] of Object.entries(clientDefaults)) {
+        if (customerUpper.includes(client)) {
+            return ink;
+        }
+    }
+    
+    return 'WATER'; // Default
+}
 
 // ========== FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS ==========
 function setupPlacementAutocomplete(inputElement, placementId) {
