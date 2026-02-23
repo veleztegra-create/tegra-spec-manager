@@ -2301,6 +2301,143 @@ function updateDashboard() {
         console.error('Error en updateDashboard:', error);
     }
 }
+// Variable global para almacenar la última spec cargada
+let lastSpecData = null;
+let lastSpecKey = null;
+
+// Función para cargar la última spec desde el dashboard
+function loadLastSpec() {
+    if (lastSpecData) {
+        loadSpecData(lastSpecData);
+        showStatus('📂 Cargando última spec...', 'success');
+    } else {
+        // Si no hay última spec en memoria, buscar en localStorage
+        const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
+        let lastSpec = null;
+        let lastDate = null;
+        let lastKey = null;
+        
+        specs.forEach(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                const specDate = new Date(data.savedAt || 0);
+                
+                if (!lastDate || specDate > lastDate) {
+                    lastDate = specDate;
+                    lastSpec = data;
+                    lastKey = key;
+                }
+            } catch(e) {
+                console.warn('Error al parsear spec:', key, e);
+            }
+        });
+        
+        if (lastSpec) {
+            lastSpecData = lastSpec;
+            lastSpecKey = lastKey;
+            loadSpecData(lastSpec);
+            showStatus('📂 Cargando última spec...', 'success');
+        } else {
+            showStatus('⚠️ No hay specs guardadas para cargar', 'warning');
+        }
+    }
+}
+
+// Modificar updateDashboard para guardar la última spec
+function updateDashboard() {
+    try {
+        const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
+        const total = specs.length;
+        document.getElementById('total-specs').textContent = total;
+        
+        let lastSpec = null;
+        let lastSpecDate = null;
+        let lastSpecKey = null;
+        
+        specs.forEach(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                const specDate = new Date(data.savedAt || 0);
+                
+                if (!lastSpecDate || specDate > lastSpecDate) {
+                    lastSpecDate = specDate;
+                    lastSpec = data;
+                    lastSpecKey = key;
+                }
+            } catch(e) {
+                console.warn('Error al parsear spec:', key, e);
+            }
+        });
+        
+        if (lastSpec) {
+            // Guardar para uso posterior
+            lastSpecData = lastSpec;
+            lastSpecKey = lastSpecKey;
+            
+            // Formatear nombre de cliente para mostrar
+            const customerDisplay = lastSpec.customer || 'Cliente no especificado';
+            const customerShort = customerDisplay.length > 25 ? 
+                customerDisplay.substring(0, 22) + '...' : 
+                customerDisplay;
+            
+            document.getElementById('last-spec-name').innerHTML = `
+                <span style="color: var(--primary); text-decoration: underline; text-decoration-color: var(--primary-light);">
+                    ${lastSpec.style || 'Sin nombre'}
+                </span>
+            `;
+            
+            document.getElementById('last-spec-customer').innerHTML = `
+                <i class="fas fa-building" style="margin-right: 3px;"></i> ${customerShort}
+            `;
+            
+            document.getElementById('last-spec-date').innerHTML = `
+                <i class="fas fa-calendar-alt" style="margin-right: 3px;"></i> ${lastSpecDate.toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}
+            `;
+            
+            // Tooltip con información completa
+            const lastSpecCard = document.getElementById('last-spec-card');
+            if (lastSpecCard) {
+                lastSpecCard.title = `Cliente: ${customerDisplay}\nEstilo: ${lastSpec.style || 'N/A'}\nColorway: ${lastSpec.colorway || 'N/A'}\nPO: ${lastSpec.po || 'N/A'}\nClick para cargar`;
+            }
+        } else {
+            document.getElementById('last-spec-name').innerHTML = 'Ninguna';
+            document.getElementById('last-spec-customer').innerHTML = '';
+            document.getElementById('last-spec-date').innerHTML = '';
+        }
+        
+        let activeCount = 0;
+        specs.forEach(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                if (data.placements && data.placements.length > 0) {
+                    activeCount++;
+                }
+            } catch(e) {}
+        });
+        
+        document.getElementById('active-projects').textContent = activeCount;
+        
+        const totalPlacements = specs.reduce((total, key) => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                return total + (data.placements?.length || 0);
+            } catch(e) {
+                return total;
+            }
+        }, 0);
+        
+        document.getElementById('total-placements').textContent = totalPlacements;
+        
+    } catch (error) {
+        console.error('Error en updateDashboard:', error);
+    }
+}
 
 // ========== FUNCIONES DE STORAGE ==========
 function loadSavedSpecsList() {
