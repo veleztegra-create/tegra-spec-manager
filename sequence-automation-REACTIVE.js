@@ -1,92 +1,134 @@
 // sequence-automation-REACTIVE.js
-// Sistema reactivo: La secuencia se genera cuando AGREGAS colores, no antes
-// Cada vez que agregas un color, el sistema recalcula toda la secuencia
+// Sistema reactivo que sigue las reglas exactas de Fanatics
 
 window.SequenceAutomation = {
-    // Configuración de secuencias por tipo
-    SEQUENCES: {
-        // FANATICS - Jersey BLANCO/CLARO
-        FANATICS_WHITE: {
-            inkType: 'WATER',
-            temp: '320 °F',
-            time: '1:40 min',
-            // Secuencia base siempre presente
+    // Reglas de negocio basadas en colorway (color de tela)
+    FABRIC_RULES: {
+        // Tela BLANCA/CLARA - Colores de tinta CLAROS
+        FABRIC_WHITE_LIGHT_INK: {
             baseSteps: [
-                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '110', additives: 'N/A' },
-                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '122', additives: 'N/A' },
-                { type: 'BLOCKER', name: 'Blocker CHT', mesh: '157', additives: 'N/A' }
+                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '110', additives: 'N/A', screenLetter: 'A' },
+                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '122', additives: 'N/A', screenLetter: 'B' },
+                { type: 'BLOCKER', name: 'Bloquer CHT', mesh: '157', additives: 'N/A', screenLetter: 'C' },
+                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '122', additives: '3 % CL 500', screenLetter: 'D' },
+                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '198', additives: '3 % CL 500', screenLetter: 'E' }
             ],
-            // White base adicional para colores claros
-            lightColorPrep: [
-                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '122', additives: '3% CL 500' },
-                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '198', additives: '3% CL 500' }
-            ],
-            // Pasos para cada color CLARO
-            lightColorSteps: [
-                { mesh: '157', base: 'AQUAFLEX', additives: '3% CL 500 · 5% ecofix XL' },
-                { mesh: '198', base: 'AQUAFLEX', additives: '3% CL 500 · 5% ecofix XL' }
-            ],
-            // Pasos para cada color OSCURO
-            darkColorSteps: [
-                { mesh: '157', base: 'BLOCKER', additives: '3% CL 500 · 5% ecofix XL' },
-                { mesh: '198', base: 'BLOCKER', additives: '3% CL 500 · 5% ecofix XL' }
-            ]
+            colorRules: {
+                LIGHT: { 
+                    base: 'AquaFlex', 
+                    mesh1: '157', 
+                    mesh2: '198', 
+                    additives: '3 % CL 500 · 5 % ecofix XL' 
+                },
+                DARK: { 
+                    base: 'Bloquer CHT', 
+                    mesh1: '157', 
+                    mesh2: '198', 
+                    additives: '3 % CL 500 · 5 % ecofix XL' 
+                },
+                SPECIAL: { 
+                    base: 'AquaFlex', 
+                    mesh1: '157', 
+                    mesh2: '198', 
+                    mesh3: '110', 
+                    additives: '3 % CL 500 · 5 % ecofix XL' 
+                }
+            }
         },
 
-        // FANATICS - Jersey NEGRO/OSCuro
-        FANATICS_BLACK: {
-            inkType: 'WATER',
-            temp: '320 °F',
-            time: '1:40 min',
+        // Tela BLANCA/CLARA - Colores de tinta OSCUROS
+        FABRIC_WHITE_DARK_INK: {
             baseSteps: [
-                { type: 'BLOCKER', name: 'Blocker CHT', mesh: '110', additives: 'N/A' },
-                { type: 'BLOCKER', name: 'Blocker CHT', mesh: '122', additives: 'N/A' },
-                { type: 'BLOCKER', name: 'Blocker CHT', mesh: '157', additives: 'N/A' }
+                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '110', additives: 'N/A', screenLetter: 'A' },
+                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '122', additives: 'N/A', screenLetter: 'B' },
+                { type: 'BLOCKER', name: 'Bloquer CHT', mesh: '157', additives: 'N/A', screenLetter: 'C' }
             ],
-            // White base solo para colores claros
-            lightColorPrep: [
-                { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '122', additives: '3% CL 500' }
-            ],
-            lightColorSteps: [
-                { mesh: '157', base: 'AQUAFLEX', additives: '3% CL 500 · 5% ecofix XL' },
-                { mesh: '198', base: 'AQUAFLEX', additives: '3% CL 500 · 5% ecofix XL' }
-            ],
-            darkColorSteps: [
-                { mesh: '157', base: 'BLOCKER', additives: '3% CL 500 · 5% ecofix XL' },
-                { mesh: '198', base: 'BLOCKER', additives: '3% CL 500 · 5% ecofix XL' }
-            ]
+            colorRules: {
+                LIGHT: { 
+                    base: 'AquaFlex', 
+                    mesh1: '157', 
+                    mesh2: '198', 
+                    additives: '3 % CL 500 · 5 % ecofix XL' 
+                },
+                DARK: { 
+                    base: 'Bloquer CHT', 
+                    mesh1: '157', 
+                    mesh2: '198', 
+                    additives: '3 % CL 500 · 5 % ecofix XL' 
+                },
+                SPECIAL: { 
+                    base: 'AquaFlex', 
+                    mesh1: '157', 
+                    mesh2: '198', 
+                    mesh3: '110', 
+                    additives: '3 % CL 500 · 5 % ecofix XL' 
+                }
+            }
         },
 
-        // GFS - Plastisol
-        GFS_PLASTISOL: {
-            inkType: 'PLASTISOL',
-            usePreset: true
+        // Tela NEGRA/OSCURA - TODOS los colores de tinta
+        FABRIC_BLACK: {
+            baseSteps: [
+                { type: 'BLOCKER', name: 'Bloquer CHT', mesh: '110', additives: 'N/A', screenLetter: 'A' },
+                { type: 'BLOCKER', name: 'Bloquer CHT', mesh: '122', additives: 'N/A', screenLetter: 'B' },
+                { type: 'BLOCKER', name: 'Bloquer CHT', mesh: '157', additives: 'N/A', screenLetter: 'C' }
+            ],
+            colorRules: {
+                LIGHT: { 
+                    requiresWhiteBase: true,
+                    basePrep: { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '122', additives: '3 % CL 500', screenLetter: 'D' },
+                    color1: { mesh: '198', additives: '3 % CL 500 · 5 % ecofix XL' },
+                    color2: { mesh: '157', additives: '3 % CL 500 · 5 % ecofix XL' }
+                },
+                DARK: { 
+                    requiresWhiteBase: false,
+                    color1: { mesh: '198', additives: '3 % CL 500 · 5 % ecofix XL' },
+                    color2: { mesh: '157', additives: '3 % CL 500 · 5 % ecofix XL' }
+                },
+                SPECIAL: { 
+                    requiresWhiteBase: true,
+                    basePrep: { type: 'WHITE_BASE', name: 'AquaFlex V2', mesh: '122', additives: '3 % CL 500', screenLetter: 'D' },
+                    color1: { mesh: '198', additives: '3 % CL 500 · 5 % ecofix XL' },
+                    color2: { mesh: '157', additives: '3 % CL 500 · 5 % ecofix XL' },
+                    color3: { mesh: '110', additives: '3 % CL 500 · 5 % ecofix XL' }
+                }
+            }
         }
     },
 
-    // Colores especiales (3 pantallas)
-    SPECIAL_COLORS: ['77C GOLD', '77C', '78H', '761 UNIVERSITY GOLD', '761'],
+    // Colores especiales que requieren 3 pantallas
+    SPECIAL_COLORS: [
+        '77C GOLD', '77C', '78H', '78H AMARILLO', 
+        '761 UNIVERSITY GOLD', '761', 'GOLD', 'YELLOW',
+        'AMARILLO', 'UNIVERSITY GOLD'
+    ],
 
-    // Determinar configuración basada en colorway y cliente
-    getConfig: function(colorway, customer) {
+    // Palabras clave para colores claros
+    LIGHT_KEYWORDS: ['WHITE', 'YELLOW', 'GOLD', 'LEMON', 'CREAM', 'IVORY', 'PINK', 'LIGHT', 'PASTEL', 'AMARILLO'],
+
+    // Determinar configuración basada en colorway (color de tela)
+    getFabricConfig: function(colorway, customer) {
         const customerUpper = (customer || '').toUpperCase();
         const colorwayUpper = (colorway || '').toUpperCase();
 
         // Detectar GFS
         if (customerUpper.includes('GEAR') || customerUpper.includes('GFS')) {
-            return { type: 'GFS', config: this.SEQUENCES.GFS_PLASTISOL };
+            return { type: 'GFS', config: null };
         }
 
-        // Detectar color de tela
-        const isBlack = ['BLACK', 'NAVY', 'CHARCOAL', 'DK ', 'DARK ', 'FOREST', 'HUNTER', 'MAROON'].some(
+        // Determinar si la tela es oscura
+        const isDarkFabric = ['BLACK', 'NAVY', 'CHARCOAL', 'DK ', 'DARK ', 'FOREST', 'HUNTER', 'MAROON'].some(
             c => colorwayUpper.includes(c)
         );
 
-        if (isBlack) {
-            return { type: 'FANATICS_BLACK', config: this.SEQUENCES.FANATICS_BLACK };
+        if (isDarkFabric) {
+            return { type: 'FABRIC_BLACK', config: this.FABRIC_RULES.FABRIC_BLACK };
         }
 
-        return { type: 'FANATICS_WHITE', config: this.SEQUENCES.FANATICS_WHITE };
+        // Si no podemos determinar, asumimos tela blanca/clara
+        // Pero necesitamos saber si los colores de tinta son claros u oscuros
+        // Esto se determinará en generateFullSequence
+        return { type: 'FABRIC_WHITE', config: null };
     },
 
     // Clasificar color de tinta
@@ -94,220 +136,290 @@ window.SequenceAutomation = {
         if (!colorName) return 'UNKNOWN';
         const upper = colorName.toUpperCase();
 
-        // Colores especiales (amarillos/dorados muy claros)
+        // 1. Verificar si es color especial (3 pantallas)
         if (this.SPECIAL_COLORS.some(c => upper.includes(c))) {
-            return 'SPECIAL_LIGHT';
+            return 'SPECIAL';
         }
 
-        // Colores claros
-        const lightKeywords = ['WHITE', 'YELLOW', 'GOLD', 'LEMON', 'CREAM', 'IVORY', 'PINK', 'LIGHT', 'ORANGE'];
-        if (lightKeywords.some(k => upper.includes(k))) {
-            // Excepciones
-            if (upper.includes('DARK ORANGE') || upper.includes('BURNT ORANGE')) return 'DARK';
+        // 2. Verificar si es Pantone metálico (871C-877C)
+        if (upper.match(/(8[7-9][0-9]\s*C)/i)) {
+            return 'SPECIAL';
+        }
+
+        // 3. Analizar códigos Pantone
+        if (upper.match(/\d{3}\s*C/)) {
+            const match = upper.match(/(\d{3})\s*C/);
+            if (match) {
+                const number = parseInt(match[1]);
+                
+                // Amarillos y dorados (100-199) - claros
+                if (number >= 100 && number <= 199) {
+                    return 'LIGHT';
+                }
+                
+                // Rojos, azules, verdes - asumir oscuros
+                return 'DARK';
+            }
+        }
+
+        // 4. Verificar palabras clave para colores claros
+        if (this.LIGHT_KEYWORDS.some(k => upper.includes(k))) {
             return 'LIGHT';
         }
 
-        // Colores oscuros
+        // Por defecto, asumir color oscuro
         return 'DARK';
     },
 
-    // Generar secuencia COMPLETA basada en los colores agregados
+    // Verificar si hay al menos un color claro entre los colores
+    hasLightColors: function(colors) {
+        return colors.some(color => {
+            const classification = this.classifyInkColor(color.val || '');
+            return classification === 'LIGHT' || classification === 'SPECIAL';
+        });
+    },
+
+    // Generar secuencia completa
     generateFullSequence: function(placementId) {
-        const placement = placements.find(p => p.id === placementId);
+        const placement = window.placements ? window.placements.find(p => p.id === placementId) : null;
         if (!placement) return null;
 
-        // Obtener configuración
         const colorway = document.getElementById('colorway')?.value || '';
         const customer = document.getElementById('customer')?.value || '';
-        const { type, config } = this.getConfig(colorway, customer);
+        
+        console.log('=== GENERANDO SECUENCIA ===');
+        console.log('Colorway (tela):', colorway);
+        console.log('Cliente:', customer);
 
-        // Si es GFS, usar preset existente
-        if (type === 'GFS') {
-            return this.generateGFSSequence(placement);
+        // Manejar GFS
+        if (customer.toUpperCase().includes('GEAR') || customer.toUpperCase().includes('GFS')) {
+            return this.handleGFSSequence(placement);
         }
 
-        // Obtener colores actuales del placement
+        // Determinar si la tela es oscura
+        const isDarkFabric = ['BLACK', 'NAVY', 'CHARCOAL', 'DK ', 'DARK ', 'FOREST', 'HUNTER', 'MAROON'].some(
+            c => (colorway || '').toUpperCase().includes(c)
+        );
+
+        // Obtener colores del placement
         const currentColors = placement.colors || [];
         
-        // Separar colores por tipo
-        const lightColors = [];
-        const darkColors = [];
-        const specialColors = [];
+        // Determinar si hay colores claros
+        const hasLightInks = this.hasLightColors(currentColors);
 
-        currentColors.forEach(color => {
-            const colorName = color.val || color.name || '';
-            const classification = this.classifyInkColor(colorName);
+        console.log('Tela oscura:', isDarkFabric);
+        console.log('Hay tintas claras:', hasLightInks);
 
-            if (classification === 'SPECIAL_LIGHT') {
-                specialColors.push(color);
-            } else if (classification === 'LIGHT') {
-                lightColors.push(color);
-            } else {
-                darkColors.push(color);
-            }
-        });
-
-        // Construir secuencia
         const fullSequence = [];
         let letterIndex = 0;
+        let numberIndex = 1;
 
-        // 1. Pasos base (siempre)
+        // SELECCIONAR CONFIGURACIÓN CORRECTA SEGÚN TELA Y TINTAS
+        let config;
+        if (isDarkFabric) {
+            // Tela NEGRA - usar configuración FABRIC_BLACK
+            config = this.FABRIC_RULES.FABRIC_BLACK;
+        } else {
+            // Tela BLANCA - elegir según si hay tintas claras
+            if (hasLightInks) {
+                config = this.FABRIC_RULES.FABRIC_WHITE_LIGHT_INK;
+                console.log('Usando: FABRIC_WHITE_LIGHT_INK (tela blanca + tintas claras)');
+            } else {
+                config = this.FABRIC_RULES.FABRIC_WHITE_DARK_INK;
+                console.log('Usando: FABRIC_WHITE_DARK_INK (tela blanca + tintas oscuras)');
+            }
+        }
+
+        // 1. Agregar pasos base según configuración
         config.baseSteps.forEach(step => {
             fullSequence.push({
                 ...step,
                 id: Date.now() + letterIndex,
-                screenLetter: this.getLetter(letterIndex)
+                screenLetter: step.screenLetter
             });
             letterIndex++;
         });
 
-        // 2. Si hay colores CLAROS, agregar preparación especial
-        if (lightColors.length > 0 || specialColors.length > 0) {
-            config.lightColorPrep.forEach(step => {
-                fullSequence.push({
-                    ...step,
-                    id: Date.now() + letterIndex,
-                    screenLetter: this.getLetter(letterIndex)
-                });
-                letterIndex++;
-            });
-        }
-
-        // 3. Agregar colores CLAROS
-        lightColors.forEach((color, idx) => {
-            const letter = String.fromCharCode(65 + idx);
+        // 2. Clasificar y procesar cada color
+        currentColors.forEach((color, idx) => {
+            const colorName = color.val || '';
+            const classification = this.classifyInkColor(colorName);
             
-            // Pantalla 1
-            fullSequence.push({
-                type: 'COLOR',
-                name: color.val,
-                mesh: config.lightColorSteps[0].mesh,
-                additives: config.lightColorSteps[0].additives,
-                baseLayer: config.lightColorSteps[0].base,
-                id: Date.now() + letterIndex,
-                screenLetter: letter,
-                originalColorId: color.id
-            });
-            letterIndex++;
+            console.log(`Color ${idx + 1}: "${colorName}" → ${classification}`);
 
-            // Pantalla 2
-            fullSequence.push({
-                type: 'COLOR',
-                name: color.val + ' (2)',
-                mesh: config.lightColorSteps[1].mesh,
-                additives: config.lightColorSteps[1].additives,
-                baseLayer: config.lightColorSteps[1].base,
-                id: Date.now() + letterIndex,
-                screenLetter: letter + '2',
-                originalColorId: color.id
-            });
-            letterIndex++;
+            // Para tela NEGRA, manejo especial
+            if (isDarkFabric) {
+                const rules = config.colorRules[classification];
+                
+                // Si requiere white base, agregarlo (solo una vez)
+                if (rules.requiresWhiteBase && idx === 0) {
+                    fullSequence.push({
+                        ...rules.basePrep,
+                        id: Date.now() + letterIndex,
+                        screenLetter: rules.basePrep.screenLetter
+                    });
+                    letterIndex++;
+                }
+
+                // Agregar pantallas del color con NÚMEROS
+                if (classification === 'SPECIAL') {
+                    // 3 pantallas para colores especiales
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName,
+                        mesh: rules.color3.mesh,
+                        additives: rules.color3.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName + ' (2)',
+                        mesh: rules.color2.mesh,
+                        additives: rules.color2.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName + ' (3)',
+                        mesh: rules.color1.mesh,
+                        additives: rules.color1.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+                } else {
+                    // 2 pantallas para colores normales
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName,
+                        mesh: rules.color1.mesh,
+                        additives: rules.color1.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName + ' (2)',
+                        mesh: rules.color2.mesh,
+                        additives: rules.color2.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+                }
+            } 
+            // Para tela BLANCA
+            else {
+                const rules = config.colorRules[classification];
+                
+                // Agregar pantallas del color con NÚMEROS
+                if (classification === 'SPECIAL') {
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName,
+                        mesh: rules.mesh1,
+                        additives: rules.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName + ' (2)',
+                        mesh: rules.mesh2,
+                        additives: rules.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName + ' (3)',
+                        mesh: rules.mesh3 || '110',
+                        additives: rules.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+                } else {
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName,
+                        mesh: rules.mesh1,
+                        additives: rules.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+
+                    fullSequence.push({
+                        type: 'COLOR',
+                        name: colorName + ' (2)',
+                        mesh: rules.mesh2,
+                        additives: rules.additives,
+                        screenNumber: numberIndex,
+                        screenDisplay: numberIndex.toString(),
+                        id: Date.now() + letterIndex
+                    });
+                    letterIndex++;
+                    numberIndex++;
+                }
+            }
         });
 
-        // 4. Agregar colores ESPECIALES (3 pantallas)
-        specialColors.forEach((color, idx) => {
-            const letter = String.fromCharCode(65 + lightColors.length + idx);
-            
-            // Pantalla 1
-            fullSequence.push({
-                type: 'COLOR',
-                name: color.val,
-                mesh: config.lightColorSteps[0].mesh,
-                additives: config.lightColorSteps[0].additives,
-                baseLayer: 'AQUAFLEX',
-                id: Date.now() + letterIndex,
-                screenLetter: letter,
-                originalColorId: color.id
-            });
-            letterIndex++;
-
-            // Pantalla 2
-            fullSequence.push({
-                type: 'COLOR',
-                name: color.val + ' (2)',
-                mesh: config.lightColorSteps[1].mesh,
-                additives: config.lightColorSteps[1].additives,
-                baseLayer: 'AQUAFLEX',
-                id: Date.now() + letterIndex,
-                screenLetter: letter + '2',
-                originalColorId: color.id
-            });
-            letterIndex++;
-
-            // Pantalla 3 (EXTRA)
-            fullSequence.push({
-                type: 'COLOR',
-                name: color.val + ' (3) EXTRA',
-                mesh: '110',
-                additives: '3% CL 500 · 5% ecofix XL',
-                baseLayer: 'AQUAFLEX',
-                id: Date.now() + letterIndex,
-                screenLetter: letter + '3',
-                originalColorId: color.id,
-                isExtra: true
-            });
-            letterIndex++;
-        });
-
-        // 5. Agregar colores OSCUROS
-        darkColors.forEach((color, idx) => {
-            const letter = String.fromCharCode(65 + lightColors.length + specialColors.length + idx);
-            
-            // Pantalla 1
-            fullSequence.push({
-                type: 'COLOR',
-                name: color.val,
-                mesh: config.darkColorSteps[0].mesh,
-                additives: config.darkColorSteps[0].additives,
-                baseLayer: config.darkColorSteps[0].base,
-                id: Date.now() + letterIndex,
-                screenLetter: letter,
-                originalColorId: color.id
-            });
-            letterIndex++;
-
-            // Pantalla 2
-            fullSequence.push({
-                type: 'COLOR',
-                name: color.val + ' (2)',
-                mesh: config.darkColorSteps[1].mesh,
-                additives: config.darkColorSteps[1].additives,
-                baseLayer: config.darkColorSteps[1].base,
-                id: Date.now() + letterIndex,
-                screenLetter: letter + '2',
-                originalColorId: color.id
-            });
-            letterIndex++;
-        });
-
-        // Insertar FLASH/COOL entre cada paso
+        // Insertar FLASH y COOL entre cada paso
         const finalSequence = this.insertFlashCool(fullSequence);
 
         return {
             sequence: finalSequence,
-            config: config,
             stats: {
                 totalStations: finalSequence.length,
-                lightColors: lightColors.length,
-                darkColors: darkColors.length,
-                specialColors: specialColors.length,
-                type: type
+                totalColors: currentColors.length,
+                fabricType: isDarkFabric ? 'NEGRA' : 'BLANCA',
+                hasLightInks: hasLightInks
             }
         };
     },
 
-    // Insertar FLASH y COOL entre cada paso
+    // Insertar FLASH y COOL
     insertFlashCool: function(sequence) {
         const result = [];
         
         sequence.forEach((step, index) => {
             result.push(step);
             
-            // Agregar FLASH/COOL después de cada paso excepto el último
             if (index < sequence.length - 1) {
                 result.push(
-                    { type: 'FLASH', name: 'FLASH', mesh: '-', additives: '-', screenLetter: '' },
-                    { type: 'COOL', name: 'COOL', mesh: '-', additives: '-', screenLetter: '' }
+                    { type: 'FLASH', name: 'FLASH', mesh: '-', additives: '-', screenDisplay: '' },
+                    { type: 'COOL', name: 'COOL', mesh: '-', additives: '-', screenDisplay: '' }
                 );
             }
         });
@@ -315,151 +427,73 @@ window.SequenceAutomation = {
         return result;
     },
 
-    getLetter: function(index) {
-        if (index < 26) return String.fromCharCode(65 + index);
-        return String.fromCharCode(65 + Math.floor(index / 26) - 1) + String.fromCharCode(65 + (index % 26));
-    },
-
-    // Aplicar secuencia generada al placement
+    // Aplicar secuencia al placement
     applySequence: function(placementId) {
         const sequenceData = this.generateFullSequence(placementId);
         if (!sequenceData) return false;
 
-        const placement = placements.find(p => p.id === placementId);
+        const placement = window.placements.find(p => p.id === placementId);
         if (!placement) return false;
 
-        // Actualizar propiedades del placement
-        placement.inkType = sequenceData.config.inkType;
-        placement.temp = sequenceData.config.temp;
-        placement.time = sequenceData.config.time;
+        // Actualizar propiedades
+        placement.inkType = 'WATER';
+        placement.temp = '320 °F';
+        placement.time = '1:40 min';
 
-        // Convertir secuencia a formato de colores del placement
+        // Convertir secuencia a colores
         placement.colors = sequenceData.sequence
             .filter(step => ['WHITE_BASE', 'BLOCKER', 'COLOR'].includes(step.type))
             .map(step => ({
                 id: step.id || Date.now() + Math.random(),
                 type: step.type,
-                screenLetter: step.screenLetter,
+                screenLetter: step.screenLetter || step.screenDisplay || '',
                 val: step.name,
                 mesh: step.mesh,
-                additives: step.additives,
-                isExtra: step.isExtra || false
+                additives: step.additives
             }));
 
-        // Agregar notas
-        const notes = [];
-        if (sequenceData.stats.specialColors > 0) {
-            notes.push(`⚠️ ${sequenceData.stats.specialColors} color(es) especial(es) - 3 pantallas`);
-        }
-        notes.push(`Secuencia: ${sequenceData.stats.type}`);
-        notes.push(`${sequenceData.stats.lightColors} claro(s), ${sequenceData.stats.darkColors} oscuro(s)`);
-        
-        placement.specialInstructions = notes.join(' | ');
+        // Notas informativas
+        placement.specialInstructions = `Tela ${sequenceData.stats.fabricType}${sequenceData.stats.hasLightInks ? ' con tintas claras' : ' con tintas oscuras'}`;
 
         // Actualizar UI
-        if (typeof renderPlacementColors === 'function') {
-            renderPlacementColors(placementId);
-        }
-        if (typeof updatePlacementStations === 'function') {
-            updatePlacementStations(placementId);
-        }
-        if (typeof updatePlacementColorsPreview === 'function') {
-            updatePlacementColorsPreview(placementId);
-        }
-
-        if (typeof showStatus === 'function') {
-            showStatus(
-                `✅ Secuencia actualizada: ${sequenceData.stats.totalStations} estaciones`,
-                'success'
-            );
-        }
+        if (window.renderPlacementColors) window.renderPlacementColors(placementId);
+        if (window.updatePlacementStations) window.updatePlacementStations(placementId);
 
         return true;
     },
 
-    // Para GFS - usar preset existente
-    generateGFSSequence: function(placement) {
-        if (typeof getInkPresetSafe === 'function') {
-            const preset = getInkPresetSafe('PLASTISOL');
-            // Mantener colores actales pero actualizar base
-            return {
-                usePreset: true,
-                preset: preset
-            };
-        }
+    handleGFSSequence: function(placement) {
+        // Implementación para GFS (Plastisol)
+        console.log('Manejando secuencia GFS');
         return null;
     }
 };
 
-// INTEGRACIÓN REACTIVA
-// Sobrescribir la función de agregar color para regenerar secuencia automáticamente
-
+// Integración con los botones existentes
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
-        // Guardar referencia original
-        if (typeof window.addPlacementColorItem === 'function') {
-            const originalAddColor = window.addPlacementColorItem;
-            
-            window.addPlacementColorItem = function(placementId, type = 'COLOR') {
-                // Llamar función original
-                originalAddColor(placementId, type);
-                
-                // Si es un color (no blocker/white_base), regenerar secuencia
-                if (type === 'COLOR' || type === 'METALLIC') {
-                    setTimeout(() => {
-                        if (window.SequenceAutomation) {
-                            window.SequenceAutomation.applySequence(placementId);
-                        }
-                    }, 100);
-                }
+        // Hook para addPlacementColorItem
+        if (window.addPlacementColorItem) {
+            const original = window.addPlacementColorItem;
+            window.addPlacementColorItem = function(placementId, type) {
+                original(placementId, type);
+                setTimeout(() => window.SequenceAutomation?.applySequence(placementId), 150);
             };
-            
-            console.log('✅ Sistema reactivo activado: addPlacementColorItem');
         }
 
-        // También para eliminar color
-        if (typeof window.removePlacementColorItem === 'function') {
-            const originalRemoveColor = window.removePlacementColorItem;
-            
+        // Hook para removePlacementColorItem
+        if (window.removePlacementColorItem) {
+            const original = window.removePlacementColorItem;
             window.removePlacementColorItem = function(placementId, colorId) {
-                originalRemoveColor(placementId, colorId);
-                
-                setTimeout(() => {
-                    if (window.SequenceAutomation) {
-                        window.SequenceAutomation.applySequence(placementId);
-                    }
-                }, 100);
+                original(placementId, colorId);
+                setTimeout(() => window.SequenceAutomation?.applySequence(placementId), 150);
             };
-            
-            console.log('✅ Sistema reactivo activado: removePlacementColorItem');
         }
 
-        // También para cambiar nombre de color
-        if (typeof window.updatePlacementColorValue === 'function') {
-            const originalUpdateColor = window.updatePlacementColorValue;
-            
-            window.updatePlacementColorValue = function(placementId, colorId, value) {
-                originalUpdateColor(placementId, colorId, value);
-                
-                // Solo regenerar si el valor cambió significativamente
-                if (value && value.length > 2) {
-                    setTimeout(() => {
-                        if (window.SequenceAutomation) {
-                            window.SequenceAutomation.applySequence(placementId);
-                        }
-                    }, 500); // Delay para no regenerar mientras escribe
-                }
-            };
-            
-            console.log('✅ Sistema reactivo activado: updatePlacementColorValue');
-        }
-
-        console.log('✅ Sequence Automation REACTIVO cargado');
-        console.log('Instrucciones:');
-        console.log('1. Crea un placement');
-        console.log('2. Agrega un color de tinta');
-        console.log('3. El sistema automáticamente genera Blockers + White Bases + Secuencia');
-        console.log('4. Si cambias el nombre del color, la secuencia se recalcula');
-        
+        console.log('✅ Sequence Automation listo');
+        console.log('Reglas cargadas con mallas específicas:');
+        console.log('- Bases: 110, 122, 157, 198');
+        console.log('- Colores: 157, 198 (y 110 para especiales)');
+        console.log('- Letras para bases, Números para colores');
     }, 2000);
 });
