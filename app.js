@@ -3211,3 +3211,4 @@ window.updateAllPlacementTitles = updateAllPlacementTitles;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
+window.loadLastSpec = loadLastSpec;
