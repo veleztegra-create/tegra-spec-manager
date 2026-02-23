@@ -408,9 +408,34 @@ function initializePlacements() {
     showPlacement(firstPlacementId);
 }
 
+// Detectar tipo de tinta según el cliente
+function detectInkTypeFromCustomer() {
+    const customer = document.getElementById('customer')?.value || '';
+    const customerUpper = customer.toUpperCase();
+    
+    const clientDefaults = {
+        'GEAR FOR SPORT': 'PLASTISOL',
+        'GEARFORSPORT': 'PLASTISOL',
+        'GFS': 'PLASTISOL',
+        'G.F.S.': 'PLASTISOL',
+        'FANATICS': 'WATER',
+        'NIKE': 'WATER',
+        'ADIDAS': 'PLASTISOL',
+        'UNDER ARMOUR': 'WATER'
+    };
+    
+    for (const [client, ink] of Object.entries(clientDefaults)) {
+        if (customerUpper.includes(client)) {
+            return ink;
+        }
+    }
+    return 'WATER';
+}
+
 function addNewPlacement(type = null, isFirst = false) {
     const placementId = isFirst ? 1 : Date.now();
     const placementType = type || getNextPlacementType();
+    const inkType = detectInkTypeFromCustomer();
     
     const newPlacement = {
         id: placementId,
@@ -420,18 +445,21 @@ function addNewPlacement(type = null, isFirst = false) {
         colors: [],
         placementDetails: '#.#" FROM COLLAR SEAM',
         dimensions: 'SIZE: (W) ## X (H) ##',
-        temp: '320 °F',
-        time: '1:40 min',
+        temp: inkType === 'PLASTISOL' ? '320 °F' : '320 °F',
+        time: inkType === 'PLASTISOL' ? '1:40 min' : '1:00 min',
         specialties: '',
         specialInstructions: '',
-        inkType: 'WATER',
-        placementSelect: 'FRONT',
+        inkType: inkType,
+        placementSelect: placementType,
         isActive: true,
         meshColor: '',
         meshWhite: '',
         meshBlocker: '',
         durometer: '',
         strokes: '',
+        angle: '',
+        pressure: '',
+        speed: '',
         additives: '',
         width: '',
         height: '',
@@ -468,42 +496,6 @@ function getNextPlacementType() {
 
 function getNextPlacementNumber() {
     return placements.length + 1;
-}
-// En app.js, dentro de la función que crea un nuevo placement
-function addNewPlacement(type = null, isFirst = false) {
-    const customer = document.getElementById('customer')?.value || '';
-    const inkType = detectInkTypeFromCustomer(customer); // ← Nueva función
-    
-    const newPlacement = {
-        // ... otros campos ...
-        inkType: inkType, // ← Usar el tipo detectado
-        // ...
-    };
-}
-
-// Agrega esta función helper en app.js
-function detectInkTypeFromCustomer(customer) {
-    const customerUpper = (customer || '').toUpperCase();
-    
-    // Usar la misma lógica que ExcelAutomation
-    const clientDefaults = {
-        'GEAR FOR SPORT': 'PLASTISOL',
-        'GEARFORSPORT': 'PLASTISOL',
-        'GFS': 'PLASTISOL',
-        'G.F.S.': 'PLASTISOL',
-        'FANATICS': 'WATER',
-        'NIKE': 'WATER',
-        'ADIDAS': 'PLASTISOL',
-        'UNDER ARMOUR': 'WATER'
-    };
-    
-    for (const [client, ink] of Object.entries(clientDefaults)) {
-        if (customerUpper.includes(client)) {
-            return ink;
-        }
-    }
-    
-    return 'WATER'; // Default
 }
 
 // ========== FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS ==========
@@ -1481,6 +1473,24 @@ function renderPlacementColors(placementId) {
                 <i class="fas fa-times"></i>
             </button>
         `;
+        
+        // Agregar manejador de evento keydown para prevenir envío de formulario con Enter
+        const inkInput = div.querySelector('.placement-ink-input');
+        inkInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.blur();
+                
+                // Forzar actualización de secuencia
+                const placementId = parseInt(this.dataset.placementId);
+                if (window.SequenceAutomation && window.SequenceAutomation.applySequence) {
+                    setTimeout(() => window.SequenceAutomation.applySequence(placementId), 100);
+                }
+                return false;
+            }
+        });
+        
         container.appendChild(div);
         
         setTimeout(() => updatePlacementColorPreview(placementId, color.id), 10);
@@ -2338,7 +2348,7 @@ function loadSavedSpecsList() {
                     <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
+                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'><i class="fas fa-edit"></i> Cargar</button>
                     <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
                 </div>
@@ -3117,6 +3127,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }, 2000);
+
+            // Prevenir que Enter envíe el formulario en toda la aplicación
+            const form = document.getElementById('spec-creator-form');
+            if (form) {
+                form.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
         })
         .catch((error) => {
             console.error('Error al cargar templates:', error);
