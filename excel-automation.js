@@ -1,5 +1,6 @@
 // excel-automation.js - Automatización inteligente de placements desde Excel
 // Integración con app.js existente
+// VERSIÓN CORREGIDA - Con método extractBasicData y referencias a window.placements
 
 window.ExcelAutomation = {
     // Configuración de clientes y sus tintas por defecto
@@ -48,6 +49,79 @@ window.ExcelAutomation = {
         { regex: /Swoosh/i, placement: 'SWOOSH' },
         { regex: /Stripes?/i, placement: 'STRIPES' }
     ],
+
+    // ========== NUEVO MÉTODO AGREGADO ==========
+    // Parser de datos básicos desde Excel (similar al de app.js)
+    extractBasicData: function(data, sheetName = '') {
+        const extracted = {};
+
+        const isSWOSheet = sheetName.includes('SWO');
+        const isPPSSheet = sheetName.includes('PPS');
+        const isProtoSheet = sheetName.includes('Proto');
+
+        if (isSWOSheet || isPPSSheet) {
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length < 2) continue;
+
+                const label = String(row[1] || '').trim();
+                const val = String(row[2] || '').trim();
+
+                if (label && val) {
+                    if (label.includes('CUSTOMER:')) {
+                        extracted.customer = val;
+                    }
+                    else if (label.includes('STYLE:')) {
+                        extracted.style = val;
+                        if (window.detectTeamFromStyle) {
+                            extracted.team = window.detectTeamFromStyle(val);
+                        }
+                    }
+                    else if (label.includes('COLORWAY')) {
+                        extracted.colorway = val;
+                    }
+                    else if (label.includes('SEASON:')) extracted.season = val;
+                    else if (label.includes('PATTERN')) extracted.pattern = val;
+                    else if (label.includes('P.O.')) extracted.po = val;
+                    else if (label.includes('SAMPLE TYPE')) extracted.sample = val;
+                    else if (label.includes('DATE:')) extracted.date = val;
+                    else if (label.includes('REQUESTED BY:')) extracted.requestedBy = val;
+                    else if (label.includes('TEAM:')) extracted.team = val;
+                    else if (label.includes('GENDER:')) extracted.gender = val;
+                }
+            }
+        } else {
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                if (!row) continue;
+                
+                for (let j = 0; j < row.length; j++) {
+                    const cell = String(row[j] || '').trim();
+                    
+                    if (cell.includes('CUSTOMER:')) {
+                        extracted.customer = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('STYLE:')) {
+                        extracted.style = String(row[j + 1] || '').trim();
+                        if (window.detectTeamFromStyle) {
+                            extracted.team = window.detectTeamFromStyle(extracted.style);
+                        }
+                    } else if (cell.includes('COLORWAY')) {
+                        extracted.colorway = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('SEASON:')) {
+                        extracted.season = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('PATTERN')) {
+                        extracted.pattern = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('P.O.')) {
+                        extracted.po = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('SAMPLE TYPE') || cell.includes('SAMPLE:')) {
+                        extracted.sample = String(row[j + 1] || '').trim();
+                    }
+                }
+            }
+        }
+
+        return extracted;
+    },
 
     // Procesar archivo Excel completo con automatización
     processExcelWithAutomation: function(worksheet, sheetName = '') {
@@ -116,77 +190,6 @@ window.ExcelAutomation = {
         
         return placements;
     },
-    // Parser de datos básicos desde Excel (similar al de app.js)
-extractBasicData: function(data, sheetName = '') {
-    const extracted = {};
-
-    const isSWOSheet = sheetName.includes('SWO');
-    const isPPSSheet = sheetName.includes('PPS');
-    const isProtoSheet = sheetName.includes('Proto');
-
-    if (isSWOSheet || isPPSSheet) {
-        for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            if (!row || row.length < 2) continue;
-
-            const label = String(row[1] || '').trim();
-            const val = String(row[2] || '').trim();
-
-            if (label && val) {
-                if (label.includes('CUSTOMER:')) {
-                    extracted.customer = val;
-                }
-                else if (label.includes('STYLE:')) {
-                    extracted.style = val;
-                    if (window.detectTeamFromStyle) {
-                        extracted.team = window.detectTeamFromStyle(val);
-                    }
-                }
-                else if (label.includes('COLORWAY')) {
-                    extracted.colorway = val;
-                }
-                else if (label.includes('SEASON:')) extracted.season = val;
-                else if (label.includes('PATTERN')) extracted.pattern = val;
-                else if (label.includes('P.O.')) extracted.po = val;
-                else if (label.includes('SAMPLE TYPE')) extracted.sample = val;
-                else if (label.includes('DATE:')) extracted.date = val;
-                else if (label.includes('REQUESTED BY:')) extracted.requestedBy = val;
-                else if (label.includes('TEAM:')) extracted.team = val;
-                else if (label.includes('GENDER:')) extracted.gender = val;
-            }
-        }
-    } else {
-        for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            if (!row) continue;
-            
-            for (let j = 0; j < row.length; j++) {
-                const cell = String(row[j] || '').trim();
-                
-                if (cell.includes('CUSTOMER:')) {
-                    extracted.customer = String(row[j + 1] || '').trim();
-                } else if (cell.includes('STYLE:')) {
-                    extracted.style = String(row[j + 1] || '').trim();
-                    if (window.detectTeamFromStyle) {
-                        extracted.team = window.detectTeamFromStyle(extracted.style);
-                    }
-                } else if (cell.includes('COLORWAY')) {
-                    extracted.colorway = String(row[j + 1] || '').trim();
-                } else if (cell.includes('SEASON:')) {
-                    extracted.season = String(row[j + 1] || '').trim();
-                } else if (cell.includes('PATTERN')) {
-                    extracted.pattern = String(row[j + 1] || '').trim();
-                } else if (cell.includes('P.O.')) {
-                    extracted.po = String(row[j + 1] || '').trim();
-                } else if (cell.includes('SAMPLE TYPE') || cell.includes('SAMPLE:')) {
-                    extracted.sample = String(row[j + 1] || '').trim();
-                }
-            }
-        }
-    }
-
-    return extracted;
-},
 
     // Parsear una fila de embellishment
     parsePlacementRow: function(technique, description, customer) {
@@ -261,13 +264,14 @@ extractBasicData: function(data, sheetName = '') {
         return locations;
     },
 
+    // ========== VERSIÓN CORREGIDA DE autoCreatePlacements ==========
     // Crear placements automáticamente
     autoCreatePlacements: function(detectedPlacements) {
         if (!Array.isArray(detectedPlacements) || detectedPlacements.length === 0) return;
         
-        // Limpiar placements existentes
-        if (typeof placements !== 'undefined') {
-            placements = [];
+        // Usar window.placements para acceder a la variable global
+        if (typeof window.placements !== 'undefined') {
+            window.placements = [];
             const container = document.getElementById('placements-container');
             const tabsContainer = document.getElementById('placements-tabs');
             if (container) container.innerHTML = '';
@@ -302,23 +306,23 @@ extractBasicData: function(data, sheetName = '') {
                     isAutoGenerated: true
                 };
                 
-                if (typeof placements !== 'undefined') {
-                    placements.push(newPlacement);
+                if (typeof window.placements !== 'undefined') {
+                    window.placements.push(newPlacement);
                     
-                    if (typeof renderPlacementHTML === 'function') {
-                        renderPlacementHTML(newPlacement);
+                    if (typeof window.renderPlacementHTML === 'function') {
+                        window.renderPlacementHTML(newPlacement);
                     }
                     placementCount++;
                 }
             });
         });
         
-        if (typeof updatePlacementsTabs === 'function') {
-            updatePlacementsTabs();
+        if (typeof window.updatePlacementsTabs === 'function') {
+            window.updatePlacementsTabs();
         }
         
-        if (placementCount > 0 && typeof showStatus === 'function') {
-            showStatus(`✅ ${placementCount} placements generados automáticamente`, 'success');
+        if (placementCount > 0 && typeof window.showStatus === 'function') {
+            window.showStatus(`✅ ${placementCount} placements generados automáticamente`, 'success');
         }
         
         return placementCount;
