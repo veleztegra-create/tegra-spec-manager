@@ -3123,6 +3123,37 @@ function normalizeGearForSportColor(colorName) {
     return colorName;
 }
 
+// ========== EXPORTAR FUNCIONES GLOBALES ==========
+window.showTab = showTab;
+window.loadSavedSpecsList = loadSavedSpecsList;
+window.clearErrorLog = clearErrorLog;
+window.exportErrorLog = exportErrorLog;
+window.clearAllSpecs = clearAllSpecs;
+window.addNewPlacement = addNewPlacement;
+window.saveCurrentSpec = saveCurrentSpec;
+window.clearForm = clearForm;
+window.exportToExcel = exportToExcel;
+window.exportPDF = exportPDF;
+window.downloadProjectZip = downloadProjectZip;
+window.removePlacement = removePlacement;
+window.duplicatePlacement = duplicatePlacement;
+window.showPlacement = showPlacement;
+window.updatePlacementType = updatePlacementType;
+window.updatePlacementInkType = updatePlacementInkType;
+window.openImagePickerForPlacement = openImagePickerForPlacement;
+window.removePlacementImage = removePlacementImage;
+window.addPlacementColorItem = addPlacementColorItem;
+window.removePlacementColorItem = removePlacementColorItem;
+window.movePlacementColorItem = movePlacementColorItem;
+window.updatePlacementColorValue = updatePlacementColorValue;
+window.updatePlacementColorMesh = updatePlacementColorMesh;
+window.updatePlacementScreenLetter = updatePlacementScreenLetter;
+window.updatePlacementParam = updatePlacementParam;
+window.updateCustomPlacement = updateCustomPlacement;
+window.updateAllPlacementTitles = updateAllPlacementTitles;
+window.updateClientLogo = updateClientLogo;
+window.handleGearForSportLogic = handleGearForSportLogic;
+window.setupPlacementAutocomplete = setupPlacementAutocomplete;
 # Crear también una versión simplificada para integración directa
 
 simple_integration = '''
@@ -3197,37 +3228,3 @@ simple_integration = '''
 '''
 
 print(simple_integration)
-
-
-// ========== EXPORTAR FUNCIONES GLOBALES ==========
-window.showTab = showTab;
-window.loadSavedSpecsList = loadSavedSpecsList;
-window.clearErrorLog = clearErrorLog;
-window.exportErrorLog = exportErrorLog;
-window.clearAllSpecs = clearAllSpecs;
-window.addNewPlacement = addNewPlacement;
-window.saveCurrentSpec = saveCurrentSpec;
-window.clearForm = clearForm;
-window.exportToExcel = exportToExcel;
-window.exportPDF = exportPDF;
-window.downloadProjectZip = downloadProjectZip;
-window.removePlacement = removePlacement;
-window.duplicatePlacement = duplicatePlacement;
-window.showPlacement = showPlacement;
-window.updatePlacementType = updatePlacementType;
-window.updatePlacementInkType = updatePlacementInkType;
-window.openImagePickerForPlacement = openImagePickerForPlacement;
-window.removePlacementImage = removePlacementImage;
-window.addPlacementColorItem = addPlacementColorItem;
-window.removePlacementColorItem = removePlacementColorItem;
-window.movePlacementColorItem = movePlacementColorItem;
-window.updatePlacementColorValue = updatePlacementColorValue;
-window.updatePlacementColorMesh = updatePlacementColorMesh;
-window.updatePlacementScreenLetter = updatePlacementScreenLetter;
-window.updatePlacementParam = updatePlacementParam;
-window.updateCustomPlacement = updateCustomPlacement;
-window.updateAllPlacementTitles = updateAllPlacementTitles;
-window.updateClientLogo = updateClientLogo;
-window.handleGearForSportLogic = handleGearForSportLogic;
-window.setupPlacementAutocomplete = setupPlacementAutocomplete;
-
