@@ -3123,6 +3123,82 @@ function normalizeGearForSportColor(colorName) {
     return colorName;
 }
 
+# Crear también una versión simplificada para integración directa
+
+simple_integration = '''
+// INTEGRACIÓN SIMPLIFICADA - Copiar esto al final de app.js si no funciona el archivo separado
+
+// Sobrescribir funciones de colores para integración reactiva
+(function() {
+    // Esperar a que todo cargue
+    setTimeout(() => {
+        console.log('Iniciando integración reactiva...');
+        
+        // Verificar que SequenceAutomation existe
+        if (!window.SequenceAutomation) {
+            console.error('SequenceAutomation no encontrado. Asegúrate de cargar sequence-automation-REACTIVE.js antes');
+            return;
+        }
+
+        // Sobrescribir addPlacementColorItem
+        const originalAddColor = window.addPlacementColorItem;
+        if (originalAddColor) {
+            window.addPlacementColorItem = function(placementId, type = 'COLOR') {
+                // Llamar original primero
+                originalAddColor(placementId, type);
+                
+                // Si es color, regenerar secuencia
+                if (type === 'COLOR' || type === 'METALLIC') {
+                    console.log('Color agregado, regenerando secuencia...');
+                    setTimeout(() => {
+                        window.SequenceAutomation.applySequence(placementId);
+                    }, 150);
+                }
+            };
+            console.log('✅ addPlacementColorItem integrado');
+        }
+
+        // Sobrescribir removePlacementColorItem
+        const originalRemoveColor = window.removePlacementColorItem;
+        if (originalRemoveColor) {
+            window.removePlacementColorItem = function(placementId, colorId) {
+                originalRemoveColor(placementId, colorId);
+                
+                setTimeout(() => {
+                    window.SequenceAutomation.applySequence(placementId);
+                }, 150);
+            };
+            console.log('✅ removePlacementColorItem integrado');
+        }
+
+        // Sobrescribir updatePlacementColorValue con debounce
+        const originalUpdateColor = window.updatePlacementColorValue;
+        if (originalUpdateColor) {
+            let timeout;
+            window.updatePlacementColorValue = function(placementId, colorId, value) {
+                originalUpdateColor(placementId, colorId, value);
+                
+                clearTimeout(timeout);
+                if (value && value.length > 2) {
+                    timeout = setTimeout(() => {
+                        console.log('Nombre de color actualizado, regenerando...');
+                        window.SequenceAutomation.applySequence(placementId);
+                    }, 800);
+                }
+            };
+            console.log('✅ updatePlacementColorValue integrado');
+        }
+
+        console.log('✅ Integración reactiva completada');
+        console.log('Ahora cuando agregues un color, la secuencia se genera automáticamente');
+        
+    }, 3000);
+})();
+'''
+
+print(simple_integration)
+
+
 // ========== EXPORTAR FUNCIONES GLOBALES ==========
 window.showTab = showTab;
 window.loadSavedSpecsList = loadSavedSpecsList;
@@ -3154,3 +3230,4 @@ window.updateAllPlacementTitles = updateAllPlacementTitles;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
+
