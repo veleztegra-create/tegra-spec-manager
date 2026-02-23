@@ -9,30 +9,6 @@
   <!-- 1. ESTILOS PRIMERO -->
   <link rel="stylesheet" href="styles.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  
-  <!-- 2. LIBRERÍAS EXTERNAS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  
-  <!-- 3. NUESTROS MÓDULOS -->
-  <script src="config.js"></script> 
-  <script src="config-teams.js"></script>
-  <script src="config-color.js"></script>
-  <script src="config-logos.js"></script>
-  <script src="config-schools.js"></script>
-  <script src="utils.js"></script>
-  <script src="state-manager.js"></script>
-  <script src="error-handler.js"></script>
-  <script src="validators.js"></script>
-  <script src="specialties-detector.js"></script>
-  <script src="render-helpers.js"></script>
-  <script src="placements-autocomplete.js"></script>
-  <script src="pdf-generator-mejorado.js"></script>
-  <script src="excel-automation.js"></script> 
-  <script src="sequence-automation-REACTIVE.js"></script>  
-  <script src="app.js"></script>
-  <script src="fixes.js"></script>
 </head>
 <body>
   <div id="pdf-render" class="app-container">
@@ -98,10 +74,7 @@
       <!-- MAIN CONTENT - TEMPLATES INCLUIDOS DIRECTAMENTE -->
       <!-- ========================================================= -->
       <main class="app-main">
-
-          <!-- ===================================================== -->
-          <!-- TAB: DASHBOARD -->
-          <!-- ===================================================== -->
+          <!-- DASHBOARD -->
           <div id="dashboard" class="tab-content active">
               <div class="dashboard-grid">
                   <div class="stat-card">
@@ -128,54 +101,34 @@
                       <div class="stat-label">Placements Totales</div>
                   </div>
               </div>
-
               <div class="card">
                   <div class="card-header">
                       <h2 class="card-title"><i class="fas fa-rocket"></i> Acciones Rápidas</h2>
                       <div class="no-print">
-                          <button class="btn btn-outline btn-sm" onclick="clearErrorLog()">
-                              <i class="fas fa-trash"></i> Limpiar Log
-                          </button>
+                          <button class="btn btn-outline btn-sm" onclick="clearErrorLog()"><i class="fas fa-trash"></i> Limpiar Log</button>
                       </div>
                   </div>
                   <div class="card-body" style="text-align:center;">
                       <div style="margin-top:20px; display:flex; gap:15px; justify-content:center; flex-wrap:wrap;">
-                          <button class="btn btn-primary btn-lg" onclick="showTab('spec-creator')">
-                              <i class="fas fa-plus"></i> Nueva Spec
-                          </button>
-                          <button class="btn btn-warning btn-lg" onclick="document.getElementById('excelFile').click()">
-                              <i class="fas fa-folder-open"></i> Cargar Spec
-                          </button>
-                          <button class="btn btn-success btn-lg" onclick="document.getElementById('excelFile').click()">
-                              <i class="fas fa-file-excel"></i> Cargar SWO
-                          </button>
-                          <button class="btn btn-outline btn-lg" onclick="loadSavedSpecsList(); showTab('saved-specs')">
-                              <i class="fas fa-history"></i> Ver Historial
-                          </button>
-                          <button class="btn btn-danger btn-lg" onclick="showTab('error-log')">
-                              <i class="fas fa-bug"></i> Ver Errores
-                          </button>
+                          <button class="btn btn-primary btn-lg" onclick="showTab('spec-creator')"><i class="fas fa-plus"></i> Nueva Spec</button>
+                          <button class="btn btn-warning btn-lg" onclick="document.getElementById('excelFile').click()"><i class="fas fa-folder-open"></i> Cargar Spec</button>
+                          <button class="btn btn-success btn-lg" onclick="document.getElementById('excelFile').click()"><i class="fas fa-file-excel"></i> Cargar SWO</button>
+                          <button class="btn btn-outline btn-lg" onclick="loadSavedSpecsList(); showTab('saved-specs')"><i class="fas fa-history"></i> Ver Historial</button>
+                          <button class="btn btn-danger btn-lg" onclick="showTab('error-log')"><i class="fas fa-bug"></i> Ver Errores</button>
                       </div>
                   </div>
               </div>
           </div>
 
-          <!-- ===================================================== -->
-          <!-- TAB: SPEC CREATOR -->
-          <!-- ===================================================== -->
+          <!-- SPEC CREATOR -->
           <div id="spec-creator" class="tab-content">
               <form id="spec-creator-form">
-                  <!-- CARD: INFORMACIÓN GENERAL -->
                   <div class="card">
                       <div class="card-header">
                           <h2 class="card-title"><i class="fas fa-file-invoice"></i> Información General</h2>
                           <div class="card-actions">
-                              <button type="button" class="btn btn-success btn-sm" onclick="document.getElementById('excelFile').click()">
-                                  <i class="fas fa-file-excel"></i> Cargar SWO
-                              </button>
-                              <button type="button" class="btn btn-danger btn-sm" onclick="clearForm()">
-                                  <i class="fas fa-trash"></i> Limpiar
-                              </button>
+                              <button type="button" class="btn btn-success btn-sm" onclick="document.getElementById('excelFile').click()"><i class="fas fa-file-excel"></i> Cargar SWO</button>
+                              <button type="button" class="btn btn-danger btn-sm" onclick="clearForm()"><i class="fas fa-trash"></i> Limpiar</button>
                           </div>
                       </div>
                       <div class="card-body">
@@ -256,7 +209,6 @@
                       </div>
                   </div>
 
-                  <!-- CARD: PLACEMENTS -->
                   <div class="card">
                       <div class="card-header">
                           <h2 class="card-title"><i class="fas fa-layer-group"></i> Placements</h2>
@@ -270,7 +222,6 @@
                       </div>
                   </div>
                   
-                  <!-- CARD: ACCIONES GLOBALES -->
                   <div class="card">
                       <div class="card-header">
                           <h2 class="card-title"><i class="fas fa-cogs"></i> Acciones</h2>
@@ -288,17 +239,13 @@
               </form>
           </div>
 
-          <!-- ===================================================== -->
-          <!-- TAB: SPECS GUARDADAS -->
-          <!-- ===================================================== -->
+          <!-- SAVED SPECS -->
           <div id="saved-specs" class="tab-content">
               <div class="card">
                   <div class="card-header">
                       <h2 class="card-title"><i class="fas fa-history"></i> Specs Guardadas Localmente</h2>
                       <div class="no-print">
-                          <button class="btn btn-danger btn-sm" onclick="clearAllSpecs()">
-                              <i class="fas fa-exclamation-triangle"></i> Limpiar Todo
-                          </button>
+                          <button class="btn btn-danger btn-sm" onclick="clearAllSpecs()"><i class="fas fa-exclamation-triangle"></i> Limpiar Todo</button>
                       </div>
                   </div>
                   <div class="card-body">
@@ -315,17 +262,13 @@
               </div>
           </div>
 
-          <!-- ===================================================== -->
-          <!-- TAB: LOG DE ERRORES -->
-          <!-- ===================================================== -->
+          <!-- ERROR LOG -->
           <div id="error-log" class="tab-content">
               <div class="card">
                   <div class="card-header">
                       <h2 class="card-title"><i class="fas fa-bug"></i> Registro de Errores</h2>
                       <div class="no-print">
-                          <button class="btn btn-danger btn-sm" onclick="clearErrorLog()">
-                              <i class="fas fa-trash"></i> Limpiar Log
-                          </button>
+                          <button class="btn btn-danger btn-sm" onclick="clearErrorLog()"><i class="fas fa-trash"></i> Limpiar Log</button>
                       </div>
                   </div>
                   <div class="card-body">
@@ -347,10 +290,33 @@
       <div id="statusMessage" class="status-message"></div>
   </div>
 
-  <!-- Inputs ocultos -->
+  <!-- Inputs ocultos - AHORA SÍ EXISTEN ANTES DE LOS SCRIPTS -->
   <input type="file" id="excelFile" accept=".xlsx, .xls, .json, .zip" style="display: none;">
   <input type="file" id="imageInput" accept="image/*" style="display: none;">
   <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
 
+  <!-- LIBRERÍAS EXTERNAS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  
+  <!-- NUESTROS MÓDULOS - AHORA TODOS DESPUÉS DE LOS INPUTS -->
+  <script src="config.js"></script> 
+  <script src="config-teams.js"></script>
+  <script src="config-color.js"></script>
+  <script src="config-logos.js"></script>
+  <script src="config-schools.js"></script>
+  <script src="utils.js"></script>
+  <script src="state-manager.js"></script>
+  <script src="error-handler.js"></script>
+  <script src="validators.js"></script>
+  <script src="specialties-detector.js"></script>
+  <script src="render-helpers.js"></script>
+  <script src="placements-autocomplete.js"></script>
+  <script src="pdf-generator-mejorado.js"></script>
+  <script src="excel-automation.js"></script> 
+  <script src="sequence-automation-REACTIVE.js"></script>  
+  <script src="app.js"></script>
+  <script src="fixes.js"></script>
 </body>
 </html>
