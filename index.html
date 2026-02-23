@@ -15,37 +15,24 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   
- <!-- 3. NUESTROS MÓDULOS - ORDEN CORREGIDO -->
-<!-- PRIMERO: Configuración base -->
-<script src="config.js"></script> 
-
-<!-- SEGUNDO: Configuración de equipos -->
-<script src="config-teams.js"></script>
+  <!-- 3. NUESTROS MÓDULOS -->
+  <script src="config.js"></script> 
+  <script src="config-teams.js"></script>
   <script src="config-color.js"></script>
-
-<!-- TERCERO: Configuración de logos -->
-<script src="config-logos.js"></script>
-
-<!-- CUARTO: Utils (necesita Config) -->
-<script src="utils.js"></script>
-
-<!-- QUINTO: State Manager (usa Config y Utils) -->
-<script src="state-manager.js"></script>
-
-<!-- SEXTO: Error Handler (independiente) -->
-<script src="error-handler.js"></script>
-
-<!-- SÉPTIMO: Validators (usa Config) -->
-<script src="validators.js"></script>
-
-<!-- OCTAVO: Specialties Detector (usa Config) -->
-<script src="specialties-detector.js"></script>
-
-<!-- NOVENO: Render Helpers (usa todo lo anterior) -->
-<script src="render-helpers.js"></script>
-
-<!-- DÉCIMO: Fixes (debe ir ÚLTIMO, corrige todo) -->
-<script src="fixes.js"></script>
+  <script src="config-logos.js"></script>
+  <script src="config-schools.js"></script>
+  <script src="utils.js"></script>
+  <script src="state-manager.js"></script>
+  <script src="error-handler.js"></script>
+  <script src="validators.js"></script>
+  <script src="specialties-detector.js"></script>
+  <script src="render-helpers.js"></script>
+  <script src="placements-autocomplete.js"></script>
+  <script src="pdf-generator-mejorado.js"></script>
+  <script src="excel-automation.js"></script> 
+  <script src="sequence-automation-REACTIVE.js"></script>  
+  <script src="app.js"></script>
+  <script src="fixes.js"></script>
 </head>
 <body>
   <div id="pdf-render" class="app-container">
@@ -108,29 +95,246 @@
       </nav>
 
       <!-- ========================================================= -->
-      <!-- MAIN CONTENT -->
+      <!-- MAIN CONTENT - TEMPLATES INCLUIDOS DIRECTAMENTE -->
       <!-- ========================================================= -->
       <main class="app-main">
 
           <!-- ===================================================== -->
           <!-- TAB: DASHBOARD -->
           <!-- ===================================================== -->
-          <div id="dashboard" class="tab-content active" data-template="templates/dashboard-tab.html"></div>
+          <div id="dashboard" class="tab-content active">
+              <div class="dashboard-grid">
+                  <div class="stat-card">
+                      <div class="stat-number" id="total-specs">0</div>
+                      <div class="stat-label">Specs Totales</div>
+                  </div>
+                  <div class="stat-card">
+                      <div id="today-specs">
+                          <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
+                          <div id="last-spec-name" style="font-size:1.2rem; font-weight:bold; color:var(--primary);">Ninguna</div>
+                          <div id="last-spec-date" style="font-size:0.8rem; color:var(--text-secondary);">-</div>
+                      </div>
+                      <div class="stat-label">Última Creación</div>
+                  </div>
+                  <div class="stat-card">
+                      <div class="stat-number" id="active-projects">0</div>
+                      <div class="stat-label">Proyectos Activos</div>
+                  </div>
+                  <div class="stat-card">
+                      <div id="completion-rate">
+                          <div style="font-size:0.9rem; color:var(--text-secondary);">Placements totales:</div>
+                          <div id="total-placements" style="font-size:1.5rem; font-weight:bold; color:var(--primary);">0</div>
+                      </div>
+                      <div class="stat-label">Placements Totales</div>
+                  </div>
+              </div>
+
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-rocket"></i> Acciones Rápidas</h2>
+                      <div class="no-print">
+                          <button class="btn btn-outline btn-sm" onclick="clearErrorLog()">
+                              <i class="fas fa-trash"></i> Limpiar Log
+                          </button>
+                      </div>
+                  </div>
+                  <div class="card-body" style="text-align:center;">
+                      <div style="margin-top:20px; display:flex; gap:15px; justify-content:center; flex-wrap:wrap;">
+                          <button class="btn btn-primary btn-lg" onclick="showTab('spec-creator')">
+                              <i class="fas fa-plus"></i> Nueva Spec
+                          </button>
+                          <button class="btn btn-warning btn-lg" onclick="document.getElementById('excelFile').click()">
+                              <i class="fas fa-folder-open"></i> Cargar Spec
+                          </button>
+                          <button class="btn btn-success btn-lg" onclick="document.getElementById('excelFile').click()">
+                              <i class="fas fa-file-excel"></i> Cargar SWO
+                          </button>
+                          <button class="btn btn-outline btn-lg" onclick="loadSavedSpecsList(); showTab('saved-specs')">
+                              <i class="fas fa-history"></i> Ver Historial
+                          </button>
+                          <button class="btn btn-danger btn-lg" onclick="showTab('error-log')">
+                              <i class="fas fa-bug"></i> Ver Errores
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
 
           <!-- ===================================================== -->
           <!-- TAB: SPEC CREATOR -->
           <!-- ===================================================== -->
-          <div id="spec-creator" class="tab-content" data-template="templates/spec-creator-tab.html"></div>
+          <div id="spec-creator" class="tab-content">
+              <form id="spec-creator-form">
+                  <!-- CARD: INFORMACIÓN GENERAL -->
+                  <div class="card">
+                      <div class="card-header">
+                          <h2 class="card-title"><i class="fas fa-file-invoice"></i> Información General</h2>
+                          <div class="card-actions">
+                              <button type="button" class="btn btn-success btn-sm" onclick="document.getElementById('excelFile').click()">
+                                  <i class="fas fa-file-excel"></i> Cargar SWO
+                              </button>
+                              <button type="button" class="btn btn-danger btn-sm" onclick="clearForm()">
+                                  <i class="fas fa-trash"></i> Limpiar
+                              </button>
+                          </div>
+                      </div>
+                      <div class="card-body">
+                          <div class="form-grid">
+                              <div class="form-group">
+                                  <label for="customer" class="form-label">CLIENTE:</label>
+                                  <input type="text" id="customer" class="form-control" list="customer-list" oninput="updateClientLogo(); handleGearForSportLogic();">
+                                  <datalist id="customer-list">
+                                      <option value="GEAR FOR SPORT">
+                                      <option value="ADIDAS">
+                                      <option value="NIKE">
+                                      <option value="UNDER ARMOUR">
+                                      <option value="HADDAD">
+                                      <option value="FANATICS">
+                                  </datalist>
+                              </div>
+                              <div class="form-group">
+                                  <label for="style" class="form-label">STYLE:</label>
+                                  <input type="text" id="style" class="form-control" oninput="handleGearForSportLogic();">
+                              </div>
+                              <div class="form-group">
+                                  <label for="colorway" class="form-label">COLORWAY:</label>
+                                  <input type="text" id="colorway" class="form-control">
+                              </div>
+                              <div class="form-group">
+                                  <label for="season" class="form-label">SEASON:</label>
+                                  <input type="text" id="season" class="form-control">
+                              </div>
+                              <div class="form-group">
+                                  <label for="pattern" class="form-label">PATTERN #:</label>
+                                  <input type="text" id="pattern" class="form-control">
+                              </div>
+                              <div class="form-group">
+                                  <label for="po" class="form-label">P.O. #:</label>
+                                  <input type="text" id="po" class="form-control" oninput="handleGearForSportLogic();">
+                              </div>
+                              <div class="form-group">
+                                  <label for="sample-type" class="form-label">SAMPLE TYPE:</label>
+                                  <input type="text" id="sample-type" class="form-control">
+                              </div>
+                              <div class="form-group">
+                                  <label for="name-team" class="form-label">NAME / TEAM:</label>
+                                  <input type="text" id="name-team" class="form-control">
+                              </div>
+                              <div class="form-group">
+                                  <label for="gender" class="form-label">GENDER:</label>
+                                  <input type="text" id="gender" class="form-control">
+                              </div>
+                              <div class="form-group">
+                                  <label for="designer" class="form-label">DISEÑADOR:</label>
+                                  <select id="designer" class="form-control">
+                                      <option value="">Seleccionar...</option>
+                                      <option value="ELMER VELEZ">ELMER VELEZ</option>
+                                      <option value="DANIEL HERNANDEZ">DANIEL HERNANDEZ</option>
+                                      <option value="CINDY PINEDA">CINDY PINEDA</option>
+                                      <option value="FERNANDO FERRERA">FERNANDO FERRERA</option>
+                                      <option value="NILDA CORDOBA">NILDA CORDOBA</option>
+                                      <option value="OTRO">OTRO</option>
+                                  </select>
+                              </div>
+                              <div class="form-group">
+                                  <label for="base-size" class="form-label">TALLA BASE:</label>
+                                  <input type="text" id="base-size" class="form-control" placeholder="M / L">
+                              </div>
+                              <div class="form-group">
+                                  <label for="fabric" class="form-label">TELA:</label>
+                                  <input type="text" id="fabric" class="form-control" placeholder="Algodón, Polyester, Twill...">
+                              </div>
+                              <div class="form-group">
+                                  <label for="technician-name" class="form-label">NOMBRE TÉCNICO:</label>
+                                  <input type="text" id="technician-name" class="form-control" placeholder="Nombre del técnico">
+                              </div>
+                              <div class="form-group" style="grid-column: 1 / -1;">
+                                  <label for="technical-comments" class="form-label">COMENTARIOS TÉCNICOS:</label>
+                                  <textarea id="technical-comments" class="form-control" rows="2" placeholder="Notas para planta..."></textarea>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <!-- CARD: PLACEMENTS -->
+                  <div class="card">
+                      <div class="card-header">
+                          <h2 class="card-title"><i class="fas fa-layer-group"></i> Placements</h2>
+                          <div class="card-actions">
+                              <button type="button" class="btn btn-primary" onclick="addNewPlacement()"><i class="fas fa-plus"></i> Añadir Placement</button>
+                          </div>
+                      </div>
+                      <div class="card-body">
+                          <div id="placements-tabs" class="placements-tabs"></div>
+                          <div id="placements-container"></div>
+                      </div>
+                  </div>
+                  
+                  <!-- CARD: ACCIONES GLOBALES -->
+                  <div class="card">
+                      <div class="card-header">
+                          <h2 class="card-title"><i class="fas fa-cogs"></i> Acciones</h2>
+                      </div>
+                      <div class="card-body">
+                          <div class="global-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                              <button type="button" class="btn btn-primary" onclick="saveCurrentSpec()"><i class="fas fa-save"></i> Guardar Spec</button>
+                              <button type="button" class="btn btn-success" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Descargar HTML Spec</button>
+                              <button type="button" class="btn btn-warning" onclick="exportToExcel()"><i class="fas fa-calculator"></i> Calculadora</button>
+                              <button type="button" class="btn btn-danger" onclick="clearForm()"><i class="fas fa-trash"></i> Limpiar Formulario</button>
+                              <button type="button" class="btn btn-primary" onclick="downloadProjectZip()"><i class="fas fa-file-archive"></i> Descargar Proyecto (.zip)</button>
+                          </div>
+                      </div>
+                  </div>
+              </form>
+          </div>
 
           <!-- ===================================================== -->
           <!-- TAB: SPECS GUARDADAS -->
           <!-- ===================================================== -->
-          <div id="saved-specs" class="tab-content" data-template="templates/saved-specs-tab.html"></div>
+          <div id="saved-specs" class="tab-content">
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-history"></i> Specs Guardadas Localmente</h2>
+                      <div class="no-print">
+                          <button class="btn btn-danger btn-sm" onclick="clearAllSpecs()">
+                              <i class="fas fa-exclamation-triangle"></i> Limpiar Todo
+                          </button>
+                      </div>
+                  </div>
+                  <div class="card-body">
+                      <div style="margin-bottom: 14px;" class="no-print">
+                          <input type="text" id="saved-specs-search" class="form-control" placeholder="Buscar por código/style, cliente, PO o colorway..." oninput="loadSavedSpecsList()">
+                      </div>
+                      <div id="saved-specs-list">
+                          <p style="text-align:center; color:var(--text-secondary); padding:20px;">
+                              <i class="fas fa-database" style="font-size:2rem; margin-bottom:10px; display:block;"></i>
+                              Cargando specs guardadas...
+                          </p>
+                      </div>
+                  </div>
+              </div>
+          </div>
 
           <!-- ===================================================== -->
           <!-- TAB: LOG DE ERRORES -->
           <!-- ===================================================== -->
-          <div id="error-log" class="tab-content" data-template="templates/error-log-tab.html"></div>
+          <div id="error-log" class="tab-content">
+              <div class="card">
+                  <div class="card-header">
+                      <h2 class="card-title"><i class="fas fa-bug"></i> Registro de Errores</h2>
+                      <div class="no-print">
+                          <button class="btn btn-danger btn-sm" onclick="clearErrorLog()">
+                              <i class="fas fa-trash"></i> Limpiar Log
+                          </button>
+                      </div>
+                  </div>
+                  <div class="card-body">
+                      <div id="error-log-content" style="max-height: 500px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; background-color: var(--bg-darker); padding: 15px; border-radius: var(--radius);"> 
+                          <p>Cargando registro de errores...</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
       </main>
 
       <div class="logos-container">
@@ -147,14 +351,6 @@
   <input type="file" id="excelFile" accept=".xlsx, .xls, .json, .zip" style="display: none;">
   <input type="file" id="imageInput" accept="image/*" style="display: none;">
   <input type="file" id="placementImageInput" accept="image/*" style="display: none;">
-
-  <!-- JavaScript principal con todas las correcciones -->
-  <script src="pdf-generator-mejorado.js"></script>
-  <script src="app.js"></script>
-  <script src="excel-automation.js"></script> 
-  <script src="sequence-automation-REACTIVE.js"></script>  
-  <script src="config-schools.js"></script>
-<script src="placements-autocomplete.js"></script>
 
 </body>
 </html>
