@@ -1,7 +1,4 @@
-
-# Código CORREGIDO - Sistema reactivo: al agregar color, se genera la secuencia completa
-
-reactive_code = '''// sequence-automation-REACTIVE.js
+// sequence-automation-REACTIVE.js
 // Sistema reactivo: La secuencia se genera cuando AGREGAS colores, no antes
 // Cada vez que agregas un color, el sistema recalcula toda la secuencia
 
@@ -466,9 +463,3 @@ document.addEventListener('DOMContentLoaded', function() {
         
     }, 2000);
 });
-'''
-
-print(reactive_code)
-print("\n" + "="*80)
-print("ARCHIVO: sequence-automation-REACTIVE.js")
-print("="*80)
