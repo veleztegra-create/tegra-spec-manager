@@ -1,0 +1,56 @@
+{
+  "nombre": "Colores Especiales",
+  "version": "1.0",
+  "colores": [
+    {
+      "nombre": "77C Gold",
+      "identificadores": ["77C", "77C GOLD", "GOLD 77C", "PANTONE 77C"],
+      "pantallas": 3,
+      "mallas": ["157", "198", "110"],
+      "aditivos": "3% CL 500 · 5% ecofix XL",
+      "sobre": "AQUAFLEX",
+      "clasificacion": "especial",
+      "notas": "Oro muy claro necesita 3 pantallas"
+    },
+    {
+      "nombre": "78H Amarillo",
+      "identificadores": ["78H", "78H AMARILLO", "AMARILLO 78H", "PANTONE 78H"],
+      "pantallas": 3,
+      "mallas": ["157", "198", "110"],
+      "aditivos": "3% CL 500 · 5% ecofix XL",
+      "sobre": "AQUAFLEX",
+      "clasificacion": "especial"
+    },
+    {
+      "nombre": "761 University Gold",
+      "identificadores": ["761", "761 GOLD", "UNIVERSITY GOLD", "PANTONE 761"],
+      "pantallas": 3,
+      "mallas": ["157", "198", "110"],
+      "aditivos": "3% CL 500 · 5% ecofix XL",
+      "sobre": "AQUAFLEX",
+      "clasificacion": "especial"
+    },
+    {
+      "nombre": "871C Metallic",
+      "identificadores": ["871", "871C", "METALLIC 871"],
+      "pantallas": 2,
+      "mallas": ["110", "156"],
+      "aditivos": "Catalizador especial",
+      "sobre": "BLOCKER",
+      "clasificacion": "metalico"
+    },
+    {
+      "nombre": "877C Silver",
+      "identificadores": ["877", "877C", "SILVER", "PLATA"],
+      "pantallas": 2,
+      "mallas": ["110", "156"],
+      "aditivos": "Catalizador especial",
+      "sobre": "BLOCKER",
+      "clasificacion": "metalico"
+    }
+  ],
+  "clasificacion_general": {
+    "claros": ["amarillo", "yellow", "oro", "gold", "naranja", "orange", "rosa", "pink", "beige", "crema", "ivory", "blanco", "white", "limon", "lemon", "dorado"],
+    "oscuros": ["rojo", "red", "azul", "blue", "verde", "green", "morado", "purple", "marron", "brown", "negro", "black", "navy", "maroon", "charcoal", "gris", "gray"]
+  }
+}
