@@ -2707,21 +2707,31 @@ function loadSavedSpecsList() {
 }
 
 function loadSpecData(data) {
-    setInputValue('customer', data.customer || '');
-    setInputValue('style', data.style || '');
-    setInputValue('folder-num', data.folder || '');
-    setInputValue('colorway', data.colorway || '');
-    setInputValue('season', data.season || '');
-    setInputValue('pattern', data.pattern || '');
-    setInputValue('po', data.po || '');
-    setInputValue('sample-type', data.sampleType || '');
-    setInputValue('name-team', data.nameTeam || '');
-    setInputValue('gender', data.gender || '');
-    setInputValue('designer', data.designer || '');
-    setInputValue('base-size', data.baseSize || '');
-    setInputValue('fabric', data.fabric || '');
-    setInputValue('technician-name', data.technicianName || '');
-    setInputValue('technical-comments', data.technicalComments || '');
+    // ... cargar datos generales ...
+    
+    placements = [];
+    
+    if (data.placements && Array.isArray(data.placements)) {
+        data.placements.forEach((placementData, index) => {
+            const placementId = index === 0 ? 1 : Date.now() + index;
+            const placement = {
+                ...placementData,
+                id: placementId
+            };
+            
+            // ✅ Restaurar colores y secuencia
+            placement.colors = placementData.colors || [];
+            placement.sequence = placementData.sequence || [];
+            
+            placements.push(placement);
+            renderPlacementHTML(placement);
+            renderPlacementColors(placementId);
+            updatePlacementStations(placementId);
+        });
+    }
+    
+    // ...
+}
 
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
