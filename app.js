@@ -2877,7 +2877,7 @@ function collectData() {
     }));
 
     // ...
-}
+
     };
 
     const placementsData = placements.map(placement => ({
