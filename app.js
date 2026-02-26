@@ -502,7 +502,64 @@ function getNextPlacementType() {
 function getNextPlacementNumber() {
     return placements.length + 1;
 }
+// =====================================================
+// FUNCIÓN PARA GENERAR ID ÚNICO GFS (STYLE-COLORWAY)
+// =====================================================
 
+function generarGFSIdentifier() {
+    const customer = document.getElementById('customer')?.value || '';
+    const customerUpper = customer.toUpperCase();
+    
+    // Solo aplicar para GFS
+    const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.'].some(v => customerUpper.includes(v));
+    
+    if (!isGFS) return null;
+    
+    const style = document.getElementById('style')?.value || '';
+    const colorway = document.getElementById('colorway')?.value || '';
+    
+    // Extraer código de colorway (ej: "W001" o "PMD5-Red" -> "PMD5")
+    let colorCode = '';
+    
+    // Si tiene guión, tomar la primera parte
+    if (colorway.includes('-')) {
+        colorCode = colorway.split('-')[0].trim();
+    } else {
+        // Si no tiene guión, tomar el código completo si parece un código (letras y números)
+        const match = colorway.match(/^([A-Z0-9]{3,5})/i);
+        if (match) {
+            colorCode = match[1].toUpperCase();
+        } else {
+            colorCode = colorway.toUpperCase();
+        }
+    }
+    
+    if (style && colorCode) {
+        const identifier = `${style}-${colorCode}`.toUpperCase();
+        console.log('🏷️ GFS Identifier generado:', identifier);
+        return identifier;
+    }
+    
+    return null;
+}
+
+// =====================================================
+// CORRECCIÓN PARA ERROR HANDLER (si no existe)
+// =====================================================
+
+// Si errorHandler no está definido, créalo
+if (typeof window.errorHandler === 'undefined') {
+    window.errorHandler = {
+        errors: [],
+        log: function(context, error) {
+            console.error(`[${context}]`, error);
+            this.errors.push({ context, error, timestamp: new Date() });
+        },
+        getErrors: function() { return this.errors; },
+        clearErrors: function() { this.errors = []; console.log("🧹 Errores limpiados"); }
+    };
+    console.log("✅ errorHandler creado");
+}
 // =====================================================
 // ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE ⭐
 // =====================================================
