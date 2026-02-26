@@ -1,12 +1,22 @@
-// ========== app.js COMPLETO CON TODAS LAS MEJORAS ==========
-// Variables Globales
+// =====================================================
+// app.js - TEGRA TECHNICAL SPEC MANAGER
+// Versión: 2.0 - Con motor de reglas interno
+// 100% local - 0% dependencias externas de IA
+// =====================================================
+
+// =====================================================
+// VARIABLES GLOBALES
+// =====================================================
 const stateManager = new StateManager();
 let placements = [];
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
 
-// ========== FUNCIONES AUXILIARES ==========
+// =====================================================
+// FUNCIONES AUXILIARES BÁSICAS
+// =====================================================
+
 function stringToHash(str) {
     if (!str) return 0;
     let hash = 0;
@@ -20,15 +30,15 @@ function stringToHash(str) {
 
 function updateDateTime() {
     const now = new Date();
-    const options = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
     };
-    document.getElementById('current-datetime').textContent = 
+    document.getElementById('current-datetime').textContent =
         now.toLocaleDateString('es-ES', options);
 }
 
@@ -95,12 +105,15 @@ async function loadTabTemplates() {
     }));
 }
 
-// ========== FUNCIONES DE TEMA ==========
+// =====================================================
+// FUNCIONES DE TEMA
+// =====================================================
+
 function toggleTheme() {
     isDarkMode = !isDarkMode;
     const body = document.body;
     const themeToggle = document.getElementById('themeToggle');
-    
+
     if (isDarkMode) {
         body.classList.remove('light-mode');
         themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
@@ -110,14 +123,14 @@ function toggleTheme() {
         themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
         showStatus('☀️ Modo claro activado');
     }
-    
+
     localStorage.setItem('tegraspec-theme', isDarkMode ? 'dark' : 'light');
 }
 
 function loadThemePreference() {
     const savedTheme = localStorage.getItem('tegraspec-theme');
     const themeToggle = document.getElementById('themeToggle');
-    
+
     if (savedTheme === 'light') {
         isDarkMode = false;
         document.body.classList.add('light-mode');
@@ -128,19 +141,22 @@ function loadThemePreference() {
     }
 }
 
-// ========== FUNCIONES DE NAVEGACIÓN ==========
+// =====================================================
+// FUNCIONES DE NAVEGACIÓN
+// =====================================================
+
 function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
     document.getElementById(tabName).classList.add('active');
-    
+
     const tabs = document.querySelectorAll('.nav-tab');
     tabs.forEach(tab => {
         if (tab.innerText.toLowerCase().includes(tabName.replace('-', ' '))) {
             tab.classList.add('active');
         }
     });
-    
+
     if (tabName === 'saved-specs') loadSavedSpecsList();
     if (tabName === 'dashboard') updateDashboard();
     if (tabName === 'error-log') loadErrorLog();
@@ -151,9 +167,12 @@ function showTab(tabName) {
     }
 }
 
-// ========== FUNCIÓN SETUP PASTE HANDLER ==========
+// =====================================================
+// FUNCIÓN SETUP PASTE HANDLER
+// =====================================================
+
 function setupPasteHandler() {
-    document.addEventListener('paste', function(e) {
+    document.addEventListener('paste', function (e) {
         const activePlacement = document.querySelector('.placement-section.active');
         if (!activePlacement) return;
 
@@ -164,34 +183,34 @@ function setupPasteHandler() {
         if (isEditableTarget || clipboardText.trim().length > 0) {
             return;
         }
-        
+
         const items = e.clipboardData.items;
-        
+
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf('image') !== -1) {
                 const blob = items[i].getAsFile();
                 const reader = new FileReader();
-                
-                reader.onload = function(event) {
+
+                reader.onload = function (event) {
                     const placementId = activePlacement.dataset.placementId;
                     const placement = placements.find(p => p.id === parseInt(placementId));
-                    
+
                     if (placement) {
                         placement.imageData = event.target.result;
-                        
+
                         const img = document.getElementById(`placement-image-preview-${placementId}`);
                         const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
-                        
+
                         if (img && imageActions) {
                             img.src = event.target.result;
                             img.style.display = 'block';
                             imageActions.style.display = 'flex';
                         }
-                        
+
                         showStatus(`✅ Imagen pegada en ${placement.type}`);
                     }
                 };
-                
+
                 reader.readAsDataURL(blob);
                 e.preventDefault();
                 break;
@@ -200,22 +219,23 @@ function setupPasteHandler() {
     });
 }
 
-// ========== FUNCIONES DE DETECCIÓN ==========
+// =====================================================
+// FUNCIONES DE DETECCIÓN
+// =====================================================
+
 function detectTeamFromStyle(style) {
     if (!style) return '';
-    
+
     try {
         const styleStr = style.toString().toUpperCase().trim();
-        
-        // 1. Primero detectar si es Gear for Sport usando SchoolsConfig
+
         if (window.SchoolsConfig) {
             const schoolData = window.SchoolsConfig.detectSchoolFromStyle(styleStr);
             if (schoolData) {
                 return schoolData.teamName;
             }
         }
-        
-        // 2. Buscar en Gear for Sport original
+
         if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
             for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
                 if (styleStr === code || styleStr.includes(code)) {
@@ -223,8 +243,7 @@ function detectTeamFromStyle(style) {
                 }
             }
         }
-        
-        // 3. Buscar en el mapa general de equipos
+
         if (window.Config && window.Config.TEAM_CODE_MAP) {
             const teamMap = window.Config.TEAM_CODE_MAP;
             if (typeof teamMap === 'object') {
@@ -235,11 +254,10 @@ function detectTeamFromStyle(style) {
                 }
             }
         }
-        
-        // 4. Buscar en TeamsConfig
+
         if (window.TeamsConfig) {
             const leagues = ['NCAA', 'NBA', 'NFL'];
-            
+
             for (const league of leagues) {
                 if (window.TeamsConfig[league] && window.TeamsConfig[league].teams) {
                     for (const [code, teamData] of Object.entries(window.TeamsConfig[league].teams)) {
@@ -250,31 +268,29 @@ function detectTeamFromStyle(style) {
                 }
             }
         }
-        
+
     } catch (error) {
         console.warn('Error en detectTeamFromStyle:', error);
     }
-    
+
     return '';
 }
 
 function extractGenderFromStyle(style) {
     if (!style) return '';
-    
+
     try {
         const styleStr = style.toString().toUpperCase().trim();
-        
-        // Usar SchoolsConfig primero
+
         if (window.SchoolsConfig && window.SchoolsConfig.extractGenderFromStyle) {
             const gender = window.SchoolsConfig.extractGenderFromStyle(styleStr);
             if (gender) return gender;
         }
-        
-        // Detectar formato Gear for Sport (UM9002, UW9002, etc.)
+
         const gearForSportMatch = styleStr.match(/U([MWYBGKTIAN])\d+/);
         if (gearForSportMatch && gearForSportMatch[1]) {
             const genderCode = gearForSportMatch[1];
-            
+
             if (window.Config && window.Config.GEARFORSPORT_GENDER_MAP) {
                 const fullCode = `U${genderCode}`;
                 if (window.Config.GEARFORSPORT_GENDER_MAP[fullCode]) {
@@ -285,10 +301,9 @@ function extractGenderFromStyle(style) {
                 }
             }
         }
-        
-        // Buscar en partes del estilo
+
         const parts = styleStr.split(/[-_ ]/);
-        
+
         if (window.Config && window.Config.GENDER_MAP) {
             for (const part of parts) {
                 if (window.Config.GENDER_MAP[part]) {
@@ -296,8 +311,7 @@ function extractGenderFromStyle(style) {
                 }
             }
         }
-        
-        // Verificar combinaciones comunes
+
         if (styleStr.includes(' MEN') || styleStr.includes('_M') || styleStr.endsWith('M')) {
             return 'Men';
         }
@@ -313,26 +327,28 @@ function extractGenderFromStyle(style) {
         if (styleStr.includes(' UNISEX') || styleStr.includes('_U') || styleStr.endsWith('U')) {
             return 'Unisex';
         }
-        
+
     } catch (error) {
         console.warn('Error en extractGenderFromStyle:', error);
     }
-    
+
     return '';
 }
 
-// ========== FUNCIÓN ACTUALIZADA updateClientLogo ==========
+// =====================================================
+// FUNCIÓN ACTUALIZADA updateClientLogo
+// =====================================================
+
 function updateClientLogo() {
     const customer = document.getElementById('customer').value.toUpperCase().trim();
     const logoElement = document.getElementById('logoCliente');
     if (!logoElement) return;
-    
+
     let logoUrl = '';
-    
-    // Detectar Gear for Sport con todas sus variaciones
+
     const gfsVariations = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S', 'GEAR', 'G-F-S'];
     const isGFS = gfsVariations.some(variation => customer.includes(variation));
-    
+
     if (customer.includes('NIKE') || customer.includes('NIQUE')) {
         logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png';
     } else if (customer.includes('FANATICS') || customer.includes('FANATIC')) {
@@ -346,7 +362,7 @@ function updateClientLogo() {
     } else if (isGFS) {
         logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png';
     }
-    
+
     if (logoUrl) {
         logoElement.src = logoUrl;
         logoElement.style.display = 'block';
@@ -367,17 +383,16 @@ function handleGearForSportLogic() {
     const customerInput = document.getElementById('customer');
     const nameTeamInput = document.getElementById('name-team');
     if (!customerInput || !nameTeamInput) return;
-    
+
     const customerValue = customerInput.value.toUpperCase().trim();
     const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.'].some(v => customerValue.includes(v));
-    
+
     if (!isGFS) return;
-    
+
     const styleInput = document.getElementById('style');
     const poInput = document.getElementById('po');
     const searchTerm = (styleInput?.value || '') || (poInput?.value || '');
-    
-    // Usar SchoolsConfig para detectar la escuela
+
     if (window.SchoolsConfig) {
         const schoolData = window.SchoolsConfig.detectSchoolFromStyle(searchTerm);
         if (schoolData) {
@@ -386,8 +401,7 @@ function handleGearForSportLogic() {
             return;
         }
     }
-    
-    // Fallback al mapa antiguo
+
     if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
         const teamKey = Object.keys(window.Config.GEARFORSPORT_TEAM_MAP).find(key =>
             searchTerm.toUpperCase().includes(key)
@@ -396,47 +410,25 @@ function handleGearForSportLogic() {
     }
 }
 
-// ========== FUNCIONES PARA MÚLTIPLES PLACEMENTS ==========
+// =====================================================
+// FUNCIONES PARA MÚLTIPLES PLACEMENTS
+// =====================================================
+
 function initializePlacements() {
     const firstPlacementId = addNewPlacement('FRONT', true);
-    
+
     if (placements.length > 0) {
         renderPlacementHTML(placements[0]);
     }
-    
+
     updatePlacementsTabs();
     showPlacement(firstPlacementId);
-}
-
-// Detectar tipo de tinta según el cliente
-function detectInkTypeFromCustomer() {
-    const customer = document.getElementById('customer')?.value || '';
-    const customerUpper = customer.toUpperCase();
-    
-    const clientDefaults = {
-        'GEAR FOR SPORT': 'PLASTISOL',
-        'GEARFORSPORT': 'PLASTISOL',
-        'GFS': 'PLASTISOL',
-        'G.F.S.': 'PLASTISOL',
-        'FANATICS': 'WATER',
-        'NIKE': 'WATER',
-        'ADIDAS': 'PLASTISOL',
-        'UNDER ARMOUR': 'WATER'
-    };
-    
-    for (const [client, ink] of Object.entries(clientDefaults)) {
-        if (customerUpper.includes(client)) {
-            return ink;
-        }
-    }
-    return 'WATER';
 }
 
 function addNewPlacement(type = null, isFirst = false) {
     const placementId = isFirst ? 1 : Date.now();
     const placementType = type || getNextPlacementType();
-    const inkType = detectInkTypeFromCustomer();
-    
+
     const newPlacement = {
         id: placementId,
         type: placementType,
@@ -445,47 +437,44 @@ function addNewPlacement(type = null, isFirst = false) {
         colors: [],
         placementDetails: '#.#" FROM COLLAR SEAM',
         dimensions: 'SIZE: (W) ## X (H) ##',
-        temp: inkType === 'PLASTISOL' ? '320 °F' : '320 °F',
-        time: inkType === 'PLASTISOL' ? '1:40 min' : '1:00 min',
+        temp: '320 °F',
+        time: '1:40 min',
         specialties: '',
         specialInstructions: '',
-        inkType: inkType,
-        placementSelect: placementType,
+        inkType: 'WATER',
+        placementSelect: 'FRONT',
         isActive: true,
         meshColor: '',
         meshWhite: '',
         meshBlocker: '',
         durometer: '',
         strokes: '',
-        angle: '',
-        pressure: '',
-        speed: '',
         additives: '',
         width: '',
         height: '',
         baseSize: '',
         fabric: ''
     };
-    
+
     if (!isFirst) {
         placements.push(newPlacement);
     } else {
         placements = [newPlacement];
     }
-    
+
     if (!isFirst) {
         renderPlacementHTML(newPlacement);
         showPlacement(placementId);
         updatePlacementsTabs();
     }
-    
+
     return placementId;
 }
 
 function getNextPlacementType() {
     const usedTypes = placements.map(p => p.type);
     const allTypes = ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'];
-    
+
     for (const type of allTypes) {
         if (!usedTypes.includes(type)) {
             return type;
@@ -498,15 +487,141 @@ function getNextPlacementNumber() {
     return placements.length + 1;
 }
 
-// ========== FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS ==========
+// =====================================================
+// ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE ⭐
+// =====================================================
+
+window.generarConAsistente = function(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) {
+        showStatus('❌ Placement no encontrado', 'error');
+        return;
+    }
+
+    // Verificar que hay colores para procesar
+    if (!placement.colors || placement.colors.length === 0) {
+        showStatus('⚠️ Agrega colores primero', 'warning');
+        return;
+    }
+
+    showStatus('🤖 Generando secuencia...', 'info');
+
+    try {
+        // Obtener datos necesarios
+        const colorTela = document.getElementById('colorway')?.value || '';
+        const tinta = placement.inkType || 'WATER';
+        
+        // Extraer SOLO los nombres de colores (no blockers, no bases)
+        const colores = placement.colors
+            .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
+            .map(c => c.val)
+            .filter(c => c && c.trim() !== '');
+
+        if (colores.length === 0) {
+            showStatus('⚠️ No hay colores de tinta definidos', 'warning');
+            return;
+        }
+
+        console.log('🎯 Enviando a motor de reglas:', {
+            colorTela,
+            tinta,
+            colores
+        });
+
+        // USAR EL MOTOR DE REGLAS (NO IA externa)
+        if (!window.SequenceAutomation) {
+            showStatus('❌ Motor de reglas no disponible', 'error');
+            return;
+        }
+
+        // Generar secuencia usando el motor interno
+        const secuenciaCompleta = window.SequenceAutomation.generarParaPlacement(placement);
+
+        if (!secuenciaCompleta || secuenciaCompleta.length === 0) {
+            showStatus('❌ No se pudo generar secuencia', 'error');
+            return;
+        }
+
+        // AHORA: Convertir la secuencia a colores en el placement
+        // Esto es lo que hace que la UI se actualice
+        
+        // Primero, limpiamos los colores existentes pero guardamos los originales
+        const coloresOriginales = [...placement.colors];
+        
+        // Filtramos para mantener solo los colores que NO son de tipo COLOR/METALLIC
+        // (para preservar blockers y bases que el usuario haya puesto manualmente)
+        const coloresBase = placement.colors.filter(c => 
+            c.type === 'BLOCKER' || c.type === 'WHITE_BASE'
+        );
+        
+        // Los nuevos pasos de color vendrán de la secuencia
+        const nuevosColores = [];
+        
+        // Procesar la secuencia y extraer SOLO los pasos de COLOR
+        secuenciaCompleta.forEach(paso => {
+            if (paso.tipo === 'COLOR') {
+                // Buscar si este color ya existía para preservar su ID
+                const colorExistente = coloresOriginales.find(c => 
+                    c.type === 'COLOR' && 
+                    c.val && paso.nombre && 
+                    c.val.toLowerCase().includes(paso.nombre.toLowerCase().replace(/ \(\d\)/g, ''))
+                );
+                
+                nuevosColores.push({
+                    id: colorExistente?.id || Date.now() + Math.random(),
+                    type: 'COLOR',
+                    screenLetter: paso.screenLetter || 'A',
+                    val: paso.nombre || 'COLOR',
+                    mesh: paso.malla || '157/48',
+                    additives: paso.aditivos || ''
+                });
+            }
+        });
+        
+        // Si no se generaron colores, algo salió mal
+        if (nuevosColores.length === 0) {
+            showStatus('⚠️ No se generaron colores en la secuencia', 'warning');
+            return;
+        }
+        
+        // Actualizar placement: mantener bases + nuevos colores
+        placement.colors = [...coloresBase, ...nuevosColores];
+        
+        // Actualizar UI
+        renderPlacementColors(placementId);
+        
+        // También actualizar la tabla de secuencia
+        if (typeof updatePlacementStations === 'function') {
+            updatePlacementStations(placementId);
+        }
+        
+        if (typeof updatePlacementColorsPreview === 'function') {
+            updatePlacementColorsPreview(placementId);
+        }
+
+        showStatus(`✅ Secuencia generada: ${secuenciaCompleta.length} estaciones`, 'success');
+        
+        // Mostrar resumen en consola
+        console.log('📊 Secuencia completa:', secuenciaCompleta);
+
+    } catch (error) {
+        console.error('❌ Error generando secuencia:', error);
+        showStatus('❌ Error: ' + error.message, 'error');
+    }
+};
+
+// =====================================================
+// FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS
+// =====================================================
+
 function setupPlacementAutocomplete(inputElement, placementId) {
     if (!inputElement || !window.PlacementsDB) return;
-    
-    inputElement.addEventListener('input', function() {
+
+    inputElement.addEventListener('input', function () {
         window.PlacementsDB.autocomplete(this, placementId);
     });
-    
-    inputElement.addEventListener('blur', function() {
+
+    inputElement.addEventListener('blur', function () {
         const suggestions = window.PlacementsDB.search(this.value);
         if (suggestions.length === 1 && suggestions[0].toUpperCase() === this.value.toUpperCase()) {
             this.value = suggestions[0];
@@ -515,21 +630,24 @@ function setupPlacementAutocomplete(inputElement, placementId) {
     });
 }
 
-// ========== RENDER PLACEMENT HTML CON TODAS LAS MEJORAS ==========
+// =====================================================
+// RENDER PLACEMENT HTML
+// =====================================================
+
 function renderPlacementHTML(placement) {
     const container = document.getElementById('placements-container');
-    
+
     if (document.getElementById(`placement-section-${placement.id}`)) {
         return;
     }
-    
+
     const sectionId = `placement-section-${placement.id}`;
     const isCustom = placement.type.includes('CUSTOM:');
     const displayType = isCustom ? 'CUSTOM' : placement.type;
     const customName = isCustom ? placement.type.replace('CUSTOM: ', '') : '';
-    
+
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
-    
+
     const defaultMeshColor = preset.color.mesh || '157/48';
     const defaultMeshWhite = preset.white.mesh1 || '198/40';
     const defaultMeshBlocker = preset.blocker.mesh1 || '122/55';
@@ -539,9 +657,9 @@ function renderPlacementHTML(placement) {
     const defaultPressure = preset.color.pressure || '40';
     const defaultSpeed = preset.color.speed || '35';
     const defaultAdditives = preset.color.additives || '3 % cross-linker 500 · 1.5 % antitack';
-    
+
     const dimensions = extractDimensions(placement.dimensions);
-    
+
     const sectionHTML = `
         <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
             <div class="placement-header">
@@ -550,6 +668,9 @@ function renderPlacementHTML(placement) {
                     <span>${displayType}</span>
                 </div>
                 <div class="placement-actions">
+                    <button class="btn btn-primary btn-sm" onclick="generarConAsistente(${placement.id})">
+                        <i class="fas fa-magic"></i> Generar Secuencia
+                    </button>
                     <button class="btn btn-outline btn-sm" onclick="duplicatePlacement(${placement.id})">
                         <i class="fas fa-copy"></i> Duplicar
                     </button>
@@ -842,17 +963,17 @@ function renderPlacementHTML(placement) {
             </div>
         </div>
     `;
-    
+
     container.innerHTML += sectionHTML;
-    
+
     renderPlacementColors(placement.id);
     updatePlacementStations(placement.id);
     updatePlacementColorsPreview(placement.id);
-    
+
     if (placement.imageData) {
         const img = document.getElementById(`placement-image-preview-${placement.id}`);
         const imageActions = document.getElementById(`placement-image-actions-${placement.id}`);
-        
+
         if (img && imageActions) {
             img.src = placement.imageData;
             img.style.display = 'block';
@@ -863,13 +984,15 @@ function renderPlacementHTML(placement) {
 
 function updatePlacementsTabs() {
     const tabsContainer = document.getElementById('placements-tabs');
-    tabsContainer.innerHTML = '';
+    if (!tabsContainer) return;
     
+    tabsContainer.innerHTML = '';
+
     placements.forEach(placement => {
-        const displayType = placement.type.includes('CUSTOM:') 
+        const displayType = placement.type.includes('CUSTOM:')
             ? placement.type.replace('CUSTOM: ', '')
             : placement.type;
-            
+
         const tab = document.createElement('div');
         tab.className = `placement-tab ${placement.id === currentPlacementId ? 'active' : ''}`;
         tab.setAttribute('data-placement-id', placement.id);
@@ -878,7 +1001,7 @@ function updatePlacementsTabs() {
             ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
             ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
         `;
-        
+
         tab.addEventListener('click', (e) => {
             if (!e.target.classList.contains('remove-tab')) {
                 showPlacement(placement.id);
@@ -892,16 +1015,16 @@ function showPlacement(placementId) {
     document.querySelectorAll('.placement-section').forEach(section => {
         section.classList.remove('active');
     });
-    
+
     const section = document.getElementById(`placement-section-${placementId}`);
     if (section) {
         section.classList.add('active');
     }
-    
+
     document.querySelectorAll('.placement-tab').forEach(tab => {
         tab.classList.toggle('active', parseInt(tab.dataset.placementId) === placementId);
     });
-    
+
     currentPlacementId = placementId;
 }
 
@@ -916,19 +1039,22 @@ function getPlacementIcon(type) {
         'COLLAR': 'circle',
         'CUSTOM': 'star'
     };
-    
+
     if (type.includes('CUSTOM:')) {
         return 'star';
     }
     return icons[type] || 'map-marker-alt';
 }
 
-// ========== FUNCIONES DE GESTIÓN DE PLACEMENTS ==========
+// =====================================================
+// FUNCIONES DE GESTIÓN DE PLACEMENTS
+// =====================================================
+
 function updatePlacementType(placementId, type) {
     const placement = placements.find(p => p.id === placementId);
     if (placement) {
         const customInput = document.getElementById(`custom-placement-input-${placementId}`);
-        
+
         if (type === 'CUSTOM') {
             if (customInput) customInput.style.display = 'block';
             if (!placement.type.startsWith('CUSTOM:')) {
@@ -939,7 +1065,7 @@ function updatePlacementType(placementId, type) {
             placement.type = type;
             placement.name = type;
         }
-        
+
         updateAllPlacementTitles(placementId);
         showStatus(`✅ Tipo de placement cambiado a ${type}`);
     }
@@ -948,137 +1074,95 @@ function updatePlacementType(placementId, type) {
 function updateCustomPlacement(placementId, customName) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     let finalName = customName.trim();
-    
-    // Detectar si es una abreviatura
+
     if (finalName.length <= 3 && window.PlacementsDB) {
         const expanded = window.PlacementsDB.ABBREVIATIONS[finalName.toUpperCase()];
         if (expanded) {
             finalName = expanded;
-            // Actualizar el input con el nombre completo
             const input = document.querySelector(`.custom-placement-name[data-placement-id="${placementId}"]`);
             if (input) input.value = finalName;
         }
     }
-    
+
     if (finalName) {
         placement.type = `CUSTOM: ${finalName}`;
         placement.name = finalName;
-        
+
         updateAllPlacementTitles(placementId);
         showStatus(`✅ Placement personalizado: "${finalName}" creado`);
     }
 }
 
-function updatePlacementUI(placementId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
-    
-    const displayType = placement.type.includes('CUSTOM:') 
-        ? placement.type.replace('CUSTOM: ', '')
-        : placement.type;
-    
-    const tab = document.querySelector(`.placement-tab[data-placement-id="${placementId}"]`);
-    if (tab) {
-        tab.innerHTML = `
-            <i class="fas fa-${getPlacementIcon(placement.type)}"></i>
-            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
-            ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placementId})">&times;</span>` : ''}
-        `;
-    }
-    
-    const title = document.querySelector(`#placement-section-${placementId} .placement-title span`);
-    if (title) {
-        title.textContent = displayType;
-    }
-    
-    const colorTitle = document.querySelector(`#placement-section-${placementId} .card-title`);
-    if (colorTitle && colorTitle.textContent.includes('Colores para')) {
-        colorTitle.textContent = `Colores para ${displayType}`;
-    }
-}
-
-// ========== FUNCIÓN PARA ACTUALIZAR TODOS LOS TÍTULOS ==========
 function updateAllPlacementTitles(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
-    const displayType = placement.type.includes('CUSTOM:') 
+
+    const displayType = placement.type.includes('CUSTOM:')
         ? placement.type.replace('CUSTOM: ', '')
         : placement.type;
-    
+
     const section = document.getElementById(`placement-section-${placementId}`);
     if (!section) return;
-    
-    // 1. Título principal del placement
+
     const mainTitle = section.querySelector('.placement-title span');
     if (mainTitle) {
         mainTitle.textContent = displayType;
     }
-    
-    // 2. Actualizar TODOS los títulos de las cards
+
     const cardHeaders = section.querySelectorAll('.card-header');
     cardHeaders.forEach(header => {
         const titleElement = header.querySelector('.card-title');
         if (!titleElement) return;
-        
+
         const titleText = titleElement.textContent;
-        
-        // Colores para X
+
         if (titleText.includes('Colores para')) {
             titleElement.innerHTML = `<i class="fas fa-palette"></i> Colores para ${displayType}`;
         }
-        // Imagen para X
         else if (titleText.includes('Imagen para')) {
             titleElement.innerHTML = `<i class="fas fa-image"></i> Imagen para ${displayType}`;
         }
-        // Condiciones para X
         else if (titleText.includes('Condiciones para')) {
             titleElement.innerHTML = `<i class="fas fa-print"></i> Condiciones para ${displayType}`;
         }
-        // Parámetros de Impresión (se mantiene igual)
-        else if (titleText.includes('Parámetros de Impresión')) {
-            // No cambia
-        }
     });
-    
-    // 3. Título de secuencia
+
     const sequenceTitle = section.querySelector('h4');
     if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
         sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${displayType}`;
     }
-    
-    // 4. Actualizar pestaña
+
     updatePlacementsTabs();
 }
 
 function updatePlacementInkType(placementId, inkType) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     placement.inkType = inkType;
-    
+
     const preset = getInkPresetSafe(inkType);
-    
+
     placement.temp = preset.temp;
     placement.time = preset.time;
-    
+
     const tempField = document.getElementById(`temp-${placementId}`);
     const timeField = document.getElementById(`time-${placementId}`);
-    
+
     if (tempField) {
         tempField.value = preset.temp;
         tempField.setAttribute('readonly', true);
         tempField.title = `Temperatura para tinta ${inkType}`;
     }
-    
+
     if (timeField) {
         timeField.value = preset.time;
         timeField.setAttribute('readonly', true);
         timeField.title = `Tiempo de curado para tinta ${inkType}`;
     }
-    
+
     updateDefaultParameters(placementId, inkType);
     updatePlacementStations(placementId);
     showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
@@ -1087,49 +1171,49 @@ function updatePlacementInkType(placementId, inkType) {
 function updateDefaultParameters(placementId, inkType) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     const preset = getInkPresetSafe(inkType);
-    
+
     if (!placement.meshColor) {
         const meshColorField = document.getElementById(`mesh-color-${placementId}`);
         if (meshColorField) meshColorField.value = preset.color.mesh;
     }
-    
+
     if (!placement.meshWhite) {
         const meshWhiteField = document.getElementById(`mesh-white-${placementId}`);
         if (meshWhiteField) meshWhiteField.value = preset.white.mesh1;
     }
-    
+
     if (!placement.meshBlocker) {
         const meshBlockerField = document.getElementById(`mesh-blocker-${placementId}`);
         if (meshBlockerField) meshBlockerField.value = preset.blocker.mesh1;
     }
-    
+
     if (!placement.durometer) {
         const durometerField = document.getElementById(`durometer-${placementId}`);
         if (durometerField) durometerField.value = preset.color.durometer;
     }
-    
+
     if (!placement.strokes) {
         const strokesField = document.getElementById(`strokes-${placementId}`);
         if (strokesField) strokesField.value = preset.color.strokes;
     }
-    
+
     if (!placement.angle) {
         const angleField = document.getElementById(`angle-${placementId}`);
         if (angleField) angleField.value = preset.color.angle;
     }
-    
+
     if (!placement.pressure) {
         const pressureField = document.getElementById(`pressure-${placementId}`);
         if (pressureField) pressureField.value = preset.color.pressure;
     }
-    
+
     if (!placement.speed) {
         const speedField = document.getElementById(`speed-${placementId}`);
         if (speedField) speedField.value = preset.color.speed;
     }
-    
+
     if (!placement.additives) {
         const additivesField = document.getElementById(`additives-${placementId}`);
         if (additivesField) additivesField.value = preset.color.additives;
@@ -1141,7 +1225,7 @@ function duplicatePlacement(placementId) {
     if (!original) return;
 
     const newId = Date.now();
-    const displayType = original.type.includes('CUSTOM:') 
+    const displayType = original.type.includes('CUSTOM:')
         ? original.type.replace('CUSTOM: ', '')
         : original.type;
 
@@ -1170,33 +1254,36 @@ function removePlacement(placementId) {
         showStatus('⚠️ No puedes eliminar el único placement', 'warning');
         return;
     }
-    
+
     if (!confirm(`¿Estás seguro de que quieres eliminar este placement?`)) {
         return;
     }
-    
+
     const index = placements.findIndex(p => p.id === placementId);
     if (index === -1) return;
-    
+
     const removedType = placements[index].type;
-    
+
     placements.splice(index, 1);
-    
+
     const section = document.getElementById(`placement-section-${placementId}`);
     if (section) {
         section.remove();
     }
-    
+
     updatePlacementsTabs();
-    
+
     if (currentPlacementId === placementId && placements.length > 0) {
         showPlacement(placements[0].id);
     }
-    
+
     showStatus(`🗑️ Placement "${removedType}" eliminado`, 'success');
 }
 
-// ========== FUNCIONES PARA PARÁMETROS EDITABLES ==========
+// =====================================================
+// FUNCIONES PARA PARÁMETROS EDITABLES
+// =====================================================
+
 function updatePlacementParam(placementId, param, value) {
     const placement = placements.find(p => p.id === placementId);
     if (placement) {
@@ -1206,10 +1293,13 @@ function updatePlacementParam(placementId, param, value) {
     }
 }
 
-// ========== FUNCIONES PARA DIMENSIONES ==========
+// =====================================================
+// FUNCIONES PARA DIMENSIONES
+// =====================================================
+
 function extractDimensions(dimensionsText) {
     if (!dimensionsText) return { width: '15.34', height: '12' };
-    
+
     const patterns = [
         /SIZE:\s*\(W\)\s*([\d\.]+)\s*["']?\s*X\s*\(H\)\s*([\d\.]+)/i,
         /([\d\.]+)\s*["']?\s*[xX×]\s*([\d\.]+)/,
@@ -1217,7 +1307,7 @@ function extractDimensions(dimensionsText) {
         /ANCHO\s*:\s*([\d\.]+).*ALTO\s*:\s*([\d\.]+)/i,
         /(\d+)\s*["']?\s*[xX]\s*(\d+)/
     ];
-    
+
     for (const pattern of patterns) {
         const match = dimensionsText.match(pattern);
         if (match) {
@@ -1227,7 +1317,7 @@ function extractDimensions(dimensionsText) {
             };
         }
     }
-    
+
     return { width: '15.34', height: '12' };
 }
 
@@ -1361,15 +1451,18 @@ function updatePlacementDimension(placementId, type, value) {
     }
 }
 
-// ========== FUNCIONES PARA COLORES DE PLACEMENTS ==========
+// =====================================================
+// FUNCIONES PARA COLORES DE PLACEMENTS
+// =====================================================
+
 function addPlacementColorItem(placementId, type) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     let initialLetter = '';
     let initialVal = '';
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
-    
+
     if (type === 'BLOCKER') {
         initialLetter = 'A';
         initialVal = preset.blocker?.name || 'BLOCKER CHT';
@@ -1384,7 +1477,7 @@ function addPlacementColorItem(placementId, type) {
         const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         initialLetter = String(colorItems.length + 1);
     }
-    
+
     const colorId = Date.now() + Math.random();
     placement.colors.push({
         id: colorId,
@@ -1392,21 +1485,21 @@ function addPlacementColorItem(placementId, type) {
         screenLetter: initialLetter,
         val: initialVal
     });
-    
+
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
-    
+
     checkForSpecialtiesInColors(placementId);
 }
 
 function renderPlacementColors(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     const container = document.getElementById(`placement-colors-container-${placementId}`);
     if (!container) return;
-    
+
     if (placement.colors.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
@@ -1416,13 +1509,13 @@ function renderPlacementColors(placementId) {
         `;
         return;
     }
-    
+
     container.innerHTML = '';
-    
+
     placement.colors.forEach(color => {
         let badgeClass = 'badge-color';
         let label = 'COLOR';
-        
+
         if (color.type === 'BLOCKER') {
             badgeClass = 'badge-blocker';
             label = 'BLOQUEADOR';
@@ -1433,7 +1526,7 @@ function renderPlacementColors(placementId) {
             badgeClass = 'badge-warning';
             label = 'METÁLICO';
         }
-        
+
         const div = document.createElement('div');
         div.className = 'color-item';
         div.innerHTML = `
@@ -1473,26 +1566,8 @@ function renderPlacementColors(placementId) {
                 <i class="fas fa-times"></i>
             </button>
         `;
-        
-        // Agregar manejador de evento keydown para prevenir envío de formulario con Enter
-        const inkInput = div.querySelector('.placement-ink-input');
-        inkInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                e.stopPropagation();
-                this.blur();
-                
-                // Forzar actualización de secuencia
-                const placementId = parseInt(this.dataset.placementId);
-                if (window.SequenceAutomation && window.SequenceAutomation.applySequence) {
-                    setTimeout(() => window.SequenceAutomation.applySequence(placementId), 100);
-                }
-                return false;
-            }
-        });
-        
         container.appendChild(div);
-        
+
         setTimeout(() => updatePlacementColorPreview(placementId, color.id), 10);
     });
 }
@@ -1500,14 +1575,14 @@ function renderPlacementColors(placementId) {
 function updatePlacementColorValue(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     const color = placement.colors.find(c => c.id === colorId);
     if (color) {
         color.val = value;
         updatePlacementColorPreview(placementId, colorId);
         updatePlacementStations(placementId);
         updatePlacementColorsPreview(placementId);
-        
+
         checkForSpecialtiesInColors(placementId);
     }
 }
@@ -1515,7 +1590,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
 function updatePlacementScreenLetter(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     const color = placement.colors.find(c => c.id === colorId);
     if (color) {
         color.screenLetter = value.toUpperCase();
@@ -1537,12 +1612,12 @@ function updatePlacementColorMesh(placementId, colorId, value) {
 function removePlacementColorItem(placementId, colorId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     placement.colors = placement.colors.filter(c => c.id !== colorId);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
-    
+
     checkForSpecialtiesInColors(placementId);
 }
 
@@ -1694,29 +1769,32 @@ function updatePlacementColorPreview(placementId, colorId) {
     }
 }
 
-// ========== DETECCIÓN DE ESPECIALIDADES ==========
+// =====================================================
+// DETECCIÓN DE ESPECIALIDADES
+// =====================================================
+
 function checkForSpecialtiesInColors(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     let specialties = [];
-    
+
     placement.colors.forEach(color => {
         if (color.val) {
             const colorVal = (color.val || '').toUpperCase();
-            
+
             if (colorVal.includes('HD') || colorVal.includes('HIGH DENSITY')) {
                 if (!specialties.includes('HIGH DENSITY')) {
                     specialties.push('HIGH DENSITY');
                 }
             }
-            
+
             if (isMetallicColor(colorVal)) {
                 if (!specialties.includes('METALLIC')) {
                     specialties.push('METALLIC');
                 }
             }
-            
+
             if (colorVal.includes('FOIL')) {
                 if (!specialties.includes('FOIL')) {
                     specialties.push('FOIL');
@@ -1724,36 +1802,36 @@ function checkForSpecialtiesInColors(placementId) {
             }
         }
     });
-    
+
     const specialtiesField = document.getElementById(`specialties-${placementId}`);
     if (specialtiesField) {
         specialtiesField.value = specialties.join(', ');
         updatePlacementField(placementId, 'specialties', specialtiesField.value);
     }
-    
+
     return specialties;
 }
 
 function isMetallicColor(colorName) {
     if (!colorName) return false;
-    
+
     const upperColor = colorName.toUpperCase();
-    
+
     if (upperColor.match(/(8[7-9][0-9]\s*C?)/i)) {
         return true;
     }
-    
+
     const METALLIC_CODES = [
         "871C", "872C", "873C", "874C", "875C", "876C", "877C",
         "METALLIC", "GOLD", "SILVER", "BRONZE", "METÁLICO", "METALIC"
     ];
-    
+
     for (const metallicCode of METALLIC_CODES) {
         if (upperColor.includes(metallicCode)) {
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -1776,13 +1854,13 @@ function getColorHex(colorName) {
 function updatePlacementColorsPreview(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     const container = document.getElementById(`placement-colors-preview-${placementId}`);
     if (!container) return;
-    
+
     const uniqueColors = [];
     const seenColors = new Set();
-    
+
     placement.colors.forEach(color => {
         if (color.type === 'COLOR' || color.type === 'METALLIC') {
             const colorVal = (color.val || '').toUpperCase().trim();
@@ -1795,14 +1873,14 @@ function updatePlacementColorsPreview(placementId) {
             }
         }
     });
-    
+
     if (uniqueColors.length === 0) {
         container.innerHTML = '';
         return;
     }
-    
+
     let html = '<div><strong>Leyenda de Colores:</strong></div><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px;">';
-    
+
     uniqueColors.forEach(color => {
         const colorHex = getColorHex(color.val) || '#cccccc';
         html += `
@@ -1812,21 +1890,24 @@ function updatePlacementColorsPreview(placementId) {
             </div>
         `;
     });
-    
+
     html += '</div>';
     container.innerHTML = html;
 }
 
-// ========== FUNCIONES DE SECUENCIA DE PLACEMENTS ==========
+// =====================================================
+// FUNCIONES DE SECUENCIA DE PLACEMENTS
+// =====================================================
+
 function updatePlacementStations(placementId, returnOnly = false) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return [];
-    
+
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
-    
+
     const stationsData = [];
     let stNum = 1;
-    
+
     const meshColor = placement.meshColor || preset.color.mesh;
     const meshWhite = placement.meshWhite || preset.white.mesh1;
     const meshBlocker = placement.meshBlocker || preset.blocker.mesh1;
@@ -1836,12 +1917,12 @@ function updatePlacementStations(placementId, returnOnly = false) {
     const pressure = placement.pressure || preset.color.pressure;
     const speed = placement.speed || preset.color.speed;
     const additives = placement.additives || preset.color.additives;
-    
+
     placement.colors.forEach((item, idx) => {
         let mesh, strokesVal, duro, ang, press, spd, add, screenLetter, screenTypeLabel;
-        
+
         screenLetter = item.screenLetter || 'N/A';
-        
+
         if (item.type === 'BLOCKER') {
             screenTypeLabel = preset.blocker.name;
             mesh = item.mesh || (stNum <= 3 ? meshBlocker : (placement.meshBlocker || preset.blocker.mesh2));
@@ -1879,70 +1960,70 @@ function updatePlacementStations(placementId, returnOnly = false) {
             spd = speed;
             add = additives;
         }
-        
-        const screenCombined = (item.type === 'BLOCKER' || item.type === 'WHITE_BASE' || item.type === 'METALLIC') 
-                       ? screenTypeLabel
-                       : item.val || '---';
-        
-        stationsData.push({ 
-            st: stNum++, 
+
+        const screenCombined = (item.type === 'BLOCKER' || item.type === 'WHITE_BASE' || item.type === 'METALLIC')
+            ? screenTypeLabel
+            : item.val || '---';
+
+        stationsData.push({
+            st: stNum++,
             screenLetter: screenLetter,
             screenCombined: screenCombined,
-            mesh: mesh, 
+            mesh: mesh,
             ink: item.val || '---',
-            strokes: strokesVal, 
+            strokes: strokesVal,
             duro: duro,
             angle: ang,
             pressure: press,
             speed: spd,
-            add: add 
+            add: add
         });
-        
+
         if (idx < placement.colors.length - 1) {
-            stationsData.push({ 
-                st: stNum++, 
-                screenLetter: '', 
-                screenCombined: 'FLASH', 
-                mesh: '-', 
-                ink: '-', 
-                strokes: '-', 
+            stationsData.push({
+                st: stNum++,
+                screenLetter: '',
+                screenCombined: 'FLASH',
+                mesh: '-',
+                ink: '-',
+                strokes: '-',
                 duro: '-',
                 angle: '-',
                 pressure: '-',
                 speed: '-',
-                add: '' 
+                add: ''
             });
-            
-            stationsData.push({ 
-                st: stNum++, 
-                screenLetter: '', 
-                screenCombined: 'COOL', 
-                mesh: '-', 
-                ink: '-', 
-                strokes: '-', 
+
+            stationsData.push({
+                st: stNum++,
+                screenLetter: '',
+                screenCombined: 'COOL',
+                mesh: '-',
+                ink: '-',
+                strokes: '-',
                 duro: '-',
                 angle: '-',
                 pressure: '-',
                 speed: '-',
-                add: '' 
+                add: ''
             });
         }
     });
-    
+
     if (returnOnly) return stationsData;
-    
+
     renderPlacementStationsTable(placementId, stationsData);
 }
 
 function renderPlacementStationsTable(placementId, data) {
     const div = document.getElementById(`placement-sequence-table-${placementId}`);
     if (!div) return;
-    
+
     if (data.length === 0) {
         div.innerHTML = '<p style="color:var(--text-secondary); font-style:italic; text-align:center; padding:15px; background:var(--gray-dark); border-radius:var(--radius);">Agrega colores para generar la secuencia de impresión.</p>';
         return;
     }
-    
+
     let html = `<table class="sequence-table">
         <thead><tr>
             <th>Est</th>
@@ -1956,15 +2037,15 @@ function renderPlacementStationsTable(placementId, data) {
             <th>Speed</th>
             <th>Duro</th>
         </tr></thead><tbody>`;
-    
+
     data.forEach((row, idx) => {
         const isMetallic = row.screenCombined && (
-            row.screenCombined.includes('METALLIC') || 
-            row.screenCombined.includes('GOLD') || 
+            row.screenCombined.includes('METALLIC') ||
+            row.screenCombined.includes('GOLD') ||
             row.screenCombined.includes('SILVER') ||
             row.screenCombined.match(/(8[7-9][0-9])\s*C?/i)
         );
-        
+
         html += `<tr ${isMetallic ? 'style="background: linear-gradient(90deg, rgba(255,215,0,0.1) 0%, var(--bg-card) 100%);"' : ''}>
             <td><strong>${row.st}</strong></td>
             <td><b style="color: var(--primary);">${row.screenLetter}</b></td>
@@ -1982,80 +2063,86 @@ function renderPlacementStationsTable(placementId, data) {
     div.innerHTML = html;
 }
 
-// ========== FUNCIONES DE IMÁGENES ==========
+// =====================================================
+// FUNCIONES DE IMÁGENES
+// =====================================================
+
 function openImagePickerForPlacement(placementId) {
     currentPlacementId = placementId;
     document.getElementById('placementImageInput').click();
 }
 
-document.getElementById('placementImageInput').addEventListener('change', function(e) {
+document.getElementById('placementImageInput').addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     const placementId = currentPlacementId;
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     if (!file.type.match('image.*')) {
         showStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
         return;
     }
-    
+
     const reader = new FileReader();
-    reader.onload = function(ev) {
+    reader.onload = function (ev) {
         const img = document.getElementById(`placement-image-preview-${placementId}`);
         const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
-        
+
         if (img) {
             img.src = ev.target.result;
             img.style.display = 'block';
         }
-        
+
         if (imageActions) {
             imageActions.style.display = 'flex';
         }
-        
+
         placement.imageData = ev.target.result;
         showStatus(`✅ Imagen cargada para ${placement.type}`);
     };
     reader.readAsDataURL(file);
-    
+
     e.target.value = '';
 });
 
 function removePlacementImage(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
-    
+
     const img = document.getElementById(`placement-image-preview-${placementId}`);
     const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
-    
+
     if (img) {
         img.src = '';
         img.style.display = 'none';
     }
-    
+
     if (imageActions) {
         imageActions.style.display = 'none';
     }
-    
+
     placement.imageData = null;
     showStatus('🗑️ Imagen eliminada del placement');
 }
 
-// ========== FUNCIONES DE ACTUALIZACIÓN ==========
+// =====================================================
+// FUNCIONES DE ACTUALIZACIÓN
+// =====================================================
+
 function updatePlacementField(placementId, field, value) {
     const placement = placements.find(p => p.id === placementId);
     if (placement) {
         if (field === 'specialties') {
             let specialties = value.toUpperCase();
-            
+
             if (specialties.includes('HD') && !specialties.includes('HIGH DENSITY')) {
                 specialties = specialties.replace(/\bHD\b/g, 'HIGH DENSITY');
             }
-            
+
             placement[field] = specialties;
-            
+
             const specialtiesField = document.getElementById(`specialties-${placementId}`);
             if (specialtiesField && specialtiesField.value !== specialties) {
                 specialtiesField.value = specialties;
@@ -2085,7 +2172,7 @@ function processExcelData(worksheet, sheetName = '') {
             if (label && val) {
                 if (label.includes('CUSTOMER:')) {
                     extracted.customer = val;
-                    if (val.toUpperCase().includes('GEAR FOR SPORT') || 
+                    if (val.toUpperCase().includes('GEAR FOR SPORT') ||
                         val.toUpperCase().includes('GEARFORSPORT')) {
                         extracted.isGearForSport = true;
                     }
@@ -2123,10 +2210,10 @@ function processExcelData(worksheet, sheetName = '') {
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
             if (!row) continue;
-            
+
             for (let j = 0; j < row.length; j++) {
                 const cell = String(row[j] || '').trim();
-                
+
                 if (cell.includes('CUSTOMER:')) {
                     extracted.customer = String(row[j + 1] || '').trim();
                 } else if (cell.includes('STYLE:')) {
@@ -2178,16 +2265,16 @@ function processExcelData(worksheet, sheetName = '') {
     showStatus(`✅ "${sheetName || 'hoja'}" procesado - Género: ${extracted.gender || 'No detectado'}`, 'success');
 }
 
-document.getElementById('excelFile').addEventListener('change', async function(e) {
+document.getElementById('excelFile').addEventListener('change', async function (e) {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
-    
+
     if (file.name.toLowerCase().endsWith('.zip')) {
         await loadProjectZip(file);
     } else if (file.name.toLowerCase().endsWith('.json')) {
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             try {
                 const data = JSON.parse(e.target.result);
                 loadSpecData(data);
@@ -2199,15 +2286,15 @@ document.getElementById('excelFile').addEventListener('change', async function(e
         };
         reader.readAsText(file);
     } else {
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                
+
                 const sheetPriority = ['SWO', 'PPS', 'Proto 1', 'Proto 2', 'Proto 3', 'Proto 4', 'Sheet1'];
                 let worksheet = null;
                 let sheetUsed = '';
-                
+
                 for (const sheetName of sheetPriority) {
                     if (workbook.SheetNames.includes(sheetName)) {
                         worksheet = workbook.Sheets[sheetName];
@@ -2215,7 +2302,7 @@ document.getElementById('excelFile').addEventListener('change', async function(e
                         break;
                     }
                 }
-                
+
                 if (!worksheet) {
                     worksheet = workbook.Sheets[workbook.SheetNames[0]];
                     sheetUsed = workbook.SheetNames[0];
@@ -2223,42 +2310,45 @@ document.getElementById('excelFile').addEventListener('change', async function(e
 
                 showStatus(`🔍 Procesando archivo: ${sheetUsed}`, 'warning');
                 processExcelData(worksheet, sheetUsed);
-                
-            } catch (err) { 
-                console.error('Error al cargar SWO:', err); 
-                showStatus('❌ Error leyendo el archivo', 'error'); 
+
+            } catch (err) {
+                console.error('Error al cargar SWO:', err);
+                showStatus('❌ Error leyendo el archivo', 'error');
             }
         };
         reader.readAsArrayBuffer(file);
     }
-    
+
     e.target.value = '';
 });
 
-// ========== FUNCIONES DE DASHBOARD ==========
+// =====================================================
+// FUNCIONES DE DASHBOARD
+// =====================================================
+
 function updateDashboard() {
     try {
         const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
         const total = specs.length;
         document.getElementById('total-specs').textContent = total;
-        
+
         let lastSpec = null;
         let lastSpecDate = null;
-        
+
         specs.forEach(key => {
             try {
                 const data = JSON.parse(localStorage.getItem(key));
                 const specDate = new Date(data.savedAt || 0);
-                
+
                 if (!lastSpecDate || specDate > lastSpecDate) {
                     lastSpecDate = specDate;
                     lastSpec = data;
                 }
-            } catch(e) {
+            } catch (e) {
                 console.warn('Error al parsear spec:', key, e);
             }
         });
-        
+
         if (lastSpec) {
             document.getElementById('today-specs').innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
@@ -2270,7 +2360,7 @@ function updateDashboard() {
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Sin specs creadas</div>
             `;
         }
-        
+
         let activeCount = 0;
         specs.forEach(key => {
             try {
@@ -2278,168 +2368,34 @@ function updateDashboard() {
                 if (data.placements && data.placements.length > 0) {
                     activeCount++;
                 }
-            } catch(e) {}
+            } catch (e) { }
         });
-        
+
         document.getElementById('active-projects').textContent = activeCount;
-        
+
         const totalPlacements = specs.reduce((total, key) => {
             try {
                 const data = JSON.parse(localStorage.getItem(key));
                 return total + (data.placements?.length || 0);
-            } catch(e) {
+            } catch (e) {
                 return total;
             }
         }, 0);
-        
+
         document.getElementById('completion-rate').innerHTML = `
             <div style="font-size:0.9rem; color:var(--text-secondary);">Placements totales:</div>
             <div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${totalPlacements}</div>
         `;
-        
-    } catch (error) {
-        console.error('Error en updateDashboard:', error);
-    }
-}
-// Variable global para almacenar la última spec cargada
-let lastSpecData = null;
-let lastSpecKey = null;
 
-// Función para cargar la última spec desde el dashboard
-function loadLastSpec() {
-    if (lastSpecData) {
-        loadSpecData(lastSpecData);
-        showStatus('📂 Cargando última spec...', 'success');
-    } else {
-        // Si no hay última spec en memoria, buscar en localStorage
-        const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
-        let lastSpec = null;
-        let lastDate = null;
-        let lastKey = null;
-        
-        specs.forEach(key => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                const specDate = new Date(data.savedAt || 0);
-                
-                if (!lastDate || specDate > lastDate) {
-                    lastDate = specDate;
-                    lastSpec = data;
-                    lastKey = key;
-                }
-            } catch(e) {
-                console.warn('Error al parsear spec:', key, e);
-            }
-        });
-        
-        if (lastSpec) {
-            lastSpecData = lastSpec;
-            lastSpecKey = lastKey;
-            loadSpecData(lastSpec);
-            showStatus('📂 Cargando última spec...', 'success');
-        } else {
-            showStatus('⚠️ No hay specs guardadas para cargar', 'warning');
-        }
-    }
-}
-
-// Modificar updateDashboard para guardar la última spec
-function updateDashboard() {
-    try {
-        const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
-        const total = specs.length;
-        document.getElementById('total-specs').textContent = total;
-        
-        let lastSpec = null;
-        let lastSpecDate = null;
-        let lastSpecKey = null;
-        
-        specs.forEach(key => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                const specDate = new Date(data.savedAt || 0);
-                
-                if (!lastSpecDate || specDate > lastSpecDate) {
-                    lastSpecDate = specDate;
-                    lastSpec = data;
-                    lastSpecKey = key;
-                }
-            } catch(e) {
-                console.warn('Error al parsear spec:', key, e);
-            }
-        });
-        
-        if (lastSpec) {
-            // Guardar para uso posterior
-            lastSpecData = lastSpec;
-            lastSpecKey = lastSpecKey;
-            
-            // Formatear nombre de cliente para mostrar
-            const customerDisplay = lastSpec.customer || 'Cliente no especificado';
-            const customerShort = customerDisplay.length > 25 ? 
-                customerDisplay.substring(0, 22) + '...' : 
-                customerDisplay;
-            
-            document.getElementById('last-spec-name').innerHTML = `
-                <span style="color: var(--primary); text-decoration: underline; text-decoration-color: var(--primary-light);">
-                    ${lastSpec.style || 'Sin nombre'}
-                </span>
-            `;
-            
-            document.getElementById('last-spec-customer').innerHTML = `
-                <i class="fas fa-building" style="margin-right: 3px;"></i> ${customerShort}
-            `;
-            
-            document.getElementById('last-spec-date').innerHTML = `
-                <i class="fas fa-calendar-alt" style="margin-right: 3px;"></i> ${lastSpecDate.toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })}
-            `;
-            
-            // Tooltip con información completa
-            const lastSpecCard = document.getElementById('last-spec-card');
-            if (lastSpecCard) {
-                lastSpecCard.title = `Cliente: ${customerDisplay}\nEstilo: ${lastSpec.style || 'N/A'}\nColorway: ${lastSpec.colorway || 'N/A'}\nPO: ${lastSpec.po || 'N/A'}\nClick para cargar`;
-            }
-        } else {
-            document.getElementById('last-spec-name').innerHTML = 'Ninguna';
-            document.getElementById('last-spec-customer').innerHTML = '';
-            document.getElementById('last-spec-date').innerHTML = '';
-        }
-        
-        let activeCount = 0;
-        specs.forEach(key => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                if (data.placements && data.placements.length > 0) {
-                    activeCount++;
-                }
-            } catch(e) {}
-        });
-        
-        document.getElementById('active-projects').textContent = activeCount;
-        
-        const totalPlacements = specs.reduce((total, key) => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                return total + (data.placements?.length || 0);
-            } catch(e) {
-                return total;
-            }
-        }, 0);
-        
-        document.getElementById('total-placements').textContent = totalPlacements;
-        
     } catch (error) {
         console.error('Error en updateDashboard:', error);
     }
 }
 
-// ========== FUNCIONES DE STORAGE ==========
+// =====================================================
+// FUNCIONES DE STORAGE
+// =====================================================
+
 function loadSavedSpecsList() {
     const list = document.getElementById('saved-specs-list');
     const searchInput = document.getElementById('saved-specs-search');
@@ -2485,7 +2441,7 @@ function loadSavedSpecsList() {
                     <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'><i class="fas fa-edit"></i> Cargar</button>
+                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
                     <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
                 </div>
@@ -2523,11 +2479,11 @@ function loadSpecData(data) {
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
     setInputValue('technical-comments', data.technicalComments || '');
-    
+
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
     placements = [];
-    
+
     if (data.placements && Array.isArray(data.placements)) {
         data.placements.forEach((placementData, index) => {
             const placementId = index === 0 ? 1 : Date.now() + index;
@@ -2535,26 +2491,26 @@ function loadSpecData(data) {
                 ...placementData,
                 id: placementId
             };
-            
+
             if (index === 0) {
                 placements = [placement];
             } else {
                 placements.push(placement);
             }
-            
+
             renderPlacementHTML(placement);
-            
+
             if (placement.imageData) {
                 const img = document.getElementById(`placement-image-preview-${placementId}`);
                 const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
-                
+
                 if (img && imageActions) {
                     img.src = placement.imageData;
                     img.style.display = 'block';
                     imageActions.style.display = 'flex';
                 }
             }
-            
+
             renderPlacementColors(placementId);
             updatePlacementStations(placementId);
             updatePlacementColorsPreview(placementId);
@@ -2562,11 +2518,11 @@ function loadSpecData(data) {
     } else {
         initializePlacements();
     }
-    
+
     updatePlacementsTabs();
     showPlacement(1);
     updateClientLogo();
-    
+
     showTab('spec-creator');
     showStatus('📂 Spec cargada correctamente');
 }
@@ -2578,7 +2534,7 @@ function downloadSingleSpec(key) {
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", `TegraSpec_${data.style || 'Backup'}.json`);
-        document.body.appendChild(downloadAnchorNode); 
+        document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
         showStatus('✅ Spec descargada como JSON', 'success');
@@ -2609,41 +2565,44 @@ function clearAllSpecs() {
     }
 }
 
-// ========== FUNCIONES DE GUARDADO ==========
+// =====================================================
+// FUNCIONES DE GUARDADO
+// =====================================================
+
 function saveCurrentSpec() {
     try {
         const data = collectData();
         const style = data.style || 'SinEstilo_' + Date.now();
         const storageKey = `spec_${style}_${Date.now()}`;
-        
+
         placements.forEach(placement => {
             const specialtiesField = document.getElementById(`specialties-${placement.id}`);
             if (specialtiesField) {
                 placement.specialties = specialtiesField.value;
             }
-            
+
             const instructionsField = document.getElementById(`special-instructions-${placement.id}`);
             if (instructionsField) {
                 placement.specialInstructions = instructionsField.value;
             }
         });
-        
+
         data.savedAt = new Date().toISOString();
         data.lastModified = new Date().toISOString();
-        
+
         localStorage.setItem(storageKey, JSON.stringify(data));
-        
+
         updateDashboard();
         loadSavedSpecsList();
-        
+
         showStatus('✅ Spec guardada correctamente', 'success');
-        
+
         setTimeout(() => {
             if (confirm('¿Deseas ver todas las specs guardadas?')) {
                 showTab('saved-specs');
             }
         }, 1000);
-        
+
     } catch (error) {
         console.error('Error al guardar:', error);
         showStatus('❌ Error al guardar: ' + error.message, 'error');
@@ -2669,7 +2628,7 @@ function collectData() {
         technicalComments: document.getElementById('technical-comments')?.value || '',
         savedAt: new Date().toISOString()
     };
-    
+
     const placementsData = placements.map(placement => ({
         id: placement.id,
         type: placement.type,
@@ -2702,14 +2661,17 @@ function collectData() {
         speed: placement.speed,
         additives: placement.additives
     }));
-    
+
     return {
         ...generalData,
         placements: placementsData
     };
 }
 
-// ========== FUNCIONES DE LIMPIEZA ==========
+// =====================================================
+// FUNCIONES DE LIMPIEZA
+// =====================================================
+
 function clearForm() {
     if (confirm('⚠️ ¿Estás seguro de que quieres limpiar todo el formulario?\n\nSe perderán todos los datos no guardados.\n\n¿Continuar?')) {
         document.querySelectorAll('input:not(#folder-num), textarea, select').forEach(i => {
@@ -2718,25 +2680,28 @@ function clearForm() {
             }
         });
         setInputValue('designer', '');
-        
+
         placements = [];
         const placementsContainer = document.getElementById('placements-container');
         const placementsTabs = document.getElementById('placements-tabs');
         if (placementsContainer) placementsContainer.innerHTML = '';
         if (placementsTabs) placementsTabs.innerHTML = '';
-        
+
         initializePlacements();
-        
+
         const logoElement = document.getElementById('logoCliente');
         if (logoElement) {
             logoElement.style.display = 'none';
         }
-        
+
         showStatus('🧹 Formulario limpiado correctamente');
     }
 }
 
-// ========== FUNCIONES DE EXPORTACIÓN ==========
+// =====================================================
+// FUNCIONES DE EXPORTACIÓN
+// =====================================================
+
 function hexToRgb(hex) {
     hex = hex.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
@@ -2785,7 +2750,7 @@ function exportToExcel() {
             showStatus('❌ Error: Biblioteca Excel no cargada', 'error');
             return;
         }
-        
+
         const data = {
             designer: getInputValue('designer'),
             customer: getInputValue('customer'),
@@ -2795,99 +2760,99 @@ function exportToExcel() {
             colorway: getInputValue('colorway'),
             style: getInputValue('style')
         };
-        
+
         const wb = XLSX.utils.book_new();
-        
+
         const headers = [
             'Area', 'Designer', 'Customer', 'Division', 'SEASON',
             '', '#Folder/SPEC', '', '', '', '', '', '', '', '', '', '', '', '', '',
-            'TEAM', '', '', 'COLORWAY', '', 'PLACEMENTS', '', 'SPEC #', '#SCREEEN', 
+            'TEAM', '', '', 'COLORWAY', '', 'PLACEMENTS', '', 'SPEC #', '#SCREEEN',
             'NO. COLORES', 'Stations', 'setup', 'size', 'W', 'H', 'TYPE OF ART', 'INK TYPE'
         ];
-        
+
         const rows = [];
-        
+
         if (placements && Array.isArray(placements) && placements.length > 0) {
             placements.forEach((placement, index) => {
-                const placementType = placement.type.includes('CUSTOM:') 
+                const placementType = placement.type.includes('CUSTOM:')
                     ? placement.type.replace('CUSTOM: ', '').toLowerCase()
                     : placement.type.toLowerCase();
-                
+
                 const screenCount = placement.colors ? placement.colors.length : 0;
                 const colorCount = screenCount;
                 const stationCount = colorCount > 0 ? (colorCount * 3 - 2) : 0;
                 const artType = 'Vector';
-                
+
                 let inkType = 'WB MAGNA';
                 if (placement.inkType === 'WATER') inkType = 'WB MAGNA';
                 if (placement.inkType === 'PLASTISOL') inkType = 'PLASTISOL';
                 if (placement.inkType === 'SILICONE') inkType = 'SILICONE';
-                
+
                 const width = placement.width || extractDimensions(placement.dimensions).width;
                 const height = placement.height || extractDimensions(placement.dimensions).height;
-                
+
                 const row = [
-                    'Development',                           
-                    data.designer,                          
-                    data.customer,                          
-                    'NFL / jersey',                         
-                    data.season,                            
-                    '',                                     
-                    data.folder,                            
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', 
-                    data.nameTeam,                          
-                    '', '',                                 
-                    data.colorway,                          
-                    '',                                     
-                    placementType,                          
-                    '',                                     
-                    `SPEC ${index + 1}`,                    
-                    screenCount,                            
-                    colorCount,                             
-                    stationCount,                           
-                    1,                                      
-                    'L',                                    
-                    `${width}"`,                            
-                    `${height}"`,                           
-                    artType,                                
-                    inkType                                 
+                    'Development',
+                    data.designer,
+                    data.customer,
+                    'NFL / jersey',
+                    data.season,
+                    '',
+                    data.folder,
+                    '', '', '', '', '', '', '', '', '', '', '', '', '',
+                    data.nameTeam,
+                    '', '',
+                    data.colorway,
+                    '',
+                    placementType,
+                    '',
+                    `SPEC ${index + 1}`,
+                    screenCount,
+                    colorCount,
+                    stationCount,
+                    1,
+                    'L',
+                    `${width}"`,
+                    `${height}"`,
+                    artType,
+                    inkType
                 ];
-                
+
                 rows.push(row);
             });
         } else {
             const defaultRow = [
-                'Development',      
-                data.designer,      
-                data.customer,      
-                'NFL / jersey',     
-                data.season,        
-                '',                 
-                data.folder,        
-                '', '', '', '', '', '', '', '', '', '', '', '', '', 
-                data.nameTeam,      
-                '', '',             
-                data.colorway,      
-                '',                 
-                'front',            
-                '',                 
-                'SPEC 1',           
-                0,                  
-                0,                  
-                0,                  
-                1,                  
-                'L',                
-                '15.34"',           
-                '12"',              
-                'Vector',           
-                'WB MAGNA'          
+                'Development',
+                data.designer,
+                data.customer,
+                'NFL / jersey',
+                data.season,
+                '',
+                data.folder,
+                '', '', '', '', '', '', '', '', '', '', '', '', '',
+                data.nameTeam,
+                '', '',
+                data.colorway,
+                '',
+                'front',
+                '',
+                'SPEC 1',
+                0,
+                0,
+                0,
+                1,
+                'L',
+                '15.34"',
+                '12"',
+                'Vector',
+                'WB MAGNA'
             ];
-            
+
             rows.push(defaultRow);
         }
-        
+
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-        
+
         const colWidths = [];
         for (let i = 0; i < headers.length; i++) {
             if (i === 0) colWidths.push({ wch: 12 });
@@ -2908,12 +2873,12 @@ function exportToExcel() {
             else colWidths.push({ wch: 3 });
         }
         ws['!cols'] = colWidths;
-        
+
         const headerRange = XLSX.utils.decode_range(ws['!ref']);
         for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
             const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
             if (!ws[cellAddress]) continue;
-            
+
             if (headers[C] && headers[C] !== '') {
                 ws[cellAddress].s = {
                     font: { bold: true, color: { rgb: "FFFFFF" } },
@@ -2922,14 +2887,14 @@ function exportToExcel() {
                 };
             }
         }
-        
+
         XLSX.utils.book_append_sheet(wb, ws, 'Hoja1');
-        
+
         const fileName = `Calculadora_${data.style || 'Spec'}_${data.folder || '00000'}.xlsx`;
         XLSX.writeFile(wb, fileName);
-        
+
         showStatus('📊 Spec Excel generada correctamente', 'success');
-        
+
     } catch (error) {
         console.error('Error al exportar Excel:', error);
         showStatus('❌ Error al generar Spec Excel: ' + error.message, 'error');
@@ -2946,24 +2911,24 @@ async function downloadProjectZip() {
         const style = getInputValue('style', 'SinEstilo') || 'SinEstilo';
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
         const projectName = `TegraSpec_${style}_${timestamp}`;
-        
+
         const zip = new JSZip();
-        
+
         const jsonData = collectData();
         zip.file(`${projectName}.json`, JSON.stringify(jsonData, null, 2));
-        
+
         if (window.generateSpecHTMLDocument) {
             const htmlContent = window.generateSpecHTMLDocument(collectData());
             zip.file(`${projectName}.html`, htmlContent);
         } else {
             zip.file(`${projectName}_HTML_ERROR.txt`, 'No se pudo generar el archivo HTML del spec.');
         }
-        
+
         placements.forEach((placement, index) => {
             if (placement.imageData && placement.imageData.startsWith('data:')) {
                 try {
                     const imageBlob = dataURLToBlob(placement.imageData);
-                    const displayType = placement.type.includes('CUSTOM:') 
+                    const displayType = placement.type.includes('CUSTOM:')
                         ? placement.type.replace('CUSTOM: ', '')
                         : placement.type;
                     zip.file(`${projectName}_placement${index + 1}_${displayType}.jpg`, imageBlob);
@@ -2972,7 +2937,7 @@ async function downloadProjectZip() {
                 }
             }
         });
-        
+
         const readmeContent = `PROYECTO TEGRA SPEC MANAGER ================================
 
 Archivos incluidos:
@@ -2992,21 +2957,21 @@ Para cargar este proyecto:
 4. Las imágenes de placements se cargarán automáticamente
 
 Placements incluidos: ${placements.map(p => p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type).join(', ')}`;
-        
+
         zip.file('LEEME.txt', readmeContent);
-        
+
         showStatus('📦 Generando archivo ZIP...', 'warning');
-        
+
         const zipBlob = await zip.generateAsync({
             type: 'blob',
             compression: 'DEFLATE',
             compressionOptions: { level: 6 }
         });
-        
+
         saveAs(zipBlob, `${projectName}.zip`);
-        
+
         showStatus('📦 Proyecto ZIP descargado correctamente');
-        
+
     } catch (error) {
         console.error('Error al generar ZIP:', error);
         showStatus('❌ Error al generar proyecto ZIP: ' + error.message, 'error');
@@ -3018,23 +2983,23 @@ function dataURLToBlob(dataURL) {
         if (!dataURL.startsWith('data:')) {
             throw new Error('No es una data URL válida');
         }
-        
+
         const arr = dataURL.split(',');
         const mimeMatch = arr[0].match(/:(.*?);/);
-        
+
         if (!mimeMatch) {
             throw new Error('No se pudo determinar el tipo MIME');
         }
-        
+
         const mime = mimeMatch[1];
         const bstr = atob(arr[1]);
         let n = bstr.length;
         const u8arr = new Uint8Array(n);
-        
+
         while (n--) {
             u8arr[n] = bstr.charCodeAt(n);
         }
-        
+
         return new Blob([u8arr], { type: mime });
     } catch (error) {
         console.error('Error en dataURLToBlob:', error);
@@ -3045,13 +3010,13 @@ function dataURLToBlob(dataURL) {
 async function loadProjectZip(file) {
     try {
         showStatus('📦 Cargando proyecto ZIP...', 'warning');
-        
+
         const zip = new JSZip();
         const zipData = await zip.loadAsync(file);
-        
+
         let jsonData = null;
         const imageFiles = [];
-        
+
         for (const [filename, zipEntry] of Object.entries(zipData.files)) {
             if (!zipEntry.dir) {
                 if (filename.endsWith('.json')) {
@@ -3068,18 +3033,18 @@ async function loadProjectZip(file) {
                 }
             }
         }
-        
+
         if (jsonData) {
             loadSpecData(jsonData);
-            
+
             imageFiles.forEach((imageFile, index) => {
                 const placementIndex = parseInt(imageFile.filename.match(/placement(\d+)/)?.[1]) - 1;
                 if (placementIndex >= 0 && placements[placementIndex]) {
                     placements[placementIndex].imageData = imageFile.imageData;
-                    
+
                     const img = document.getElementById(`placement-image-preview-${placements[placementIndex].id}`);
                     const imageActions = document.getElementById(`placement-image-actions-${placements[placementIndex].id}`);
-                    
+
                     if (img && imageActions) {
                         img.src = imageFile.imageData;
                         img.style.display = 'block';
@@ -3087,26 +3052,29 @@ async function loadProjectZip(file) {
                     }
                 }
             });
-            
+
             showStatus('✅ Proyecto ZIP cargado correctamente');
             showTab('spec-creator');
         } else {
             throw new Error('No se encontró archivo JSON en el ZIP');
         }
-        
+
     } catch (error) {
         console.error('Error al cargar ZIP:', error);
         showStatus('❌ Error al cargar proyecto ZIP: ' + error.message, 'error');
     }
 }
 
-// ========== FUNCIONES PARA LOG DE ERRORES ==========
+// =====================================================
+// FUNCIONES PARA LOG DE ERRORES
+// =====================================================
+
 function loadErrorLog() {
     const container = document.getElementById('error-log-content');
     if (!container) return;
-    
+
     const errors = errorHandler ? errorHandler.getErrors() : [];
-    
+
     if (errors.length === 0) {
         container.innerHTML = `
             <p style="text-align: center; color: var(--text-secondary); padding: 30px;">
@@ -3116,7 +3084,7 @@ function loadErrorLog() {
         `;
         return;
     }
-    
+
     let html = `
         <div style="margin-bottom: 20px;">
             <p>Total de errores: <strong>${errors.length}</strong></p>
@@ -3125,7 +3093,7 @@ function loadErrorLog() {
             </p>
         </div>
     `;
-    
+
     errors.forEach((error, index) => {
         html += `
             <div class="card" style="margin-bottom: 15px; border-left: 4px solid var(--error);">
@@ -3158,17 +3126,17 @@ ${JSON.stringify(error.extraData, null, 2)}
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 function copyErrorDetails(index) {
     const errors = errorHandler ? errorHandler.getErrors() : [];
     if (index < 0 || index >= errors.length) return;
-    
+
     const error = errors[index];
     const text = `Error: ${error.error.message}\nContexto: ${error.context}\nFecha: ${error.timestamp}\nStack: ${error.error.stack || 'No disponible'}`;
-    
+
     navigator.clipboard.writeText(text).then(() => {
         showStatus('✅ Detalles del error copiados al portapapeles', 'success');
     }).catch(err => {
@@ -3196,7 +3164,7 @@ function exportErrorLog() {
             totalErrors: errors.length,
             errors: errors
         };
-        
+
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -3204,7 +3172,7 @@ function exportErrorLog() {
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
-        
+
         showStatus('✅ Log de errores exportado', 'success');
     } catch (error) {
         console.error('Error al exportar log:', error);
@@ -3212,7 +3180,10 @@ function exportErrorLog() {
     }
 }
 
-// ========== FUNCIONES DE INICIALIZACIÓN ==========
+// =====================================================
+// FUNCIONES DE INICIALIZACIÓN
+// =====================================================
+
 document.addEventListener('DOMContentLoaded', () => {
     loadTabTemplates()
         .then(() => {
@@ -3265,16 +3236,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 2000);
 
-            // Prevenir que Enter envíe el formulario en toda la aplicación
-            const form = document.getElementById('spec-creator-form');
-            if (form) {
-                form.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
-                        e.preventDefault();
-                        return false;
-                    }
-                });
-            }
+            console.log('✅ Tegra Spec Manager v2.0 iniciado');
+            console.log('✅ Motor de reglas disponible:', !!window.SequenceAutomation);
         })
         .catch((error) => {
             console.error('Error al cargar templates:', error);
@@ -3286,24 +3249,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 
-// ========== FUNCIONES DE UTILIDAD ==========
+// =====================================================
+// FUNCIONES DE UTILIDAD
+// =====================================================
+
 function normalizeGearForSportColor(colorName) {
     if (!colorName) return colorName;
-    
+
     const upperColor = colorName.toUpperCase().trim();
-    
+
     if (Config && Config.COLOR_DATABASES && Config.COLOR_DATABASES.GEARFORSPORT) {
         for (const [key, data] of Object.entries(Config.COLOR_DATABASES.GEARFORSPORT)) {
             const keyUpper = key.toUpperCase();
-            
+
             if (upperColor === keyUpper) {
                 return key;
             }
-            
+
             if (keyUpper.includes(upperColor) || upperColor.includes(keyUpper)) {
                 return key;
             }
-            
+
             const numberMatch = upperColor.match(/(\d{3,4})/);
             if (numberMatch) {
                 const number = numberMatch[1];
@@ -3313,30 +3279,13 @@ function normalizeGearForSportColor(colorName) {
             }
         }
     }
-    
+
     return colorName;
 }
-// Botón "Consultar al asistente"
-window.consultarAsistente = function(placementId) {
-    const orden = {
-        tinta: document.getElementById(`inkType-${placementId}`).value,
-        tela: document.getElementById('fabric').value,
-        color_tela: document.getElementById('colorway').value,
-        colores: obtenerColores(placementId)
-    };
-    
-    // Envías al asistente y recibes secuencia
-    fetch('https://tu-api-asistente.com/generar', {
-        method: 'POST',
-        body: JSON.stringify(orden)
-    })
-    .then(res => res.json())
-    .then(secuencia => {
-        aplicarSecuencia(placementId, secuencia);
-    });
-};
 
-// ========== EXPORTAR FUNCIONES GLOBALES ==========
+// =====================================================
+// EXPORTAR FUNCIONES GLOBALES
+// =====================================================
 window.showTab = showTab;
 window.loadSavedSpecsList = loadSavedSpecsList;
 window.clearErrorLog = clearErrorLog;
@@ -3367,4 +3316,4 @@ window.updateAllPlacementTitles = updateAllPlacementTitles;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
-window.loadLastSpec = loadLastSpec;
+window.generarConAsistente = generarConAsistente;
