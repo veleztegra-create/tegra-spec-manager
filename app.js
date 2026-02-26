@@ -2461,11 +2461,17 @@ function processExcelData(worksheet, sheetName = '') {
                     }
                 }
                 else if (label.includes('STYLE:')) {
-                    extracted.style = val;
-                    extracted.team = detectTeamFromStyle(val);
-                    if (extracted.isGearForSport) {
-                        extracted.gender = extractGenderFromStyle(val);
-                    }
+    extracted.style = val;
+    // PASAR TANTO EL ESTILO COMO EL CLIENTE
+    extracted.team = detectTeamFromStyle(val, extracted.customer);
+    
+    if (extracted.isGearForSport) {
+        extracted.gender = extractGenderFromStyle(val);
+        console.log(`🏈 GFS detectado - estilo: ${val}, género: ${extracted.gender}`);
+    } else {
+        console.log(`🏈 Cliente ${extracted.customer} - buscando equipo NFL/NCAA`);
+    }
+}
                 }
                 else if (label.includes('COLORWAY')) {
                     extracted.colorway = val;
