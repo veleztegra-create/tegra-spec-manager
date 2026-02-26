@@ -1,0 +1,38 @@
+{
+  "nombre": "PLASTISOL",
+  "version": "1.0",
+  "reglas_generales": {
+    "temperatura": "320 °F",
+    "tiempo": "1:00 min",
+    "requiere_bloqueador": true,
+    "bases_blancas": {
+      "sobre_claro": 0,
+      "sobre_oscuro": 1
+    },
+    "mallas": {
+      "BLOCKER": {
+        "primera": "110/64",
+        "segunda": "156/64",
+        "tercera": "156/64"
+      },
+      "WHITE_BASE": {
+        "primera": "156/64",
+        "segunda": "110/64"
+      },
+      "COLOR": {
+        "normal": "156/64",
+        "segunda_pantalla": "156/64"
+      }
+    },
+    "aditivos": {
+      "COLOR": "1% catalyst",
+      "BLOCKER": "N/A",
+      "WHITE_BASE": "N/A"
+    },
+    "durometro": "65",
+    "strokes": "1",
+    "angulo": "15",
+    "presion": "40",
+    "velocidad": "35"
+  }
+}
