@@ -502,6 +502,7 @@ function getNextPlacementType() {
 function getNextPlacementNumber() {
     return placements.length + 1;
 }
+
 // =====================================================
 // FUNCIÓN PARA GENERAR ID ÚNICO GFS (STYLE-COLORWAY)
 // =====================================================
@@ -560,6 +561,7 @@ if (typeof window.errorHandler === 'undefined') {
     };
     console.log("✅ errorHandler creado");
 }
+
 // =====================================================
 // ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE (COMPLETA) ⭐
 // =====================================================
@@ -815,75 +817,7 @@ window.generarConAsistente = async function(placementId) {
         showStatus('❌ Error: ' + error.message, 'error');
     }
 };
-        // =============================================
-        // USAR RULES ENGINE EN VEZ DE REGLAS DURAS
-        // =============================================
-        const customer = document.getElementById('customer')?.value || '';
-        const colorTela = document.getElementById('colorway')?.value || '';
-        
-        try {
-    // Obtener reglas del cliente
-    const reglasCliente = window.RulesEngine?.getReglasCliente(customer);
-    
-    // Construir secuencia
-    let secuencia = [];
-    
-    // Agregar bloqueadores según tela
-    const tipoTela = window.RulesEngine?.clasificarTela(colorTela) || 'clara';
-    
-    if (tipoTela === 'oscura') {
-        // 3 bloqueadores para tela oscura
-        for (let i = 0; i < 3; i++) {
-            secuencia.push({
-                tipo: "BLOCKER",
-                nombre: "Bloquer CHT",
-                malla: reglasCliente?.reglas.mallas_por_defecto?.BLOCKER || "110",
-                screenLetter: String.fromCharCode(65 + i)
-            });
-        }
-    }
-    
-    // Procesar cada color
-    placement.colors
-        .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
-        .forEach((color, index) => {
-            // Verificar si es color especial
-            const especial = window.RulesEngine?.esColorEspecial(color.val);
-            const pantallas = especial ? especial.pantallas : 2;
-            
-            for (let p = 1; p <= pantallas; p++) {
-                secuencia.push({
-                    tipo: "COLOR",
-                    nombre: color.val + (p > 1 ? ` (${p})` : ""),
-                    screenLetter: String(p),
-                    malla: especial?.mallas[p-1] || 
-                           reglasCliente?.reglas.mallas_por_defecto?.COLOR ||
-                           "157",
-                    aditivos: especial?.aditivos ||
-                             reglasCliente?.reglas.aditivos_por_defecto?.COLOR ||
-                             "3% CL 500 · 5% ecofix XL"
-                });
-            }
-            
-            // Agregar FLASH y COOL entre colores
-            if (index < placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC').length - 1) {
-                secuencia.push({ tipo: "FLASH", nombre: "FLASH", malla: "-", screenLetter: "" });
-                secuencia.push({ tipo: "COOL", nombre: "COOL", malla: "-", screenLetter: "" });
-            }
-        });
-    
-    // Aplicar al placement
-    placement.colors = secuencia;
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    
-    showStatus('✅ Reglas aplicadas correctamente', 'success');
-    
-} catch (error) {
-    console.error('❌ Error:', error);
-    showStatus('❌ Error aplicando reglas', 'error');
-}
-// 👋 NO PONGAS NADA MÁS AQUÍ
+
 // =====================================================
 // FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS
 // =====================================================
@@ -2436,9 +2370,10 @@ function updatePlacementField(placementId, field, value) {
     }
 }
 
- // En el event listener del Excel, cuando llama a processExcelData:
+// =====================================================
+// FUNCIÓN PARA PROCESAR DATOS EXCEL
+// =====================================================
 
-// Luego detectTeamFromStyle usará ese cliente
 function processExcelData(worksheet, sheetName = '') {
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     const extracted = {};
@@ -2458,27 +2393,21 @@ function processExcelData(worksheet, sheetName = '') {
             if (label && val) {
                 if (label.includes('CUSTOMER:')) {
                     extracted.customer = val;
-                    if (val.toUpperCase().includes('GEAR FOR SPORT') ||
-                        val.toUpperCase().includes('GEARFORSPORT')) {
-                        extracted.isGearForSport = true;
-                    }
                 }
                 else if (label.includes('STYLE:')) {
                     extracted.style = val;
-                    // PASAR TANTO EL ESTILO COMO EL CLIENTE
-                    extracted.team = detectTeamFromStyle(val, extracted.customer); // ← AHORA USA extracted.customer
+                    extracted.team = detectTeamFromStyle(val);
                     
-                    if (extracted.isGearForSport) {
+                    if (extracted.customer && extracted.customer.toUpperCase().includes('GEAR')) {
                         extracted.gender = extractGenderFromStyle(val);
-        console.log(`🏈 GFS detectado - estilo: ${val}, género: ${extracted.gender}`);
-    } else {
-        console.log(`🏈 Cliente ${extracted.customer} - buscando equipo NFL/NCAA`);
-    }
-}
+                        console.log(`🏈 GFS detectado - estilo: ${val}, género: ${extracted.gender}`);
+                    } else {
+                        console.log(`🏈 Cliente ${extracted.customer} - buscando equipo NFL/NCAA`);
+                    }
                 }
                 else if (label.includes('COLORWAY')) {
                     extracted.colorway = val;
-                    if (extracted.isGearForSport && val.includes('-')) {
+                    if (extracted.customer && extracted.customer.toUpperCase().includes('GEAR') && val.includes('-')) {
                         const colorParts = val.split('-').map(p => p.trim());
                         if (colorParts.length >= 2) {
                             const normalizedColor = normalizeGearForSportColor(val);
@@ -2744,7 +2673,7 @@ function loadSavedSpecsList() {
                     <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data)})'><i class="fas fa-edit"></i> Cargar</button>
+                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'><i class="fas fa-edit"></i> Cargar</button>
                     <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
                 </div>
