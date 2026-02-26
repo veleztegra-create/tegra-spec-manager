@@ -101,55 +101,125 @@ const Utils = {
     },
     
     // ========== FUNCIONES CON DEPENDENCIAS (con verificaciones) ==========
-    
-  // Reemplazar la función detectTeamFromStyle existente
+  // En utils.js - VERSIÓN CORREGIDA
 
-detectTeamFromStyle: function(style) {
+detectTeamFromStyle: function(style, customer = '') {
     if (!style) return '';
     
     try {
         const styleStr = style.toString().toUpperCase().trim();
+        const customerUpper = (customer || '').toUpperCase();
         
-        // 1. Primero detectar si es Gear for Sport usando SchoolsConfig
-        if (window.SchoolsConfig) {
-            const schoolData = window.SchoolsConfig.detectSchoolFromStyle(styleStr);
-            if (schoolData) {
-                return schoolData.teamName;
-            }
-        }
+        console.log('🔍 Detectando equipo:', { style: styleStr, customer: customerUpper });
         
-        // 2. Buscar en Gear for Sport original
-        if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
-            for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
-                if (styleStr === code || styleStr.includes(code)) {
-                    return teamName;
+        // =============================================
+        // CASO 1: GEAR FOR SPORT (usa SchoolsConfig)
+        // =============================================
+        const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.'].some(v => customerUpper.includes(v));
+        
+        if (isGFS) {
+            console.log('🏈 Cliente GFS detectado - usando SchoolsConfig');
+            if (window.SchoolsConfig) {
+                const schoolData = window.SchoolsConfig.detectSchoolFromStyle(styleStr);
+                if (schoolData) {
+                    return schoolData.teamName;
                 }
             }
-        }
-        
-        // 3. Buscar en el mapa general de equipos
-        if (window.Config && window.Config.TEAM_CODE_MAP) {
-            const teamMap = window.Config.TEAM_CODE_MAP;
-            if (typeof teamMap === 'object') {
-                for (const [code, teamName] of Object.entries(teamMap)) {
+            // Fallback GFS
+            if (window.Config?.GEARFORSPORT_TEAM_MAP) {
+                for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
                     if (styleStr.includes(code)) {
                         return teamName;
                     }
                 }
             }
+            return '';
         }
         
-        // 4. Buscar en TeamsConfig
-        if (window.TeamsConfig) {
-            const leagues = ['NCAA', 'NBA', 'NFL'];
+        // =============================================
+        // CASO 2: FANATICS / NFL (usa lógica específica)
+        // =============================================
+        console.log('🏈 Cliente NFL/Fanatics detectado - usando base NFL');
+        
+        // Mapa específico para NFL (priorizando códigos largos)
+        const nflTeams = {
+            // NFC Norte
+            "CHI": "Chicago Bears",
+            "DET": "Detroit Lions",
+            "GB": "Green Bay Packers",
+            "GNB": "Green Bay Packers",
+            "MIN": "Minnesota Vikings",
             
-            for (const league of leagues) {
-                if (window.TeamsConfig[league] && window.TeamsConfig[league].teams) {
-                    for (const [code, teamData] of Object.entries(window.TeamsConfig[league].teams)) {
-                        if (styleStr.includes(code)) {
-                            return teamData.name;
-                        }
-                    }
+            // NFC Sur
+            "ATL": "Atlanta Falcons",
+            "CAR": "Carolina Panthers",
+            "NO": "New Orleans Orleans",
+            "NOS": "New Orleans Saints",
+            "TB": "Tampa Bay Buccaneers",
+            "TBB": "Tampa Bay Buccaneers",
+            "BUC": "Tampa Bay Buccaneers",
+            
+            // NFC Este
+            "DAL": "Dallas Cowboys",
+            "NYG": "New York Giants",
+            "PHI": "Philadelphia Eagles",
+            "WAS": "Washington Commanders",
+            
+            // NFC Oeste
+            "ARI": "Arizona Cardinals",
+            "LAR": "Los Angeles Rams",
+            "SF": "San Francisco 49ers",
+            "SEA": "Seattle Seahawks",
+            
+            // AFC Norte
+            "BAL": "Baltimore Ravens",
+            "CIN": "Cincinnati Bengals",
+            "CLE": "Cleveland Browns",
+            "PIT": "Pittsburgh Steelers",
+            
+            // AFC Sur
+            "HOU": "Houston Texans",
+            "IND": "Indianapolis Colts",
+            "JAX": "Jacksonville Jaguars",
+            "JAC": "Jacksonville Jaguars",
+            "TEN": "Tennessee Titans",
+            
+            // AFC Este
+            "BUF": "Buffalo Bills",
+            "MIA": "Miami Dolphins",
+            "NE": "New England Patriots",
+            "NEP": "New England Patriots",
+            "NYJ": "New York Jets",
+            
+            // AFC Oeste
+            "DEN": "Denver Broncos",
+            "KC": "Kansas City Chiefs",
+            "KCC": "Kansas City Chiefs",
+            "LV": "Las Vegas Raiders",
+            "LVR": "Las Vegas Raiders",
+            "OAK": "Las Vegas Raiders", // histórico
+            "LAC": "Los Angeles Chargers"
+        };
+        
+        // Ordenar por longitud (códigos más largos primero)
+        const sortedCodes = Object.keys(nflTeams).sort((a, b) => b.length - a.length);
+        
+        for (const code of sortedCodes) {
+            // Buscar como palabra completa
+            const regex = new RegExp(`\\b${code}\\b`, 'i');
+            if (regex.test(styleStr)) {
+                console.log(`✅ NFL detectado: ${nflTeams[code]} (código: ${code})`);
+                return nflTeams[code];
+            }
+        }
+        
+        // =============================================
+        // CASO 3: NCAA (si no es NFL ni GFS)
+        // =============================================
+        if (window.TeamsConfig?.NCAA?.teams) {
+            for (const [code, teamData] of Object.entries(window.TeamsConfig.NCAA.teams)) {
+                if (code.length >= 3 && styleStr.includes(code)) {
+                    return teamData.name;
                 }
             }
         }
@@ -159,7 +229,7 @@ detectTeamFromStyle: function(style) {
     }
     
     return '';
-},
+}
     
     extractGenderFromStyle: function(style) {
         if (!style) return '';
