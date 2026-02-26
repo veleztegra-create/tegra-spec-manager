@@ -2436,6 +2436,13 @@ function updatePlacementField(placementId, field, value) {
     }
 }
 
+// En el event listener del Excel, cuando llama a processExcelData:
+
+// Antes de processExcelData, asegurar que tenemos el customer
+const customer = document.getElementById('customer')?.value || '';
+extracted.customer = customer; // ya debería estar
+
+// Luego detectTeamFromStyle usará ese customer
 function processExcelData(worksheet, sheetName = '') {
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     const extracted = {};
