@@ -1,0 +1,32 @@
+{
+  "nombre": "Telas Oscuras",
+  "version": "1.0",
+  "identificadores": ["negro", "black", "navy", "azul marino", "charcoal", "carbon", "maroon", "granate", "dark", "oscuro", "forest", "verde oscuro", "hunter"],
+  "reglas": {
+    "bloqueadores": {
+      "requeridos": true,
+      "cantidad": 3,
+      "mallas": ["110", "122", "157"],
+      "orden": "siempre_primero",
+      "excepciones": {
+        "plastisol": {
+          "mallas": ["110/64", "156/64", "156/64"]
+        }
+      }
+    },
+    "bases_blancas": {
+      "requeridas": true,
+      "cantidad": 1,
+      "malla": "122",
+      "aditivos": "3% CL 500"
+    },
+    "colores_claros": {
+      "requieren_base_blanca": true,
+      "base_sobre": "AQUAFLEX"
+    },
+    "colores_oscuros": {
+      "requieren_base_blanca": false,
+      "base_sobre": "BLOCKER"
+    }
+  }
+}
