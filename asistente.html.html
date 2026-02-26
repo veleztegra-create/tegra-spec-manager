@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asistente Técnico - Tegra</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px; padding: 20px; }
+        textarea { width: 100%; height: 200px; margin-bottom: 10px; }
+        button { padding: 10px; background: #E31837; color: white; border: none; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🧠 Asistente Técnico Tegra</h1>
+    
+    <textarea id="input" placeholder="Escribe tu regla en lenguaje natural...">
+WATER BASE Jersey Fabric White / Color ink Claros
+1. AquaFlex V2…. Malla 110
+2. AquaFlex V2…. Malla 122
+3. Bloquer CHT……Malla 157
+4. AquaFlex V2…. Malla 122, Aditivos: 3 % CL 500
+5. Color 1……………Malla 157, Aditivos: 3 % CL 500 · 5 % ecofix XL
+6. Color 1……………Malla 198, Aditivos: 3 % CL 500 · 5 % ecofix XL
+    </textarea>
+    
+    <button onclick="procesar()">Convertir a Regla JSON</button>
+    
+    <h3>Resultado:</h3>
+    <pre id="output"></pre>
+    
+    <button onclick="guardarEnRules()">➕ Guardar en rules.json</button>
+    
+    <script>
+    async function procesar() {
+        const texto = document.getElementById('input').value;
+        
+        // Aquí conectas con OpenAI o similar
+        // Por ahora, simula respuesta
+        const regla = {
+            id: "regla_" + Date.now(),
+            nombre: texto.split('\n')[0],
+            condiciones: {
+                tinta: "WATER",
+                tela: "jersey",
+                color_tela: "white"
+            },
+            secuencia: [
+                { tipo: "WHITE_BASE", malla: "110" },
+                { tipo: "WHITE_BASE", malla: "122" },
+                { tipo: "BLOCKER", malla: "157" },
+                { tipo: "WHITE_BASE", malla: "122", aditivos: "3% CL 500" },
+                { tipo: "COLOR", malla: "157", aditivos: "3% CL 500 · 5% ecofix XL" },
+                { tipo: "COLOR", malla: "198", aditivos: "3% CL 500 · 5% ecofix XL" }
+            ]
+        };
+        
+        document.getElementById('output').textContent = 
+            JSON.stringify(regla, null, 2);
+    }
+    
+    async function guardarEnRules() {
+        // Esto guarda en tu archivo rules.json
+        const regla = JSON.parse(document.getElementById('output').textContent);
+        
+        // Aquí iría fetch a tu backend o guardado local
+        console.log("Guardando:", regla);
+        alert("Regla guardada en rules.json");
+    }
+    </script>
+</body>
+</html>
