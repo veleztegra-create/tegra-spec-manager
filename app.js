@@ -2436,13 +2436,9 @@ function updatePlacementField(placementId, field, value) {
     }
 }
 
-// En el event listener del Excel, cuando llama a processExcelData:
+ // En el event listener del Excel, cuando llama a processExcelData:
 
-// Antes de processExcelData, asegurar que tenemos el customer
-const customer = document.getElementById('customer')?.value || '';
-extracted.customer = customer; // ya debería estar
-
-// Luego detectTeamFromStyle usará ese customer
+// Luego detectTeamFromStyle usará ese cliente
 function processExcelData(worksheet, sheetName = '') {
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     const extracted = {};
@@ -2468,12 +2464,12 @@ function processExcelData(worksheet, sheetName = '') {
                     }
                 }
                 else if (label.includes('STYLE:')) {
-    extracted.style = val;
-    // PASAR TANTO EL ESTILO COMO EL CLIENTE
-    extracted.team = detectTeamFromStyle(val, extracted.customer);
-    
-    if (extracted.isGearForSport) {
-        extracted.gender = extractGenderFromStyle(val);
+                    extracted.style = val;
+                    // PASAR TANTO EL ESTILO COMO EL CLIENTE
+                    extracted.team = detectTeamFromStyle(val, extracted.customer); // ← AHORA USA extracted.customer
+                    
+                    if (extracted.isGearForSport) {
+                        extracted.gender = extractGenderFromStyle(val);
         console.log(`🏈 GFS detectado - estilo: ${val}, género: ${extracted.gender}`);
     } else {
         console.log(`🏈 Cliente ${extracted.customer} - buscando equipo NFL/NCAA`);
