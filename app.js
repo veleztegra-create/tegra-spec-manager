@@ -2167,112 +2167,71 @@ function updatePlacementStations(placementId, returnOnly = false) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return [];
 
-    const preset = getInkPresetSafe(placement.inkType || 'WATER');
+    // ✅ USAR LA SECUENCIA COMPLETA, no los colores
+    const sequence = placement.sequence || [];
+    
+    if (sequence.length === 0) {
+        if (!returnOnly) {
+            const div = document.getElementById(`placement-sequence-table-${placementId}`);
+            if (div) div.innerHTML = '<p>No hay secuencia generada</p>';
+        }
+        return [];
+    }
 
+    const preset = getInkPresetSafe(placement.inkType || 'WATER');
     const stationsData = [];
     let stNum = 1;
 
-    const meshColor = placement.meshColor || preset.color.mesh;
-    const meshWhite = placement.meshWhite || preset.white.mesh1;
-    const meshBlocker = placement.meshBlocker || preset.blocker.mesh1;
-    const durometer = placement.durometer || preset.color.durometer;
-    const strokes = placement.strokes || preset.color.strokes;
-    const angle = placement.angle || preset.color.angle;
-    const pressure = placement.pressure || preset.color.pressure;
-    const speed = placement.speed || preset.color.speed;
-    const additives = placement.additives || preset.color.additives;
-
-    placement.colors.forEach((item, idx) => {
-        let mesh, strokesVal, duro, ang, press, spd, add, screenLetter, screenTypeLabel;
-
-        screenLetter = item.screenLetter || 'N/A';
-
-        if (item.type === 'BLOCKER') {
-            screenTypeLabel = preset.blocker.name;
-            mesh = item.mesh || (stNum <= 3 ? meshBlocker : (placement.meshBlocker || preset.blocker.mesh2));
-            strokesVal = strokes;
-            duro = durometer;
-            ang = angle;
-            press = pressure;
-            spd = speed;
-            add = placement.additives || preset.blocker.additives;
-        } else if (item.type === 'WHITE_BASE') {
-            screenTypeLabel = preset.white.name;
-            mesh = item.mesh || (stNum <= 9 ? meshWhite : (placement.meshWhite || preset.white.mesh2));
-            strokesVal = strokes;
-            duro = durometer;
-            ang = angle;
-            press = pressure;
-            spd = speed;
-            add = placement.additives || preset.white.additives;
-        } else if (item.type === 'METALLIC') {
-            screenTypeLabel = item.val || '---';
-            mesh = item.mesh || '110/64';
-            strokesVal = '1';
-            duro = '70';
-            ang = '15';
-            press = '40';
-            spd = '35';
-            add = 'Catalizador especial para metálicos';
-        } else {
-            screenTypeLabel = item.val || '---';
-            mesh = item.mesh || meshColor;
-            strokesVal = strokes;
-            duro = durometer;
-            ang = angle;
-            press = pressure;
-            spd = speed;
-            add = additives;
+    // Recorrer la secuencia completa (YA incluye FLASH/COOL)
+    for (let idx = 0; idx < sequence.length; idx++) {
+        const item = sequence[idx];
+        
+        // Si es FLASH o COOL, agregar directamente
+        if (item.type === 'FLASH' || item.type === 'COOL') {
+            stationsData.push({
+                st: stNum++,
+                screenLetter: '',
+                screenCombined: item.type,
+                mesh: '-',
+                ink: '-',
+                strokes: '-',
+                duro: '-',
+                angle: '-',
+                pressure: '-',
+                speed: '-',
+                add: item.additives || ''
+            });
+            continue;
         }
 
-        const screenCombined = (item.type === 'BLOCKER' || item.type === 'WHITE_BASE' || item.type === 'METALLIC')
-            ? screenTypeLabel
-            : item.val || '---';
+        // Procesar tintas normales
+        let mesh, strokesVal, duro, ang, press, spd, add;
+        
+        if (item.type === 'BLOCKER') {
+            mesh = item.mesh || preset.blocker.mesh1;
+            add = item.additives || preset.blocker.additives;
+        } else if (item.type === 'WHITE_BASE') {
+            mesh = item.mesh || preset.white.mesh1;
+            add = item.additives || preset.white.additives;
+        } else {
+            mesh = item.mesh || preset.color.mesh;
+            add = item.additives || preset.color.additives;
+        }
 
         stationsData.push({
             st: stNum++,
-            screenLetter: screenLetter,
-            screenCombined: screenCombined,
+            screenLetter: item.screenLetter || '',
+            screenCombined: item.val || '---',
             mesh: mesh,
             ink: item.val || '---',
-            strokes: strokesVal,
-            duro: duro,
-            angle: ang,
-            pressure: press,
-            speed: spd,
+            strokes: preset.color.strokes,
+            duro: preset.color.durometer,
+            angle: preset.color.angle,
+            pressure: preset.color.pressure,
+            speed: preset.color.speed,
             add: add
         });
-
-        if (idx < placement.colors.length - 1) {
-            stationsData.push({
-                st: stNum++,
-                screenLetter: '',
-                screenCombined: 'FLASH',
-                mesh: '-',
-                ink: '-',
-                strokes: '-',
-                duro: '-',
-                angle: '-',
-                pressure: '-',
-                speed: '-',
-                add: ''
-            });
-
-            stationsData.push({
-                st: stNum++,
-                screenLetter: '',
-                screenCombined: 'COOL',
-                mesh: '-',
-                ink: '-',
-                strokes: '-',
-                duro: '-',
-                angle: '-',
-                pressure: '-',
-                speed: '-',
-                add: ''
-            });
-        }
-    });
+    }
 
     if (returnOnly) return stationsData;
 
