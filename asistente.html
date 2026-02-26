@@ -1,70 +1,146 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Asistente Técnico - Tegra</title>
-    <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 20px; padding: 20px; }
-        textarea { width: 100%; height: 200px; margin-bottom: 10px; }
-        button { padding: 10px; background: #E31837; color: white; border: none; cursor: pointer; }
-        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
-    </style>
-</head>
-<body>
-    <h1>🧠 Asistente Técnico Tegra</h1>
+// asistente-tecnico.js - Código REAL para conectar IA a tu programa
+
+const AsistenteTegra = {
+    // Tu API key (guárdala en un lugar seguro)
+    API_KEY: 'sk-TU_API_KEY_AQUI', // <-- PON TU LLAVE AQUÍ
     
-    <textarea id="input" placeholder="Escribe tu regla en lenguaje natural...">
-WATER BASE Jersey Fabric White / Color ink Claros
-1. AquaFlex V2…. Malla 110
-2. AquaFlex V2…. Malla 122
-3. Bloquer CHT……Malla 157
-4. AquaFlex V2…. Malla 122, Aditivos: 3 % CL 500
-5. Color 1……………Malla 157, Aditivos: 3 % CL 500 · 5 % ecofix XL
-6. Color 1……………Malla 198, Aditivos: 3 % CL 500 · 5 % ecofix XL
-    </textarea>
+    // Modelo a usar
+    MODELO: 'gpt-4-turbo-preview', // o 'gpt-3.5-turbo' para más barato
     
-    <button onclick="procesar()">Convertir a Regla JSON</button>
+    // ENDPOINT REAL de OpenAI
+    URL: 'https://api.openai.com/v1/chat/completions',
     
-    <h3>Resultado:</h3>
-    <pre id="output"></pre>
+    // El conocimiento de tu taller (esto es lo que hace la magia)
+    conocimientoBase: `
+    CONOCIMIENTO TÉCNICO DEL TALLER TEGRA:
     
-    <button onclick="guardarEnRules()">➕ Guardar en rules.json</button>
+    WATERBASE - REGLAS GENERALES:
+    - Tela blanca/natural: 2 bases blancas (110, 122) + 1 blocker 157
+    - Tela negra/oscura: 3 blockers (110, 122, 157) + bases según colores
+    - Temperatura siempre: 320°F
+    - Tiempo siempre: 1:40 min
     
-    <script>
-    async function procesar() {
-        const texto = document.getElementById('input').value;
+    CLASIFICACIÓN DE COLORES:
+    - Claros: amarillos, naranjas, rosas, dorados, beiges
+    - Oscuros: rojos, azules, verdes, morados, marrones, negros
+    - Especiales (3 pantallas): 77C Gold, 78H Amarillo, 761 University Gold
+    
+    SECUENCIA BLANCO CON COLORES CLAROS:
+    1. AquaFlex V2 M110
+    2. AquaFlex V2 M122
+    3. Blocker CHT M157
+    4. AquaFlex V2 M122 + 3% CL 500
+    Por cada color claro:
+       - Color M157 + 3% CL 500 + 5% ecofix XL
+       - Color M198 + 3% CL 500 + 5% ecofix XL
+    
+    SECUENCIA BLANCO CON COLORES OSCUROS:
+    1. AquaFlex V2 M110
+    2. AquaFlex V2 M122
+    3. Blocker CHT M157
+    4. AquaFlex V2 M122 + 3% CL 500
+    Por cada color oscuro:
+       - Color M157 + 3% CL 500 + 5% ecofix XL
+       - Color M198 + 3% CL 500 + 5% ecofix XL
+    
+    SECUENCIA NEGRO CON COLORES OSCUROS:
+    1. Blocker CHT M110
+    2. Blocker CHT M122
+    3. Blocker CHT M157
+    Por cada color claro/medio:
+       - AquaFlex V2 M122 + 3% CL 500
+       - Color M198 + 3% CL 500 + 5% ecofix XL
+       - Color M157 + 3% CL 500 + 5% ecofix XL
+    Por cada color oscuro:
+       - Color M198 + 3% CL 500 + 5% ecofix XL
+       - Color M157 + 3% CL 500 + 5% ecofix XL
+    
+    REGLA FLASH/COOL:
+    - Después de cada pantalla de tinta (excepto la última) va FLASH + COOL
+    
+    COLORES ESPECIALES (3 PANTALLAS):
+    - 77C Gold: M157, M198, M110
+    - 78H Amarillo: M157, M198, M110  
+    - 761 University Gold: M157, M198, M110
+    `,
+    
+    // Función para generar secuencia
+    async generarSecuencia(orden) {
+        try {
+            const prompt = `
+            Basado en este conocimiento técnico:
+            ${this.conocimientoBase}
+            
+            Genera la secuencia de impresión COMPLETA para:
+            - Tela: ${orden.tela || 'jersey'}
+            - Color de tela: ${orden.colorTela}
+            - Tipo de tinta: ${orden.tinta}
+            - Colores del diseño: ${orden.colores.join(', ')}
+            
+            La respuesta debe ser en formato JSON con:
+            {
+                "secuencia": [
+                    {
+                        "estacion": 1,
+                        "tipo": "WHITE_BASE|BLOCKER|COLOR|FLASH|COOL",
+                        "nombre": "AquaFlex V2",
+                        "malla": "110",
+                        "aditivos": "3% CL 500",
+                        "screenLetter": "A"
+                    }
+                ],
+                "totalEstaciones": número,
+                "explicacion": "texto explicativo"
+            }
+            
+            IMPORTANTE: Incluye FLASH y COOL entre cada color.
+            `;
+            
+            const respuesta = await fetch(this.URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: this.MODELO,
+                    messages: [
+                        { role: 'system', content: 'Eres un experto en serigrafía. Genera secuencias precisas basadas en las reglas del taller.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.3, // Bajo para que sea preciso, no creativo
+                    response_format: { type: "json_object" }
+                })
+            });
+            
+            const data = await respuesta.json();
+            return JSON.parse(data.choices[0].message.content);
+            
+        } catch (error) {
+            console.error('Error con asistente:', error);
+            return null;
+        }
+    },
+    
+    // Función para guardar NUEVAS reglas
+    async guardarRegla(textoRegla) {
+        const prompt = `
+        Convierte esta regla técnica en formato JSON estructurado:
         
-        // Aquí conectas con OpenAI o similar
-        // Por ahora, simula respuesta
-        const regla = {
-            id: "regla_" + Date.now(),
-            nombre: texto.split('\n')[0],
-            condiciones: {
-                tinta: "WATER",
-                tela: "jersey",
-                color_tela: "white"
-            },
-            secuencia: [
-                { tipo: "WHITE_BASE", malla: "110" },
-                { tipo: "WHITE_BASE", malla: "122" },
-                { tipo: "BLOCKER", malla: "157" },
-                { tipo: "WHITE_BASE", malla: "122", aditivos: "3% CL 500" },
-                { tipo: "COLOR", malla: "157", aditivos: "3% CL 500 · 5% ecofix XL" },
-                { tipo: "COLOR", malla: "198", aditivos: "3% CL 500 · 5% ecofix XL" }
-            ]
-        };
+        ${textoRegla}
         
-        document.getElementById('output').textContent = 
-            JSON.stringify(regla, null, 2);
+        Responde con JSON que tenga:
+        {
+            "id": "regla_nombre_unico",
+            "condiciones": { ... },
+            "secuencia": [ ... ],
+            "excepciones": [ ... ]
+        }
+        `;
+        
+        // Misma lógica de fetch...
     }
-    
-    async function guardarEnRules() {
-        // Esto guarda en tu archivo rules.json
-        const regla = JSON.parse(document.getElementById('output').textContent);
-        
-        // Aquí iría fetch a tu backend o guardado local
-        console.log("Guardando:", regla);
-        alert("Regla guardada en rules.json");
-    }
-    </script>
-</body>
-</html>
+};
+
+// Exportar para usar en tu programa
+window.AsistenteTegra = AsistenteTegra;
