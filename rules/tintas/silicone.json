@@ -1,0 +1,16 @@
+{
+  "nombre": "SILICONE",
+  "version": "1.0",
+  "reglas_generales": {
+    "temperatura": "320 °F",
+    "tiempo": "1:40 min",
+    "mallas": {
+      "BLOCKER": {"primera": "110/64"},
+      "WHITE_BASE": {"primera": "122/55"},
+      "COLOR": {"normal": "157/48"}
+    },
+    "aditivos": {
+      "COLOR": "3% cat · 2% ret"
+    }
+  }
+}
