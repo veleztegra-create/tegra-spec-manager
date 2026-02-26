@@ -3574,6 +3574,88 @@ function normalizeGearForSportColor(colorName) {
 
     return colorName;
 }
+// =====================================================
+// ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE (COMPLETA) ⭐
+// =====================================================
+
+window.generarConAsistente = async function(placementId) {
+    // =============================================
+    // 1. OBTENER DATOS NECESARIOS
+    // =============================================
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) {
+        showStatus('❌ Placement no encontrado', 'error');
+        return;
+    }
+
+    const customer = document.getElementById('customer')?.value || '';
+    const garmentColor = document.getElementById('colorway')?.value || '';  // ← COLOR DE LA TELA
+    const inkType = placement.inkType || 'WATER';
+    
+    // Obtener colores del diseño
+    const designColors = placement.colors.filter(c => 
+        c.type === 'COLOR' || c.type === 'METALLIC'
+    ).map(c => ({ id: c.id, val: c.val }));
+
+    if (designColors.length === 0) {
+        showStatus('⚠️ No hay colores de diseño', 'warning');
+        return;
+    }
+
+    // =============================================
+    // 2. LLAMAR AL MOTOR DE REGLAS (HACE PASOS 2-6)
+    // =============================================
+    if (!window.RulesEngine) {
+        throw new Error('Motor de reglas no disponible');
+    }
+
+    // El motor hace internamente:
+    //   - APLICAR REGLAS CLIENTE
+    //   - OBTENER REGLAS TINTA
+    //   - CLASIFICAR TELA (oscura/clara)
+    //   - CONSTRUIR SECUENCIA BASE
+    //   - PROCESAR CADA COLOR (clasificándolos)
+    //   - AÑADIR FLASH/COOL
+    // =============================================
+
+    const nuevaSecuencia = window.RulesEngine.generarSecuencia({
+        customer: customer,
+        garmentColor: garmentColor,
+        inkType: inkType,
+        designColors: designColors
+    });
+
+    // =============================================
+    // 7. ACTUALIZAR PLACEMENT
+    // =============================================
+    placement.colors = nuevaSecuencia.map(paso => ({
+        id: Date.now() + Math.random() + paso.tipo,
+        type: paso.tipo,
+        screenLetter: paso.screenLetter || '',
+        val: paso.nombre || '---',
+        mesh: paso.mesh || '',
+        additives: paso.additives || ''
+    }));
+
+    // Actualizar temperatura y tiempo
+    const curing = window.RulesEngine.getCuringConditions(inkType, customer);
+    placement.temp = curing.temp;
+    placement.time = curing.time;
+
+    // =============================================
+    // ACTUALIZAR UI
+    // =============================================
+    const tempField = document.getElementById(`temp-${placementId}`);
+    const timeField = document.getElementById(`time-${placementId}`);
+    if (tempField) tempField.value = placement.temp;
+    if (timeField) timeField.value = placement.time;
+
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    
+    showStatus(`✅ Secuencia generada (${placement.colors.length} elementos)`, 'success');
+};
 
 // =====================================================
 // EXPORTAR FUNCIONES GLOBALES
