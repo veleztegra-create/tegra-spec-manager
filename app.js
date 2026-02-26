@@ -1,6 +1,6 @@
 // =====================================================
 // app.js - TEGRA TECHNICAL SPEC MANAGER
-// Versión: 2.0 - Con motor de reglas interno
+// Versión: 2.1 - Con motor de reglas interno y sincronización corregida
 // 100% local - 0% dependencias externas de IA
 // =====================================================
 
@@ -38,16 +38,21 @@ function updateDateTime() {
         hour: '2-digit',
         minute: '2-digit'
     };
-    document.getElementById('current-datetime').textContent =
-        now.toLocaleDateString('es-ES', options);
+    const dateTimeEl = document.getElementById('current-datetime');
+    if (dateTimeEl) {
+        dateTimeEl.textContent = now.toLocaleDateString('es-ES', options);
+    }
 }
 
 function showStatus(msg, type = 'success') {
     const el = document.getElementById('statusMessage');
+    if (!el) return;
     el.textContent = msg;
     el.className = `status-message status-${type}`;
     el.style.display = 'block';
-    setTimeout(() => el.style.display = 'none', 4000);
+    setTimeout(() => {
+        if (el) el.style.display = 'none';
+    }, 4000);
 }
 
 function getInkPresetSafe(inkType = 'WATER') {
@@ -116,11 +121,11 @@ function toggleTheme() {
 
     if (isDarkMode) {
         body.classList.remove('light-mode');
-        themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
+        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
         showStatus('🌙 Modo oscuro activado');
     } else {
         body.classList.add('light-mode');
-        themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
+        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
         showStatus('☀️ Modo claro activado');
     }
 
@@ -134,10 +139,10 @@ function loadThemePreference() {
     if (savedTheme === 'light') {
         isDarkMode = false;
         document.body.classList.add('light-mode');
-        themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
+        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-moon"></i> Modo Oscuro';
     } else {
         isDarkMode = true;
-        themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
+        if (themeToggle) themeToggle.innerHTML = '<i class="fas fa-sun"></i> Modo Claro';
     }
 }
 
@@ -148,7 +153,8 @@ function loadThemePreference() {
 function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-    document.getElementById(tabName).classList.add('active');
+    const targetTab = document.getElementById(tabName);
+    if (targetTab) targetTab.classList.add('active');
 
     const tabs = document.querySelectorAll('.nav-tab');
     tabs.forEach(tab => {
@@ -157,11 +163,16 @@ function showTab(tabName) {
         }
     });
 
-    if (tabName === 'saved-specs') loadSavedSpecsList();
+    // Llamar a funciones específicas solo si el elemento existe
+    if (tabName === 'saved-specs' && document.getElementById('saved-specs-list')) {
+        loadSavedSpecsList();
+    }
     if (tabName === 'dashboard') updateDashboard();
-    if (tabName === 'error-log') loadErrorLog();
+    if (tabName === 'error-log' && document.getElementById('error-log-content')) {
+        loadErrorLog();
+    }
     if (tabName === 'spec-creator') {
-        if (placements.length === 0) {
+        if (placements.length === 0 && document.getElementById('placements-container')) {
             initializePlacements();
         }
     }
@@ -340,7 +351,7 @@ function extractGenderFromStyle(style) {
 // =====================================================
 
 function updateClientLogo() {
-    const customer = document.getElementById('customer').value.toUpperCase().trim();
+    const customer = document.getElementById('customer')?.value.toUpperCase().trim() || '';
     const logoElement = document.getElementById('logoCliente');
     if (!logoElement) return;
 
@@ -415,6 +426,11 @@ function handleGearForSportLogic() {
 // =====================================================
 
 function initializePlacements() {
+    const container = document.getElementById('placements-container');
+    if (!container) {
+        console.warn("initializePlacements: Contenedor 'placements-container' no encontrado.");
+        return;
+    }
     const firstPlacementId = addNewPlacement('FRONT', true);
 
     if (placements.length > 0) {
@@ -636,7 +652,10 @@ function setupPlacementAutocomplete(inputElement, placementId) {
 
 function renderPlacementHTML(placement) {
     const container = document.getElementById('placements-container');
-    if (!container) return;
+    if (!container) {
+        console.warn("renderPlacementHTML: Contenedor 'placements-container' no encontrado.");
+        return;
+    }
 
     if (document.getElementById(`placement-section-${placement.id}`)) {
         return;
@@ -2070,7 +2089,7 @@ function renderPlacementStationsTable(placementId, data) {
 
 function openImagePickerForPlacement(placementId) {
     currentPlacementId = placementId;
-    document.getElementById('placementImageInput').click();
+    document.getElementById('placementImageInput')?.click();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -2341,7 +2360,8 @@ function updateDashboard() {
     try {
         const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
         const total = specs.length;
-        document.getElementById('total-specs').textContent = total;
+        const totalEl = document.getElementById('total-specs');
+        if (totalEl) totalEl.textContent = total;
 
         let lastSpec = null;
         let lastSpecDate = null;
@@ -2360,14 +2380,15 @@ function updateDashboard() {
             }
         });
 
-        if (lastSpec) {
-            document.getElementById('today-specs').innerHTML = `
+        const todaySpecsEl = document.getElementById('today-specs');
+        if (lastSpec && todaySpecsEl) {
+            todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
                 <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
                 <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
             `;
-        } else {
-            document.getElementById('today-specs').innerHTML = `
+        } else if (todaySpecsEl) {
+            todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Sin specs creadas</div>
             `;
         }
@@ -2381,8 +2402,8 @@ function updateDashboard() {
                 }
             } catch (e) { }
         });
-
-        document.getElementById('active-projects').textContent = activeCount;
+        const activeProjectsEl = document.getElementById('active-projects');
+        if (activeProjectsEl) activeProjectsEl.textContent = activeCount;
 
         const totalPlacements = specs.reduce((total, key) => {
             try {
@@ -2393,10 +2414,13 @@ function updateDashboard() {
             }
         }, 0);
 
-        document.getElementById('completion-rate').innerHTML = `
-            <div style="font-size:0.9rem; color:var(--text-secondary);">Placements totales:</div>
-            <div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${totalPlacements}</div>
-        `;
+        const completionRateEl = document.getElementById('completion-rate');
+        if (completionRateEl) {
+            completionRateEl.innerHTML = `
+                <div style="font-size:0.9rem; color:var(--text-secondary);">Placements totales:</div>
+                <div style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${totalPlacements}</div>
+            `;
+        }
 
     } catch (error) {
         console.error('Error en updateDashboard:', error);
@@ -2623,17 +2647,17 @@ function saveCurrentSpec() {
 
 function collectData() {
     const generalData = {
-        customer: document.getElementById('customer').value,
-        style: document.getElementById('style').value,
-        folder: document.getElementById('folder-num').value,
-        colorway: document.getElementById('colorway').value,
-        season: document.getElementById('season').value,
-        pattern: document.getElementById('pattern').value,
-        po: document.getElementById('po').value,
-        sampleType: document.getElementById('sample-type').value,
-        nameTeam: document.getElementById('name-team').value,
-        gender: document.getElementById('gender').value,
-        designer: document.getElementById('designer').value,
+        customer: document.getElementById('customer')?.value || '',
+        style: document.getElementById('style')?.value || '',
+        folder: document.getElementById('folder-num')?.value || '',
+        colorway: document.getElementById('colorway')?.value || '',
+        season: document.getElementById('season')?.value || '',
+        pattern: document.getElementById('pattern')?.value || '',
+        po: document.getElementById('po')?.value || '',
+        sampleType: document.getElementById('sample-type')?.value || '',
+        nameTeam: document.getElementById('name-team')?.value || '',
+        gender: document.getElementById('gender')?.value || '',
+        designer: document.getElementById('designer')?.value || '',
         baseSize: document.getElementById('base-size')?.value || '',
         fabric: document.getElementById('fabric')?.value || '',
         technicianName: document.getElementById('technician-name')?.value || '',
@@ -2959,8 +2983,8 @@ ${placements.some(p => p.imageData) ? `- Imágenes de placements: ${placements.f
 
 Total de Placements: ${placements.length}
 Generado: ${new Date().toLocaleString('es-ES')}
-Cliente: ${document.getElementById('customer').value || 'N/A'}
-Estilo: ${document.getElementById('style').value || 'N/A'}
+Cliente: ${document.getElementById('customer')?.value || 'N/A'}
+Estilo: ${document.getElementById('style')?.value || 'N/A'}
 
 Para cargar este proyecto:
 1. Descomprime el archivo ZIP
@@ -3199,28 +3223,36 @@ function exportErrorLog() {
 document.addEventListener('DOMContentLoaded', () => {
     loadTabTemplates()
         .then(() => {
+            // Una vez que los templates están cargados, podemos inicializar todo
+            console.log('✅ Templates cargados, inicializando app...');
+
             updateDateTime();
             updateDashboard();
-            loadSavedSpecsList();
+            loadSavedSpecsList(); // Ahora el contenedor ya existe
             setupPasteHandler();
             loadThemePreference();
             bindSpecCreatorFormSafety();
 
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+            }
 
             setInterval(updateDateTime, 60000);
 
-            setTimeout(() => {
-                if (placements.length === 0) {
-                    initializePlacements();
-                }
-            }, 100);
+            // Inicializar placements solo si el contenedor existe
+            if (placements.length === 0 && document.getElementById('placements-container')) {
+                initializePlacements();
+            } else {
+                console.warn("No se pudo inicializar placements: contenedor no encontrado.");
+            }
 
             if (stateManager) {
                 stateManager.loadFromLocalStorage();
             }
 
             setTimeout(() => {
+                // Este código de UI sigue siendo válido
                 const actionButtons = document.querySelector('.card.no-print .card-body');
                 if (actionButtons) {
                     const buttons = actionButtons.querySelectorAll('button');
@@ -3248,7 +3280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 2000);
 
-            console.log('✅ Tegra Spec Manager v2.0 iniciado');
+            console.log('✅ Tegra Spec Manager v2.1 iniciado');
             console.log('✅ Motor de reglas disponible:', !!window.SequenceAutomation);
         })
         .catch((error) => {
