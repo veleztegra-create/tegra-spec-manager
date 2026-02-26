@@ -507,125 +507,102 @@ function getNextPlacementNumber() {
 // ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE ⭐
 // =====================================================
 
-window.generarConAsistente = function (placementId) {
+window.generarConAsistente = async function(placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) {
         showStatus('❌ Placement no encontrado', 'error');
         return;
     }
 
-    // Verificar que hay colores para procesar
-    if (!placement.colors || placement.colors.length === 0) {
-        showStatus('⚠️ Agrega colores primero', 'warning');
-        return;
-    }
-
-    showStatus('🤖 Generando secuencia...', 'info');
+    showStatus('🤖 Aplicando reglas...', 'info');
 
     try {
-        // Obtener datos necesarios
+        // =============================================
+        // USAR RULES ENGINE EN VEZ DE REGLAS DURAS
+        // =============================================
+        const customer = document.getElementById('customer')?.value || '';
         const colorTela = document.getElementById('colorway')?.value || '';
-        const tinta = placement.inkType || 'WATER';
-
-        // Extraer SOLO los nombres de colores (no blockers, no bases)
-        const colores = placement.colors
-            .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
-            .map(c => c.val)
-            .filter(c => c && c.trim() !== '');
-
-        if (colores.length === 0) {
-            showStatus('⚠️ No hay colores de tinta definidos', 'warning');
-            return;
+        
+        // 1. Obtener reglas del cliente
+        const reglasCliente = window.RulesEngine.getReglasCliente(customer);
+        
+        // 2. Aplicar reglas específicas del cliente
+        if (reglasCliente) {
+            console.log(`📋 Aplicando reglas para: ${reglasCliente.nombre}`);
+            
+            // Forzar tipo de tinta si está especificado
+            if (reglasCliente.reglas.tinta_forzada) {
+                placement.inkType = reglasCliente.reglas.tinta_forzada;
+                const inkSelect = document.querySelector(`.placement-ink-type[data-placement-id="${placementId}"]`);
+                if (inkSelect) inkSelect.value = reglasCliente.reglas.tinta_forzada;
+            }
+            
+            // Generar ID único si aplica
+            if (reglasCliente.reglas.formato_id_unico?.activo) {
+                const gfsId = generarGFSIdentifier(); // tu función existente
+                console.log('🏷️ ID único:', gfsId);
+            }
         }
-
-        console.log('🎯 Enviando a motor de reglas:', {
-            colorTela,
-            tinta,
-            colores
-        });
-
-        // USAR EL MOTOR DE REGLAS (NO IA externa)
-        if (!window.SequenceAutomation) {
-            showStatus('❌ Motor de reglas no disponible', 'error');
-            return;
-        }
-
-        // Generar secuencia usando el motor interno
-        const secuenciaCompleta = window.SequenceAutomation.generarParaPlacement(placement);
-
-        if (!secuenciaCompleta || secuenciaCompleta.length === 0) {
-            showStatus('❌ No se pudo generar secuencia', 'error');
-            return;
-        }
-
-        // AHORA: Convertir la secuencia a colores en el placement
-        // Esto es lo que hace que la UI se actualice
-
-        // Primero, limpiamos los colores existentes pero guardamos los originales
-        const coloresOriginales = [...placement.colors];
-
-        // Filtramos para mantener solo los colores que NO son de tipo COLOR/METALLIC
-        // (para preservar blockers y bases que el usuario haya puesto manualmente)
-        const coloresBase = placement.colors.filter(c =>
-            c.type === 'BLOCKER' || c.type === 'WHITE_BASE'
-        );
-
-        // Los nuevos pasos de color vendrán de la secuencia
-        const nuevosColores = [];
-
-        // Procesar la secuencia y extraer SOLO los pasos de COLOR
-        secuenciaCompleta.forEach(paso => {
-            if (paso.tipo === 'COLOR') {
-                // Buscar si este color ya existía para preservar su ID
-                const colorExistente = coloresOriginales.find(c =>
-                    c.type === 'COLOR' &&
-                    c.val && paso.nombre &&
-                    c.val.toLowerCase().includes(paso.nombre.toLowerCase().replace(/ \(\d\)/g, ''))
-                );
-
-                nuevosColores.push({
-                    id: colorExistente?.id || Date.now() + Math.random(),
-                    type: 'COLOR',
-                    screenLetter: paso.screenLetter || 'A',
-                    val: paso.nombre || 'COLOR',
-                    mesh: paso.malla || '157/48',
-                    additives: paso.aditivos || ''
+        
+        // 3. Obtener reglas de la tinta
+        const reglasTinta = window.RulesEngine.getReglasTinta(placement.inkType);
+        
+        // 4. Clasificar tela
+        const tipoTela = window.RulesEngine.clasificarTela(colorTela);
+        const reglasTela = window.RulesEngine.rules.telas[tipoTela];
+        
+        // 5. Construir secuencia usando las reglas
+        let secuencia = [];
+        
+        // Agregar bloqueadores según tela
+        if (reglasTela?.reglas.bloqueadores) {
+            for (let i = 0; i < reglasTela.reglas.bloqueadores.cantidad; i++) {
+                secuencia.push({
+                    tipo: "BLOCKER",
+                    nombre: "Bloquer CHT",
+                    malla: reglasTela.reglas.bloqueadores.mallas[i] || 
+                           reglasCliente?.reglas.mallas_por_defecto?.BLOCKER ||
+                           reglasTinta?.reglas_generales?.mallas?.BLOCKER?.primera,
+                    screenLetter: String.fromCharCode(65 + i)
                 });
             }
-        });
-
-        // Si no se generaron colores, algo salió mal
-        if (nuevosColores.length === 0) {
-            showStatus('⚠️ No se generaron colores en la secuencia', 'warning');
-            return;
         }
-
-        // Actualizar placement: mantener bases + nuevos colores
-        placement.colors = [...coloresBase, ...nuevosColores];
-
-        // Actualizar UI
+        
+        // Procesar cada color
+        placement.colors
+            .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
+            .forEach((color, index) => {
+                // Verificar si es color especial
+                const especial = window.RulesEngine.esColorEspecial(color.val);
+                const pantallas = especial ? especial.pantallas : 2;
+                
+                for (let p = 1; p <= pantallas; p++) {
+                    secuencia.push({
+                        tipo: "COLOR",
+                        nombre: color.val + (p > 1 ? ` (${p})` : ""),
+                        screenLetter: String(p),
+                        malla: especial?.mallas[p-1] || 
+                               reglasCliente?.reglas.mallas_por_defecto?.COLOR ||
+                               reglasTinta?.reglas_generales?.mallas?.COLOR?.normal,
+                        aditivos: especial?.aditivos ||
+                                 reglasCliente?.reglas.aditivos_por_defecto?.COLOR ||
+                                 reglasTinta?.reglas_generales?.aditivos?.COLOR
+                    });
+                }
+            });
+        
+        // Aplicar al placement
+        placement.colors = secuencia;
         renderPlacementColors(placementId);
-
-        // También actualizar la tabla de secuencia
-        if (typeof updatePlacementStations === 'function') {
-            updatePlacementStations(placementId);
-        }
-
-        if (typeof updatePlacementColorsPreview === 'function') {
-            updatePlacementColorsPreview(placementId);
-        }
-
-        showStatus(`✅ Secuencia generada: ${secuenciaCompleta.length} estaciones`, 'success');
-
-        // Mostrar resumen en consola
-        console.log('📊 Secuencia completa:', secuenciaCompleta);
-
+        updatePlacementStations(placementId);
+        
+        showStatus('✅ Reglas aplicadas correctamente', 'success');
+        
     } catch (error) {
-        console.error('❌ Error generando secuencia:', error);
-        showStatus('❌ Error: ' + error.message, 'error');
+        console.error('❌ Error:', error);
+        showStatus('❌ Error aplicando reglas', 'error');
     }
 };
-
 // =====================================================
 // FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS
 // =====================================================
