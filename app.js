@@ -2853,23 +2853,21 @@ function saveCurrentSpec() {
 }
 
 function collectData() {
-    const generalData = {
-        customer: document.getElementById('customer')?.value || '',
-        style: document.getElementById('style')?.value || '',
-        folder: document.getElementById('folder-num')?.value || '',
-        colorway: document.getElementById('colorway')?.value || '',
-        season: document.getElementById('season')?.value || '',
-        pattern: document.getElementById('pattern')?.value || '',
-        po: document.getElementById('po')?.value || '',
-        sampleType: document.getElementById('sample-type')?.value || '',
-        nameTeam: document.getElementById('name-team')?.value || '',
-        gender: document.getElementById('gender')?.value || '',
-        designer: document.getElementById('designer')?.value || '',
-        baseSize: document.getElementById('base-size')?.value || '',
-        fabric: document.getElementById('fabric')?.value || '',
-        technicianName: document.getElementById('technician-name')?.value || '',
-        technicalComments: document.getElementById('technical-comments')?.value || '',
-        savedAt: new Date().toISOString()
+    // ... código existente ...
+    
+    const placementsData = placements.map(placement => ({
+        id: placement.id,
+        type: placement.type,
+        name: placement.name,
+        imageData: placement.imageData,
+        // ✅ Guardar AMBAS cosas
+        colors: placement.colors,  // Solo colores reales
+        sequence: placement.sequence, // Secuencia completa con FLASH/COOL
+        // ... resto de propiedades ...
+    }));
+
+    // ...
+}
     };
 
     const placementsData = placements.map(placement => ({
