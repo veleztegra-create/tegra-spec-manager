@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', function() {
             METALLIC_CODES: []
         };
     }
+    // Asegurar que Config.APP existe
+    if (!window.Config.APP) {
+        window.Config.APP = { VERSION: '1.0.0' };
+    }
     
     if (!window.Utils) {
         console.warn('Utils no encontrado, creando versión básica');
