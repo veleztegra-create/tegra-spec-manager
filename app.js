@@ -2271,61 +2271,66 @@ function processExcelData(worksheet, sheetName = '') {
     showStatus(`✅ "${sheetName || 'hoja'}" procesado - Género: ${extracted.gender || 'No detectado'}`, 'success');
 }
 
-document.getElementById('excelFile').addEventListener('change', async function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
+document.addEventListener('DOMContentLoaded', function () {
+    const excelFile = document.getElementById('excelFile');
+    if (excelFile) {
+        excelFile.addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    const reader = new FileReader();
+            const reader = new FileReader();
 
-    if (file.name.toLowerCase().endsWith('.zip')) {
-        await loadProjectZip(file);
-    } else if (file.name.toLowerCase().endsWith('.json')) {
-        reader.onload = function (e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                loadSpecData(data);
-                showStatus('✅ JSON cargado correctamente', 'success');
-            } catch (err) {
-                console.error('Error al cargar JSON:', err);
-                showStatus('❌ Error leyendo el archivo JSON', 'error');
-            }
-        };
-        reader.readAsText(file);
-    } else {
-        reader.onload = function (e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-
-                const sheetPriority = ['SWO', 'PPS', 'Proto 1', 'Proto 2', 'Proto 3', 'Proto 4', 'Sheet1'];
-                let worksheet = null;
-                let sheetUsed = '';
-
-                for (const sheetName of sheetPriority) {
-                    if (workbook.SheetNames.includes(sheetName)) {
-                        worksheet = workbook.Sheets[sheetName];
-                        sheetUsed = sheetName;
-                        break;
+            if (file.name.toLowerCase().endsWith('.zip')) {
+                await loadProjectZip(file);
+            } else if (file.name.toLowerCase().endsWith('.json')) {
+                reader.onload = function (e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        loadSpecData(data);
+                        showStatus('✅ JSON cargado correctamente', 'success');
+                    } catch (err) {
+                        console.error('Error al cargar JSON:', err);
+                        showStatus('❌ Error leyendo el archivo JSON', 'error');
                     }
-                }
+                };
+                reader.readAsText(file);
+            } else {
+                reader.onload = function (e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
 
-                if (!worksheet) {
-                    worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    sheetUsed = workbook.SheetNames[0];
-                }
+                        const sheetPriority = ['SWO', 'PPS', 'Proto 1', 'Proto 2', 'Proto 3', 'Proto 4', 'Sheet1'];
+                        let worksheet = null;
+                        let sheetUsed = '';
 
-                showStatus(`🔍 Procesando archivo: ${sheetUsed}`, 'warning');
-                processExcelData(worksheet, sheetUsed);
+                        for (const sheetName of sheetPriority) {
+                            if (workbook.SheetNames.includes(sheetName)) {
+                                worksheet = workbook.Sheets[sheetName];
+                                sheetUsed = sheetName;
+                                break;
+                            }
+                        }
 
-            } catch (err) {
-                console.error('Error al cargar SWO:', err);
-                showStatus('❌ Error leyendo el archivo', 'error');
+                        if (!worksheet) {
+                            worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                            sheetUsed = workbook.SheetNames[0];
+                        }
+
+                        showStatus(`🔍 Procesando archivo: ${sheetUsed}`, 'warning');
+                        processExcelData(worksheet, sheetUsed);
+
+                    } catch (err) {
+                        console.error('Error al cargar SWO:', err);
+                        showStatus('❌ Error leyendo el archivo', 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
             }
-        };
-        reader.readAsArrayBuffer(file);
-    }
 
-    e.target.value = '';
+            e.target.value = '';
+        });
+    }
 });
 
 // =====================================================
