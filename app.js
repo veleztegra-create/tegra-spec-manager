@@ -491,7 +491,7 @@ function getNextPlacementNumber() {
 // ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE ⭐
 // =====================================================
 
-window.generarConAsistente = function(placementId) {
+window.generarConAsistente = function (placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) {
         showStatus('❌ Placement no encontrado', 'error');
@@ -510,7 +510,7 @@ window.generarConAsistente = function(placementId) {
         // Obtener datos necesarios
         const colorTela = document.getElementById('colorway')?.value || '';
         const tinta = placement.inkType || 'WATER';
-        
+
         // Extraer SOLO los nombres de colores (no blockers, no bases)
         const colores = placement.colors
             .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
@@ -544,29 +544,29 @@ window.generarConAsistente = function(placementId) {
 
         // AHORA: Convertir la secuencia a colores en el placement
         // Esto es lo que hace que la UI se actualice
-        
+
         // Primero, limpiamos los colores existentes pero guardamos los originales
         const coloresOriginales = [...placement.colors];
-        
+
         // Filtramos para mantener solo los colores que NO son de tipo COLOR/METALLIC
         // (para preservar blockers y bases que el usuario haya puesto manualmente)
-        const coloresBase = placement.colors.filter(c => 
+        const coloresBase = placement.colors.filter(c =>
             c.type === 'BLOCKER' || c.type === 'WHITE_BASE'
         );
-        
+
         // Los nuevos pasos de color vendrán de la secuencia
         const nuevosColores = [];
-        
+
         // Procesar la secuencia y extraer SOLO los pasos de COLOR
         secuenciaCompleta.forEach(paso => {
             if (paso.tipo === 'COLOR') {
                 // Buscar si este color ya existía para preservar su ID
-                const colorExistente = coloresOriginales.find(c => 
-                    c.type === 'COLOR' && 
-                    c.val && paso.nombre && 
+                const colorExistente = coloresOriginales.find(c =>
+                    c.type === 'COLOR' &&
+                    c.val && paso.nombre &&
                     c.val.toLowerCase().includes(paso.nombre.toLowerCase().replace(/ \(\d\)/g, ''))
                 );
-                
+
                 nuevosColores.push({
                     id: colorExistente?.id || Date.now() + Math.random(),
                     type: 'COLOR',
@@ -577,30 +577,30 @@ window.generarConAsistente = function(placementId) {
                 });
             }
         });
-        
+
         // Si no se generaron colores, algo salió mal
         if (nuevosColores.length === 0) {
             showStatus('⚠️ No se generaron colores en la secuencia', 'warning');
             return;
         }
-        
+
         // Actualizar placement: mantener bases + nuevos colores
         placement.colors = [...coloresBase, ...nuevosColores];
-        
+
         // Actualizar UI
         renderPlacementColors(placementId);
-        
+
         // También actualizar la tabla de secuencia
         if (typeof updatePlacementStations === 'function') {
             updatePlacementStations(placementId);
         }
-        
+
         if (typeof updatePlacementColorsPreview === 'function') {
             updatePlacementColorsPreview(placementId);
         }
 
         showStatus(`✅ Secuencia generada: ${secuenciaCompleta.length} estaciones`, 'success');
-        
+
         // Mostrar resumen en consola
         console.log('📊 Secuencia completa:', secuenciaCompleta);
 
@@ -636,6 +636,7 @@ function setupPlacementAutocomplete(inputElement, placementId) {
 
 function renderPlacementHTML(placement) {
     const container = document.getElementById('placements-container');
+    if (!container) return;
 
     if (document.getElementById(`placement-section-${placement.id}`)) {
         return;
@@ -985,7 +986,7 @@ function renderPlacementHTML(placement) {
 function updatePlacementsTabs() {
     const tabsContainer = document.getElementById('placements-tabs');
     if (!tabsContainer) return;
-    
+
     tabsContainer.innerHTML = '';
 
     placements.forEach(placement => {
@@ -2072,39 +2073,44 @@ function openImagePickerForPlacement(placementId) {
     document.getElementById('placementImageInput').click();
 }
 
-document.getElementById('placementImageInput').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
+document.addEventListener('DOMContentLoaded', function () {
+    const placementImageInput = document.getElementById('placementImageInput');
+    if (placementImageInput) {
+        placementImageInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    const placementId = currentPlacementId;
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
+            const placementId = currentPlacementId;
+            const placement = placements.find(p => p.id === placementId);
+            if (!placement) return;
 
-    if (!file.type.match('image.*')) {
-        showStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
-        return;
+            if (!file.type.match('image.*')) {
+                showStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                const img = document.getElementById(`placement-image-preview-${placementId}`);
+                const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+
+                if (img) {
+                    img.src = ev.target.result;
+                    img.style.display = 'block';
+                }
+
+                if (imageActions) {
+                    imageActions.style.display = 'flex';
+                }
+
+                placement.imageData = ev.target.result;
+                showStatus(`✅ Imagen cargada para ${placement.type}`);
+            };
+            reader.readAsDataURL(file);
+
+            e.target.value = '';
+        });
     }
-
-    const reader = new FileReader();
-    reader.onload = function (ev) {
-        const img = document.getElementById(`placement-image-preview-${placementId}`);
-        const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
-
-        if (img) {
-            img.src = ev.target.result;
-            img.style.display = 'block';
-        }
-
-        if (imageActions) {
-            imageActions.style.display = 'flex';
-        }
-
-        placement.imageData = ev.target.result;
-        showStatus(`✅ Imagen cargada para ${placement.type}`);
-    };
-    reader.readAsDataURL(file);
-
-    e.target.value = '';
 });
 
 function removePlacementImage(placementId) {
@@ -2398,6 +2404,7 @@ function updateDashboard() {
 
 function loadSavedSpecsList() {
     const list = document.getElementById('saved-specs-list');
+    if (!list) return;
     const searchInput = document.getElementById('saved-specs-search');
     const query = (searchInput?.value || '').toUpperCase().trim();
     const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
