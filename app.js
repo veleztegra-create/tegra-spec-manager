@@ -3316,6 +3316,25 @@ function normalizeGearForSportColor(colorName) {
     
     return colorName;
 }
+// Botón "Consultar al asistente"
+window.consultarAsistente = function(placementId) {
+    const orden = {
+        tinta: document.getElementById(`inkType-${placementId}`).value,
+        tela: document.getElementById('fabric').value,
+        color_tela: document.getElementById('colorway').value,
+        colores: obtenerColores(placementId)
+    };
+    
+    // Envías al asistente y recibes secuencia
+    fetch('https://tu-api-asistente.com/generar', {
+        method: 'POST',
+        body: JSON.stringify(orden)
+    })
+    .then(res => res.json())
+    .then(secuencia => {
+        aplicarSecuencia(placementId, secuencia);
+    });
+};
 
 // ========== EXPORTAR FUNCIONES GLOBALES ==========
 window.showTab = showTab;
