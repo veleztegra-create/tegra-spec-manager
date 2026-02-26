@@ -34,8 +34,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Corrección para que los botones funcionen
     setTimeout(() => {
-        if (typeof showTab !== 'function') {
-            console.error('showTab no está definido');
-        }
-    }, 1000);
+    if (typeof showTab === 'function') {
+        console.log('✅ showTab está disponible');
+    } else {
+        console.warn('⚠️ showTab aún no está definido');
+    }
+}, 1000);
 });
