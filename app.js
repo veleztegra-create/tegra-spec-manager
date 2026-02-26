@@ -3579,82 +3579,86 @@ function normalizeGearForSportColor(colorName) {
 // =====================================================
 
 window.generarConAsistente = async function(placementId) {
-    // =============================================
-    // 1. OBTENER DATOS NECESARIOS
-    // =============================================
     const placement = placements.find(p => p.id === placementId);
     if (!placement) {
         showStatus('❌ Placement no encontrado', 'error');
         return;
     }
 
-    const customer = document.getElementById('customer')?.value || '';
-    const garmentColor = document.getElementById('colorway')?.value || '';  // ← COLOR DE LA TELA
-    const inkType = placement.inkType || 'WATER';
-    
-    // Obtener colores del diseño
-    const designColors = placement.colors.filter(c => 
-        c.type === 'COLOR' || c.type === 'METALLIC'
-    ).map(c => ({ id: c.id, val: c.val }));
+    showStatus('🤖 Generando secuencia inteligente...', 'info');
 
-    if (designColors.length === 0) {
-        showStatus('⚠️ No hay colores de diseño', 'warning');
-        return;
+    try {
+        // Obtener datos
+        const customer = document.getElementById('customer')?.value || '';
+        const garmentColor = document.getElementById('colorway')?.value || '';
+        const inkType = placement.inkType || 'WATER';
+        
+        // Obtener SOLO los colores del diseño (los que el usuario agregó manualmente)
+        const designColors = placement.colors.filter(c => 
+            c.type === 'COLOR' || c.type === 'METALLIC'
+        ).map(c => ({ id: c.id, val: c.val }));
+
+        if (designColors.length === 0) {
+            showStatus('⚠️ No hay colores de diseño', 'warning');
+            return;
+        }
+
+        // Generar secuencia COMPLETA (incluye FLASH/COOL)
+        const secuenciaCompleta = window.RulesEngine.generarSecuencia({
+            customer,
+            garmentColor,
+            inkType,
+            designColors
+        });
+
+        // =============================================
+        // SEPARAR: Colores reales vs Secuencia completa
+        // =============================================
+        
+        // 1. COLORES REALES (para la UI de colores) - SOLO tintas
+        const coloresReales = secuenciaCompleta.filter(paso => 
+            paso.tipo === 'WHITE_BASE' || 
+            paso.tipo === 'BLOCKER' || 
+            paso.tipo === 'COLOR' || 
+            paso.tipo === 'METALLIC'
+        );
+
+        // 2. SECUENCIA COMPLETA (para la tabla de estaciones)
+        placement.sequence = secuenciaCompleta.map((paso, index) => ({
+            id: Date.now() + Math.random() + index,
+            type: paso.tipo,
+            screenLetter: paso.screenLetter || '',
+            val: paso.nombre || '---',
+            mesh: paso.mesh || '',
+            additives: paso.additives || ''
+        }));
+
+        // 3. ACTUALIZAR SOLO los colores reales en placement.colors
+        placement.colors = coloresReales.map((paso, index) => ({
+            id: Date.now() + Math.random() + index,
+            type: paso.tipo,
+            screenLetter: paso.screenLetter || '',
+            val: paso.nombre || '---',
+            mesh: paso.mesh || '',
+            additives: paso.additives || ''
+        }));
+
+        // Actualizar temperatura
+        const curing = window.RulesEngine.getCuringConditions(inkType, customer);
+        placement.temp = curing.temp;
+        placement.time = curing.time;
+
+        // Actualizar UI
+        renderPlacementColors(placementId);
+        updatePlacementStations(placementId);
+        updatePlacementColorsPreview(placementId);
+        
+        showStatus(`✅ Secuencia generada (${placement.sequence.length} pasos totales, ${placement.colors.length} colores)`, 'success');
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        showStatus('❌ Error: ' + error.message, 'error');
     }
-
-    // =============================================
-    // 2. LLAMAR AL MOTOR DE REGLAS (HACE PASOS 2-6)
-    // =============================================
-    if (!window.RulesEngine) {
-        throw new Error('Motor de reglas no disponible');
-    }
-
-    // El motor hace internamente:
-    //   - APLICAR REGLAS CLIENTE
-    //   - OBTENER REGLAS TINTA
-    //   - CLASIFICAR TELA (oscura/clara)
-    //   - CONSTRUIR SECUENCIA BASE
-    //   - PROCESAR CADA COLOR (clasificándolos)
-    //   - AÑADIR FLASH/COOL
-    // =============================================
-
-    const nuevaSecuencia = window.RulesEngine.generarSecuencia({
-        customer: customer,
-        garmentColor: garmentColor,
-        inkType: inkType,
-        designColors: designColors
-    });
-
-    // =============================================
-    // 7. ACTUALIZAR PLACEMENT
-    // =============================================
-    placement.colors = nuevaSecuencia.map(paso => ({
-        id: Date.now() + Math.random() + paso.tipo,
-        type: paso.tipo,
-        screenLetter: paso.screenLetter || '',
-        val: paso.nombre || '---',
-        mesh: paso.mesh || '',
-        additives: paso.additives || ''
-    }));
-
-    // Actualizar temperatura y tiempo
-    const curing = window.RulesEngine.getCuringConditions(inkType, customer);
-    placement.temp = curing.temp;
-    placement.time = curing.time;
-
-    // =============================================
-    // ACTUALIZAR UI
-    // =============================================
-    const tempField = document.getElementById(`temp-${placementId}`);
-    const timeField = document.getElementById(`time-${placementId}`);
-    if (tempField) tempField.value = placement.temp;
-    if (timeField) timeField.value = placement.time;
-
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-    
-    showStatus(`✅ Secuencia generada (${placement.colors.length} elementos)`, 'success');
 };
 
 // =====================================================
