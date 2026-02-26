@@ -2877,8 +2877,7 @@ function collectData() {
     }));
 
     // ...
-
-    };
+    }
 
     const placementsData = placements.map(placement => ({
         id: placement.id,
