@@ -214,7 +214,7 @@ detectTeamFromStyle: function(style, customer = '') {
         }
         
         // =============================================
-        // CASO 3: NCAA (si no es NFL ni GFS)
+                // CASO 3: NCAA (si no es NFL ni GFS)
         // =============================================
         if (window.TeamsConfig?.NCAA?.teams) {
             for (const [code, teamData] of Object.entries(window.TeamsConfig.NCAA.teams)) {
@@ -229,7 +229,47 @@ detectTeamFromStyle: function(style, customer = '') {
     }
     
     return '';
-}
+},  // ← ¡AGREGAR ESTA COMA! (cierra detectTeamFromStyle)
+    
+// =============================================
+// AHORA SÍ, extractGenderFromStyle DENTRO del objeto Utils
+// =============================================
+extractGenderFromStyle: function(style) {
+    if (!style) return '';
+    
+    try {
+        const styleStr = style.toString().toUpperCase().trim();
+        
+        // Detectar formato Gear for Sport (UM9002, UW9002, etc.)
+        const gearForSportMatch = styleStr.match(/U([MWYBGKTIAN])\d+/);
+        if (gearForSportMatch && gearForSportMatch[1]) {
+            const genderCode = gearForSportMatch[1];
+            
+            if (window.Config && window.Config.GEARFORSPORT_GENDER_MAP) {
+                const fullCode = `U${genderCode}`;
+                if (window.Config.GEARFORSPORT_GENDER_MAP[fullCode]) {
+                    return window.Config.GEARFORSPORT_GENDER_MAP[fullCode];
+                }
+                if (window.Config.GEARFORSPORT_GENDER_MAP[genderCode]) {
+                    return window.Config.GEARFORSPORT_GENDER_MAP[genderCode];
+                }
+            }
+        }
+        
+        // ... resto del código de extractGenderFromStyle ...
+        
+    } catch (error) {
+        console.warn('Error en extractGenderFromStyle:', error);
+    }
+    
+    return '';
+},  // ← COMA al final de extractGenderFromStyle
+
+// =============================================
+// OTRAS FUNCIONES de Utils pueden ir aquí
+// =============================================
+
+};  // ← Esta llave CIERRA el objeto Utils COMPLETO
     
     extractGenderFromStyle: function(style) {
         if (!style) return '';
