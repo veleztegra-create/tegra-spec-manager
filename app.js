@@ -563,260 +563,312 @@ if (typeof window.errorHandler === 'undefined') {
 }
 
 // =====================================================
-// ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE (COMPLETA) ⭐
-// =====================================================
+// rules-engine.js - Motor de reglas COMPLETO
+// Versión: 2.0 - Con todas las secuencias de impresión
 
-window.generarConAsistente = async function(placementId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) {
-        showStatus('❌ Placement no encontrado', 'error');
-        return;
-    }
-
-    showStatus('🤖 Aplicando reglas...', 'info');
-
-    try {
-        // =============================================
-        // 1. OBTENER DATOS NECESARIOS
-        // =============================================
-        const customer = document.getElementById('customer')?.value || '';
-        const colorTela = document.getElementById('colorway')?.value || '';
+window.RulesEngine = (function() {
+    // =============================================
+    // CONFIGURACIÓN PRIVADA (EL CORAZÓN DE LAS REGLAS)
+    // =============================================
+    const config = {
+        // Temperatura y tiempo por defecto
+        waterBase: { temp: '320 °F', time: '1:40 min' },
+        plastisol: { temp: '320 °F', time: '1:00 min' },
         
-        console.log('📋 Procesando:', { customer, colorTela, placement });
-        
-        // =============================================
-        // 2. APLICAR REGLAS DEL CLIENTE (GFS, etc.)
-        // =============================================
-        const reglasCliente = window.RulesEngine?.getReglasCliente(customer);
-        
-        if (reglasCliente) {
-            console.log(`📋 Aplicando reglas para: ${reglasCliente.nombre}`);
-            
-            // Forzar tipo de tinta si está especificado
-            if (reglasCliente.reglas.tinta_forzada) {
-                const tintaForzada = reglasCliente.reglas.tinta_forzada;
-                if (placement.inkType !== tintaForzada) {
-                    placement.inkType = tintaForzada;
-                    // Actualizar UI
-                    const inkSelect = document.querySelector(`.placement-ink-type[data-placement-id="${placementId}"]`);
-                    if (inkSelect) inkSelect.value = tintaForzada;
-                    showStatus(`🔄 Tinta cambiada a ${tintaForzada} por reglas de cliente`, 'info');
-                }
+        // Clasificación de colores
+        colorClassification: {
+            // Palabras clave para colores CLAROS (necesitan base blanca)
+            light: [
+                'amarillo', 'yellow', 'oro', 'gold', 'naranja', 'orange',
+                'rosa', 'pink', 'beige', 'crema', 'ivory', 'blanco', 'white',
+                'limon', 'lemon', 'dorado', '77c', '78h', '761'
+            ],
+            // Palabras clave para colores OSCUROS (van sobre blocker)
+            dark: [
+                'rojo', 'red', 'azul', 'blue', 'verde', 'green', 'morado', 'purple',
+                'marron', 'brown', 'negro', 'black', 'gris', 'gray', 'grey', 'navy',
+                'charcoal', 'maroon', 'crimson'
+            ],
+            // Definición de colores ESPECIALES (3 pantallas)
+            special: {
+                '77c gold': { pantallas: 3, mallas: ['157', '198', '110'], aditivos: '3% CL 500 · 5% ecofix XL' },
+                '78h amarillo': { pantallas: 3, mallas: ['157', '198', '110'], aditivos: '3% CL 500 · 5% ecofix XL' },
+                '761 university gold': { pantallas: 3, mallas: ['157', '198', '110'], aditivos: '3% CL 500 · 5% ecofix XL' }
             }
-            
-            // Generar ID único si aplica (GFS)
-            if (reglasCliente.reglas.formato_id_unico?.activo) {
-                const gfsId = generarGFSIdentifier();
-                if (gfsId) {
-                    console.log('🏷️ ID único GFS:', gfsId);
-                    placement.gfsIdentifier = gfsId;
+        },
+        
+        // Mallas y aditivos por defecto para WATER BASE
+        defaults: {
+            blocker: { nombre: 'Bloquer CHT', mesh1: '110', mesh2: '122', mesh3: '157', additives: 'N/A' },
+            whiteBase: { nombre: 'AquaFlex V2', mesh1: '110', mesh2: '122', mesh3: '198', additives: 'N/A' },
+            whiteBaseWithCatalyst: { nombre: 'AquaFlex V2', mesh: '122', additives: '3% CL 500' },
+            color: { mesh1: '157', mesh2: '198', additives: '3% CL 500 · 5% ecofix XL' }
+        },
+        
+        // Reglas para clientes específicos
+        clientRules: {
+            'GEAR FOR SPORT': {
+                inkType: 'PLASTISOL',
+                blocker: { nombre: 'Barrier Base', mesh1: '110/64', mesh2: '122/55', additives: 'N/A' },
+                white: { nombre: 'Poly White', mesh1: '157', mesh2: '122', additives: 'N/A' },
+                color: { mesh1: '157', mesh2: '122', additives: 'N/A' },
+                exceptions: {
+                    'midnight navy': { noWhiteBase: true }
                 }
             }
         }
+    };
+
+    // =============================================
+    // FUNCIONES DE CLASIFICACIÓN
+    // =============================================
+    
+    /**
+     * CLASIFICA LA TELA según su color
+     * @param {string} colorTela - Color de la prenda
+     * @returns {string} 'oscura' o 'clara'
+     */
+    function clasificarTela(colorTela) {
+        if (!colorTela) return 'clara';
+        const telaLower = colorTela.toLowerCase();
+        const oscuras = ["negro", "black", "navy", "charcoal", "maroon", "dark", "oscuro"];
+        return oscuras.some(o => telaLower.includes(o)) ? 'oscura' : 'clara';
+    }
+
+    /**
+     * CLASIFICA UN COLOR del diseño
+     * @param {string} colorName - Nombre del color
+     * @returns {object} Tipo de color y características
+     */
+    function clasificarColor(colorName) {
+        if (!colorName) return { tipo: 'desconocido', esClaro: false, esOscuro: true, esEspecial: null };
         
-        // =============================================
-        // 3. OBTENER REGLAS DE TINTA
-        // =============================================
-        const reglasTinta = window.RulesEngine?.getReglasTinta(placement.inkType);
-        
-        // =============================================
-        // 4. CLASIFICAR TELA (oscura/clara)
-        // =============================================
-        const tipoTela = window.RulesEngine?.clasificarTela(colorTela) || 'clara';
-        console.log(`🎨 Tipo de tela detectado: ${tipoTela}`);
-        
-        // =============================================
-        // 5. CONSTRUIR SECUENCIA BASE
-        // =============================================
-        let nuevosColores = [];
-        let letraCounter = 65; // A, B, C, D...
-        
-        // Obtener secuencia base del cliente
-        const secuenciaBase = window.RulesEngine?.obtenerSecuenciaBase(tipoTela, reglasCliente) || [];
-        
-        // Si no hay secuencia base del cliente, usar reglas genéricas
-        if (secuenciaBase.length === 0) {
-            console.log('⚠️ Usando reglas genéricas para secuencia base');
-            
-            if (tipoTela === 'oscura') {
-                // 3 bloqueadores para tela oscura
-                for (let i = 0; i < 3; i++) {
-                    nuevosColores.push({
-                        id: Date.now() + Math.random() + i,
-                        type: 'BLOCKER',
-                        screenLetter: String.fromCharCode(letraCounter + i),
-                        val: 'Bloquer CHT',
-                        mesh: reglasCliente?.reglas.mallas_por_defecto?.BLOCKER || 
-                              reglasTinta?.reglas_generales?.mallas?.BLOCKER?.primera || '110',
-                        additives: 'N/A'
-                    });
-                }
-                letraCounter += 3;
-                
-                // 1 base blanca para tela oscura con colores claros
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + 10,
-                    type: 'WHITE_BASE',
-                    screenLetter: String.fromCharCode(letraCounter),
-                    val: reglasCliente?.reglas.mallas_por_defecto?.WHITE_BASE ? 'TXT POLY WHITE' : 'AquaFlex V2',
-                    mesh: reglasCliente?.reglas.mallas_por_defecto?.WHITE_BASE || 
-                          reglasTinta?.reglas_generales?.mallas?.WHITE_BASE?.primera || '122',
-                    additives: reglasCliente?.reglas.aditivos_por_defecto?.WHITE_BASE || 
-                              reglasTinta?.reglas_generales?.aditivos?.WHITE_BASE || '3% CL 500'
-                });
-                letraCounter++;
-                
-            } else {
-                // Tela clara: 2 bases blancas + 1 blocker
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + 0,
-                    type: 'WHITE_BASE',
-                    screenLetter: String.fromCharCode(letraCounter),
-                    val: 'AquaFlex V2',
-                    mesh: '110',
-                    additives: 'N/A'
-                });
-                letraCounter++;
-                
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + 1,
-                    type: 'WHITE_BASE',
-                    screenLetter: String.fromCharCode(letraCounter),
-                    val: 'AquaFlex V2',
-                    mesh: '122',
-                    additives: 'N/A'
-                });
-                letraCounter++;
-                
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + 2,
-                    type: 'BLOCKER',
-                    screenLetter: String.fromCharCode(letraCounter),
-                    val: 'Bloquer CHT',
-                    mesh: '157',
-                    additives: 'N/A'
-                });
-                letraCounter++;
+        const colorLower = colorName.toLowerCase().trim();
+
+        // 1. Verificar si es especial (3 pantallas)
+        for (const [key, especial] of Object.entries(config.colorClassification.special)) {
+            if (colorLower.includes(key)) {
+                return { 
+                    tipo: 'especial', 
+                    esClaro: true, 
+                    esOscuro: false, 
+                    esEspecial: especial 
+                };
             }
+        }
+
+        // 2. Verificar si es claro
+        if (config.colorClassification.light.some(light => colorLower.includes(light))) {
+            return { tipo: 'claro', esClaro: true, esOscuro: false, esEspecial: null };
+        }
+
+        // 3. Verificar si es oscuro
+        if (config.colorClassification.dark.some(dark => colorLower.includes(dark))) {
+            return { tipo: 'oscuro', esClaro: false, esOscuro: true, esEspecial: null };
+        }
+
+        // 4. Desconocido (por defecto como oscuro por seguridad)
+        return { tipo: 'desconocido', esClaro: false, esOscuro: true, esEspecial: null };
+    }
+
+    /**
+     * OBTIENE REGLAS específicas para un cliente
+     */
+    function obtenerReglasCliente(customer) {
+        if (!customer) return null;
+        const customerUpper = customer.toUpperCase();
+        for (const [key, rules] of Object.entries(config.clientRules)) {
+            if (customerUpper.includes(key)) {
+                return { nombre: key, ...rules };
+            }
+        }
+        return null;
+    }
+
+    // =============================================
+    // GENERADOR DE SECUENCIA (CORAZÓN DEL MOTOR)
+    // =============================================
+    
+    /**
+     * GENERA LA SECUENCIA COMPLETA de impresión
+     * @param {object} params - Parámetros de entrada
+     * @returns {array} - Secuencia de pasos a imprimir
+     */
+    function generarSecuencia(params) {
+        const { customer, garmentColor, inkType = 'WATER', designColors = [] } = params;
+        
+        console.log('🎯 MOTOR: Iniciando generación', { 
+            customer, 
+            garmentColor, 
+            inkType, 
+            designColors 
+        });
+
+        // =========================================
+        // 1. CLASIFICAR TELA (oscura/clara)
+        // =========================================
+        const telaType = clasificarTela(garmentColor);
+        console.log(`   📊 Tela clasificada como: ${telaType}`);
+
+        // =========================================
+        // 2. OBTENER REGLAS DEL CLIENTE
+        // =========================================
+        const reglasCliente = obtenerReglasCliente(customer);
+        const usarReglasCliente = !!(reglasCliente && inkType === reglasCliente.inkType);
+        const preset = usarReglasCliente ? reglasCliente : config.defaults;
+        
+        if (usarReglasCliente) {
+            console.log(`   🏷️ Usando reglas de cliente: ${reglasCliente.nombre}`);
+        }
+
+        // =========================================
+        // 3. GENERAR SECUENCIA BASE según TELA
+        // =========================================
+        let secuencia = [];
+        let letraCounter = 65; // 'A'
+
+        if (telaType === 'oscura') {
+            // TELA OSCURA: 3 bloqueadores + base blanca con catalizador
+            secuencia.push(
+                { tipo: 'BLOCKER', nombre: preset.blocker.nombre, screenLetter: 'A', mesh: preset.blocker.mesh1, additives: preset.blocker.additives },
+                { tipo: 'BLOCKER', nombre: preset.blocker.nombre, screenLetter: 'A', mesh: preset.blocker.mesh2, additives: preset.blocker.additives },
+                { tipo: 'BLOCKER', nombre: preset.blocker.nombre, screenLetter: 'A', mesh: preset.blocker.mesh3, additives: preset.blocker.additives },
+                { tipo: 'WHITE_BASE', nombre: preset.whiteBase.nombre, screenLetter: 'B', mesh: preset.whiteBaseWithCatalyst.mesh, additives: preset.whiteBaseWithCatalyst.additives }
+            );
+            letraCounter = 67; // 'C' será la siguiente letra disponible
         } else {
-            // Usar secuencia base del cliente
-            secuenciaBase.forEach((paso, index) => {
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + index,
-                    type: paso.tipo,
-                    screenLetter: paso.screenLetter || String.fromCharCode(letraCounter + index),
-                    val: paso.nombre || (paso.tipo === 'WHITE_BASE' ? 'Base Blanca' : 'Bloqueador'),
-                    mesh: paso.malla || '110',
-                    additives: paso.aditivos || 'N/A'
-                });
-            });
-            letraCounter += secuenciaBase.length;
+            // TELA CLARA: 2 bases blancas + 1 blocker + base blanca con catalizador
+            secuencia.push(
+                { tipo: 'WHITE_BASE', nombre: preset.whiteBase.nombre, screenLetter: 'A', mesh: preset.whiteBase.mesh1, additives: preset.whiteBase.additives },
+                { tipo: 'WHITE_BASE', nombre: preset.whiteBase.nombre, screenLetter: 'B', mesh: preset.whiteBase.mesh2, additives: preset.whiteBase.additives },
+                { tipo: 'BLOCKER', nombre: preset.blocker.nombre, screenLetter: 'C', mesh: preset.blocker.mesh3, additives: preset.blocker.additives },
+                { tipo: 'WHITE_BASE', nombre: preset.whiteBase.nombre, screenLetter: 'D', mesh: preset.whiteBaseWithCatalyst.mesh, additives: preset.whiteBaseWithCatalyst.additives }
+            );
+            letraCounter = 69; // 'E' será la siguiente letra disponible
         }
+
+        console.log(`   📋 Secuencia base generada (${secuencia.length} pasos)`);
+
+        // =========================================
+        // 4. PROCESAR CADA COLOR ÚNICO DEL DISEÑO
+        // =========================================
         
-        // =============================================
-        // 6. PROCESAR CADA COLOR DEL DISEÑO
-        // =============================================
-        const coloresDiseno = placement.colors.filter(c => 
-            c.type === 'COLOR' || c.type === 'METALLIC'
-        );
-        
-        console.log('🎨 Colores del diseño:', coloresDiseno);
-        
-        for (let i = 0; i < coloresDiseno.length; i++) {
-            const colorOriginal = coloresDiseno[i];
-            
-            // Verificar si es color especial (3 pantallas)
-            const colorEspecial = window.RulesEngine?.esColorEspecial(colorOriginal.val);
-            
-            if (colorEspecial) {
-                // Color especial: 3 pantallas
-                console.log(`✨ Color especial detectado: ${colorOriginal.val}`);
-                for (let p = 0; p < colorEspecial.pantallas; p++) {
-                    nuevosColores.push({
-                        id: Date.now() + Math.random() + 100 + i*10 + p,
-                        type: 'COLOR',
-                        screenLetter: String(p + 1), // Números: 1, 2, 3
-                        val: colorOriginal.val + (p > 0 ? ` (${p+1})` : ''),
-                        mesh: colorEspecial.mallas[p] || '157',
-                        additives: colorEspecial.aditivos || '3% CL 500 · 5% ecofix XL'
+        // 4.1 Obtener colores únicos (para leyenda)
+        const uniqueDesignColors = [];
+        const seenColors = new Set();
+        designColors.forEach(c => {
+            const colorVal = (c.val || '').toUpperCase().trim();
+            if (colorVal && !seenColors.has(colorVal)) {
+                seenColors.add(colorVal);
+                uniqueDesignColors.push(c);
+            }
+        });
+
+        console.log(`   🎨 Procesando ${uniqueDesignColors.length} colores únicos:`, 
+            uniqueDesignColors.map(c => c.val).join(', '));
+
+        // 4.2 Procesar cada color único
+        for (let i = 0; i < uniqueDesignColors.length; i++) {
+            const colorOriginal = uniqueDesignColors[i];
+            const clasificacion = clasificarColor(colorOriginal.val);
+            const screenLetterBase = String.fromCharCode(letraCounter);
+
+            console.log(`       Color ${i+1}: "${colorOriginal.val}" → ${clasificacion.tipo}`);
+
+            // Verificar excepciones del cliente
+            const esExcepcion = usarReglasCliente && reglasCliente.exceptions &&
+                Object.keys(reglasCliente.exceptions).some(ex => 
+                    colorOriginal.val.toLowerCase().includes(ex)
+                );
+
+            // Si es color claro sobre tela oscura y no es excepción → base blanca extra
+            if (!esExcepcion && clasificacion.esClaro && telaType === 'oscura') {
+                secuencia.push({
+                    tipo: 'WHITE_BASE',
+                    screenLetter: String.fromCharCode(letraCounter),
+                    nombre: preset.whiteBase.nombre,
+                    mesh: preset.whiteBaseWithCatalyst.mesh,
+                    additives: preset.whiteBaseWithCatalyst.additives
+                });
+                letraCounter++; // Avanzamos para el color
+            }
+
+            // Generar pantallas para el color
+            if (clasificacion.esEspecial) {
+                // COLOR ESPECIAL: 3 pantallas con MISMA LETRA
+                const especial = clasificacion.esEspecial;
+                console.log(`       ✨ Especial: 3 pantallas con letra ${screenLetterBase}`);
+                
+                for (let p = 0; p < especial.pantallas; p++) {
+                    secuencia.push({
+                        tipo: 'COLOR',
+                        screenLetter: screenLetterBase,
+                        nombre: colorOriginal.val + (p > 0 ? ` (${p+1})` : ''),
+                        mesh: especial.mallas[p],
+                        additives: especial.aditivos
                     });
                 }
+                letraCounter++; // Avanzamos después del color especial
+                
             } else {
-                // Color normal: 2 pantallas
-                console.log(`🎨 Color normal: ${colorOriginal.val}`);
+                // COLOR NORMAL: 2 pantallas con MISMA LETRA
+                console.log(`       🎨 Normal: 2 pantallas con letra ${screenLetterBase}`);
                 
-                // Determinar si va sobre BLOCKER o AQUAFLEX según el color
-                const esClaro = window.RulesEngine?.rules?.colores?.especiales?.clasificacion_general?.claros?.some(
-                    c => colorOriginal.val.toLowerCase().includes(c)
-                ) || false;
-                
-                const meshColor = reglasCliente?.reglas.mallas_por_defecto?.COLOR || 
-                                  reglasTinta?.reglas_generales?.mallas?.COLOR?.normal || '157';
-                const meshSegunda = reglasCliente?.reglas.mallas_por_defecto?.COLOR_SEGUNDA || 
-                                    reglasTinta?.reglas_generales?.mallas?.COLOR?.segunda_pantalla || '198';
-                const aditivos = reglasCliente?.reglas.aditivos_por_defecto?.COLOR || 
-                                 reglasTinta?.reglas_generales?.aditivos?.COLOR || '3% CL 500 · 5% ecofix XL';
-                
-                // Primera pantalla
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + 200 + i*10,
-                    type: 'COLOR',
-                    screenLetter: '1',
-                    val: colorOriginal.val,
-                    mesh: meshColor,
-                    additives: aditivos
-                });
-                
-                // Segunda pantalla
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + 201 + i*10,
-                    type: 'COLOR',
-                    screenLetter: '2',
-                    val: colorOriginal.val + ' (2)',
-                    mesh: meshSegunda,
-                    additives: aditivos
-                });
+                secuencia.push(
+                    {
+                        tipo: 'COLOR',
+                        screenLetter: screenLetterBase,
+                        nombre: colorOriginal.val,
+                        mesh: clasificacion.esOscuro ? preset.color.mesh2 : preset.color.mesh1,
+                        additives: preset.color.additives
+                    },
+                    {
+                        tipo: 'COLOR',
+                        screenLetter: screenLetterBase,
+                        nombre: colorOriginal.val + ' (2)',
+                        mesh: clasificacion.esOscuro ? preset.color.mesh1 : preset.color.mesh2,
+                        additives: preset.color.additives
+                    }
+                );
+                letraCounter++; // Avanzamos después del color normal
             }
-            
-            // Agregar FLASH y COOL después de cada color (excepto el último)
-            if (i < coloresDiseno.length - 1) {
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + 300 + i,
-                    type: 'FLASH',
-                    screenLetter: '',
-                    val: 'FLASH',
-                    mesh: '-',
-                    additives: ''
-                });
-                nuevosColores.push({
-                    id: Date.now() + Math.random() + 301 + i,
-                    type: 'COOL',
-                    screenLetter: '',
-                    val: 'COOL',
-                    mesh: '-',
-                    additives: ''
-                });
+
+            // Añadir FLASH y COOL después de cada color (excepto el último)
+            if (i < uniqueDesignColors.length - 1) {
+                secuencia.push({ tipo: 'FLASH', nombre: 'FLASH', screenLetter: '', mesh: '-', additives: '' });
+                secuencia.push({ tipo: 'COOL', nombre: 'COOL', screenLetter: '', mesh: '-', additives: '' });
             }
         }
-        
-        // =============================================
-        // 7. ACTUALIZAR PLACEMENT
-        // =============================================
-        console.log('✅ Secuencia generada:', nuevosColores);
-        placement.colors = nuevosColores;
-        
-        // Actualizar UI
-        renderPlacementColors(placementId);
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
-        
-        showStatus(`✅ Secuencia generada: ${nuevosColores.length} elementos`, 'success');
-        
-    } catch (error) {
-        console.error('❌ Error generando secuencia:', error);
-        showStatus('❌ Error: ' + error.message, 'error');
+
+        console.log(`✅ MOTOR: Secuencia final generada (${secuencia.length} pasos totales)`);
+        return secuencia;
     }
-};
+
+    /**
+     * OBTIENE condiciones de curado
+     */
+    function getCuringConditions(inkType, customer) {
+        const reglasCliente = obtenerReglasCliente(customer);
+        if (inkType === 'PLASTISOL' || (reglasCliente && reglasCliente.inkType === 'PLASTISOL')) {
+            return config.plastisol;
+        }
+        return config.waterBase;
+    }
+
+    // API pública
+    return {
+        generarSecuencia,
+        getCuringConditions,
+        clasificarColor,
+        clasificarTela,
+        obtenerReglasCliente
+    };
+})();
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('✅ RulesEngine v2.0 cargado y listo');
+});
 
 // =====================================================
 // FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS
