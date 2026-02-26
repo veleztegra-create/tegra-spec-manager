@@ -821,86 +821,69 @@ window.generarConAsistente = async function(placementId) {
         const customer = document.getElementById('customer')?.value || '';
         const colorTela = document.getElementById('colorway')?.value || '';
         
-        // 1. Obtener reglas del cliente
-        const reglasCliente = window.RulesEngine.getReglasCliente(customer);
-        
-        // 2. Aplicar reglas específicas del cliente
-        if (reglasCliente) {
-            console.log(`📋 Aplicando reglas para: ${reglasCliente.nombre}`);
-            
-            // Forzar tipo de tinta si está especificado
-            if (reglasCliente.reglas.tinta_forzada) {
-                placement.inkType = reglasCliente.reglas.tinta_forzada;
-                const inkSelect = document.querySelector(`.placement-ink-type[data-placement-id="${placementId}"]`);
-                if (inkSelect) inkSelect.value = reglasCliente.reglas.tinta_forzada;
-            }
-            
-            // Generar ID único si aplica
-            if (reglasCliente.reglas.formato_id_unico?.activo) {
-                const gfsId = generarGFSIdentifier(); // tu función existente
-                console.log('🏷️ ID único:', gfsId);
-            }
+        try {
+    // Obtener reglas del cliente
+    const reglasCliente = window.RulesEngine?.getReglasCliente(customer);
+    
+    // Construir secuencia
+    let secuencia = [];
+    
+    // Agregar bloqueadores según tela
+    const tipoTela = window.RulesEngine?.clasificarTela(colorTela) || 'clara';
+    
+    if (tipoTela === 'oscura') {
+        // 3 bloqueadores para tela oscura
+        for (let i = 0; i < 3; i++) {
+            secuencia.push({
+                tipo: "BLOCKER",
+                nombre: "Bloquer CHT",
+                malla: reglasCliente?.reglas.mallas_por_defecto?.BLOCKER || "110",
+                screenLetter: String.fromCharCode(65 + i)
+            });
         }
-        
-        // 3. Obtener reglas de la tinta
-        const reglasTinta = window.RulesEngine.getReglasTinta(placement.inkType);
-        
-        // 4. Clasificar tela
-        const tipoTela = window.RulesEngine.clasificarTela(colorTela);
-        const reglasTela = window.RulesEngine.rules.telas[tipoTela];
-        
-        // 5. Construir secuencia usando las reglas
-        let secuencia = [];
-        
-        // Agregar bloqueadores según tela
-        if (reglasTela?.reglas.bloqueadores) {
-            for (let i = 0; i < reglasTela.reglas.bloqueadores.cantidad; i++) {
+    }
+    
+    // Procesar cada color
+    placement.colors
+        .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
+        .forEach((color, index) => {
+            // Verificar si es color especial
+            const especial = window.RulesEngine?.esColorEspecial(color.val);
+            const pantallas = especial ? especial.pantallas : 2;
+            
+            for (let p = 1; p <= pantallas; p++) {
                 secuencia.push({
-                    tipo: "BLOCKER",
-                    nombre: "Bloquer CHT",
-                    malla: reglasTela.reglas.bloqueadores.mallas[i] || 
-                           reglasCliente?.reglas.mallas_por_defecto?.BLOCKER ||
-                           reglasTinta?.reglas_generales?.mallas?.BLOCKER?.primera,
-                    screenLetter: String.fromCharCode(65 + i)
+                    tipo: "COLOR",
+                    nombre: color.val + (p > 1 ? ` (${p})` : ""),
+                    screenLetter: String(p),
+                    malla: especial?.mallas[p-1] || 
+                           reglasCliente?.reglas.mallas_por_defecto?.COLOR ||
+                           "157",
+                    aditivos: especial?.aditivos ||
+                             reglasCliente?.reglas.aditivos_por_defecto?.COLOR ||
+                             "3% CL 500 · 5% ecofix XL"
                 });
             }
-        }
-        
-        // Procesar cada color
-        placement.colors
-            .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
-            .forEach((color, index) => {
-                // Verificar si es color especial
-                const especial = window.RulesEngine.esColorEspecial(color.val);
-                const pantallas = especial ? especial.pantallas : 2;
-                
-                for (let p = 1; p <= pantallas; p++) {
-                    secuencia.push({
-                        tipo: "COLOR",
-                        nombre: color.val + (p > 1 ? ` (${p})` : ""),
-                        screenLetter: String(p),
-                        malla: especial?.mallas[p-1] || 
-                               reglasCliente?.reglas.mallas_por_defecto?.COLOR ||
-                               reglasTinta?.reglas_generales?.mallas?.COLOR?.normal,
-                        aditivos: especial?.aditivos ||
-                                 reglasCliente?.reglas.aditivos_por_defecto?.COLOR ||
-                                 reglasTinta?.reglas_generales?.aditivos?.COLOR
-                    });
-                }
-            });
-        
-        // Aplicar al placement
-        placement.colors = secuencia;
-        renderPlacementColors(placementId);
-        updatePlacementStations(placementId);
-        
-        showStatus('✅ Reglas aplicadas correctamente', 'success');
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        showStatus('❌ Error aplicando reglas', 'error');
-    }
-};
+            
+            // Agregar FLASH y COOL entre colores
+            if (index < placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC').length - 1) {
+                secuencia.push({ tipo: "FLASH", nombre: "FLASH", malla: "-", screenLetter: "" });
+                secuencia.push({ tipo: "COOL", nombre: "COOL", malla: "-", screenLetter: "" });
+            }
+        });
+    
+    // Aplicar al placement
+    placement.colors = secuencia;
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    
+    showStatus('✅ Reglas aplicadas correctamente', 'success');
+    
+} catch (error) {
+    console.error('❌ Error:', error);
+    showStatus('❌ Error aplicando reglas', 'error');
+}
+// 👋 NO PONGAS NADA MÁS AQUÍ
 // =====================================================
 // FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS
 // =====================================================
