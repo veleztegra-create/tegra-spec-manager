@@ -1,6 +1,6 @@
 // =====================================================
 // app.js - TEGRA TECHNICAL SPEC MANAGER
-// Versión: 2.1 - Con motor de reglas interno y sincronización corregida
+// Versión: 3.0 - Con secuencias optimizadas y corrección de FLASH/COOL
 // 100% local - 0% dependencias externas de IA
 // =====================================================
 
@@ -450,7 +450,8 @@ function addNewPlacement(type = null, isFirst = false) {
         type: placementType,
         name: `Placement ${getNextPlacementNumber()}`,
         imageData: null,
-        colors: [],
+        colors: [], // Solo tintas reales (WHITE_BASE, BLOCKER, COLOR, METALLIC)
+        sequence: [], // Secuencia completa (incluye FLASH/COOL)
         placementDetails: '#.#" FROM COLLAR SEAM',
         dimensions: 'SIZE: (W) ## X (H) ##',
         temp: '320 °F',
@@ -563,312 +564,120 @@ if (typeof window.errorHandler === 'undefined') {
 }
 
 // =====================================================
-// rules-engine.js - Motor de reglas COMPLETO
-// Versión: 2.0 - Con todas las secuencias de impresión
+// ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE (MEJORADA) ⭐
+// =====================================================
 
-window.RulesEngine = (function() {
-    // =============================================
-    // CONFIGURACIÓN PRIVADA (EL CORAZÓN DE LAS REGLAS)
-    // =============================================
-    const config = {
-        // Temperatura y tiempo por defecto
-        waterBase: { temp: '320 °F', time: '1:40 min' },
-        plastisol: { temp: '320 °F', time: '1:00 min' },
-        
-        // Clasificación de colores
-        colorClassification: {
-            // Palabras clave para colores CLAROS (necesitan base blanca)
-            light: [
-                'amarillo', 'yellow', 'oro', 'gold', 'naranja', 'orange',
-                'rosa', 'pink', 'beige', 'crema', 'ivory', 'blanco', 'white',
-                'limon', 'lemon', 'dorado', '77c', '78h', '761'
-            ],
-            // Palabras clave para colores OSCUROS (van sobre blocker)
-            dark: [
-                'rojo', 'red', 'azul', 'blue', 'verde', 'green', 'morado', 'purple',
-                'marron', 'brown', 'negro', 'black', 'gris', 'gray', 'grey', 'navy',
-                'charcoal', 'maroon', 'crimson'
-            ],
-            // Definición de colores ESPECIALES (3 pantallas)
-            special: {
-                '77c gold': { pantallas: 3, mallas: ['157', '198', '110'], aditivos: '3% CL 500 · 5% ecofix XL' },
-                '78h amarillo': { pantallas: 3, mallas: ['157', '198', '110'], aditivos: '3% CL 500 · 5% ecofix XL' },
-                '761 university gold': { pantallas: 3, mallas: ['157', '198', '110'], aditivos: '3% CL 500 · 5% ecofix XL' }
-            }
-        },
-        
-        // Mallas y aditivos por defecto para WATER BASE
-        defaults: {
-            blocker: { nombre: 'Bloquer CHT', mesh1: '110', mesh2: '122', mesh3: '157', additives: 'N/A' },
-            whiteBase: { nombre: 'AquaFlex V2', mesh1: '110', mesh2: '122', mesh3: '198', additives: 'N/A' },
-            whiteBaseWithCatalyst: { nombre: 'AquaFlex V2', mesh: '122', additives: '3% CL 500' },
-            color: { mesh1: '157', mesh2: '198', additives: '3% CL 500 · 5% ecofix XL' }
-        },
-        
-        // Reglas para clientes específicos
-        clientRules: {
-            'GEAR FOR SPORT': {
-                inkType: 'PLASTISOL',
-                blocker: { nombre: 'Barrier Base', mesh1: '110/64', mesh2: '122/55', additives: 'N/A' },
-                white: { nombre: 'Poly White', mesh1: '157', mesh2: '122', additives: 'N/A' },
-                color: { mesh1: '157', mesh2: '122', additives: 'N/A' },
-                exceptions: {
-                    'midnight navy': { noWhiteBase: true }
-                }
-            }
-        }
-    };
-
-    // =============================================
-    // FUNCIONES DE CLASIFICACIÓN
-    // =============================================
-    
-    /**
-     * CLASIFICA LA TELA según su color
-     * @param {string} colorTela - Color de la prenda
-     * @returns {string} 'oscura' o 'clara'
-     */
-    function clasificarTela(colorTela) {
-        if (!colorTela) return 'clara';
-        const telaLower = colorTela.toLowerCase();
-        const oscuras = ["negro", "black", "navy", "charcoal", "maroon", "dark", "oscuro"];
-        return oscuras.some(o => telaLower.includes(o)) ? 'oscura' : 'clara';
+window.generarConAsistente = async function(placementId) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement) {
+        showStatus('❌ Placement no encontrado', 'error');
+        return;
     }
 
-    /**
-     * CLASIFICA UN COLOR del diseño
-     * @param {string} colorName - Nombre del color
-     * @returns {object} Tipo de color y características
-     */
-    function clasificarColor(colorName) {
-        if (!colorName) return { tipo: 'desconocido', esClaro: false, esOscuro: true, esEspecial: null };
+    showStatus('🤖 Generando secuencia inteligente...', 'info');
+
+    try {
+        // =============================================
+        // 1. OBTENER DATOS NECESARIOS
+        // =============================================
+        const customer = document.getElementById('customer')?.value || '';
+        const garmentColor = document.getElementById('colorway')?.value || '';
+        const inkType = placement.inkType || 'WATER';
         
-        const colorLower = colorName.toLowerCase().trim();
+        // Obtener SOLO los colores del diseño (los que el usuario agregó manualmente)
+        const designColors = placement.colors.filter(c => 
+            c.type === 'COLOR' || c.type === 'METALLIC'
+        ).map(c => ({ id: c.id, val: c.val }));
 
-        // 1. Verificar si es especial (3 pantallas)
-        for (const [key, especial] of Object.entries(config.colorClassification.special)) {
-            if (colorLower.includes(key)) {
-                return { 
-                    tipo: 'especial', 
-                    esClaro: true, 
-                    esOscuro: false, 
-                    esEspecial: especial 
-                };
-            }
+        if (designColors.length === 0) {
+            showStatus('⚠️ No hay colores de diseño para generar secuencia', 'warning');
+            return;
         }
 
-        // 2. Verificar si es claro
-        if (config.colorClassification.light.some(light => colorLower.includes(light))) {
-            return { tipo: 'claro', esClaro: true, esOscuro: false, esEspecial: null };
+        console.log('📋 Procesando con RulesEngine:', { customer, garmentColor, inkType, designColors });
+
+        // =============================================
+        // 2. CONSULTAR AL MOTOR DE REGLAS
+        // =============================================
+        if (!window.RulesEngine) {
+            throw new Error('Motor de reglas no disponible');
         }
 
-        // 3. Verificar si es oscuro
-        if (config.colorClassification.dark.some(dark => colorLower.includes(dark))) {
-            return { tipo: 'oscuro', esClaro: false, esOscuro: true, esEspecial: null };
-        }
-
-        // 4. Desconocido (por defecto como oscuro por seguridad)
-        return { tipo: 'desconocido', esClaro: false, esOscuro: true, esEspecial: null };
-    }
-
-    /**
-     * OBTIENE REGLAS específicas para un cliente
-     */
-    function obtenerReglasCliente(customer) {
-        if (!customer) return null;
-        const customerUpper = customer.toUpperCase();
-        for (const [key, rules] of Object.entries(config.clientRules)) {
-            if (customerUpper.includes(key)) {
-                return { nombre: key, ...rules };
-            }
-        }
-        return null;
-    }
-
-    // =============================================
-    // GENERADOR DE SECUENCIA (CORAZÓN DEL MOTOR)
-    // =============================================
-    
-    /**
-     * GENERA LA SECUENCIA COMPLETA de impresión
-     * @param {object} params - Parámetros de entrada
-     * @returns {array} - Secuencia de pasos a imprimir
-     */
-    function generarSecuencia(params) {
-        const { customer, garmentColor, inkType = 'WATER', designColors = [] } = params;
-        
-        console.log('🎯 MOTOR: Iniciando generación', { 
-            customer, 
-            garmentColor, 
-            inkType, 
-            designColors 
+        // Generar secuencia COMPLETA (incluye FLASH/COOL en la posición correcta)
+        const secuenciaCompleta = window.RulesEngine.generarSecuencia({
+            customer: customer,
+            garmentColor: garmentColor,
+            inkType: inkType,
+            designColors: designColors
         });
 
-        // =========================================
-        // 1. CLASIFICAR TELA (oscura/clara)
-        // =========================================
-        const telaType = clasificarTela(garmentColor);
-        console.log(`   📊 Tela clasificada como: ${telaType}`);
+        console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
-        // =========================================
-        // 2. OBTENER REGLAS DEL CLIENTE
-        // =========================================
-        const reglasCliente = obtenerReglasCliente(customer);
-        const usarReglasCliente = !!(reglasCliente && inkType === reglasCliente.inkType);
-        const preset = usarReglasCliente ? reglasCliente : config.defaults;
+        // =============================================
+        // 3. SEPARAR: COLORES REALES vs SECUENCIA COMPLETA
+        // =============================================
         
-        if (usarReglasCliente) {
-            console.log(`   🏷️ Usando reglas de cliente: ${reglasCliente.nombre}`);
-        }
+        // 3.1 COLORES REALES (para la UI de colores) - SOLO tintas
+        const coloresReales = secuenciaCompleta.filter(paso => 
+            paso.tipo === 'WHITE_BASE' || 
+            paso.tipo === 'BLOCKER' || 
+            paso.tipo === 'COLOR' || 
+            paso.tipo === 'METALLIC'
+        );
 
-        // =========================================
-        // 3. GENERAR SECUENCIA BASE según TELA
-        // =========================================
-        let secuencia = [];
-        let letraCounter = 65; // 'A'
+        // 3.2 SECUENCIA COMPLETA (para la tabla de estaciones)
+        placement.sequence = secuenciaCompleta.map((paso, index) => ({
+            id: Date.now() + Math.random() + index,
+            type: paso.tipo,
+            screenLetter: paso.screenLetter || '',
+            val: paso.nombre || '---',
+            mesh: paso.mesh || '',
+            additives: paso.additives || ''
+        }));
 
-        if (telaType === 'oscura') {
-            // TELA OSCURA: 3 bloqueadores + base blanca con catalizador
-            secuencia.push(
-                { tipo: 'BLOCKER', nombre: preset.blocker.nombre, screenLetter: 'A', mesh: preset.blocker.mesh1, additives: preset.blocker.additives },
-                { tipo: 'BLOCKER', nombre: preset.blocker.nombre, screenLetter: 'A', mesh: preset.blocker.mesh2, additives: preset.blocker.additives },
-                { tipo: 'BLOCKER', nombre: preset.blocker.nombre, screenLetter: 'A', mesh: preset.blocker.mesh3, additives: preset.blocker.additives },
-                { tipo: 'WHITE_BASE', nombre: preset.whiteBase.nombre, screenLetter: 'B', mesh: preset.whiteBaseWithCatalyst.mesh, additives: preset.whiteBaseWithCatalyst.additives }
-            );
-            letraCounter = 67; // 'C' será la siguiente letra disponible
-        } else {
-            // TELA CLARA: 2 bases blancas + 1 blocker + base blanca con catalizador
-            secuencia.push(
-                { tipo: 'WHITE_BASE', nombre: preset.whiteBase.nombre, screenLetter: 'A', mesh: preset.whiteBase.mesh1, additives: preset.whiteBase.additives },
-                { tipo: 'WHITE_BASE', nombre: preset.whiteBase.nombre, screenLetter: 'B', mesh: preset.whiteBase.mesh2, additives: preset.whiteBase.additives },
-                { tipo: 'BLOCKER', nombre: preset.blocker.nombre, screenLetter: 'C', mesh: preset.blocker.mesh3, additives: preset.blocker.additives },
-                { tipo: 'WHITE_BASE', nombre: preset.whiteBase.nombre, screenLetter: 'D', mesh: preset.whiteBaseWithCatalyst.mesh, additives: preset.whiteBaseWithCatalyst.additives }
-            );
-            letraCounter = 69; // 'E' será la siguiente letra disponible
-        }
+        // 3.3 ACTUALIZAR SOLO los colores reales en placement.colors
+        placement.colors = coloresReales.map((paso, index) => ({
+            id: Date.now() + Math.random() + index,
+            type: paso.tipo,
+            screenLetter: paso.screenLetter || '',
+            val: paso.nombre || '---',
+            mesh: paso.mesh || '',
+            additives: paso.additives || ''
+        }));
 
-        console.log(`   📋 Secuencia base generada (${secuencia.length} pasos)`);
+        // =============================================
+        // 4. ACTUALIZAR CONDICIONES DE CURADO
+        // =============================================
+        const curing = window.RulesEngine.getCuringConditions 
+            ? window.RulesEngine.getCuringConditions(inkType, customer)
+            : { temp: '320 °F', time: '1:40 min' };
+            
+        placement.temp = curing.temp;
+        placement.time = curing.time;
 
-        // =========================================
-        // 4. PROCESAR CADA COLOR ÚNICO DEL DISEÑO
-        // =========================================
+        // Actualizar campos de temperatura en el HTML
+        const tempField = document.getElementById(`temp-${placementId}`);
+        const timeField = document.getElementById(`time-${placementId}`);
+        if (tempField) tempField.value = placement.temp;
+        if (timeField) timeField.value = placement.time;
+
+        // =============================================
+        // 5. ACTUALIZAR UI
+        // =============================================
+        renderPlacementColors(placementId);
+        updatePlacementStations(placementId);
+        updatePlacementColorsPreview(placementId);
         
-        // 4.1 Obtener colores únicos (para leyenda)
-        const uniqueDesignColors = [];
-        const seenColors = new Set();
-        designColors.forEach(c => {
-            const colorVal = (c.val || '').toUpperCase().trim();
-            if (colorVal && !seenColors.has(colorVal)) {
-                seenColors.add(colorVal);
-                uniqueDesignColors.push(c);
-            }
-        });
+        showStatus(`✅ Secuencia generada (${placement.sequence.length} pasos totales, ${placement.colors.length} colores)`, 'success');
 
-        console.log(`   🎨 Procesando ${uniqueDesignColors.length} colores únicos:`, 
-            uniqueDesignColors.map(c => c.val).join(', '));
-
-        // 4.2 Procesar cada color único
-        for (let i = 0; i < uniqueDesignColors.length; i++) {
-            const colorOriginal = uniqueDesignColors[i];
-            const clasificacion = clasificarColor(colorOriginal.val);
-            const screenLetterBase = String.fromCharCode(letraCounter);
-
-            console.log(`       Color ${i+1}: "${colorOriginal.val}" → ${clasificacion.tipo}`);
-
-            // Verificar excepciones del cliente
-            const esExcepcion = usarReglasCliente && reglasCliente.exceptions &&
-                Object.keys(reglasCliente.exceptions).some(ex => 
-                    colorOriginal.val.toLowerCase().includes(ex)
-                );
-
-            // Si es color claro sobre tela oscura y no es excepción → base blanca extra
-            if (!esExcepcion && clasificacion.esClaro && telaType === 'oscura') {
-                secuencia.push({
-                    tipo: 'WHITE_BASE',
-                    screenLetter: String.fromCharCode(letraCounter),
-                    nombre: preset.whiteBase.nombre,
-                    mesh: preset.whiteBaseWithCatalyst.mesh,
-                    additives: preset.whiteBaseWithCatalyst.additives
-                });
-                letraCounter++; // Avanzamos para el color
-            }
-
-            // Generar pantallas para el color
-            if (clasificacion.esEspecial) {
-                // COLOR ESPECIAL: 3 pantallas con MISMA LETRA
-                const especial = clasificacion.esEspecial;
-                console.log(`       ✨ Especial: 3 pantallas con letra ${screenLetterBase}`);
-                
-                for (let p = 0; p < especial.pantallas; p++) {
-                    secuencia.push({
-                        tipo: 'COLOR',
-                        screenLetter: screenLetterBase,
-                        nombre: colorOriginal.val + (p > 0 ? ` (${p+1})` : ''),
-                        mesh: especial.mallas[p],
-                        additives: especial.aditivos
-                    });
-                }
-                letraCounter++; // Avanzamos después del color especial
-                
-            } else {
-                // COLOR NORMAL: 2 pantallas con MISMA LETRA
-                console.log(`       🎨 Normal: 2 pantallas con letra ${screenLetterBase}`);
-                
-                secuencia.push(
-                    {
-                        tipo: 'COLOR',
-                        screenLetter: screenLetterBase,
-                        nombre: colorOriginal.val,
-                        mesh: clasificacion.esOscuro ? preset.color.mesh2 : preset.color.mesh1,
-                        additives: preset.color.additives
-                    },
-                    {
-                        tipo: 'COLOR',
-                        screenLetter: screenLetterBase,
-                        nombre: colorOriginal.val + ' (2)',
-                        mesh: clasificacion.esOscuro ? preset.color.mesh1 : preset.color.mesh2,
-                        additives: preset.color.additives
-                    }
-                );
-                letraCounter++; // Avanzamos después del color normal
-            }
-
-            // Añadir FLASH y COOL después de cada color (excepto el último)
-            if (i < uniqueDesignColors.length - 1) {
-                secuencia.push({ tipo: 'FLASH', nombre: 'FLASH', screenLetter: '', mesh: '-', additives: '' });
-                secuencia.push({ tipo: 'COOL', nombre: 'COOL', screenLetter: '', mesh: '-', additives: '' });
-            }
+    } catch (error) {
+        console.error('❌ Error generando secuencia:', error);
+        showStatus('❌ Error: ' + error.message, 'error');
+        if (window.errorHandler) {
+            window.errorHandler.log('generarConAsistente', error, { placementId });
         }
-
-        console.log(`✅ MOTOR: Secuencia final generada (${secuencia.length} pasos totales)`);
-        return secuencia;
     }
-
-    /**
-     * OBTIENE condiciones de curado
-     */
-    function getCuringConditions(inkType, customer) {
-        const reglasCliente = obtenerReglasCliente(customer);
-        if (inkType === 'PLASTISOL' || (reglasCliente && reglasCliente.inkType === 'PLASTISOL')) {
-            return config.plastisol;
-        }
-        return config.waterBase;
-    }
-
-    // API pública
-    return {
-        generarSecuencia,
-        getCuringConditions,
-        clasificarColor,
-        clasificarTela,
-        obtenerReglasCliente
-    };
-})();
-
-// Inicializar
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ RulesEngine v2.0 cargado y listo');
-});
+};
 
 // =====================================================
 // FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS
@@ -1231,7 +1040,12 @@ function renderPlacementHTML(placement) {
     container.innerHTML += sectionHTML;
 
     renderPlacementColors(placement.id);
-    updatePlacementStations(placement.id);
+    
+    // Usar la secuencia guardada si existe, o generar una nueva
+    if (placement.sequence && placement.sequence.length > 0) {
+        updatePlacementStations(placement.id);
+    }
+    
     updatePlacementColorsPreview(placement.id);
 
     if (placement.imageData) {
@@ -1732,7 +1546,7 @@ function addPlacementColorItem(placementId, type) {
         initialVal = preset.blocker?.name || 'BLOCKER CHT';
     } else if (type === 'WHITE_BASE') {
         initialLetter = 'B';
-        initialVal = preset.white?.name || 'AQUAFLEX V2 WHITE';
+        initialVal = preset.white?.name || 'AQUAFLEX WHITE';
     } else if (type === 'METALLIC') {
         const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         initialLetter = String(colorItems.length + 1);
@@ -2160,20 +1974,20 @@ function updatePlacementColorsPreview(placementId) {
 }
 
 // =====================================================
-// FUNCIONES DE SECUENCIA DE PLACEMENTS
+// FUNCIÓN CORREGIDA: updatePlacementStations
 // =====================================================
 
 function updatePlacementStations(placementId, returnOnly = false) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return [];
 
-    // ✅ USAR LA SECUENCIA COMPLETA, no los colores
+    // ✅ USAR LA SECUENCIA COMPLETA si existe
     const sequence = placement.sequence || [];
     
     if (sequence.length === 0) {
         if (!returnOnly) {
             const div = document.getElementById(`placement-sequence-table-${placementId}`);
-            if (div) div.innerHTML = '<p>No hay secuencia generada</p>';
+            if (div) div.innerHTML = '<p style="color:var(--text-secondary); font-style:italic; text-align:center; padding:15px; background:var(--gray-dark); border-radius:var(--radius);">Genera una secuencia para ver la tabla de impresión.</p>';
         }
         return [];
     }
@@ -2182,11 +1996,13 @@ function updatePlacementStations(placementId, returnOnly = false) {
     const stationsData = [];
     let stNum = 1;
 
-    // Recorrer la secuencia completa (YA incluye FLASH/COOL)
+    // Recorrer la secuencia completa (YA incluye FLASH/COOL en la posición correcta)
     for (let idx = 0; idx < sequence.length; idx++) {
         const item = sequence[idx];
         
-        // Si es FLASH o COOL, agregar directamente
+        // =========================================
+        // CASO 1: Es FLASH o COOL (ya están en la secuencia)
+        // =========================================
         if (item.type === 'FLASH' || item.type === 'COOL') {
             stationsData.push({
                 st: stNum++,
@@ -2201,21 +2017,43 @@ function updatePlacementStations(placementId, returnOnly = false) {
                 speed: '-',
                 add: item.additives || ''
             });
-            continue;
+            continue; // ← IMPORTANTE: No añadir FLASH/COOL adicional
         }
 
-        // Procesar tintas normales
+        // =========================================
+        // CASO 2: Es BLOCKER
+        // =========================================
         let mesh, strokesVal, duro, ang, press, spd, add;
         
         if (item.type === 'BLOCKER') {
-            mesh = item.mesh || preset.blocker.mesh1;
-            add = item.additives || preset.blocker.additives;
-        } else if (item.type === 'WHITE_BASE') {
-            mesh = item.mesh || preset.white.mesh1;
-            add = item.additives || preset.white.additives;
-        } else {
-            mesh = item.mesh || preset.color.mesh;
-            add = item.additives || preset.color.additives;
+            mesh = item.mesh || placement.meshBlocker || preset.blocker.mesh1;
+            add = item.additives || placement.additives || preset.blocker.additives;
+        } 
+        // =========================================
+        // CASO 3: Es WHITE_BASE
+        // =========================================
+        else if (item.type === 'WHITE_BASE') {
+            mesh = item.mesh || placement.meshWhite || preset.white.mesh1;
+            add = item.additives || placement.additives || preset.white.additives;
+        } 
+        // =========================================
+        // CASO 4: Es METALLIC
+        // =========================================
+        else if (item.type === 'METALLIC') {
+            mesh = item.mesh || '110/64';
+            strokesVal = '1';
+            duro = '70';
+            ang = '15';
+            press = '40';
+            spd = '35';
+            add = item.additives || 'Catalizador especial para metálicos';
+        } 
+        // =========================================
+        // CASO 5: Es COLOR
+        // =========================================
+        else {
+            mesh = item.mesh || placement.meshColor || preset.color.mesh;
+            add = item.additives || placement.additives || preset.color.additives;
         }
 
         stationsData.push({
@@ -2224,11 +2062,11 @@ function updatePlacementStations(placementId, returnOnly = false) {
             screenCombined: item.val || '---',
             mesh: mesh,
             ink: item.val || '---',
-            strokes: preset.color.strokes,
-            duro: preset.color.durometer,
-            angle: preset.color.angle,
-            pressure: preset.color.pressure,
-            speed: preset.color.speed,
+            strokes: placement.strokes || preset.color.strokes,
+            duro: placement.durometer || preset.color.durometer,
+            angle: placement.angle || preset.color.angle,
+            pressure: placement.pressure || preset.color.pressure,
+            speed: placement.speed || preset.color.speed,
             add: add
         });
     }
@@ -2707,31 +2545,21 @@ function loadSavedSpecsList() {
 }
 
 function loadSpecData(data) {
-    // ... cargar datos generales ...
-    
-    placements = [];
-    
-    if (data.placements && Array.isArray(data.placements)) {
-        data.placements.forEach((placementData, index) => {
-            const placementId = index === 0 ? 1 : Date.now() + index;
-            const placement = {
-                ...placementData,
-                id: placementId
-            };
-            
-            // ✅ Restaurar colores y secuencia
-            placement.colors = placementData.colors || [];
-            placement.sequence = placementData.sequence || [];
-            
-            placements.push(placement);
-            renderPlacementHTML(placement);
-            renderPlacementColors(placementId);
-            updatePlacementStations(placementId);
-        });
-    }
-    
-    // ...
-}
+    setInputValue('customer', data.customer || '');
+    setInputValue('style', data.style || '');
+    setInputValue('folder-num', data.folder || '');
+    setInputValue('colorway', data.colorway || '');
+    setInputValue('season', data.season || '');
+    setInputValue('pattern', data.pattern || '');
+    setInputValue('po', data.po || '');
+    setInputValue('sample-type', data.sampleType || '');
+    setInputValue('name-team', data.nameTeam || '');
+    setInputValue('gender', data.gender || '');
+    setInputValue('designer', data.designer || '');
+    setInputValue('base-size', data.baseSize || '');
+    setInputValue('fabric', data.fabric || '');
+    setInputValue('technician-name', data.technicianName || '');
+    setInputValue('technical-comments', data.technicalComments || '');
 
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
@@ -2744,6 +2572,10 @@ function loadSpecData(data) {
                 ...placementData,
                 id: placementId
             };
+
+            // ✅ Restaurar colores y secuencia
+            placement.colors = placementData.colors || [];
+            placement.sequence = placementData.sequence || [];
 
             if (index === 0) {
                 placements = [placement];
@@ -2863,27 +2695,31 @@ function saveCurrentSpec() {
 }
 
 function collectData() {
-    // ... código existente ...
-    
+    const generalData = {
+        customer: document.getElementById('customer')?.value || '',
+        style: document.getElementById('style')?.value || '',
+        folder: document.getElementById('folder-num')?.value || '',
+        colorway: document.getElementById('colorway')?.value || '',
+        season: document.getElementById('season')?.value || '',
+        pattern: document.getElementById('pattern')?.value || '',
+        po: document.getElementById('po')?.value || '',
+        sampleType: document.getElementById('sample-type')?.value || '',
+        nameTeam: document.getElementById('name-team')?.value || '',
+        gender: document.getElementById('gender')?.value || '',
+        designer: document.getElementById('designer')?.value || '',
+        baseSize: document.getElementById('base-size')?.value || '',
+        fabric: document.getElementById('fabric')?.value || '',
+        technicianName: document.getElementById('technician-name')?.value || '',
+        technicalComments: document.getElementById('technical-comments')?.value || '',
+        savedAt: new Date().toISOString()
+    };
+
     const placementsData = placements.map(placement => ({
         id: placement.id,
         type: placement.type,
         name: placement.name,
         imageData: placement.imageData,
         // ✅ Guardar AMBAS cosas
-        colors: placement.colors,  // Solo colores reales
-        sequence: placement.sequence, // Secuencia completa con FLASH/COOL
-        // ... resto de propiedades ...
-    }));
-
-    // ...
-    }
-
-    const placementsData = placements.map(placement => ({
-        id: placement.id,
-        type: placement.type,
-        name: placement.name,
-        imageData: placement.imageData,
         colors: placement.colors.map(c => ({
             id: c.id,
             type: c.type,
@@ -2891,6 +2727,7 @@ function collectData() {
             screenLetter: c.screenLetter,
             mesh: c.mesh || ''
         })),
+        sequence: placement.sequence || [], // Guardar la secuencia completa
         placementDetails: placement.placementDetails,
         dimensions: placement.dimensions,
         width: placement.width,
@@ -2965,13 +2802,28 @@ function getInputValue(id, fallback = '') {
     return element ? element.value : fallback;
 }
 
-async function exportPDF() {
+// =====================================================
+// FUNCIÓN EXPORTAR HTML (renombrada)
+// =====================================================
+async function exportHTML() {
     try {
         if (!window.generateSpecHTMLDocument) {
             throw new Error('Generador HTML no disponible (window.generateSpecHTMLDocument).');
         }
 
+        // ✅ IMPORTANTE: Recolectar datos ACTUALES del formulario y placements
         const data = collectData();
+        
+        // ✅ Forzar actualización de la secuencia en los datos
+        data.placements = placements.map(p => ({
+            ...p,
+            // Asegurar que los colores sean los actuales
+            colors: p.colors,
+            sequence: p.sequence
+        }));
+
+        console.log('📤 Exportando HTML con datos:', data);
+        
         const htmlContent = window.generateSpecHTMLDocument(data);
         const style = getInputValue('style', 'Spec') || 'Spec';
         const folderNum = getInputValue('folder-num', '00000') || '00000';
@@ -3028,9 +2880,9 @@ function exportToExcel() {
                     ? placement.type.replace('CUSTOM: ', '').toLowerCase()
                     : placement.type.toLowerCase();
 
-                const screenCount = placement.colors ? placement.colors.length : 0;
-                const colorCount = screenCount;
-                const stationCount = colorCount > 0 ? (colorCount * 3 - 2) : 0;
+                const screenCount = placement.sequence ? placement.sequence.length : 0;
+                const colorCount = placement.colors ? placement.colors.length : 0;
+                const stationCount = screenCount;
                 const artType = 'Vector';
 
                 let inkType = 'WB MAGNA';
@@ -3474,28 +3326,29 @@ document.addEventListener('DOMContentLoaded', () => {
                         btn.textContent.includes('Descargar Spec') ||
                         btn.textContent.includes('Descargar Calculadora')
                     );
-                    const pdfButton = Array.from(buttons).find(btn =>
-                        btn.textContent.includes('Exportar PDF')
+                    const htmlButton = Array.from(buttons).find(btn =>
+                        btn.textContent.includes('Exportar HTML') ||
+                        btn.textContent.includes('Descargar HTML')
                     );
 
-                    if (specButton && pdfButton) {
+                    if (specButton && htmlButton) {
                         specButton.textContent = ' Descargar Spec';
                         specButton.classList.remove('btn-warning');
                         specButton.classList.add('btn-primary');
                         specButton.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
                         specButton.style.borderColor = '#0056b3';
 
-                        pdfButton.textContent = ' Exportar PDF';
-                        pdfButton.classList.remove('btn-warning');
-                        pdfButton.classList.add('btn-success');
+                        htmlButton.textContent = ' Exportar HTML';
+                        htmlButton.classList.remove('btn-warning');
+                        htmlButton.classList.add('btn-success');
 
-                        pdfButton.parentNode.insertBefore(pdfButton, specButton.nextSibling);
+                        htmlButton.parentNode.insertBefore(htmlButton, specButton.nextSibling);
                     }
                 }
             }, 2000);
 
-            console.log('✅ Tegra Spec Manager v2.1 iniciado');
-            console.log('✅ Motor de reglas disponible:', !!window.SequenceAutomation);
+            console.log('✅ Tegra Spec Manager v3.0 iniciado');
+            console.log('✅ Motor de reglas disponible:', !!window.RulesEngine);
         })
         .catch((error) => {
             console.error('Error al cargar templates:', error);
@@ -3540,92 +3393,6 @@ function normalizeGearForSportColor(colorName) {
 
     return colorName;
 }
-// =====================================================
-// ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE (COMPLETA) ⭐
-// =====================================================
-
-window.generarConAsistente = async function(placementId) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) {
-        showStatus('❌ Placement no encontrado', 'error');
-        return;
-    }
-
-    showStatus('🤖 Generando secuencia inteligente...', 'info');
-
-    try {
-        // Obtener datos
-        const customer = document.getElementById('customer')?.value || '';
-        const garmentColor = document.getElementById('colorway')?.value || '';
-        const inkType = placement.inkType || 'WATER';
-        
-        // Obtener SOLO los colores del diseño (los que el usuario agregó manualmente)
-        const designColors = placement.colors.filter(c => 
-            c.type === 'COLOR' || c.type === 'METALLIC'
-        ).map(c => ({ id: c.id, val: c.val }));
-
-        if (designColors.length === 0) {
-            showStatus('⚠️ No hay colores de diseño', 'warning');
-            return;
-        }
-
-        // Generar secuencia COMPLETA (incluye FLASH/COOL)
-        const secuenciaCompleta = window.RulesEngine.generarSecuencia({
-            customer,
-            garmentColor,
-            inkType,
-            designColors
-        });
-
-        // =============================================
-        // SEPARAR: Colores reales vs Secuencia completa
-        // =============================================
-        
-        // 1. COLORES REALES (para la UI de colores) - SOLO tintas
-        const coloresReales = secuenciaCompleta.filter(paso => 
-            paso.tipo === 'WHITE_BASE' || 
-            paso.tipo === 'BLOCKER' || 
-            paso.tipo === 'COLOR' || 
-            paso.tipo === 'METALLIC'
-        );
-
-        // 2. SECUENCIA COMPLETA (para la tabla de estaciones)
-        placement.sequence = secuenciaCompleta.map((paso, index) => ({
-            id: Date.now() + Math.random() + index,
-            type: paso.tipo,
-            screenLetter: paso.screenLetter || '',
-            val: paso.nombre || '---',
-            mesh: paso.mesh || '',
-            additives: paso.additives || ''
-        }));
-
-        // 3. ACTUALIZAR SOLO los colores reales en placement.colors
-        placement.colors = coloresReales.map((paso, index) => ({
-            id: Date.now() + Math.random() + index,
-            type: paso.tipo,
-            screenLetter: paso.screenLetter || '',
-            val: paso.nombre || '---',
-            mesh: paso.mesh || '',
-            additives: paso.additives || ''
-        }));
-
-        // Actualizar temperatura
-        const curing = window.RulesEngine.getCuringConditions(inkType, customer);
-        placement.temp = curing.temp;
-        placement.time = curing.time;
-
-        // Actualizar UI
-        renderPlacementColors(placementId);
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
-        
-        showStatus(`✅ Secuencia generada (${placement.sequence.length} pasos totales, ${placement.colors.length} colores)`, 'success');
-
-    } catch (error) {
-        console.error('❌ Error:', error);
-        showStatus('❌ Error: ' + error.message, 'error');
-    }
-};
 
 // =====================================================
 // EXPORTAR FUNCIONES GLOBALES
@@ -3639,7 +3406,7 @@ window.addNewPlacement = addNewPlacement;
 window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
-window.exportPDF = exportPDF;
+window.exportHTML = exportHTML; // ✅ Renombrado
 window.downloadProjectZip = downloadProjectZip;
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
