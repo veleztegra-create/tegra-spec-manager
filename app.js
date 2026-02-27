@@ -234,32 +234,52 @@ function setupPasteHandler() {
 // FUNCIONES DE DETECCIÓN
 // =====================================================
 
-function detectTeamFromStyle(style) {
+function detectTeamFromStyle(style, colorway = '', customer = '') {
     if (!style) return '';
 
     try {
         const styleStr = style.toString().toUpperCase().trim();
+        const customerStr = String(customer || '').toUpperCase();
+        const isGearForSport = customerStr.includes('GEAR') || customerStr.includes('GFS');
 
-        if (window.SchoolsConfig) {
-            const schoolData = window.SchoolsConfig.detectSchoolFromStyle(styleStr);
-            if (schoolData) {
-                return schoolData.teamName;
+        let gearStyleKey = styleStr;
+        if (isGearForSport && colorway) {
+            const colorwayPrefix = String(colorway)
+                .toUpperCase()
+                .replace(/^\s*#\s*/, '')
+                .split(/[-\s]/)
+                .map((part) => part.trim())
+                .find(Boolean);
+            if (colorwayPrefix) {
+                gearStyleKey = `${styleStr}-${colorwayPrefix}`;
             }
         }
 
-        if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
-            for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
-                if (styleStr === code || styleStr.includes(code)) {
-                    return teamName;
-                }
+        if (isGearForSport && window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
+            const map = window.Config.GEARFORSPORT_TEAM_MAP;
+            if (map[gearStyleKey] && map[gearStyleKey] !== 'Generic Team') {
+                return map[gearStyleKey];
             }
+            if (map[styleStr] && map[styleStr] !== 'Generic Team') {
+                return map[styleStr];
+            }
+        }
+
+        if (isGearForSport && window.SchoolsConfig) {
+            const schoolData = window.SchoolsConfig.detectSchoolFromStyle(gearStyleKey) || window.SchoolsConfig.detectSchoolFromStyle(styleStr);
+            if (schoolData) return schoolData.teamName;
         }
 
         if (window.Config && window.Config.TEAM_CODE_MAP) {
             const teamMap = window.Config.TEAM_CODE_MAP;
             if (typeof teamMap === 'object') {
+                const searchable = `${styleStr} ${gearStyleKey}`;
                 for (const [code, teamName] of Object.entries(teamMap)) {
-                    if (styleStr.includes(code)) {
+                    const normalizedCode = String(code || '').toUpperCase().trim();
+                    if (!normalizedCode || normalizedCode.length < 2) continue;
+                    const safeCode = normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const pattern = new RegExp(`(^|[^A-Z0-9])${safeCode}([^A-Z0-9]|$)`);
+                    if (pattern.test(searchable)) {
                         return teamName;
                     }
                 }
@@ -268,18 +288,18 @@ function detectTeamFromStyle(style) {
 
         if (window.TeamsConfig) {
             const leagues = ['NCAA', 'NBA', 'NFL'];
-
             for (const league of leagues) {
                 if (window.TeamsConfig[league] && window.TeamsConfig[league].teams) {
                     for (const [code, teamData] of Object.entries(window.TeamsConfig[league].teams)) {
-                        if (styleStr.includes(code)) {
-                            return teamData.name;
-                        }
+                        const normalizedCode = String(code || '').toUpperCase().trim();
+                        if (!normalizedCode || normalizedCode.length < 2) continue;
+                        const safeCode = normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const pattern = new RegExp(`(^|[^A-Z0-9])${safeCode}([^A-Z0-9]|$)`);
+                        if (pattern.test(styleStr)) return teamData.name;
                     }
                 }
             }
         }
-
     } catch (error) {
         console.warn('Error en detectTeamFromStyle:', error);
     }
@@ -2245,7 +2265,7 @@ function processExcelData(worksheet, sheetName = '') {
                 }
                 else if (label.includes('STYLE:')) {
                     extracted.style = val;
-                    extracted.team = detectTeamFromStyle(val);
+                    extracted.team = detectTeamFromStyle(val, extracted.colorway, extracted.customer);
                     
                     if (extracted.customer && extracted.customer.toUpperCase().includes('GEAR')) {
                         extracted.gender = extractGenderFromStyle(val);
@@ -2288,7 +2308,7 @@ function processExcelData(worksheet, sheetName = '') {
                     extracted.customer = String(row[j + 1] || '').trim();
                 } else if (cell.includes('STYLE:')) {
                     extracted.style = String(row[j + 1] || '').trim();
-                    extracted.team = detectTeamFromStyle(extracted.style);
+                    extracted.team = detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
                 } else if (cell.includes('COLORWAY')) {
                     extracted.colorway = String(row[j + 1] || '').trim();
                 } else if (cell.includes('SEASON:')) {
@@ -2302,6 +2322,10 @@ function processExcelData(worksheet, sheetName = '') {
                 }
             }
         }
+    }
+
+    if (!extracted.team && extracted.style) {
+        extracted.team = detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
     }
 
     if (extracted.customer) setInputValue('customer', extracted.customer);

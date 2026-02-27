@@ -137,18 +137,7 @@ window.RulesEngine = (function () {
 
         let numeroColor = 1;
         uniqueColors.forEach((color) => {
-            const clasificacion = clasificarColor(color.val);
             const especial = esColorEspecial(color.val);
-
-            if (telaType === 'oscura' && clasificacion.esClaro && !especial) {
-                steps.push({
-                    tipo: 'WHITE_BASE',
-                    screenLetter: 'B',
-                    nombre: preset.whiteBase.nombre,
-                    mesh: preset.whiteBaseWithCatalyst.mesh,
-                    additives: preset.whiteBaseWithCatalyst.additives
-                });
-            }
 
             if (especial) {
                 especial.mallas.forEach((mesh, index) => {
