@@ -3407,6 +3407,7 @@ window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
 window.exportHTML = exportHTML; // ✅ Renombrado
+window.exportPDF = exportHTML; // Compatibilidad con botones legacy
 window.downloadProjectZip = downloadProjectZip;
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
