@@ -102,11 +102,20 @@ async function loadTabTemplates() {
     await Promise.all(templateSections.map(async (section) => {
         const templatePath = section.dataset.template;
         if (!templatePath) return;
-        const response = await fetch(templatePath);
-        if (!response.ok) {
-            throw new Error(`No se pudo cargar el template: ${templatePath}`);
+
+        try {
+            const response = await fetch(templatePath);
+            if (!response.ok) {
+                throw new Error(`No se pudo cargar el template: ${templatePath}`);
+            }
+            section.innerHTML = await response.text();
+        } catch (error) {
+            console.error('Error cargando template:', templatePath, error);
+            section.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--text-secondary);">No se pudo cargar esta sección.</p></div></div>';
+            if (window.errorHandler) {
+                window.errorHandler.log('template_load', error);
+            }
         }
-        section.innerHTML = await response.text();
     }));
 }
 
@@ -2346,7 +2355,16 @@ function processExcelData(worksheet, sheetName = '') {
         }
     }
 
-    const baseSizeCell = worksheet && worksheet['F16'] ? String(worksheet['F16'].v || '').trim().toUpperCase() : '';
+    const baseSizeCols = ['C', 'D', 'E', 'F', 'G', 'H', 'I'];
+    let baseSizeCell = '';
+    for (const col of baseSizeCols) {
+        const raw = worksheet && worksheet[`${col}16`] ? String(worksheet[`${col}16`].v || '').trim().toUpperCase() : '';
+        if (raw) {
+            baseSizeCell = raw;
+            break;
+        }
+    }
+
     if (baseSizeCell) {
         const normalizedBaseSize = baseSizeCell.replace(/[^A-Z0-9]/g, '');
         if (normalizedBaseSize) {
@@ -2434,6 +2452,7 @@ function updateDashboard() {
 
         let lastSpec = null;
         let lastSpecDate = null;
+        let lastSpecKey = null;
 
         specs.forEach(key => {
             try {
@@ -2443,6 +2462,7 @@ function updateDashboard() {
                 if (!lastSpecDate || specDate > lastSpecDate) {
                     lastSpecDate = specDate;
                     lastSpec = data;
+                    lastSpecKey = key;
                 }
             } catch (e) {
                 console.warn('Error al parsear spec:', key, e);
@@ -2451,9 +2471,13 @@ function updateDashboard() {
 
         const todaySpecsEl = document.getElementById('today-specs');
         if (lastSpec && todaySpecsEl) {
+            const safeStyle = (lastSpec.style || 'Sin nombre').replace(/"/g, '&quot;');
             todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
-                <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
+                <button type="button" onclick="loadSpec('${lastSpecKey}')" title="Abrir para seguir editando"
+                    style="font-size:1.05rem; font-weight:bold; color:var(--primary); background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; text-align:left;">
+                    ${safeStyle}
+                </button>
                 <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
             `;
         } else if (todaySpecsEl) {
