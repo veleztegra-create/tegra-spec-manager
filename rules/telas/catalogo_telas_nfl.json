@@ -1,0 +1,6 @@
+{
+  "nombre": "Catálogo Telas NFL",
+  "version": "1.0",
+  "darkIdentifiers": ["black", "jet black", "midnight navy", "navy", "charcoal", "graphite", "forest", "dark green", "burgundy", "maroon", "purple"],
+  "lightIdentifiers": ["white", "ivory", "stone", "cream", "silver", "light gray", "heather gray"]
+}

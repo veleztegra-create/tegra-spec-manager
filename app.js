@@ -102,11 +102,20 @@ async function loadTabTemplates() {
     await Promise.all(templateSections.map(async (section) => {
         const templatePath = section.dataset.template;
         if (!templatePath) return;
-        const response = await fetch(templatePath);
-        if (!response.ok) {
-            throw new Error(`No se pudo cargar el template: ${templatePath}`);
+
+        try {
+            const response = await fetch(templatePath);
+            if (!response.ok) {
+                throw new Error(`No se pudo cargar el template: ${templatePath}`);
+            }
+            section.innerHTML = await response.text();
+        } catch (error) {
+            console.error('Error cargando template:', templatePath, error);
+            section.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--text-secondary);">No se pudo cargar esta sección.</p></div></div>';
+            if (window.errorHandler) {
+                window.errorHandler.log('template_load', error);
+            }
         }
-        section.innerHTML = await response.text();
     }));
 }
 
@@ -234,32 +243,52 @@ function setupPasteHandler() {
 // FUNCIONES DE DETECCIÓN
 // =====================================================
 
-function detectTeamFromStyle(style) {
+function detectTeamFromStyle(style, colorway = '', customer = '') {
     if (!style) return '';
 
     try {
         const styleStr = style.toString().toUpperCase().trim();
+        const customerStr = String(customer || '').toUpperCase();
+        const isGearForSport = customerStr.includes('GEAR') || customerStr.includes('GFS');
 
-        if (window.SchoolsConfig) {
-            const schoolData = window.SchoolsConfig.detectSchoolFromStyle(styleStr);
-            if (schoolData) {
-                return schoolData.teamName;
+        let gearStyleKey = styleStr;
+        if (isGearForSport && colorway) {
+            const colorwayPrefix = String(colorway)
+                .toUpperCase()
+                .replace(/^\s*#\s*/, '')
+                .split(/[-\s]/)
+                .map((part) => part.trim())
+                .find(Boolean);
+            if (colorwayPrefix) {
+                gearStyleKey = `${styleStr}-${colorwayPrefix}`;
             }
         }
 
-        if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
-            for (const [code, teamName] of Object.entries(window.Config.GEARFORSPORT_TEAM_MAP)) {
-                if (styleStr === code || styleStr.includes(code)) {
-                    return teamName;
-                }
+        if (isGearForSport && window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
+            const map = window.Config.GEARFORSPORT_TEAM_MAP;
+            if (map[gearStyleKey] && map[gearStyleKey] !== 'Generic Team') {
+                return map[gearStyleKey];
             }
+            if (map[styleStr] && map[styleStr] !== 'Generic Team') {
+                return map[styleStr];
+            }
+        }
+
+        if (isGearForSport && window.SchoolsConfig) {
+            const schoolData = window.SchoolsConfig.detectSchoolFromStyle(gearStyleKey) || window.SchoolsConfig.detectSchoolFromStyle(styleStr);
+            if (schoolData) return schoolData.teamName;
         }
 
         if (window.Config && window.Config.TEAM_CODE_MAP) {
             const teamMap = window.Config.TEAM_CODE_MAP;
             if (typeof teamMap === 'object') {
+                const searchable = `${styleStr} ${gearStyleKey}`;
                 for (const [code, teamName] of Object.entries(teamMap)) {
-                    if (styleStr.includes(code)) {
+                    const normalizedCode = String(code || '').toUpperCase().trim();
+                    if (!normalizedCode || normalizedCode.length < 2) continue;
+                    const safeCode = normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const pattern = new RegExp(`(^|[^A-Z0-9])${safeCode}([^A-Z0-9]|$)`);
+                    if (pattern.test(searchable)) {
                         return teamName;
                     }
                 }
@@ -268,18 +297,18 @@ function detectTeamFromStyle(style) {
 
         if (window.TeamsConfig) {
             const leagues = ['NCAA', 'NBA', 'NFL'];
-
             for (const league of leagues) {
                 if (window.TeamsConfig[league] && window.TeamsConfig[league].teams) {
                     for (const [code, teamData] of Object.entries(window.TeamsConfig[league].teams)) {
-                        if (styleStr.includes(code)) {
-                            return teamData.name;
-                        }
+                        const normalizedCode = String(code || '').toUpperCase().trim();
+                        if (!normalizedCode || normalizedCode.length < 2) continue;
+                        const safeCode = normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const pattern = new RegExp(`(^|[^A-Z0-9])${safeCode}([^A-Z0-9]|$)`);
+                        if (pattern.test(styleStr)) return teamData.name;
                     }
                 }
             }
         }
-
     } catch (error) {
         console.warn('Error en detectTeamFromStyle:', error);
     }
@@ -2245,7 +2274,7 @@ function processExcelData(worksheet, sheetName = '') {
                 }
                 else if (label.includes('STYLE:')) {
                     extracted.style = val;
-                    extracted.team = detectTeamFromStyle(val);
+                    extracted.team = detectTeamFromStyle(val, extracted.colorway, extracted.customer);
                     
                     if (extracted.customer && extracted.customer.toUpperCase().includes('GEAR')) {
                         extracted.gender = extractGenderFromStyle(val);
@@ -2288,7 +2317,7 @@ function processExcelData(worksheet, sheetName = '') {
                     extracted.customer = String(row[j + 1] || '').trim();
                 } else if (cell.includes('STYLE:')) {
                     extracted.style = String(row[j + 1] || '').trim();
-                    extracted.team = detectTeamFromStyle(extracted.style);
+                    extracted.team = detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
                 } else if (cell.includes('COLORWAY')) {
                     extracted.colorway = String(row[j + 1] || '').trim();
                 } else if (cell.includes('SEASON:')) {
@@ -2302,6 +2331,10 @@ function processExcelData(worksheet, sheetName = '') {
                 }
             }
         }
+    }
+
+    if (!extracted.team && extracted.style) {
+        extracted.team = detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
     }
 
     if (extracted.customer) setInputValue('customer', extracted.customer);
@@ -2322,7 +2355,16 @@ function processExcelData(worksheet, sheetName = '') {
         }
     }
 
-    const baseSizeCell = worksheet && worksheet['F16'] ? String(worksheet['F16'].v || '').trim().toUpperCase() : '';
+    const baseSizeCols = ['C', 'D', 'E', 'F', 'G', 'H', 'I'];
+    let baseSizeCell = '';
+    for (const col of baseSizeCols) {
+        const raw = worksheet && worksheet[`${col}16`] ? String(worksheet[`${col}16`].v || '').trim().toUpperCase() : '';
+        if (raw) {
+            baseSizeCell = raw;
+            break;
+        }
+    }
+
     if (baseSizeCell) {
         const normalizedBaseSize = baseSizeCell.replace(/[^A-Z0-9]/g, '');
         if (normalizedBaseSize) {
@@ -2410,6 +2452,7 @@ function updateDashboard() {
 
         let lastSpec = null;
         let lastSpecDate = null;
+        let lastSpecKey = null;
 
         specs.forEach(key => {
             try {
@@ -2419,6 +2462,7 @@ function updateDashboard() {
                 if (!lastSpecDate || specDate > lastSpecDate) {
                     lastSpecDate = specDate;
                     lastSpec = data;
+                    lastSpecKey = key;
                 }
             } catch (e) {
                 console.warn('Error al parsear spec:', key, e);
@@ -2427,9 +2471,13 @@ function updateDashboard() {
 
         const todaySpecsEl = document.getElementById('today-specs');
         if (lastSpec && todaySpecsEl) {
+            const safeStyle = (lastSpec.style || 'Sin nombre').replace(/"/g, '&quot;');
             todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
-                <div style="font-size:1.2rem; font-weight:bold; color:var(--primary);">${lastSpec.style || 'Sin nombre'}</div>
+                <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastSpecKey)}'))" title="Abrir para seguir editando"
+                    style="font-size:1.05rem; font-weight:bold; color:var(--primary); background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; text-align:left;">
+                    ${safeStyle}
+                </button>
                 <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
             `;
         } else if (todaySpecsEl) {
@@ -2541,6 +2589,24 @@ function loadSavedSpecsList() {
                 No se encontraron specs para <strong>${query}</strong>
             </p>
         `;
+    }
+}
+
+function loadSpec(storageKey) {
+    try {
+        if (!storageKey) return;
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) {
+            showStatus('⚠️ No se encontró la spec seleccionada', 'warning');
+            return;
+        }
+        const data = JSON.parse(raw);
+        loadSpecData(data);
+        showTab('spec-creator');
+        showStatus('✅ Spec cargada para edición', 'success');
+    } catch (error) {
+        console.error('Error al cargar spec:', error);
+        showStatus('❌ Error al cargar spec', 'error');
     }
 }
 
@@ -2675,7 +2741,20 @@ function saveCurrentSpec() {
         data.savedAt = new Date().toISOString();
         data.lastModified = new Date().toISOString();
 
-        localStorage.setItem(storageKey, JSON.stringify(data));
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(data));
+        } catch (storageError) {
+            if (storageError && storageError.name === 'QuotaExceededError') {
+                const lightData = {
+                    ...data,
+                    placements: (data.placements || []).map((p) => ({ ...p, imageData: null }))
+                };
+                localStorage.setItem(storageKey, JSON.stringify(lightData));
+                showStatus('⚠️ Guardado sin imágenes por límite de almacenamiento', 'warning');
+            } else {
+                throw storageError;
+            }
+        }
 
         updateDashboard();
         loadSavedSpecsList();
@@ -3248,8 +3327,14 @@ function copyErrorDetails(index) {
 
 function clearErrorLog() {
     if (confirm('¿Estás seguro de que quieres limpiar el log de errores?')) {
-        if (errorHandler) {
-            errorHandler.clearErrors();
+        if (window.errorHandler) {
+            if (typeof window.errorHandler.clearErrors === 'function') {
+                window.errorHandler.clearErrors();
+            } else if (typeof window.errorHandler.clear === 'function') {
+                window.errorHandler.clear();
+            } else if (Array.isArray(window.errorHandler.errors)) {
+                window.errorHandler.errors = [];
+            }
         }
         loadErrorLog();
         showStatus('🗑️ Log de errores limpiado', 'success');
@@ -3399,6 +3484,7 @@ function normalizeGearForSportColor(colorName) {
 // =====================================================
 window.showTab = showTab;
 window.loadSavedSpecsList = loadSavedSpecsList;
+window.loadSpec = loadSpec;
 window.clearErrorLog = clearErrorLog;
 window.exportErrorLog = exportErrorLog;
 window.clearAllSpecs = clearAllSpecs;
@@ -3407,6 +3493,7 @@ window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
 window.exportHTML = exportHTML; // ✅ Renombrado
+window.exportPDF = exportHTML; // Compatibilidad con botones legacy
 window.downloadProjectZip = downloadProjectZip;
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;

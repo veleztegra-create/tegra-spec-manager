@@ -74,7 +74,7 @@ window.ExcelAutomation = {
                     else if (label.includes('STYLE:')) {
                         extracted.style = val;
                         if (window.detectTeamFromStyle) {
-                            extracted.team = window.detectTeamFromStyle(val);
+                            extracted.team = window.detectTeamFromStyle(val, extracted.colorway, extracted.customer);
                         }
                     }
                     else if (label.includes('COLORWAY')) {
@@ -103,7 +103,7 @@ window.ExcelAutomation = {
                     } else if (cell.includes('STYLE:')) {
                         extracted.style = String(row[j + 1] || '').trim();
                         if (window.detectTeamFromStyle) {
-                            extracted.team = window.detectTeamFromStyle(extracted.style);
+                            extracted.team = window.detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
                         }
                     } else if (cell.includes('COLORWAY')) {
                         extracted.colorway = String(row[j + 1] || '').trim();
@@ -118,6 +118,10 @@ window.ExcelAutomation = {
                     }
                 }
             }
+        }
+
+        if (!extracted.team && extracted.style && window.detectTeamFromStyle) {
+            extracted.team = window.detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
         }
 
         return extracted;
