@@ -419,6 +419,27 @@ function setInputValue(id, value) {
     }
 }
 
+
+function applyCustomerInkDefaults() {
+    const customerValue = (document.getElementById('customer')?.value || '').toUpperCase().trim();
+    const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S'].some(v => customerValue.includes(v));
+    const targetInk = isGFS ? 'PLASTISOL' : null;
+    if (!targetInk) return;
+
+    placements.forEach((placement) => {
+        if (placement.inkType !== targetInk) {
+            placement.inkType = targetInk;
+        }
+
+        const select = document.querySelector(`.placement-ink-type[data-placement-id="${placement.id}"]`);
+        if (select && select.value !== targetInk) {
+            select.value = targetInk;
+        }
+
+        updatePlacementInkType(placement.id, targetInk);
+    });
+}
+
 function handleGearForSportLogic() {
     const customerInput = document.getElementById('customer');
     const nameTeamInput = document.getElementById('name-team');
@@ -428,6 +449,8 @@ function handleGearForSportLogic() {
     const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.'].some(v => customerValue.includes(v));
 
     if (!isGFS) return;
+
+    applyCustomerInkDefaults();
 
     const styleInput = document.getElementById('style');
     const poInput = document.getElementById('po');
@@ -1973,7 +1996,7 @@ function updatePlacementColorsPreview(placementId) {
 
     placement.colors.forEach(color => {
         if (color.type === 'COLOR' || color.type === 'METALLIC') {
-            const colorVal = (color.val || '').toUpperCase().trim();
+            const colorVal = (color.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/,'').trim();
             if (colorVal && !seenColors.has(colorVal)) {
                 seenColors.add(colorVal);
                 uniqueColors.push({
@@ -2377,6 +2400,8 @@ function processExcelData(worksheet, sheetName = '') {
     }
 
     updateClientLogo();
+    applyCustomerInkDefaults();
+    handleGearForSportLogic();
     showStatus(`✅ "${sheetName || 'hoja'}" procesado - Género: ${extracted.gender || 'No detectado'}`, 'success');
 }
 
@@ -3392,6 +3417,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 themeToggle.addEventListener('click', toggleTheme);
             }
 
+            const customerInput = document.getElementById('customer');
+            if (customerInput) {
+                customerInput.addEventListener('change', () => {
+                    updateClientLogo();
+                    applyCustomerInkDefaults();
+                    handleGearForSportLogic();
+                });
+            }
+
             setInterval(updateDateTime, 60000);
 
             // Inicializar placements solo si el contenedor existe
@@ -3516,5 +3550,6 @@ window.updateCustomPlacement = updateCustomPlacement;
 window.updateAllPlacementTitles = updateAllPlacementTitles;
 window.updateClientLogo = updateClientLogo;
 window.handleGearForSportLogic = handleGearForSportLogic;
+window.applyCustomerInkDefaults = applyCustomerInkDefaults;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
 window.generarConAsistente = generarConAsistente;
