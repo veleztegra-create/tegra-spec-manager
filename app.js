@@ -597,6 +597,35 @@ function generarGFSIdentifier() {
     return null;
 }
 
+
+function normalizeGearForSportStyleAndColorway(style, colorway, customer = '') {
+    const customerUpper = String(customer || '').toUpperCase();
+    const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.'].some(v => customerUpper.includes(v));
+    if (!isGFS) {
+        return { style, colorway };
+    }
+
+    const styleBase = String(style || '').trim().toUpperCase();
+    const colorwayRaw = String(colorway || '').trim().toUpperCase();
+    if (!styleBase || !colorwayRaw) {
+        return { style: styleBase || style, colorway: colorwayRaw || colorway };
+    }
+
+    const parts = colorwayRaw.split('-').map(p => p.trim()).filter(Boolean);
+    const colorCode = parts[0] || '';
+    const normalizedColorway = parts.length >= 2 ? `${colorCode}-${parts.slice(1).join('-')}` : colorwayRaw;
+
+    let normalizedStyle = styleBase;
+    if (colorCode && !styleBase.includes(`-${colorCode}`)) {
+        normalizedStyle = `${styleBase}-${colorCode}`;
+    }
+
+    return {
+        style: normalizedStyle,
+        colorway: normalizedColorway
+    };
+}
+
 // =====================================================
 // CORRECCIÓN PARA ERROR HANDLER (si no existe)
 // =====================================================
@@ -2340,16 +2369,7 @@ function processExcelData(worksheet, sheetName = '') {
                     }
                 }
                 else if (label.includes('COLORWAY')) {
-                    extracted.colorway = val;
-                    if (extracted.customer && extracted.customer.toUpperCase().includes('GEAR') && val.includes('-')) {
-                        const colorParts = val.split('-').map(p => p.trim());
-                        if (colorParts.length >= 2) {
-                            const normalizedColor = normalizeGearForSportColor(val);
-                            if (normalizedColor !== val) {
-                                extracted.colorway = normalizedColor;
-                            }
-                        }
-                    }
+                    extracted.colorway = String(val || '').trim().toUpperCase();
                 }
                 else if (label.includes('SEASON:')) extracted.season = val;
                 else if (label.includes('PATTERN')) extracted.pattern = val;
@@ -2375,7 +2395,7 @@ function processExcelData(worksheet, sheetName = '') {
                     extracted.style = String(row[j + 1] || '').trim();
                     extracted.team = detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
                 } else if (cell.includes('COLORWAY')) {
-                    extracted.colorway = String(row[j + 1] || '').trim();
+                    extracted.colorway = String(row[j + 1] || '').trim().toUpperCase();
                 } else if (cell.includes('SEASON:')) {
                     extracted.season = String(row[j + 1] || '').trim();
                 } else if (cell.includes('PATTERN')) {
@@ -2387,6 +2407,12 @@ function processExcelData(worksheet, sheetName = '') {
                 }
             }
         }
+    }
+
+    if (extracted.customer && (extracted.style || extracted.colorway)) {
+        const normalizedGfsData = normalizeGearForSportStyleAndColorway(extracted.style, extracted.colorway, extracted.customer);
+        extracted.style = normalizedGfsData.style || extracted.style;
+        extracted.colorway = normalizedGfsData.colorway || extracted.colorway;
     }
 
     if (!extracted.team && extracted.style) {
@@ -3583,3 +3609,4 @@ window.handleGearForSportLogic = handleGearForSportLogic;
 window.applyCustomerInkDefaults = applyCustomerInkDefaults;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
 window.generarConAsistente = generarConAsistente;
+window.normalizeGearForSportStyleAndColorway = normalizeGearForSportStyleAndColorway;

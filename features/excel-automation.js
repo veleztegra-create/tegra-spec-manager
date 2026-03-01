@@ -120,6 +120,12 @@ window.ExcelAutomation = {
             }
         }
 
+        if (window.normalizeGearForSportStyleAndColorway && extracted.customer && (extracted.style || extracted.colorway)) {
+            const normalized = window.normalizeGearForSportStyleAndColorway(extracted.style, extracted.colorway, extracted.customer);
+            extracted.style = normalized.style || extracted.style;
+            extracted.colorway = normalized.colorway || extracted.colorway;
+        }
+
         if (!extracted.team && extracted.style && window.detectTeamFromStyle) {
             extracted.team = window.detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
         }
