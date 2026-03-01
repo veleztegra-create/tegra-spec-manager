@@ -746,7 +746,7 @@ window.generarConAsistente = async function(placementId) {
         // 5. ACTUALIZAR UI
         // =============================================
         renderPlacementColors(placementId);
-        syncPlacementSequenceWithColors(placement);
+        syncPlacementSequenceWithColors(placement, true);
         updatePlacementStations(placementId);
         updatePlacementColorsPreview(placementId);
         
@@ -1618,21 +1618,45 @@ function updatePlacementDimension(placementId, type, value) {
 // FUNCIONES PARA COLORES DE PLACEMENTS
 // =====================================================
 
-function syncPlacementSequenceWithColors(placement) {
+function syncPlacementSequenceWithColors(placement, force = false) {
     if (!placement) return;
 
-    const baseItems = (placement.sequence || []).filter(item => item.type !== 'FLASH' && item.type !== 'COOL');
-    const shouldResync = !placement.sequence || placement.sequence.length === 0 || baseItems.length !== placement.colors.length;
+    const currentSequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+    const baseItems = currentSequence.filter(item => item.type !== 'FLASH' && item.type !== 'COOL');
+    const hadProcessSteps = currentSequence.some(item => item.type === 'FLASH' || item.type === 'COOL');
+
+    const shouldResync = force || !currentSequence.length || baseItems.length !== placement.colors.length;
     if (!shouldResync) return;
 
-    placement.sequence = (placement.colors || []).map((color, index) => ({
-        id: color.id || Date.now() + Math.random() + index,
-        type: color.type,
-        screenLetter: color.screenLetter || '',
-        val: color.val || '---',
-        mesh: color.mesh || '',
-        additives: color.additives || ''
-    }));
+    const existingById = new Map(baseItems.map(item => [String(item.id), item]));
+
+    const rebuiltBase = (placement.colors || []).map((color, index) => {
+        const existing = existingById.get(String(color.id)) || {};
+        return {
+            id: color.id || existing.id || Date.now() + Math.random() + index,
+            type: color.type || existing.type || 'COLOR',
+            screenLetter: color.screenLetter || existing.screenLetter || '',
+            val: color.val || existing.val || '---',
+            mesh: color.mesh || existing.mesh || '',
+            additives: color.additives || existing.additives || ''
+        };
+    });
+
+    if (!hadProcessSteps) {
+        placement.sequence = rebuiltBase;
+        return;
+    }
+
+    const withProcess = [];
+    rebuiltBase.forEach((item, index) => {
+        withProcess.push(item);
+        if (index < rebuiltBase.length - 1) {
+            withProcess.push({ type: 'FLASH', screenLetter: '', val: 'FLASH', mesh: '-', additives: '' });
+            withProcess.push({ type: 'COOL', screenLetter: '', val: 'COOL', mesh: '-', additives: '' });
+        }
+    });
+
+    placement.sequence = withProcess;
 }
 
 function addPlacementColorItem(placementId, type) {
@@ -1672,7 +1696,7 @@ function addPlacementColorItem(placementId, type) {
         val: initialVal
     });
 
-    syncPlacementSequenceWithColors(placement);
+    syncPlacementSequenceWithColors(placement, true);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
@@ -1767,7 +1791,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
     if (color) {
         color.val = value;
         updatePlacementColorPreview(placementId, colorId);
-        syncPlacementSequenceWithColors(placement);
+        syncPlacementSequenceWithColors(placement, true);
         updatePlacementStations(placementId);
         updatePlacementColorsPreview(placementId);
 
@@ -1782,7 +1806,7 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
     const color = placement.colors.find(c => c.id === colorId);
     if (color) {
         color.screenLetter = value.toUpperCase();
-        syncPlacementSequenceWithColors(placement);
+        syncPlacementSequenceWithColors(placement, true);
         updatePlacementStations(placementId);
     }
 }
@@ -1795,7 +1819,7 @@ function updatePlacementColorMesh(placementId, colorId, value) {
     if (!color) return;
 
     color.mesh = value;
-    syncPlacementSequenceWithColors(placement);
+    syncPlacementSequenceWithColors(placement, true);
     updatePlacementStations(placementId);
 }
 
@@ -1804,7 +1828,7 @@ function removePlacementColorItem(placementId, colorId) {
     if (!placement) return;
 
     placement.colors = placement.colors.filter(c => c.id !== colorId);
-    syncPlacementSequenceWithColors(placement);
+    syncPlacementSequenceWithColors(placement, true);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
@@ -1826,7 +1850,7 @@ function movePlacementColorItem(placementId, colorId, direction) {
     placement.colors[currentIndex] = placement.colors[targetIndex];
     placement.colors[targetIndex] = temp;
 
-    syncPlacementSequenceWithColors(placement);
+    syncPlacementSequenceWithColors(placement, true);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
