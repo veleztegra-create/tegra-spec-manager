@@ -1,0 +1,125 @@
+{
+  "nombre": "Catálogo de Telas NFL",
+  "version": "2.0",
+  "deportes": ["NFL"],
+  "equipos": {
+    "arizona_cardinals": {
+      "nombre": "Arizona Cardinals",
+      "colores": [
+        {
+          "nombre": "Cardinal Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 186 C",
+            "hex": "#C8102E",
+            "cmyk": {"C": 0, "M": 100, "Y": 80, "K": 5},
+            "luminosidad": 25.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "las_vegas_raiders": {
+      "nombre": "Las Vegas Raiders",
+      "colores": [
+        {
+          "nombre": "Silver",
+          "tipo": "tela_metalica",
+          "familia": "plateado",
+          "intensidad": "media",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 877 C",
+            "hex": "#8D9093",
+            "cmyk": {"C": 45, "M": 34, "Y": 34, "K": 0},
+            "luminosidad": 56.9
+          },
+          "uso": "primario",
+          "propiedades": {
+            "es_metalico": true,
+            "requiere_base_especial": true
+          }
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        }
+      ]
+    },
+    "green_bay_packers": {
+      "nombre": "Green Bay Packers",
+      "colores": [
+        {
+          "nombre": "Dark Green",
+          "tipo": "tela_oscura",
+          "familia": "verde",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 5535 C",
+            "hex": "#183029",
+            "cmyk": {"C": 87, "M": 31, "Y": 69, "K": 86},
+            "luminosidad": 10.2
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Gold",
+          "tipo": "tela_vibrante",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1235 C",
+            "hex": "#FFB81C",
+            "cmyk": {"C": 0, "M": 25, "Y": 94, "K": 0},
+            "luminosidad": 73.7
+          },
+          "uso": "primario"
+        }
+      ]
+    }
+    // ... continuar con todos los equipos
+  }
+}
