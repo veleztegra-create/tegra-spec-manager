@@ -80,8 +80,8 @@ window.RulesEngine = (function () {
     const BASE_PRESETS = {
         WATER: {
             inkType: 'WATER',
-            blocker: { nombre: 'BLOCKER CHT', additives: 'N/A', meshDark1: '110', meshDark2: '122', meshDark3: '157', meshLight1: '157' },
-            whiteBase: { nombre: 'AquaFlex V2', additives: '3% CL 500', mesh1: '198/40', mesh2: '122' },
+            blocker: { nombre: 'BLOCKER CHT', additives: 'N/A', meshDark1: '122/55', meshDark2: '157/48', meshDark3: '', meshLight1: '157' },
+            whiteBase: { nombre: 'AquaFlex V2', additives: '3% CL 500', mesh1: '198/40', mesh2: '122', initialDarkCount: 1, initialLightCount: 2 },
             whiteBaseWithCatalyst: { mesh: '122', additives: '3% CL 500' },
             color: { additives: '3% CL 500 · 5% ecofix XL', mesh1: '157/48', mesh2: '198/40' },
             curing: { temp: '320 °F', time: '1:40 min' }
@@ -89,7 +89,7 @@ window.RulesEngine = (function () {
         PLASTISOL: {
             inkType: 'PLASTISOL',
             blocker: { nombre: 'BARRIER BASE', additives: 'N/A', meshDark1: '110/64', meshDark2: '156/64', meshDark3: '156/64', meshLight1: '110/64' },
-            whiteBase: { nombre: 'Poly White', additives: 'N/A', mesh1: '156/64', mesh2: '110/64' },
+            whiteBase: { nombre: 'Poly White', additives: 'N/A', mesh1: '156/64', mesh2: '110/64', initialDarkCount: 1, initialLightCount: 0 },
             whiteBaseWithCatalyst: { mesh: '110/64', additives: '' },
             color: { additives: '1% catalyst', mesh1: '156/64', mesh2: '156/64' },
             curing: { temp: '320 °F', time: '1:00 min' }
@@ -97,7 +97,7 @@ window.RulesEngine = (function () {
         SILICONE: {
             inkType: 'SILICONE',
             blocker: { nombre: 'Bloquer Libra', additives: '', meshDark1: '110/64', meshDark2: '110/64', meshDark3: '110/64', meshLight1: '110/64' },
-            whiteBase: { nombre: 'BASE WHITE LIBRA', additives: '', mesh1: '122/55', mesh2: '122/55' },
+            whiteBase: { nombre: 'BASE WHITE LIBRA', additives: '', mesh1: '122/55', mesh2: '122/55', initialDarkCount: 1, initialLightCount: 1 },
             whiteBaseWithCatalyst: { mesh: '122/55', additives: '' },
             color: { additives: '3% cat · 2% ret', mesh1: '157/48', mesh2: '157/48' },
             curing: { temp: '320 °F', time: '1:40 min' }
@@ -122,6 +122,9 @@ window.RulesEngine = (function () {
     }
 
     function syncPresetsFromInkRules() {
+        BASE_PRESETS.WATER.blocker.meshDark1 = INK_RULES.WATER.meshes.blocker[0] || BASE_PRESETS.WATER.blocker.meshDark1;
+        BASE_PRESETS.WATER.blocker.meshDark2 = INK_RULES.WATER.meshes.blocker[1] || BASE_PRESETS.WATER.blocker.meshDark2;
+        BASE_PRESETS.WATER.blocker.meshDark3 = INK_RULES.WATER.meshes.blocker[2] || BASE_PRESETS.WATER.blocker.meshDark3;
         BASE_PRESETS.WATER.color.additives = INK_RULES.WATER.additives.color;
         BASE_PRESETS.WATER.color.mesh1 = INK_RULES.WATER.meshes.color[0] || BASE_PRESETS.WATER.color.mesh1;
         BASE_PRESETS.WATER.color.mesh2 = INK_RULES.WATER.meshes.color[1] || BASE_PRESETS.WATER.color.mesh2;
@@ -213,9 +216,10 @@ window.RulesEngine = (function () {
         const steps = [];
 
         if (telaType === 'oscura') {
-            steps.push({ tipo: 'BLOCKER', screenLetter: 'A', nombre: preset.blocker.nombre, mesh: preset.blocker.meshDark1 || '110', additives: preset.blocker.additives });
-            steps.push({ tipo: 'BLOCKER', screenLetter: 'A', nombre: preset.blocker.nombre, mesh: preset.blocker.meshDark2 || '122', additives: preset.blocker.additives });
-            steps.push({ tipo: 'BLOCKER', screenLetter: 'A', nombre: preset.blocker.nombre, mesh: preset.blocker.meshDark3 || '157', additives: preset.blocker.additives });
+            const blockerMeshes = [preset.blocker.meshDark1, preset.blocker.meshDark2, preset.blocker.meshDark3].filter(Boolean);
+            blockerMeshes.forEach((mesh) => {
+                steps.push({ tipo: 'BLOCKER', screenLetter: 'A', nombre: preset.blocker.nombre, mesh, additives: preset.blocker.additives });
+            });
         } else {
             steps.push({ tipo: 'BLOCKER', screenLetter: 'A', nombre: preset.blocker.nombre, mesh: preset.blocker.meshLight1 || '157', additives: preset.blocker.additives });
         }
@@ -223,8 +227,15 @@ window.RulesEngine = (function () {
         const garmentIsMidnightNavy = String(garmentColor || '').toUpperCase().includes('MIDNIGHT NAVY');
         const skipInitialWhite = String(inkType || '').toUpperCase() === 'PLASTISOL' && garmentIsMidnightNavy;
         if (!skipInitialWhite) {
-            steps.push({ tipo: 'WHITE_BASE', screenLetter: 'B', nombre: preset.whiteBase.nombre, mesh: preset.whiteBase.mesh1 || '157', additives: preset.whiteBase.additives });
-            steps.push({ tipo: 'WHITE_BASE', screenLetter: 'B', nombre: preset.whiteBase.nombre, mesh: preset.whiteBaseWithCatalyst.mesh, additives: preset.whiteBaseWithCatalyst.additives });
+            const initialWhiteCount = telaType === 'oscura'
+                ? (preset.whiteBase.initialDarkCount ?? 1)
+                : (preset.whiteBase.initialLightCount ?? 2);
+
+            for (let i = 0; i < initialWhiteCount; i++) {
+                const mesh = i === 0 ? (preset.whiteBase.mesh1 || '157') : (preset.whiteBase.mesh2 || preset.whiteBaseWithCatalyst.mesh || preset.whiteBase.mesh1 || '157');
+                const additives = i === 0 ? preset.whiteBase.additives : (preset.whiteBaseWithCatalyst.additives || preset.whiteBase.additives);
+                steps.push({ tipo: 'WHITE_BASE', screenLetter: 'B', nombre: preset.whiteBase.nombre, mesh, additives });
+            }
         }
 
         const uniqueColors = [];

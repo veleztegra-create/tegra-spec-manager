@@ -770,9 +770,6 @@ function renderPlacementHTML(placement) {
                     <span>${displayType}</span>
                 </div>
                 <div class="placement-actions">
-                    <button class="btn btn-primary btn-sm" onclick="generarConAsistente(${placement.id})">
-                        <i class="fas fa-magic"></i> Generar Secuencia
-                    </button>
                     <button class="btn btn-outline btn-sm" onclick="duplicatePlacement(${placement.id})">
                         <i class="fas fa-copy"></i> Duplicar
                     </button>
@@ -1041,6 +1038,12 @@ function renderPlacementHTML(placement) {
                             </div>
                             <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
                         </div>
+                    </div>
+
+                    <div class="no-print" style="margin: 10px 0 14px 0;">
+                        <button class="btn btn-primary btn-sm" onclick="generarConAsistente(${placement.id})">
+                            <i class="fas fa-magic"></i> Generar Secuencia
+                        </button>
                     </div>
                     
                     <!-- Instrucciones Especiales -->

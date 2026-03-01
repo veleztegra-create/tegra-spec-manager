@@ -100,7 +100,7 @@
     const seenColorNames = new Set();
     (placement.colors || []).forEach((c) => {
       if (c.type !== 'COLOR' && c.type !== 'METALLIC') return;
-      const normalized = String(c.val || '').toUpperCase().trim();
+      const normalized = String(c.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/,'').trim();
       if (!normalized || seenColorNames.has(normalized)) return;
       seenColorNames.add(normalized);
       uniqueDesignColors.push(c);
