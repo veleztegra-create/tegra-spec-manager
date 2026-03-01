@@ -96,10 +96,20 @@
       ? String(placement.imageData)
       : 'https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT';
 
-    const colors = (placement.colors || []).map((c, i) => `
+    const uniqueDesignColors = [];
+    const seenColorNames = new Set();
+    (placement.colors || []).forEach((c) => {
+      if (c.type !== 'COLOR' && c.type !== 'METALLIC') return;
+      const normalized = String(c.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/,'').trim();
+      if (!normalized || seenColorNames.has(normalized)) return;
+      seenColorNames.add(normalized);
+      uniqueDesignColors.push(c);
+    });
+
+    const colors = uniqueDesignColors.map((c, i) => `
       <div class="color-swatch">
         <div class="color-box" style="background:${esc(resolveColorHex(c.val))};"></div>
-        <div class="color-info"><span class="color-number">${i + 1}</span><span class="color-name">${esc(c.val || '---')}</span></div>
+        <div class="color-info"><span class="color-number">${esc(c.screenLetter || String(i + 1))}</span><span class="color-name">${esc(c.val || '---')}</span></div>
       </div>`).join('') || '<div class="color-name">Sin colores registrados</div>';
 
     const rows = generateStationsData(placement).map((r) => {
@@ -156,8 +166,8 @@
         <div class="tech-section">
           <div class="sub-title" style="margin-bottom:8px;">Información Técnica</div>
           <div class="info-grid">
-            <div class="info-row"><span class="info-label">Nombre Técnico:</span><span class="info-value">${esc(data.technicianName || '________________________')}</span></div>
-            <div class="info-row"><span class="info-label">Comentarios:</span><span class="info-value">${esc(data.technicalComments || '____________________________________________')}</span></div>
+            <div class="info-row"><span class="info-label">NOMBRE TÉCNICO:</span><span class="info-value">${esc(data.technicianName || '________________________')}</span></div>
+            <div class="info-row"><span class="info-label">COMENTARIOS TÉCNICOS:</span><span class="info-value">${esc(data.technicalComments || '____________________________________________')}</span></div>
           </div>
         </div>
 

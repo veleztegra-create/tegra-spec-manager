@@ -85,14 +85,6 @@
                     <label for="fabric" class="form-label">TELA:</label>
                     <input type="text" id="fabric" class="form-control" placeholder="Algodón, Polyester, Twill...">
                 </div>
-                <div class="form-group">
-                    <label for="technician-name" class="form-label">NOMBRE TÉCNICO:</label>
-                    <input type="text" id="technician-name" class="form-control" placeholder="Nombre del técnico">
-                </div>
-                <div class="form-group" style="grid-column: 1 / -1;">
-                    <label for="technical-comments" class="form-label">COMENTARIOS TÉCNICOS:</label>
-                    <textarea id="technical-comments" class="form-control" rows="2" placeholder="Notas para planta..."></textarea>
-                </div>
             </div>
         </div>
     </div>
@@ -113,6 +105,25 @@
         </div>
     </div>
     
+    <!-- =========== CARD: INFORMACIÓN TÉCNICA =========== -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-user-cog"></i> Información Técnica</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-grid two-col">
+                <div class="form-group">
+                    <label for="technician-name" class="form-label">NOMBRE TÉCNICO:</label>
+                    <input type="text" id="technician-name" class="form-control" placeholder="Nombre del técnico">
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label for="technical-comments" class="form-label">COMENTARIOS TÉCNICOS:</label>
+                    <textarea id="technical-comments" class="form-control" rows="2" placeholder="Notas para planta..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- =========== CARD: ACCIONES GLOBALES =========== -->
     <div class="card">
         <div class="card-header">
@@ -121,7 +132,7 @@
         <div class="card-body">
             <div class="global-actions">
                 <button type="button" class="btn btn-primary" onclick="saveCurrentSpec()"><i class="fas fa-save"></i> Guardar Spec</button>
-                <button type="button" class="btn btn-success" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Descargar HTML Spec</button>
+                <button type="button" class="btn btn-success" onclick="exportHTML()"><i class="fas fa-file-pdf"></i> Descargar HTML Spec</button>
                 <button type="button" class="btn btn-warning" onclick="exportToExcel()"><i class="fas fa-calculator"></i> Calculadora</button>
                 <button type="button" class="btn btn-danger" onclick="clearForm()"><i class="fas fa-trash"></i> Limpiar Formulario</button>
                  <button type="button" class="btn btn-primary" onclick="downloadProjectZip()"><i class="fas fa-file-archive"></i> Descargar Proyecto (.zip)</button>

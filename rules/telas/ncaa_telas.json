@@ -1,0 +1,6 @@
+{
+  "nombre": "Catálogo Telas NCAA",
+  "version": "1.0",
+  "darkIdentifiers": ["black", "navy", "midnight", "dark red", "maroon", "royal dark", "forest green", "brown"],
+  "lightIdentifiers": ["white", "natural", "cream", "ivory", "beige", "ash", "light gray"]
+}

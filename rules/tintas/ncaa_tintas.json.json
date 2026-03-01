@@ -1,0 +1,17 @@
+{
+  "nombre": "Catálogo Tintas NCAA",
+  "version": "1.0",
+  "inkRules": {
+    "WATER": {
+      "additives": { "color": "3% CL 500 · 5% ecofix XL" }
+    },
+    "PLASTISOL": {
+      "additives": { "color": "1% catalyst" }
+    },
+    "SILICONE": {
+      "additives": { "color": "3% cat · 2% ret" }
+    }
+  },
+  "lightInkIdentifiers": ["white", "gold", "yellow", "orange", "pink", "silver"],
+  "darkInkIdentifiers": ["black", "navy", "red", "royal", "green", "purple", "brown", "maroon"]
+}
