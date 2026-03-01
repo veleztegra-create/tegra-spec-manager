@@ -68,7 +68,7 @@ function getInkPresetSafe(inkType = 'WATER') {
         const preset = window.Utils.getInkPreset(inkType);
         if (preset && preset.color) {
             if (inkType === 'PLASTISOL') {
-                const customerValue = (document.getElementById('customerName')?.value || '').toUpperCase();
+                const customerValue = (document.getElementById('customer')?.value || '').toUpperCase();
                 if (customerValue.includes('FANATICS') || customerValue.includes('FANATIC')) {
                     return {
                         ...preset,
@@ -717,6 +717,7 @@ window.generarConAsistente = async function(placementId) {
         // 5. ACTUALIZAR UI
         // =============================================
         renderPlacementColors(placementId);
+        syncPlacementSequenceWithColors(placement);
         updatePlacementStations(placementId);
         updatePlacementColorsPreview(placementId);
         
@@ -1588,6 +1589,23 @@ function updatePlacementDimension(placementId, type, value) {
 // FUNCIONES PARA COLORES DE PLACEMENTS
 // =====================================================
 
+function syncPlacementSequenceWithColors(placement) {
+    if (!placement) return;
+
+    const baseItems = (placement.sequence || []).filter(item => item.type !== 'FLASH' && item.type !== 'COOL');
+    const shouldResync = !placement.sequence || placement.sequence.length === 0 || baseItems.length !== placement.colors.length;
+    if (!shouldResync) return;
+
+    placement.sequence = (placement.colors || []).map((color, index) => ({
+        id: color.id || Date.now() + Math.random() + index,
+        type: color.type,
+        screenLetter: color.screenLetter || '',
+        val: color.val || '---',
+        mesh: color.mesh || '',
+        additives: color.additives || ''
+    }));
+}
+
 function addPlacementColorItem(placementId, type) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
@@ -1598,7 +1616,13 @@ function addPlacementColorItem(placementId, type) {
 
     if (type === 'BLOCKER') {
         initialLetter = 'A';
-        initialVal = preset.blocker?.name || 'BLOCKER CHT';
+        if (placement.inkType === 'PLASTISOL') {
+            initialVal = 'BARRIER BASE';
+        } else if (placement.inkType === 'SILICONE') {
+            initialVal = 'Bloquer Libra';
+        } else {
+            initialVal = preset.blocker?.name || 'BLOCKER CHT';
+        }
     } else if (type === 'WHITE_BASE') {
         initialLetter = 'B';
         initialVal = preset.white?.name || 'AQUAFLEX WHITE';
@@ -1619,6 +1643,7 @@ function addPlacementColorItem(placementId, type) {
         val: initialVal
     });
 
+    syncPlacementSequenceWithColors(placement);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
@@ -1713,6 +1738,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
     if (color) {
         color.val = value;
         updatePlacementColorPreview(placementId, colorId);
+        syncPlacementSequenceWithColors(placement);
         updatePlacementStations(placementId);
         updatePlacementColorsPreview(placementId);
 
@@ -1727,6 +1753,7 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
     const color = placement.colors.find(c => c.id === colorId);
     if (color) {
         color.screenLetter = value.toUpperCase();
+        syncPlacementSequenceWithColors(placement);
         updatePlacementStations(placementId);
     }
 }
@@ -1739,6 +1766,7 @@ function updatePlacementColorMesh(placementId, colorId, value) {
     if (!color) return;
 
     color.mesh = value;
+    syncPlacementSequenceWithColors(placement);
     updatePlacementStations(placementId);
 }
 
@@ -1747,6 +1775,7 @@ function removePlacementColorItem(placementId, colorId) {
     if (!placement) return;
 
     placement.colors = placement.colors.filter(c => c.id !== colorId);
+    syncPlacementSequenceWithColors(placement);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
@@ -1768,6 +1797,7 @@ function movePlacementColorItem(placementId, colorId, direction) {
     placement.colors[currentIndex] = placement.colors[targetIndex];
     placement.colors[targetIndex] = temp;
 
+    syncPlacementSequenceWithColors(placement);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
