@@ -1,0 +1,2044 @@
+{
+  "nombre": "Catálogo de Telas NFL",
+  "version": "2.0",
+  "deporte": "NFL",
+  "temporada": "2024-2025",
+  "equipos": {
+    "arizona_cardinals": {
+      "id": "ari",
+      "nombre": "Arizona Cardinals",
+      "colores": [
+        {
+          "nombre": "Cardinal Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 186 C",
+            "hex": "#C8102E",
+            "rgb": "R200 G16 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 80, "K": 5},
+            "luminosidad": 25.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "atlanta_falcons": {
+      "id": "atl",
+      "nombre": "Atlanta Falcons",
+      "colores": [
+        {
+          "nombre": "Red",
+          "tipo": "tela_oscura",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 187 C",
+            "hex": "#A6192E",
+            "rgb": "R166 G25 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 74, "K": 26},
+            "luminosidad": 22.1
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Silver",
+          "tipo": "tela_metalica",
+          "familia": "plateado",
+          "intensidad": "media",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 877 C",
+            "hex": "#8D9093",
+            "rgb": "R141 G144 B147",
+            "cmyk": {"C": 45, "M": 34, "Y": 34, "K": 0},
+            "luminosidad": 56.9,
+            "propiedades": {"es_metalico": true}
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "baltimore_ravens": {
+      "id": "bal",
+      "nombre": "Baltimore Ravens",
+      "colores": [
+        {
+          "nombre": "Purple",
+          "tipo": "tela_oscura",
+          "familia": "morado",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 268 C",
+            "hex": "#582C83",
+            "rgb": "R88 G44 B131",
+            "cmyk": {"C": 79, "M": 100, "Y": 0, "K": 0},
+            "luminosidad": 23.5
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Gold",
+          "tipo": "tela_vibrante",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 123 C",
+            "hex": "#FFC72C",
+            "rgb": "R255 G199 B44",
+            "cmyk": {"C": 0, "M": 16, "Y": 89, "K": 0},
+            "luminosidad": 80.2
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "buffalo_bills": {
+      "id": "buf",
+      "nombre": "Buffalo Bills",
+      "colores": [
+        {
+          "nombre": "Royal Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 287 C",
+            "hex": "#003087",
+            "rgb": "R0 G48 B135",
+            "cmyk": {"C": 100, "M": 81, "Y": 0, "K": 23},
+            "luminosidad": 12.9
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 186 C",
+            "hex": "#C8102E",
+            "rgb": "R200 G16 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 80, "K": 5},
+            "luminosidad": 25.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Navy",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "carolina_panthers": {
+      "id": "car",
+      "nombre": "Carolina Panthers",
+      "colores": [
+        {
+          "nombre": "Panthers Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 287 C",
+            "hex": "#003087",
+            "rgb": "R0 G48 B135",
+            "cmyk": {"C": 100, "M": 81, "Y": 0, "K": 23},
+            "luminosidad": 12.9
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Silver",
+          "tipo": "tela_metalica",
+          "familia": "plateado",
+          "intensidad": "media",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 877 C",
+            "hex": "#8D9093",
+            "rgb": "R141 G144 B147",
+            "cmyk": {"C": 45, "M": 34, "Y": 34, "K": 0},
+            "luminosidad": 56.9,
+            "propiedades": {"es_metalico": true}
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "chicago_bears": {
+      "id": "chi",
+      "nombre": "Chicago Bears",
+      "colores": [
+        {
+          "nombre": "Navy Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Orange",
+          "tipo": "tela_vibrante",
+          "familia": "naranja",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1665 C",
+            "hex": "#DC4405",
+            "rgb": "R220 G68 B5",
+            "cmyk": {"C": 0, "M": 82, "Y": 100, "K": 0},
+            "luminosidad": 45.3
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "cincinnati_bengals": {
+      "id": "cin",
+      "nombre": "Cincinnati Bengals",
+      "colores": [
+        {
+          "nombre": "Orange",
+          "tipo": "tela_vibrante",
+          "familia": "naranja",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1655 C",
+            "hex": "#FC4C02",
+            "rgb": "R252 G76 B2",
+            "cmyk": {"C": 0, "M": 77, "Y": 100, "K": 0},
+            "luminosidad": 52.1
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "cleveland_browns": {
+      "id": "cle",
+      "nombre": "Cleveland Browns",
+      "colores": [
+        {
+          "nombre": "Brown",
+          "tipo": "tela_oscura",
+          "familia": "marrón",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 498 C",
+            "hex": "#4E3629",
+            "rgb": "R78 G54 B41",
+            "cmyk": {"C": 47, "M": 67, "Y": 72, "K": 70},
+            "luminosidad": 12.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Orange",
+          "tipo": "tela_vibrante",
+          "familia": "naranja",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1595 C",
+            "hex": "#FF3C00",
+            "rgb": "R255 G60 B0",
+            "cmyk": {"C": 0, "M": 82, "Y": 100, "K": 0},
+            "luminosidad": 48.6
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "dallas_cowboys": {
+      "id": "dal",
+      "nombre": "Dallas Cowboys",
+      "colores": [
+        {
+          "nombre": "Navy Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Silver",
+          "tipo": "tela_metalica",
+          "familia": "plateado",
+          "intensidad": "media",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 877 C",
+            "hex": "#8D9093",
+            "rgb": "R141 G144 B147",
+            "cmyk": {"C": 45, "M": 34, "Y": 34, "K": 0},
+            "luminosidad": 56.9,
+            "propiedades": {"es_metalico": true}
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Royal Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 287 C",
+            "hex": "#003087",
+            "rgb": "R0 G48 B135",
+            "cmyk": {"C": 100, "M": 81, "Y": 0, "K": 23},
+            "luminosidad": 12.9
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "denver_broncos": {
+      "id": "den",
+      "nombre": "Denver Broncos",
+      "colores": [
+        {
+          "nombre": "Sunset Orange",
+          "tipo": "tela_vibrante",
+          "familia": "naranja",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1655 C",
+            "hex": "#FC4C02",
+            "rgb": "R252 G76 B2",
+            "cmyk": {"C": 0, "M": 77, "Y": 100, "K": 0},
+            "luminosidad": 52.1
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Midnight Navy",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Summit White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Royal Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 287 C",
+            "hex": "#003087",
+            "rgb": "R0 G48 B135",
+            "cmyk": {"C": 100, "M": 81, "Y": 0, "K": 23},
+            "luminosidad": 12.9
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "detroit_lions": {
+      "id": "det",
+      "nombre": "Detroit Lions",
+      "colores": [
+        {
+          "nombre": "Honolulu Blue",
+          "tipo": "tela_vibrante",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 285 C",
+            "hex": "#0072CE",
+            "rgb": "R0 G114 B206",
+            "cmyk": {"C": 90, "M": 47, "Y": 0, "K": 0},
+            "luminosidad": 42.1
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Silver",
+          "tipo": "tela_metalica",
+          "familia": "plateado",
+          "intensidad": "media",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 877 C",
+            "hex": "#8D9093",
+            "rgb": "R141 G144 B147",
+            "cmyk": {"C": 45, "M": 34, "Y": 34, "K": 0},
+            "luminosidad": 56.9,
+            "propiedades": {"es_metalico": true}
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "green_bay_packers": {
+      "id": "gb",
+      "nombre": "Green Bay Packers",
+      "colores": [
+        {
+          "nombre": "Dark Green",
+          "tipo": "tela_oscura",
+          "familia": "verde",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 5535 C",
+            "hex": "#183029",
+            "rgb": "R24 G48 B41",
+            "cmyk": {"C": 87, "M": 31, "Y": 69, "K": 86},
+            "luminosidad": 10.2
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Gold",
+          "tipo": "tela_vibrante",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1235 C",
+            "hex": "#FFB81C",
+            "rgb": "R255 G184 B28",
+            "cmyk": {"C": 0, "M": 25, "Y": 94, "K": 0},
+            "luminosidad": 73.7
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "houston_texans": {
+      "id": "hou",
+      "nombre": "Houston Texans",
+      "colores": [
+        {
+          "nombre": "Deep Steel Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 532 C",
+            "hex": "#1D1F2A",
+            "rgb": "R29 G31 B42",
+            "cmyk": {"C": 92, "M": 73, "Y": 29, "K": 89},
+            "luminosidad": 4.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Battle Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 185 C",
+            "hex": "#E4002B",
+            "rgb": "R228 G0 B43",
+            "cmyk": {"C": 0, "M": 100, "Y": 89, "K": 0},
+            "luminosidad": 26.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Liberty White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "H-Town Blue Light",
+          "tipo": "tela_vibrante",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 285 C",
+            "hex": "#0072CE",
+            "rgb": "R0 G114 B206",
+            "cmyk": {"C": 90, "M": 47, "Y": 0, "K": 0},
+            "luminosidad": 42.1
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "H-Town Blue Dark",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 7694 C",
+            "hex": "#01426A",
+            "rgb": "R1 G66 B106",
+            "cmyk": {"C": 100, "M": 56, "Y": 0, "K": 47},
+            "luminosidad": 13.8
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "indianapolis_colts": {
+      "id": "ind",
+      "nombre": "Indianapolis Colts",
+      "colores": [
+        {
+          "nombre": "Speed Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 287 C",
+            "hex": "#003087",
+            "rgb": "R0 G48 B135",
+            "cmyk": {"C": 100, "M": 81, "Y": 0, "K": 23},
+            "luminosidad": 12.9
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Facemask Gray",
+          "tipo": "tela_clara",
+          "familia": "gris",
+          "intensidad": "baja",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 429 C",
+            "hex": "#A2AAAD",
+            "rgb": "R162 G170 B173",
+            "cmyk": {"C": 35, "M": 23, "Y": 19, "K": 2},
+            "luminosidad": 66.7
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "jacksonville_jaguars": {
+      "id": "jax",
+      "nombre": "Jacksonville Jaguars",
+      "colores": [
+        {
+          "nombre": "Teal",
+          "tipo": "tela_vibrante",
+          "familia": "verde-azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 3295 C",
+            "hex": "#006778",
+            "rgb": "R0 G103 B120",
+            "cmyk": {"C": 100, "M": 35, "Y": 30, "K": 15},
+            "luminosidad": 26.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Gold",
+          "tipo": "tela_oscura",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 7555 C",
+            "hex": "#9F792C",
+            "rgb": "R159 G121 B44",
+            "cmyk": {"C": 20, "M": 40, "Y": 90, "K": 10},
+            "luminosidad": 47.5
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "kansas_city_chiefs": {
+      "id": "kc",
+      "nombre": "Kansas City Chiefs",
+      "colores": [
+        {
+          "nombre": "Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 186 C",
+            "hex": "#C8102E",
+            "rgb": "R200 G16 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 80, "K": 5},
+            "luminosidad": 25.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Gold",
+          "tipo": "tela_vibrante",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1235 C",
+            "hex": "#FFB81C",
+            "rgb": "R255 G184 B28",
+            "cmyk": {"C": 0, "M": 25, "Y": 94, "K": 0},
+            "luminosidad": 73.7
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "las_vegas_raiders": {
+      "id": "lv",
+      "nombre": "Las Vegas Raiders",
+      "colores": [
+        {
+          "nombre": "Silver",
+          "tipo": "tela_metalica",
+          "familia": "plateado",
+          "intensidad": "media",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 877 C",
+            "hex": "#8D9093",
+            "rgb": "R141 G144 B147",
+            "cmyk": {"C": 45, "M": 34, "Y": 34, "K": 0},
+            "luminosidad": 56.9,
+            "propiedades": {"es_metalico": true}
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "los_angeles_chargers": {
+      "id": "lac",
+      "nombre": "Los Angeles Chargers",
+      "colores": [
+        {
+          "nombre": "Powder Blue",
+          "tipo": "tela_clara",
+          "familia": "azul",
+          "intensidad": "media",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 285 C",
+            "hex": "#0072CE",
+            "rgb": "R0 G114 B206",
+            "cmyk": {"C": 90, "M": 47, "Y": 0, "K": 0},
+            "luminosidad": 42.1
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Sunshine Gold",
+          "tipo": "tela_vibrante",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1235 C",
+            "hex": "#FFB81C",
+            "rgb": "R255 G184 B28",
+            "cmyk": {"C": 0, "M": 25, "Y": 94, "K": 0},
+            "luminosidad": 73.7
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Navy",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "los_angeles_rams": {
+      "id": "lar",
+      "nombre": "Los Angeles Rams",
+      "colores": [
+        {
+          "nombre": "Rams Royal",
+          "tipo": "tela_vibrante",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 2736 C",
+            "hex": "#1E22AA",
+            "rgb": "R30 G34 B170",
+            "cmyk": {"C": 100, "M": 90, "Y": 0, "K": 2},
+            "luminosidad": 18.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Sol Yellow",
+          "tipo": "tela_vibrante",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 109 C",
+            "hex": "#FFD100",
+            "rgb": "R255 G209 B0",
+            "cmyk": {"C": 0, "M": 5, "Y": 100, "K": 0},
+            "luminosidad": 82.9
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Bone",
+          "tipo": "tela_clara",
+          "familia": "beige",
+          "intensidad": "baja",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE Warm Gray 1 C",
+            "hex": "#D7D2CB",
+            "rgb": "R215 G210 B203",
+            "cmyk": {"C": 10, "M": 8, "Y": 10, "K": 0},
+            "luminosidad": 82.8
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "miami_dolphins": {
+      "id": "mia",
+      "nombre": "Miami Dolphins",
+      "colores": [
+        {
+          "nombre": "Aqua",
+          "tipo": "tela_vibrante",
+          "familia": "verde-azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 321 C",
+            "hex": "#008E97",
+            "rgb": "R0 G142 B151",
+            "cmyk": {"C": 100, "M": 0, "Y": 20, "K": 20},
+            "luminosidad": 44.3
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Orange",
+          "tipo": "tela_vibrante",
+          "familia": "naranja",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 151 C",
+            "hex": "#FF8200",
+            "rgb": "R255 G130 B0",
+            "cmyk": {"C": 0, "M": 54, "Y": 100, "K": 0},
+            "luminosidad": 59.6
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Navy",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "minnesota_vikings": {
+      "id": "min",
+      "nombre": "Minnesota Vikings",
+      "colores": [
+        {
+          "nombre": "Purple",
+          "tipo": "tela_oscura",
+          "familia": "morado",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 268 C",
+            "hex": "#582C83",
+            "rgb": "R88 G44 B131",
+            "cmyk": {"C": 79, "M": 100, "Y": 0, "K": 0},
+            "luminosidad": 23.5
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Gold",
+          "tipo": "tela_vibrante",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 123 C",
+            "hex": "#FFC72C",
+            "rgb": "R255 G199 B44",
+            "cmyk": {"C": 0, "M": 16, "Y": 89, "K": 0},
+            "luminosidad": 80.2
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "new_england_patriots": {
+      "id": "ne",
+      "nombre": "New England Patriots",
+      "colores": [
+        {
+          "nombre": "Nautical Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 186 C",
+            "hex": "#C8102E",
+            "rgb": "R200 G16 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 80, "K": 5},
+            "luminosidad": 25.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "New Century Silver",
+          "tipo": "tela_clara",
+          "familia": "gris",
+          "intensidad": "baja",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 429 C",
+            "hex": "#A2AAAD",
+            "rgb": "R162 G170 B173",
+            "cmyk": {"C": 35, "M": 23, "Y": 19, "K": 2},
+            "luminosidad": 66.7
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "new_orleans_saints": {
+      "id": "no",
+      "nombre": "New Orleans Saints",
+      "colores": [
+        {
+          "nombre": "Old Gold",
+          "tipo": "tela_oscura",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 8383 C",
+            "hex": "#C9A227",
+            "rgb": "R201 G162 B39",
+            "cmyk": {"C": 10, "M": 25, "Y": 100, "K": 5},
+            "luminosidad": 63.1
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "new_york_giants": {
+      "id": "nyg",
+      "nombre": "New York Giants",
+      "colores": [
+        {
+          "nombre": "Blue",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 287 C",
+            "hex": "#003087",
+            "rgb": "R0 G48 B135",
+            "cmyk": {"C": 100, "M": 81, "Y": 0, "K": 23},
+            "luminosidad": 12.9
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 186 C",
+            "hex": "#C8102E",
+            "rgb": "R200 G16 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 80, "K": 5},
+            "luminosidad": 25.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Gray",
+          "tipo": "tela_clara",
+          "familia": "gris",
+          "intensidad": "baja",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 429 C",
+            "hex": "#A2AAAD",
+            "rgb": "R162 G170 B173",
+            "cmyk": {"C": 35, "M": 23, "Y": 19, "K": 2},
+            "luminosidad": 66.7
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "new_york_jets": {
+      "id": "nyj",
+      "nombre": "New York Jets",
+      "colores": [
+        {
+          "nombre": "Gotham Green",
+          "tipo": "tela_oscura",
+          "familia": "verde",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 343 C",
+            "hex": "#115740",
+            "rgb": "R17 G87 B64",
+            "cmyk": {"C": 87, "M": 13, "Y": 72, "K": 56},
+            "luminosidad": 19.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Legacy White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Legacy Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "philadelphia_eagles": {
+      "id": "phi",
+      "nombre": "Philadelphia Eagles",
+      "colores": [
+        {
+          "nombre": "Midnight Green",
+          "tipo": "tela_oscura",
+          "familia": "verde",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 316 C",
+            "hex": "#004C54",
+            "rgb": "R0 G76 B84",
+            "cmyk": {"C": 100, "M": 0, "Y": 30, "K": 60},
+            "luminosidad": 16.2
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Silver",
+          "tipo": "tela_metalica",
+          "familia": "plateado",
+          "intensidad": "media",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 877 C",
+            "hex": "#8D9093",
+            "rgb": "R141 G144 B147",
+            "cmyk": {"C": 45, "M": 34, "Y": 34, "K": 0},
+            "luminosidad": 56.9,
+            "propiedades": {"es_metalico": true}
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "pittsburgh_steelers": {
+      "id": "pit",
+      "nombre": "Pittsburgh Steelers",
+      "colores": [
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Gold",
+          "tipo": "tela_vibrante",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1235 C",
+            "hex": "#FFB81C",
+            "rgb": "R255 G184 B28",
+            "cmyk": {"C": 0, "M": 25, "Y": 94, "K": 0},
+            "luminosidad": 73.7
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Silver",
+          "tipo": "tela_metalica",
+          "familia": "plateado",
+          "intensidad": "media",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 877 C",
+            "hex": "#8D9093",
+            "rgb": "R141 G144 B147",
+            "cmyk": {"C": 45, "M": 34, "Y": 34, "K": 0},
+            "luminosidad": 56.9,
+            "propiedades": {"es_metalico": true}
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "san_francisco_49ers": {
+      "id": "sf",
+      "nombre": "San Francisco 49ers",
+      "colores": [
+        {
+          "nombre": "49ers Red",
+          "tipo": "tela_oscura",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 187 C",
+            "hex": "#A6192E",
+            "rgb": "R166 G25 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 74, "K": 26},
+            "luminosidad": 22.1
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "49ers Gold",
+          "tipo": "tela_metalica",
+          "familia": "oro",
+          "intensidad": "media",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 874 C",
+            "hex": "#896C4C",
+            "rgb": "R137 G108 B76",
+            "cmyk": {"C": 0, "M": 30, "Y": 52, "K": 50},
+            "luminosidad": 40.2,
+            "propiedades": {"es_metalico": true}
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "seattle_seahawks": {
+      "id": "sea",
+      "nombre": "Seattle Seahawks",
+      "colores": [
+        {
+          "nombre": "College Navy",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Action Green",
+          "tipo": "tela_vibrante",
+          "familia": "verde",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 7723 C",
+            "hex": "#69BE28",
+            "rgb": "R105 G190 B40",
+            "cmyk": {"C": 60, "M": 0, "Y": 100, "K": 0},
+            "luminosidad": 64.2
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Wolf Gray",
+          "tipo": "tela_clara",
+          "familia": "gris",
+          "intensidad": "baja",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 429 C",
+            "hex": "#A2AAAD",
+            "rgb": "R162 G170 B173",
+            "cmyk": {"C": 35, "M": 23, "Y": 19, "K": 2},
+            "luminosidad": 66.7
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "tampa_bay_buccaneers": {
+      "id": "tb",
+      "nombre": "Tampa Bay Buccaneers",
+      "colores": [
+        {
+          "nombre": "Pewter",
+          "tipo": "tela_oscura",
+          "familia": "gris",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE Black 7 C",
+            "hex": "#3D3935",
+            "rgb": "R61 G57 B53",
+            "cmyk": {"C": 63, "M": 60, "Y": 64, "K": 65},
+            "luminosidad": 12.9
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Buccaneer Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 186 C",
+            "hex": "#C8102E",
+            "rgb": "R200 G16 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 80, "K": 5},
+            "luminosidad": 25.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Orange",
+          "tipo": "tela_vibrante",
+          "familia": "naranja",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 1665 C",
+            "hex": "#DC4405",
+            "rgb": "R220 G68 B5",
+            "cmyk": {"C": 0, "M": 82, "Y": 100, "K": 0},
+            "luminosidad": 45.3
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "tennessee_titans": {
+      "id": "ten",
+      "nombre": "Tennessee Titans",
+      "colores": [
+        {
+          "nombre": "Navy",
+          "tipo": "tela_oscura",
+          "familia": "azul",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 289 C",
+            "hex": "#0C2340",
+            "rgb": "R12 G35 B64",
+            "cmyk": {"C": 100, "M": 66, "Y": 0, "K": 76},
+            "luminosidad": 6.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Titans Blue",
+          "tipo": "tela_vibrante",
+          "familia": "azul",
+          "intensidad": "alta",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 279 C",
+            "hex": "#418FDE",
+            "rgb": "R65 G143 B222",
+            "cmyk": {"C": 69, "M": 34, "Y": 0, "K": 0},
+            "luminosidad": 53.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Silver",
+          "tipo": "tela_clara",
+          "familia": "gris",
+          "intensidad": "baja",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "PANTONE 421 C",
+            "hex": "#B2B4B2",
+            "rgb": "R178 G180 B178",
+            "cmyk": {"C": 28, "M": 20, "Y": 20, "K": 1},
+            "luminosidad": 70.6
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Red",
+          "tipo": "tela_vibrante",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 186 C",
+            "hex": "#C8102E",
+            "rgb": "R200 G16 B46",
+            "cmyk": {"C": 0, "M": 100, "Y": 80, "K": 5},
+            "luminosidad": 25.8
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        }
+      ]
+    },
+    "washington_commanders": {
+      "id": "was",
+      "nombre": "Washington Commanders",
+      "colores": [
+        {
+          "nombre": "Burgundy",
+          "tipo": "tela_oscura",
+          "familia": "rojo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 202 C",
+            "hex": "#862633",
+            "rgb": "R134 G38 B51",
+            "cmyk": {"C": 1, "M": 98, "Y": 58, "K": 44},
+            "luminosidad": 15.8
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "Gold",
+          "tipo": "tela_oscura",
+          "familia": "amarillo",
+          "intensidad": "alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "PANTONE 8383 C",
+            "hex": "#C9A227",
+            "rgb": "R201 G162 B39",
+            "cmyk": {"C": 10, "M": 25, "Y": 100, "K": 5},
+            "luminosidad": 63.1
+          },
+          "uso": "primario"
+        },
+        {
+          "nombre": "White",
+          "tipo": "tela_clara",
+          "familia": "blanco",
+          "intensidad": "n/a",
+          "clasificacion_impresion": "clara",
+          "valores": {
+            "pantone": "White",
+            "hex": "#FFFFFF",
+            "rgb": "R255 G255 B255",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 0},
+            "luminosidad": 100
+          },
+          "uso": "secundario"
+        },
+        {
+          "nombre": "Black",
+          "tipo": "tela_oscura",
+          "familia": "negro",
+          "intensidad": "muy_alta",
+          "clasificacion_impresion": "oscura",
+          "valores": {
+            "pantone": "Black C",
+            "hex": "#010101",
+            "rgb": "R1 G1 B1",
+            "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100},
+            "luminosidad": 0.4
+          },
+          "uso": "secundario"
+        }
+      ]
+    }
+  },
+  "estadisticas": {
+    "total_equipos": 32,
+    "total_colores": 126,
+    "distribucion_telas": {
+      "tela_oscura": 68,
+      "tela_vibrante": 32,
+      "tela_clara": 22,
+      "tela_metalica": 4
+    },
+    "familias_colores": {
+      "azul": 32,
+      "rojo": 24,
+      "negro": 16,
+      "amarillo": 16,
+      "verde": 12,
+      "naranja": 10,
+      "gris": 8,
+      "morado": 4,
+      "blanco": 4
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "nombre": "Catálogo de Tintas NFL",
+  "version": "2.0",
+  "deportes": ["NFL"],
+  "equipos": {
+    "arizona_cardinals": {
+      "nombre": "Arizona Cardinals",
+      "uniformes_alternativos": {
+        "color_rush": {
+          "nombre": "Color Rush",
+          "colores": [
+            {
+              "nombre": "Black",
+              "tipo_tinta": "tinta_oscura",
+              "familia": "negro",
+              "valores": {
+                "pantone": "Black C",
+                "hex": "#010101",
+                "cmyk": {"C": 0, "M": 0, "Y": 0, "K": 100}
+              },
+              "requisitos_impresion": {
+                "requiere_base_blanca": false,
+                "requiere_bloqueador": false,
+                "malla_recomendada": "156/64",
+                "aditivos": "3% CL 500"
+              }
+            }
+          ]
+        },
+        "rivalries_2025": {
+          "nombre": "Rivalries 2025",
+          "colores": [
+            {
+              "nombre": "Sand",
+              "tipo_tinta": "tinta_clara",
+              "familia": "beige",
+              "valores": {
+                "pantone": "PANTONE 7506 C",
+                "hex": "#C4A77D",
+                "cmyk": {"C": 15, "M": 25, "Y": 45, "K": 10},
+                "luminosidad": 68.2
+              },
+              "requisitos_impresion": {
+                "requiere_base_blanca": true,
+                "requiere_bloqueador": false,
+                "malla_recomendada": "122",
+                "aditivos": "3% CL 500",
+                "base_recomendada": "AQUAFLEX",
+                "notas": "Tinta clara sobre tela oscura requiere base blanca"
+              }
+            },
+            {
+              "nombre": "Copper",
+              "tipo_tinta": "tinta_metalica",
+              "familia": "cobre",
+              "valores": {
+                "pantone": "PANTONE 876 C",
+                "hex": "#8B4513",
+                "cmyk": {"C": 0, "M": 50, "Y": 86, "K": 45}
+              },
+              "requisitos_impresion": {
+                "requiere_base_blanca": true,
+                "requiere_bloqueador": true,
+                "base_especial": "METALIC_BASE",
+                "malla_recomendada": "110/64",
+                "aditivos": "BASE METALICA + 2% OPACO",
+                "notas": "Tinta metálica requiere base especial y bloqueador"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "los_angeles_rams": {
+      "nombre": "Los Angeles Rams",
+      "uniformes_alternativos": {
+        "midnight_mode": {
+          "nombre": "Midnight Mode",
+          "colores": [
+            {
+              "nombre": "Midnight Navy",
+              "tipo_tinta": "tinta_oscura",
+              "familia": "azul",
+              "intensidad": "muy_alta",
+              "valores": {
+                "pantone": "PANTONE 276 C",
+                "hex": "#1B1B3A",
+                "cmyk": {"C": 100, "M": 100, "Y": 50, "K": 50},
+                "luminosidad": 5.8
+              },
+              "requisitos_impresion": {
+                "requiere_base_blanca": false,
+                "requiere_bloqueador": true,
+                "malla_recomendada": "156/64",
+                "aditivos": "3% CL 500",
+                "bloqueador_requerido": true,
+                "cantidad_bloqueador": 3
+              }
+            },
+            {
+              "nombre": "Sol Yellow",
+              "tipo_tinta": "tinta_clara",
+              "familia": "amarillo",
+              "intensidad": "alta",
+              "valores": {
+                "pantone": "PANTONE 109 C",
+                "hex": "#FFD100",
+                "cmyk": {"C": 0, "M": 5, "Y": 100, "K": 0},
+                "luminosidad": 86.3
+              },
+              "requisitos_impresion": {
+                "requiere_base_blanca": true,
+                "requiere_bloqueador": false,
+                "malla_recomendada": "122",
+                "aditivos": "5% BASE EXTENDER",
+                "base_recomendada": "AQUAFLEX"
+              }
+            },
+            {
+              "nombre": "Royal Blue",
+              "tipo_tinta": "tinta_oscura",
+              "familia": "azul",
+              "intensidad": "alta",
+              "valores": {
+                "pantone": "PANTONE 2736 C",
+                "hex": "#1E22AA",
+                "cmyk": {"C": 100, "M": 90, "Y": 0, "K": 2},
+                "luminosidad": 18.4
+              },
+              "requisitos_impresion": {
+                "requiere_base_blanca": false,
+                "requiere_bloqueador": true,
+                "malla_recomendada": "156/64",
+                "aditivos": "2% OPACO"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

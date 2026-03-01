@@ -1,0 +1,1600 @@
+{
+  "sistema_tintas_ncaa": {
+    "version": "2.0",
+    "descripcion": "Especificaciones técnicas de tintas para serigrafía NCAA - Basado en Pantone oficiales",
+    "fuente": "TruColor, TeamColorCodes.com, Brand Guidelines oficiales",
+    "fecha_actualizacion": "2025-03-01",
+    
+    "conferencias": {
+      "acc": {
+        "nombre": "Atlantic Coast Conference",
+        "equipos": {
+          "boston_college_eagles": {
+            "colores": {
+              "maroon": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#862633",
+                "rgb": [134, 38, 51],
+                "cmyk": [1, 98, 58, 44],
+                "categoria": "ROJO_OSCURO",
+                "tipo_tinta": "AQUAFLEX",
+                "formula": {
+                  "base": "AQUAFLEX CLEAR",
+                  "pigmento": "PANTONE 202 C",
+                  "proporcion": "85:15",
+                  "viscosidad": "35-40 dPa·s"
+                },
+                "aplicacion": {
+                  "telas_claras": {
+                    "base_blanca_requerida": false,
+                    "malla_recomendada": "110-122",
+                    "aditivos": "N/A"
+                  },
+                  "telas_oscuras": {
+                    "bloqueador_requerido": true,
+                    "base_blanca_requerida": true,
+                    "malla_bloqueador": "110",
+                    "malla_base": "122",
+                    "malla_color": "122",
+                    "aditivos_base": "3% CL 500"
+                  }
+                }
+              },
+              "gold": {
+                "pantone": "PANTONE 8383 C",
+                "hex": "#C9A227",
+                "rgb": [201, 162, 39],
+                "cmyk": [10, 25, 100, 5],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX",
+                "formula": {
+                  "base": "AQUAFLEX CLEAR",
+                  "pigmento": "PANTONE 8383 C",
+                  "proporcion": "80:20",
+                  "viscosidad": "38-42 dPa·s"
+                }
+              }
+            }
+          },
+          
+          "clemson_tigers": {
+            "colores": {
+              "orange": {
+                "pantone": "PANTONE 159 C",
+                "hex": "#F56600",
+                "rgb": [245, 102, 0],
+                "cmyk": [0, 75, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "regalia": {
+                "pantone": "PANTONE 268 C",
+                "hex": "#522D80",
+                "rgb": [82, 45, 128],
+                "cmyk": [79, 100, 0, 0],
+                "categoria": "PURPURA",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "duke_blue_devils": {
+            "colores": {
+              "duke_blue": {
+                "pantone": "PANTONE 287 C",
+                "hex": "#003087",
+                "rgb": [0, 48, 135],
+                "cmyk": [100, 81, 0, 23],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO",
+                "tipo_tinta": "AQUAFLEX WHITE"
+              }
+            }
+          },
+          
+          "florida_state_seminoles": {
+            "colores": {
+              "garnet": {
+                "pantone": "PANTONE 201 C",
+                "hex": "#782F40",
+                "rgb": [120, 47, 64],
+                "cmyk": [0, 100, 63, 31],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 871 C",
+                "hex": "#CEB888",
+                "rgb": [206, 184, 136],
+                "cmyk": [0, 11, 34, 19],
+                "categoria": "DORADO_METALLICO",
+                "tipo_tinta": "AQUAFLEX METALLIC",
+                "aditivos": ["BASE_METALICA", "BRILLO"]
+              }
+            }
+          },
+          
+          "georgia_tech_yellow_jackets": {
+            "colores": {
+              "old_gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#B3A369",
+                "rgb": [179, 163, 105],
+                "cmyk": [0, 9, 41, 30],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "louisville_cardinals": {
+            "colores": {
+              "cardinal_red": {
+                "pantone": "PANTONE 200 C",
+                "hex": "#AD0000",
+                "rgb": [173, 0, 0],
+                "cmyk": [0, 100, 76, 13],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "miami_hurricanes": {
+            "colores": {
+              "orange": {
+                "pantone": "PANTONE 1665 C",
+                "hex": "#F47321",
+                "rgb": [244, 115, 33],
+                "cmyk": [0, 70, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "green": {
+                "pantone": "PANTONE 3435 C",
+                "hex": "#005030",
+                "rgb": [0, 80, 48],
+                "cmyk": [100, 0, 40, 69],
+                "categoria": "VERDE_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "north_carolina_tar_heels": {
+            "colores": {
+              "carolina_blue": {
+                "pantone": "PANTONE 542 C",
+                "hex": "#7BAFD4",
+                "rgb": [123, 175, 212],
+                "cmyk": [45, 13, 0, 17],
+                "categoria": "AZUL_CLARO",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Color icónico, requiere alta opacidad en telas oscuras"
+              },
+              "navy_blue": {
+                "pantone": "PANTONE 281 C",
+                "hex": "#13294B",
+                "rgb": [19, 41, 75],
+                "cmyk": [100, 78, 0, 57],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "nc_state_wolfpack": {
+            "colores": {
+              "red": {
+                "pantone": "PANTONE 186 C",
+                "hex": "#CC0000",
+                "rgb": [204, 0, 0],
+                "cmyk": [0, 100, 80, 5],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "notre_dame_fighting_irish": {
+            "colores": {
+              "irish_green": {
+                "pantone": "PANTONE 343 C",
+                "hex": "#0C2340",
+                "rgb": [12, 35, 64],
+                "cmyk": [100, 66, 0, 76],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Notre Dame Navy - aunque se llama Irish Green es azul oscuro"
+              },
+              "irish_green_real": {
+                "pantone": "PANTONE 349 C",
+                "hex": "#046A38",
+                "rgb": [4, 106, 56],
+                "cmyk": [85, 3, 91, 44],
+                "categoria": "VERDE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 109 C",
+                "hex": "#C99700",
+                "rgb": [201, 151, 0],
+                "cmyk": [0, 25, 100, 21],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "pittsburgh_panthers": {
+            "colores": {
+              "royal_blue": {
+                "pantone": "PANTONE 287 C",
+                "hex": "#003594",
+                "rgb": [0, 53, 148],
+                "cmyk": [100, 78, 0, 23],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#FFB81C",
+                "rgb": [255, 184, 28],
+                "cmyk": [0, 25, 94, 0],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "syracuse_orange": {
+            "colores": {
+              "orange": {
+                "pantone": "PANTONE 1665 C",
+                "hex": "#F37321",
+                "rgb": [243, 115, 33],
+                "cmyk": [0, 70, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "navy": {
+                "pantone": "PANTONE 282 C",
+                "hex": "#000E54",
+                "rgb": [0, 14, 84],
+                "cmyk": [100, 95, 0, 47],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "virginia_cavaliers": {
+            "colores": {
+              "navy_blue": {
+                "pantone": "PANTONE 282 C",
+                "hex": "#232D4B",
+                "rgb": [35, 45, 75],
+                "cmyk": [100, 95, 0, 47],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "orange": {
+                "pantone": "PANTONE 1665 C",
+                "hex": "#F84C1E",
+                "rgb": [248, 76, 30],
+                "cmyk": [0, 82, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "virginia_tech_hokies": {
+            "colores": {
+              "chicago_maroon": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#861F41",
+                "rgb": [134, 31, 65],
+                "cmyk": [0, 100, 51, 31],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "burnt_orange": {
+                "pantone": "PANTONE 159 C",
+                "hex": "#E87722",
+                "rgb": [232, 119, 34],
+                "cmyk": [0, 60, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "wake_forest_demon_deacons": {
+            "colores": {
+              "old_gold": {
+                "pantone": "PANTONE 871 C",
+                "hex": "#9E7E38",
+                "rgb": [158, 126, 56],
+                "cmyk": [0, 20, 65, 38],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          }
+        }
+      },
+      
+      "big_ten": {
+        "nombre": "Big Ten Conference",
+        "equipos": {
+          "illinois_fighting_illini": {
+            "colores": {
+              "illinois_orange": {
+                "pantone": "PANTONE 1595 C",
+                "hex": "#FF5F05",
+                "rgb": [255, 95, 5],
+                "cmyk": [0, 70, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "illinois_blue": {
+                "pantone": "PANTONE 294 C",
+                "hex": "#13294B",
+                "rgb": [19, 41, 75],
+                "cmyk": [100, 78, 0, 57],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "indiana_hoosiers": {
+            "colores": {
+              "cream": {
+                "pantone": "PANTONE 7527 C",
+                "hex": "#EDEBEB",
+                "rgb": [237, 235, 235],
+                "cmyk": [0, 1, 1, 7],
+                "categoria": "CREMA",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Color crema único, requiere base blanca incluso en telas claras"
+              },
+              "crimson": {
+                "pantone": "PANTONE 201 C",
+                "hex": "#990000",
+                "rgb": [153, 0, 0],
+                "cmyk": [0, 100, 63, 40],
+                "categoria": "ROJO_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "iowa_hawkeyes": {
+            "colores": {
+              "gold": {
+                "pantone": "PANTONE 116 C",
+                "hex": "#FFCD00",
+                "rgb": [255, 205, 0],
+                "cmyk": [0, 10, 98, 0],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "maryland_terrapins": {
+            "colores": {
+              "red": {
+                "pantone": "PANTONE 186 C",
+                "hex": "#E03A3E",
+                "rgb": [224, 58, 62],
+                "cmyk": [0, 100, 80, 5],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#FFD520",
+                "rgb": [255, 213, 32],
+                "cmyk": [0, 15, 90, 0],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "michigan_wolverines": {
+            "colores": {
+              "maize": {
+                "pantone": "PANTONE 116 C",
+                "hex": "#FFCB05",
+                "rgb": [255, 203, 5],
+                "cmyk": [0, 10, 98, 0],
+                "categoria": "AMARILLO_DORADO",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Maize icónico de Michigan, amarillo brillante"
+              },
+              "blue": {
+                "pantone": "PANTONE 282 C",
+                "hex": "#00274C",
+                "rgb": [0, 39, 76],
+                "cmyk": [100, 95, 0, 47],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "michigan_state_spartans": {
+            "colores": {
+              "green": {
+                "pantone": "PANTONE 3415 C",
+                "hex": "#18453B",
+                "rgb": [24, 69, 59],
+                "cmyk": [100, 0, 37, 73],
+                "categoria": "VERDE_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "minnesota_golden_gophers": {
+            "colores": {
+              "maroon": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#7A0019",
+                "rgb": [122, 0, 25],
+                "cmyk": [0, 100, 80, 52],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 136 C",
+                "hex": "#FFCC33",
+                "rgb": [255, 204, 51],
+                "cmyk": [0, 20, 80, 0],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "nebraska_cornhuskers": {
+            "colores": {
+              "scarlet": {
+                "pantone": "PANTONE 186 C",
+                "hex": "#E41C38",
+                "rgb": [228, 28, 56],
+                "cmyk": [0, 100, 80, 5],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "cream": {
+                "pantone": "PANTONE 7527 C",
+                "hex": "#F5F1E8",
+                "rgb": [245, 241, 232],
+                "cmyk": [0, 2, 5, 4],
+                "categoria": "CREMA",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "northwestern_wildcats": {
+            "colores": {
+              "purple": {
+                "pantone": "PANTONE 268 C",
+                "hex": "#4E2A84",
+                "rgb": [78, 42, 132],
+                "cmyk": [79, 100, 0, 0],
+                "categoria": "PURPURA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "ohio_state_buckeyes": {
+            "colores": {
+              "scarlet": {
+                "pantone": "PANTONE 200 C",
+                "hex": "#BB0000",
+                "rgb": [187, 0, 0],
+                "cmyk": [0, 100, 76, 13],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Scarlet icónico de Ohio State"
+              },
+              "gray": {
+                "pantone": "PANTONE 429 C",
+                "hex": "#A7B1B7",
+                "rgb": [167, 177, 183],
+                "cmyk": [35, 23, 19, 2],
+                "categoria": "GRIS",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "penn_state_nittany_lions": {
+            "colores": {
+              "navy_blue": {
+                "pantone": "PANTONE 289 C",
+                "hex": "#001E44",
+                "rgb": [0, 30, 68],
+                "cmyk": [100, 66, 0, 76],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "purdue_boilermakers": {
+            "colores": {
+              "old_gold": {
+                "pantone": "PANTONE 7555 C",
+                "hex": "#CFB991",
+                "rgb": [207, 185, 145],
+                "cmyk": [0, 11, 30, 19],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "rutgers_scarlet_knights": {
+            "colores": {
+              "scarlet": {
+                "pantone": "PANTONE 186 C",
+                "hex": "#CC0033",
+                "rgb": [204, 0, 51],
+                "cmyk": [0, 100, 80, 5],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "wisconsin_badgers": {
+            "colores": {
+              "cardinal": {
+                "pantone": "PANTONE 200 C",
+                "hex": "#C5050C",
+                "rgb": [197, 5, 12],
+                "cmyk": [0, 100, 76, 13],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          }
+        }
+      },
+      
+      "big_12": {
+        "nombre": "Big 12 Conference",
+        "equipos": {
+          "arizona_wildcats": {
+            "colores": {
+              "arizona_red": {
+                "pantone": "PANTONE 200 C",
+                "hex": "#AB0520",
+                "rgb": [171, 5, 32],
+                "cmyk": [0, 100, 76, 13],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "arizona_blue": {
+                "pantone": "PANTONE 281 C",
+                "hex": "#0C234B",
+                "rgb": [12, 35, 75],
+                "cmyk": [100, 78, 0, 57],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "baylor_bears": {
+            "colores": {
+              "green": {
+                "pantone": "PANTONE 349 C",
+                "hex": "#154734",
+                "rgb": [21, 71, 52],
+                "cmyk": [85, 3, 91, 44],
+                "categoria": "VERDE_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#FFB81C",
+                "rgb": [255, 184, 28],
+                "cmyk": [0, 25, 94, 0],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "byu_cougars": {
+            "colores": {
+              "navy_blue": {
+                "pantone": "PANTONE 289 C",
+                "hex": "#002E5D",
+                "rgb": [0, 46, 93],
+                "cmyk": [100, 66, 0, 76],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "cincinnati_bearcats": {
+            "colores": {
+              "red": {
+                "pantone": "PANTONE 200 C",
+                "hex": "#E00122",
+                "rgb": [224, 1, 34],
+                "cmyk": [0, 100, 76, 13],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "colorado_buffaloes": {
+            "colores": {
+              "silver": {
+                "pantone": "PANTONE 429 C",
+                "hex": "#A2A4A3",
+                "rgb": [162, 164, 163],
+                "cmyk": [35, 23, 19, 2],
+                "categoria": "GRIS_PLATEADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#CFB87C",
+                "rgb": [207, 184, 124],
+                "cmyk": [0, 11, 40, 19],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "houston_cougars": {
+            "colores": {
+              "scarlet": {
+                "pantone": "PANTONE 186 C",
+                "hex": "#C8102E",
+                "rgb": [200, 16, 46],
+                "cmyk": [0, 100, 80, 5],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              },
+              "silver": {
+                "pantone": "PANTONE 877 C",
+                "hex": "#BEC0C2",
+                "rgb": [190, 192, 194],
+                "cmyk": [0, 0, 0, 20],
+                "categoria": "PLATEADO",
+                "tipo_tinta": "AQUAFLEX METALLIC",
+                "aditivos": ["BASE_METALICA"]
+              }
+            }
+          },
+          
+          "iowa_state_cyclones": {
+            "colores": {
+              "cardinal": {
+                "pantone": "PANTONE 200 C",
+                "hex": "#C8102E",
+                "rgb": [200, 16, 46],
+                "cmyk": [0, 100, 76, 13],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#F1BE48",
+                "rgb": [241, 190, 72],
+                "cmyk": [0, 21, 70, 5],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "kansas_jayhawks": {
+            "colores": {
+              "royal_blue": {
+                "pantone": "PANTONE 293 C",
+                "hex": "#0051BA",
+                "rgb": [0, 81, 186],
+                "cmyk": [100, 56, 0, 27],
+                "categoria": "AZUL",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Jayhawk Blue icónico"
+              },
+              "crimson": {
+                "pantone": "PANTONE 186 C",
+                "hex": "#E8000D",
+                "rgb": [232, 0, 13],
+                "cmyk": [0, 100, 94, 0],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "kansas_state_wildcats": {
+            "colores": {
+              "purple": {
+                "pantone": "PANTONE 268 C",
+                "hex": "#512888",
+                "rgb": [81, 40, 136],
+                "cmyk": [79, 100, 0, 0],
+                "categoria": "PURPURA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "silver": {
+                "pantone": "PANTONE 877 C",
+                "hex": "#A7A9AC",
+                "rgb": [167, 169, 172],
+                "cmyk": [0, 0, 0, 35],
+                "categoria": "PLATEADO",
+                "tipo_tinta": "AQUAFLEX METALLIC"
+              }
+            }
+          },
+          
+          "oklahoma_state_cowboys": {
+            "colores": {
+              "orange": {
+                "pantone": "PANTONE 1665 C",
+                "hex": "#FF7300",
+                "rgb": [255, 115, 0],
+                "cmyk": [0, 70, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Orange Power - muy brillante"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "tcu_horned_frogs": {
+            "colores": {
+              "purple": {
+                "pantone": "PANTONE 268 C",
+                "hex": "#4D1979",
+                "rgb": [77, 25, 121],
+                "cmyk": [79, 100, 0, 0],
+                "categoria": "PURPURA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "texas_longhorns": {
+            "colores": {
+              "burnt_orange": {
+                "pantone": "PANTONE 159 C",
+                "hex": "#BF5700",
+                "rgb": [191, 87, 0],
+                "cmyk": [0, 68, 100, 22],
+                "categoria": "NARANJA_OSCURO",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Burnt Orange icónico de Texas"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "texas_tech_red_raiders": {
+            "colores": {
+              "scarlet": {
+                "pantone": "PANTONE 186 C",
+                "hex": "#CC0000",
+                "rgb": [204, 0, 0],
+                "cmyk": [0, 100, 80, 5],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "ucf_knights": {
+            "colores": {
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#B4975A",
+                "rgb": [180, 151, 90],
+                "cmyk": [0, 16, 50, 29],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "utah_utes": {
+            "colores": {
+              "red": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#CC0000",
+                "rgb": [204, 0, 0],
+                "cmyk": [0, 100, 80, 5],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "west_virginia_mountaineers": {
+            "colores": {
+              "old_gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#EAAA00",
+                "rgb": [234, 170, 0],
+                "cmyk": [0, 27, 100, 8],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "blue": {
+                "pantone": "PANTONE 282 C",
+                "hex": "#002855",
+                "rgb": [0, 40, 85],
+                "cmyk": [100, 95, 0, 47],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          }
+        }
+      },
+      
+      "sec": {
+        "nombre": "Southeastern Conference",
+        "equipos": {
+          "alabama_crimson_tide": {
+            "colores": {
+              "crimson": {
+                "pantone": "PANTONE 201 C",
+                "hex": "#9E1B32",
+                "rgb": [158, 27, 50],
+                "cmyk": [0, 100, 63, 31],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Crimson icónico de Alabama"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "arkansas_razorbacks": {
+            "colores": {
+              "cardinal": {
+                "pantone": "PANTONE 201 C",
+                "hex": "#9D2235",
+                "rgb": [157, 34, 53],
+                "cmyk": [0, 100, 63, 31],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "auburn_tigers": {
+            "colores": {
+              "burnt_orange": {
+                "pantone": "PANTONE 159 C",
+                "hex": "#E86100",
+                "rgb": [232, 97, 0],
+                "cmyk": [0, 70, 100, 0],
+                "categoria": "NARANJA_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "navy_blue": {
+                "pantone": "PANTONE 289 C",
+                "hex": "#0C2340",
+                "rgb": [12, 35, 64],
+                "cmyk": [100, 66, 0, 76],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "florida_gators": {
+            "colores": {
+              "orange": {
+                "pantone": "PANTONE 172 C",
+                "hex": "#FA4616",
+                "rgb": [250, 70, 22],
+                "cmyk": [0, 85, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "blue": {
+                "pantone": "PANTONE 287 C",
+                "hex": "#0021A5",
+                "rgb": [0, 33, 165],
+                "cmyk": [100, 81, 0, 0],
+                "categoria": "AZUL",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "georgia_bulldogs": {
+            "colores": {
+              "red": {
+                "pantone": "PANTONE 200 C",
+                "hex": "#BA0C2F",
+                "rgb": [186, 12, 47],
+                "cmyk": [0, 100, 76, 13],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Georgia Red - muy saturado"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "kentucky_wildcats": {
+            "colores": {
+              "blue": {
+                "pantone": "PANTONE 286 C",
+                "hex": "#0033A0",
+                "rgb": [0, 51, 160],
+                "cmyk": [100, 78, 0, 0],
+                "categoria": "AZUL",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "lsu_tigers": {
+            "colores": {
+              "purple": {
+                "pantone": "PANTONE 268 C",
+                "hex": "#461D7C",
+                "rgb": [70, 29, 124],
+                "cmyk": [79, 100, 0, 0],
+                "categoria": "PURPURA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#FDD023",
+                "rgb": [253, 208, 35],
+                "cmyk": [0, 18, 86, 1],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "mississippi_state_bulldogs": {
+            "colores": {
+              "maroon": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#660000",
+                "rgb": [102, 0, 0],
+                "cmyk": [0, 100, 80, 60],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "missouri_tigers": {
+            "colores": {
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#F1B82D",
+                "rgb": [241, 184, 45],
+                "cmyk": [0, 24, 81, 5],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "ole_miss_rebels": {
+            "colores": {
+              "navy_blue": {
+                "pantone": "PANTONE 289 C",
+                "hex": "#14213D",
+                "rgb": [20, 33, 61],
+                "cmyk": [100, 66, 0, 76],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "cardinal_red": {
+                "pantone": "PANTONE 186 C",
+                "hex": "#CE1126",
+                "rgb": [206, 17, 38],
+                "cmyk": [0, 100, 80, 5],
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "south_carolina_gamecocks": {
+            "colores": {
+              "garnet": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#73000A",
+                "rgb": [115, 0, 10],
+                "cmyk": [0, 100, 91, 55],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "tennessee_volunteers": {
+            "colores": {
+              "orange": {
+                "pantone": "PANTONE 151 C",
+                "hex": "#FF8200",
+                "rgb": [255, 130, 0],
+                "cmyk": [0, 54, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Tennessee Orange - muy distintivo"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "texas_a_m_aggies": {
+            "colores": {
+              "maroon": {
+                "pantone": "PANTONE 505 C",
+                "hex": "#500000",
+                "rgb": [80, 0, 0],
+                "cmyk": [0, 100, 80, 69],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "vanderbilt_commodores": {
+            "colores": {
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#D8B600",
+                "rgb": [216, 182, 0],
+                "cmyk": [0, 16, 100, 15],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          }
+        }
+      },
+      
+      "pac_12": {
+        "nombre": "Pac-12 Conference",
+        "equipos": {
+          "arizona_state_sun_devils": {
+            "colores": {
+              "maroon": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#8C1D40",
+                "rgb": [140, 29, 64],
+                "cmyk": [0, 100, 54, 45],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#FFC627",
+                "rgb": [255, 198, 39],
+                "cmyk": [0, 22, 85, 0],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "california_golden_bears": {
+            "colores": {
+              "yale_blue": {
+                "pantone": "PANTONE 289 C",
+                "hex": "#003262",
+                "rgb": [0, 50, 98],
+                "cmyk": [100, 66, 0, 76],
+                "categoria": "AZUL_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "california_gold": {
+                "pantone": "PANTONE 116 C",
+                "hex": "#FDB515",
+                "rgb": [253, 181, 21],
+                "cmyk": [0, 28, 92, 1],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "colorado_buffaloes": {
+            "colores": {
+              "silver": {
+                "pantone": "PANTONE 429 C",
+                "hex": "#A2A4A3",
+                "categoria": "GRIS_PLATEADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#CFB87C",
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "oregon_ducks": {
+            "colores": {
+              "apple_green": {
+                "pantone": "PANTONE 349 C",
+                "hex": "#00703C",
+                "rgb": [0, 112, 60],
+                "cmyk": [85, 3, 91, 44],
+                "categoria": "VERDE",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "Oregon tiene múltiples verdes, este es el principal"
+              },
+              "yellow": {
+                "pantone": "PANTONE 116 C",
+                "hex": "#FEE123",
+                "rgb": [254, 225, 35],
+                "cmyk": [0, 11, 86, 0],
+                "categoria": "AMARILLO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "oregon_state_beavers": {
+            "colores": {
+              "beaver_orange": {
+                "pantone": "PANTONE 1665 C",
+                "hex": "#DC4405",
+                "rgb": [220, 68, 5],
+                "cmyk": [0, 82, 100, 0],
+                "categoria": "NARANJA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "black": {
+                "pantone": "Black C",
+                "hex": "#000000",
+                "categoria": "NEGRO",
+                "tipo_tinta": "AQUAFLEX BLACK"
+              }
+            }
+          },
+          
+          "stanford_cardinal": {
+            "colores": {
+              "cardinal": {
+                "pantone": "PANTONE 201 C",
+                "hex": "#8C1515",
+                "rgb": [140, 21, 21],
+                "cmyk": [0, 100, 85, 45],
+                "categoria": "ROJO_OSCURO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "ucla_bruins": {
+            "colores": {
+              "blue": {
+                "pantone": "PANTONE 285 C",
+                "hex": "#2774AE",
+                "rgb": [39, 116, 174],
+                "cmyk": [90, 47, 0, 0],
+                "categoria": "AZUL",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "True Blue de UCLA - azul medio distintivo"
+              },
+              "gold": {
+                "pantone": "PANTONE 116 C",
+                "hex": "#FFD100",
+                "rgb": [255, 209, 0],
+                "cmyk": [0, 5, 100, 0],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "usc_trojans": {
+            "colores": {
+              "cardinal": {
+                "pantone": "PANTONE 201 C",
+                "hex": "#990000",
+                "rgb": [153, 0, 0],
+                "cmyk": [0, 100, 85, 40],
+                "categoria": "ROJO_OSCURO",
+                "tipo_tinta": "AQUAFLEX",
+                "nota": "USC Cardinal - rojo profundo distintivo"
+              },
+              "gold": {
+                "pantone": "PANTONE 1235 C",
+                "hex": "#FFCC00",
+                "rgb": [255, 204, 0],
+                "cmyk": [0, 20, 100, 0],
+                "categoria": "DORADO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "utah_utes": {
+            "colores": {
+              "red": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#CC0000",
+                "categoria": "ROJO",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "white": {
+                "pantone": "White",
+                "hex": "#FFFFFF",
+                "categoria": "BLANCO"
+              }
+            }
+          },
+          
+          "washington_huskies": {
+            "colores": {
+              "purple": {
+                "pantone": "PANTONE 268 C",
+                "hex": "#4B2E83",
+                "rgb": [75, 46, 131],
+                "cmyk": [79, 100, 0, 0],
+                "categoria": "PURPURA",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gold": {
+                "pantone": "PANTONE 116 C",
+                "hex": "#E8D3A2",
+                "rgb": [232, 211, 162],
+                "cmyk": [0, 9, 30, 9],
+                "categoria": "DORADO_CLARO",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          },
+          
+          "washington_state_cougars": {
+            "colores": {
+              "crimson": {
+                "pantone": "PANTONE 202 C",
+                "hex": "#981E32",
+                "rgb": [152, 30, 50],
+                "cmyk": [0, 100, 67, 40],
+                "categoria": "GRANATE",
+                "tipo_tinta": "AQUAFLEX"
+              },
+              "gray": {
+                "pantone": "PANTONE 429 C",
+                "hex": "#5E6A71",
+                "rgb": [94, 106, 113],
+                "cmyk": [45, 30, 22, 15],
+                "categoria": "GRIS",
+                "tipo_tinta": "AQUAFLEX"
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "categorias_color": {
+      "BLANCO": {
+        "luminosidad": 100,
+        "requiere_base_blanca": false,
+        "es_base": true,
+        "tipo_tinta_default": "AQUAFLEX WHITE"
+      },
+      "CREMA": {
+        "luminosidad": 95,
+        "requiere_base_blanca": true,
+        "nota": "Los colores crema necesitan base blanca para mantener tonalidad"
+      },
+      "AMARILLO_DORADO": {
+        "luminosidad": 90,
+        "requiere_base_blanca": false,
+        "tipo_tinta_default": "AQUAFLEX"
+      },
+      "DORADO": {
+        "luminosidad": 75,
+        "requiere_base_blanca": false
+      },
+      "DORADO_CLARO": {
+        "luminosidad": 85,
+        "requiere_base_blanca": false
+      },
+      "DORADO_METALLICO": {
+        "luminosidad": 70,
+        "requiere_base_blanca": true,
+        "aditivos": ["BASE_METALICA", "BRILLO"]
+      },
+      "PLATEADO": {
+        "luminosidad": 65,
+        "requiere_base_blanca": true,
+        "aditivos": ["BASE_METALICA"]
+      },
+      "GRIS_PLATEADO": {
+        "luminosidad": 60,
+        "requiere_base_blanca": true
+      },
+      "AZUL_CLARO": {
+        "luminosidad": 70,
+        "requiere_base_blanca": false
+      },
+      "AZUL": {
+        "luminosidad": 50,
+        "requiere_base_blanca": true
+      },
+      "AZUL_OSCURO": {
+        "luminosidad": 25,
+        "requiere_base_blanca": true
+      },
+      "NARANJA": {
+        "luminosidad": 65,
+        "requiere_base_blanca": false
+      },
+      "NARANJA_OSCURO": {
+        "luminosidad": 45,
+        "requiere_base_blanca": true
+      },
+      "ROJO": {
+        "luminosidad": 45,
+        "requiere_base_blanca": true
+      },
+      "ROJO_OSCURO": {
+        "luminosidad": 30,
+        "requiere_base_blanca": true
+      },
+      "GRANATE": {
+        "luminosidad": 25,
+        "requiere_base_blanca": true
+      },
+      "PURPURA": {
+        "luminosidad": 30,
+        "requiere_base_blanca": true
+      },
+      "VERDE": {
+        "luminosidad": 50,
+        "requiere_base_blanca": true
+      },
+      "VERDE_OSCURO": {
+        "luminosidad": 25,
+        "requiere_base_blanca": true
+      },
+      "GRIS": {
+        "luminosidad": 55,
+        "requiere_base_blanca": true
+      },
+      "GRIS_CLARO": {
+        "luminosidad": 80,
+        "requiere_base_blanca": false
+      },
+      "NEGRO": {
+        "luminosidad": 0,
+        "requiere_base_blanca": false,
+        "es_base": true,
+        "tipo_tinta_default": "AQUAFLEX BLACK"
+      }
+    }
+  }
+}
