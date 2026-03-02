@@ -10,22 +10,22 @@
       "sobre_oscuro": 1
     },
     "mallas": {
-      "BLOCKER": {
+      "Barrier Base": {
         "primera": "110/64",
-        "segunda": "156/64",
-        "tercera": "156/64"
+        "segunda": "122/55",
+        "tercera": "122/55"
       },
-      "WHITE_BASE": {
+      "Poly White": {
         "primera": "156/64",
-        "segunda": "110/64"
+        "segunda": "122/64"
       },
       "COLOR": {
-        "normal": "156/64",
-        "segunda_pantalla": "156/64"
+        "normal": "157",
+        "segunda_pantalla": "122"
       }
     },
     "aditivos": {
-      "COLOR": "1% catalyst",
+      "COLOR": "N/A",
       "BLOCKER": "N/A",
       "WHITE_BASE": "N/A"
     },
