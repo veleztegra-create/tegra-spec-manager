@@ -1,5 +1,7 @@
-// rules-engine.js - Motor de reglas centralizado
-// Mantiene separación: placement.colors (solo tintas) vs placement.sequence (incluye FLASH/COOL)
+// =====================================================
+// rules-engine.js - Motor de reglas TEGRA
+// Versión: 2.0 - Con clasificación de colores y números
+// =====================================================
 
 window.RulesEngine = (function() {
     "use strict";
@@ -22,6 +24,16 @@ window.RulesEngine = (function() {
             identificadores: ['761', '761 gold', 'university gold'],
             mallas: ['157', '198', '110'],
             aditivos: '3% CL 500 · 5% ecofix XL'
+        },
+        '871c metallic': {
+            identificadores: ['871c', '871', 'metallic 871'],
+            mallas: ['110', '156'],
+            aditivos: 'Catalizador especial'
+        },
+        '877c silver': {
+            identificadores: ['877c', '877', 'silver'],
+            mallas: ['110', '156'],
+            aditivos: 'Catalizador especial'
         }
     };
 
@@ -32,11 +44,11 @@ window.RulesEngine = (function() {
         darkIdentifiers: [
             'negro', 'black', 'navy', 'azul marino', 'charcoal', 'carbon', 
             'maroon', 'granate', 'dark', 'oscuro', 'forest', 'verde oscuro', 
-            'hunter', 'midnight', 'midnight navy'
+            'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal'
         ],
         lightIdentifiers: [
             'blanco', 'white', 'natural', 'crema', 'ivory', 'beige', 
-            'claro', 'light', 'gris claro', 'light gray', 'italy blue'
+            'claro', 'light', 'gris claro', 'light gray', 'heather grey'
         ]
     };
 
@@ -231,36 +243,6 @@ window.RulesEngine = (function() {
         return normalized;
     }
 
-    function parseGeneralInkCatalog(catalog) {
-        const rules = catalog?.reglas_generales;
-        if (!rules || typeof rules !== 'object') return null;
-
-        const ink = mapInkType(catalog.nombre);
-        if (!['WATER', 'PLASTISOL', 'SILICONE'].includes(ink)) return null;
-
-        return {
-            [ink]: {
-                temperature: rules.temperatura,
-                time: rules.tiempo,
-                requiresBlocker: typeof rules.requiere_bloqueador === 'boolean' ? rules.requiere_bloqueador : undefined,
-                whiteBaseCounts: {
-                    dark: rules.bases_blancas?.sobre_oscuro,
-                    light: rules.bases_blancas?.sobre_claro
-                },
-                meshes: {
-                    blocker: [rules.mallas?.BLOCKER?.primera, rules.mallas?.BLOCKER?.segunda, rules.mallas?.BLOCKER?.tercera].filter(Boolean),
-                    whiteBase: [rules.mallas?.WHITE_BASE?.primera, rules.mallas?.WHITE_BASE?.segunda].filter(Boolean),
-                    color: [rules.mallas?.COLOR?.normal, rules.mallas?.COLOR?.segunda_pantalla].filter(Boolean)
-                },
-                additives: {
-                    blocker: rules.aditivos?.BLOCKER,
-                    whiteBase: rules.aditivos?.WHITE_BASE,
-                    color: rules.aditivos?.COLOR
-                }
-            }
-        };
-    }
-
     function syncPresetsFromInkRules() {
         // WATER
         if (INK_RULES.WATER.meshes?.blocker?.[0]) BASE_PRESETS.WATER.blocker.meshDark1 = INK_RULES.WATER.meshes.blocker[0];
@@ -363,170 +345,216 @@ window.RulesEngine = (function() {
 
         console.log(`⚙️ RulesEngine: Generando secuencia para Tela: "${garmentColor}", Tinta: ${inkType}`);
 
-        // Usar ColorDatabase si está disponible
-        const fabricInfo = window.ColorDatabase?.classifyFabric(garmentColor) || {
-            type: clasificarTela(garmentColor),
-            needsBlocker: true,
-            blockerCount: 3,
-            needsWhiteBase: true
-        };
+        // ===== CLASIFICACIÓN DE TELA =====
+        let fabricInfo;
+        if (window.ColorDatabase) {
+            fabricInfo = window.ColorDatabase.classifyFabric(garmentColor);
+        } else {
+            const telaLower = garmentColor.toLowerCase();
+            const esOscura = FABRIC_RULES.darkIdentifiers.some(o => telaLower.includes(o));
+            fabricInfo = {
+                type: esOscura ? 'dark' : 'light',
+                needsBlocker: esOscura,
+                blockerCount: esOscura ? 3 : 0,
+                needsWhiteBase: true
+            };
+        }
         
         const telaType = fabricInfo.type;
         const needsGarmentWhiteBase = fabricInfo.needsWhiteBase !== false;
         
-        console.log(`   📊 Tela clasificada como: ${fabricInfo.type}`);
+        console.log(`   📊 Tela clasificada como: ${telaType}`);
         
-        // Clasificar cada color del diseño
-        const designInks = designColors.map(c => ({
-            ...c,
-            inkInfo: window.ColorDatabase?.classifyInk(c.val) || { type: 'unknown' }
-        }));
+        // ===== CLASIFICACIÓN DE COLORES =====
+        const classifiedColors = {
+            white: [],      // Tintas blancas
+            light: [],      // Colores claros
+            medium: [],     // Colores medios
+            dark: [],       // Colores oscuros
+            special: [],    // Colores especiales (3 pantallas)
+            metallic: []    // Metálicos
+        };
         
-        // Separar por categorías
-        const whiteInks = designInks.filter(c => 
-            c.inkInfo.type === 'opaque' || 
-            c.val.toUpperCase().includes('WHITE')
-        );
+        designColors.forEach(color => {
+            const colorVal = String(color.val || '').toUpperCase().trim();
+            if (!colorVal) return;
+            
+            if (window.ColorDatabase) {
+                const inkInfo = window.ColorDatabase.classifyInk(colorVal);
+                
+                if (inkInfo.type === 'special') {
+                    classifiedColors.special.push({ ...color, inkInfo });
+                } else if (inkInfo.type === 'metallic') {
+                    classifiedColors.metallic.push({ ...color, inkInfo });
+                } else if (inkInfo.type === 'opaque' || colorVal.includes('WHITE')) {
+                    classifiedColors.white.push({ ...color, inkInfo });
+                } else if (inkInfo.type === 'light') {
+                    classifiedColors.light.push({ ...color, inkInfo });
+                } else if (inkInfo.type === 'dark') {
+                    classifiedColors.dark.push({ ...color, inkInfo });
+                } else {
+                    classifiedColors.medium.push({ ...color, inkInfo });
+                }
+            } else {
+                // Fallback manual
+                if (colorVal.includes('WHITE')) {
+                    classifiedColors.white.push(color);
+                } else if (colorVal.match(/77C|78H|761|UNIVERSITY GOLD|871C|877C/i)) {
+                    classifiedColors.special.push(color);
+                } else if (colorVal.includes('YELLOW') || colorVal.includes('GOLD') || 
+                           colorVal.includes('ORANGE') || colorVal.includes('PINK')) {
+                    classifiedColors.light.push(color);
+                } else if (colorVal.includes('BLACK') || colorVal.includes('NAVY') || 
+                           colorVal.includes('MAROON') || colorVal.includes('BROWN')) {
+                    classifiedColors.dark.push(color);
+                } else {
+                    classifiedColors.medium.push(color);
+                }
+            }
+        });
         
-        const lightInks = designInks.filter(c => c.inkInfo.type === 'light');
-        const mediumInks = designInks.filter(c => c.inkInfo.type === 'medium');
-        const darkInks = designInks.filter(c => c.inkInfo.type === 'dark');
-        const metallicInks = designInks.filter(c => c.inkInfo.type === 'metallic');
-        const specialInks = designInks.filter(c => c.inkInfo.type === 'special');
-        
-        console.log(`   🎨 Blancos: ${whiteInks.length}, Claros: ${lightInks.length}, Medios: ${mediumInks.length}, Oscuros: ${darkInks.length}, Especiales: ${specialInks.length}`);
+        console.log(`   🎨 Blancos: ${classifiedColors.white.length}`);
+        console.log(`   🎨 Claros: ${classifiedColors.light.length}`);
+        console.log(`   🎨 Especiales: ${classifiedColors.special.length}`);
+        console.log(`   🎨 Metálicos: ${classifiedColors.metallic.length}`);
+        console.log(`   🎨 Medios/Oscuros: ${classifiedColors.medium.length + classifiedColors.dark.length}`);
         
         // ===== CONSTRUCCIÓN DE SECUENCIA =====
         const steps = [];
+        let nextLetter = 65; // 'A' para procesos (Blocker, White Base)
+        let nextNumber = 1;  // 1, 2, 3... para colores (tintas)
         
-        // PASO 1: Bloqueadores
+        // PASO 1: BLOQUEADORES (usan LETRAS)
         if (fabricInfo.needsBlocker) {
             const blockerCount = fabricInfo.blockerCount || 3;
+            const blockerName = inkType === 'PLASTISOL' ? 'BARRIER BASE' : 'BLOCKER CHT';
             const blockerMeshes = inkType === 'PLASTISOL' 
                 ? ['110/64', '156/64', '156/64']
                 : ['122/55', '157/48', ''];
-                
+            
             for (let i = 0; i < blockerCount; i++) {
                 if (!blockerMeshes[i]) continue;
-                
                 steps.push({
                     tipo: 'BLOCKER',
-                    screenLetter: i === 0 ? 'A' : '',
-                    nombre: inkType === 'PLASTISOL' ? 'BARRIER BASE' : 'BLOCKER CHT',
+                    screenLetter: String.fromCharCode(nextLetter++),
+                    nombre: blockerName,
                     mesh: blockerMeshes[i],
                     additives: 'N/A'
                 });
             }
         }
         
-        // PASO 2: Base blanca de prenda
+        // PASO 2: BASE BLANCA DE PRENDA (usa LETRAS)
         if (needsGarmentWhiteBase) {
-            if (lightInks.length > 0 || specialInks.length > 0 || whiteInks.length > 0) {
-                const baseCount = telaType === 'light' ? 1 : 2;
-                
-                for (let i = 0; i < baseCount; i++) {
-                    steps.push({
-                        tipo: 'WHITE_BASE',
-                        screenLetter: String.fromCharCode(66 + i),
-                        nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
-                        mesh: i === 0 ? (inkType === 'PLASTISOL' ? '156/64' : '198/40') : (inkType === 'PLASTISOL' ? '110/64' : '157/48'),
-                        additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
-                    });
-                }
+            const hasLightOrSpecial = classifiedColors.light.length > 0 || 
+                                      classifiedColors.special.length > 0 ||
+                                      classifiedColors.metallic.length > 0;
+            
+            if (telaType === 'dark' && hasLightOrSpecial) {
+                steps.push({
+                    tipo: 'WHITE_BASE',
+                    screenLetter: String.fromCharCode(nextLetter++),
+                    nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
+                    mesh: inkType === 'PLASTISOL' ? '156/64' : '122/??',
+                    additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
+                });
             }
-        } else {
-            console.log('   🚫 La prenda NO requiere base blanca');
         }
         
-        // PASO 3: Procesar colores
-        let colorLetter = 70; // 'F'
+        // PASO 3: PROCESAR CADA COLOR (usan NÚMEROS)
         
-        // Blancos
-        whiteInks.forEach(ink => {
-            steps.push({
-                tipo: 'COLOR',
-                screenLetter: String.fromCharCode(colorLetter++),
-                nombre: ink.val,
-                mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '156/64',
-                additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
-            });
-        });
-        
-        // Claros
-        lightInks.forEach(ink => {
+        // 3.1 Blancos
+        classifiedColors.white.forEach(ink => {
+            // Base blanca para este blanco (usa LETRA)
             steps.push({
                 tipo: 'WHITE_BASE',
-                screenLetter: String.fromCharCode(colorLetter++),
+                screenLetter: String.fromCharCode(nextLetter++),
                 nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
                 mesh: inkType === 'PLASTISOL' ? '110/64' : '122/??',
                 additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
             });
             
+            // El color blanco (usa NÚMERO)
             steps.push({
                 tipo: 'COLOR',
-                screenLetter: String.fromCharCode(colorLetter++),
+                screenLetter: String(nextNumber++),
+                nombre: ink.val || 'WHITE',
+                mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || 
+                      (inkType === 'PLASTISOL' ? '156/64' : '157/48'),
+                additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
+            });
+        });
+        
+        // 3.2 Claros
+        classifiedColors.light.forEach(ink => {
+            // Base blanca para color claro (usa LETRA)
+            steps.push({
+                tipo: 'WHITE_BASE',
+                screenLetter: String.fromCharCode(nextLetter++),
+                nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
+                mesh: inkType === 'PLASTISOL' ? '110/64' : '122/??',
+                additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
+            });
+            
+            // El color claro (usa NÚMERO)
+            steps.push({
+                tipo: 'COLOR',
+                screenLetter: String(nextNumber++),
                 nombre: ink.val,
                 mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '157/48',
                 additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
             });
         });
         
-        // Especiales
-        specialInks.forEach(ink => {
-            const meshes = ink.inkInfo.meshes || ['157', '198', '110'];
+        // 3.3 Especiales (3 pantallas - usan NÚMEROS)
+        classifiedColors.special.forEach(ink => {
+            const inkInfo = ink.inkInfo || {};
+            const meshes = inkInfo.meshes || ['157', '198', '110'];
+            const additives = inkInfo.additives || '3% CL 500 · 5% ecofix XL';
+            const colorNumber = nextNumber++; // Número base para este color
+            
             meshes.forEach((mesh, idx) => {
                 steps.push({
                     tipo: 'COLOR',
-                    screenLetter: String.fromCharCode(colorLetter) + (idx > 0 ? idx + 1 : ''),
+                    screenLetter: idx === 0 ? String(colorNumber) : `${colorNumber}-${idx + 1}`,
                     nombre: ink.val + (idx > 0 ? ` (${idx + 1})` : ''),
                     mesh: mesh + (inkType === 'PLASTISOL' ? '/64' : '/48'),
-                    additives: ink.inkInfo.additives || ''
+                    additives: additives
                 });
             });
-            colorLetter++;
         });
         
-        // Metálicos
-        metallicInks.forEach(ink => {
-            const screens = ink.inkInfo.screens || 2;
+        // 3.4 Metálicos (2 pantallas - usan NÚMEROS)
+        classifiedColors.metallic.forEach(ink => {
+            const colorNumber = nextNumber++;
+            const screens = ink.inkInfo?.screens || 2;
+            
             for (let i = 0; i < screens; i++) {
                 steps.push({
                     tipo: 'COLOR',
-                    screenLetter: String.fromCharCode(colorLetter) + (i > 0 ? i + 1 : ''),
+                    screenLetter: i === 0 ? String(colorNumber) : `${colorNumber}-${i + 1}`,
                     nombre: ink.val + (i > 0 ? ` (${i + 1})` : ''),
                     mesh: i === 0 ? '110/64' : '156/64',
                     additives: 'Catalizador especial'
                 });
             }
-            colorLetter++;
         });
         
-        // Medios y oscuros
-        [...mediumInks, ...darkInks].forEach(ink => {
+        // 3.5 Medios y Oscuros (usan NÚMEROS)
+        [...classifiedColors.medium, ...classifiedColors.dark].forEach(ink => {
             steps.push({
                 tipo: 'COLOR',
-                screenLetter: String.fromCharCode(colorLetter++),
+                screenLetter: String(nextNumber++),
                 nombre: ink.val,
                 mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '156/64',
                 additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
             });
         });
         
-        // ===== AÑADIR FLASH/COOL =====
+        // ===== AÑADIR FLASH/COOL ENTRE PASOS =====
         const finalSequence = [];
-        let screenLetterCode = 65; // 'A'
         
         steps.forEach((step, index) => {
-            if (!step.screenLetter) {
-                step.screenLetter = String.fromCharCode(screenLetterCode);
-                screenLetterCode++;
-            } else {
-                const currentCode = step.screenLetter.charCodeAt(0);
-                if (currentCode >= screenLetterCode) {
-                    screenLetterCode = currentCode + 1;
-                }
-            }
-            
             finalSequence.push(step);
             
             if (index < steps.length - 1) {
@@ -548,6 +576,9 @@ window.RulesEngine = (function() {
         });
         
         console.log(`✅ Secuencia generada con ${finalSequence.length} pasos totales`);
+        console.log(`   📝 Letras usadas: ${steps.filter(s => s.tipo !== 'COLOR').length} procesos`);
+        console.log(`   🔢 Números usados: ${nextNumber - 1} colores`);
+        
         return finalSequence;
     }
 
