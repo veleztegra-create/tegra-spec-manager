@@ -352,217 +352,208 @@ window.RulesEngine = (function () {
     // ⭐ FUNCIÓN PRINCIPAL - GENERAR SECUENCIA CORREGIDA ⭐
     // =====================================================
     
-    function generarSecuencia(params) {
-        const {
-            customer = '',
-            garmentColor = '',
-            inkType = 'WATER',
-            designColors = []
-        } = params;
+    // En rules-engine.js, dentro de la función generarSecuencia
 
-        console.log(`⚙️ RulesEngine: Generando secuencia para Tela: "${garmentColor}", Tinta: ${inkType}`);
+function generarSecuencia(params) {
+    const {
+        customer = '',
+        garmentColor = '',
+        inkType = 'WATER',
+        designColors = []
+    } = params;
 
-        // --- 1. Clasificaciones ---
-        const telaType = clasificarTela(garmentColor); // 'clara' u 'oscura'
-        const normalizedInkType = mapInkType(inkType || 'WATER');
-        const preset = obtenerPreset(customer, normalizedInkType);
-        const inkRule = INK_RULES[normalizedInkType] || INK_RULES.WATER;
+    console.log(`⚙️ RulesEngine: Generando secuencia para Tela: "${garmentColor}", Tinta: ${inkType}`);
 
-        // --- 2. Lista de colores de diseño (únicos) ---
-        const uniqueColors = [];
-        const seen = new Set();
-        designColors.forEach((c) => {
-            const key = String(c.val || '').toUpperCase().trim();
-            if (key && !seen.has(key)) {
-                seen.add(key);
-                uniqueColors.push({ val: key, original: c });
-            }
-        });
-
-        // Clasificar los colores únicos
-        const lightColors = [];
-        const darkColors = [];
-        const specialColorsDetails = [];
-
-        uniqueColors.forEach(color => {
-            const especial = esColorEspecial(color.val);
-            if (especial) {
-                specialColorsDetails.push({
-                    val: color.val,
-                    mallas: especial.mallas,
-                    aditivos: especial.aditivos
-                });
-            } else {
-                const clasificacion = clasificarColor(color.val);
-                if (clasificacion.esClaro) {
-                    lightColors.push(color.val);
-                } else {
-                    darkColors.push(color.val);
-                }
-            }
-        });
-
-        console.log(`   Colores claros: ${lightColors.join(', ') || 'ninguno'}`);
-        console.log(`   Colores oscuros: ${darkColors.join(', ') || 'ninguno'}`);
-        console.log(`   Colores especiales: ${specialColorsDetails.map(c => c.val).join(', ') || 'ninguno'}`);
-
-        // --- 3. Construcción de la Secuencia ---
-        const steps = [];
-
-        // --- PASO A: Bloqueadores (solo para telas oscuras) ---
-        if (telaType === 'oscura' && inkRule.requiresBlocker !== false) {
-            const blockerMeshes = [preset.blocker.meshDark1, preset.blocker.meshDark2, preset.blocker.meshDark3].filter(Boolean);
-            blockerMeshes.forEach((mesh) => {
-                steps.push({
-                    tipo: 'BLOCKER',
-                    screenLetter: 'A', // Primer bloqueador
-                    nombre: preset.blocker.nombre,
-                    mesh: mesh,
-                    additives: preset.blocker.additives
-                });
-            });
-        }
-
-        // --- PASO B: Bases Blancas Iniciales ---
-        let initialWhiteCount = 0;
-        const garmentIsMidnightNavy = String(garmentColor || '').toUpperCase().includes('MIDNIGHT NAVY');
-        
-        if (normalizedInkType === 'PLASTISOL' && garmentIsMidnightNavy) {
-            // Excepción: Midnight Navy no lleva Poly White
-            initialWhiteCount = 0;
-            console.log('   🚫 Midnight Navy detectado: Sin Poly White inicial.');
-        } else {
-            initialWhiteCount = telaType === 'oscura' 
-                ? (preset.whiteBase.initialDarkCount ?? inkRule.whiteBaseCounts?.dark ?? 1)
-                : (preset.whiteBase.initialLightCount ?? inkRule.whiteBaseCounts?.light ?? 2);
-        }
-
-        for (let i = 0; i < initialWhiteCount; i++) {
-            const mesh = i === 0 ? preset.whiteBase.mesh1 : (preset.whiteBase.mesh2 || preset.whiteBase.mesh1);
-            steps.push({
-                tipo: 'WHITE_BASE',
-                screenLetter: String.fromCharCode(66 + i), // B, C, D...
-                nombre: preset.whiteBase.nombre,
-                mesh: mesh,
-                additives: preset.whiteBase.additives
-            });
-        }
-
-        // --- PASO C: Blocker en Tela Clara (si aplica) ---
-        if (telaType === 'clara' && inkRule.requiresBlocker !== false) {
+    // ===== USAR LA BASE DE DATOS DE COLORES =====
+    const fabricInfo = window.ColorDatabase?.classifyFabric(garmentColor) || {
+        type: clasificarTela(garmentColor),
+        needsBlocker: true,
+        blockerCount: 3,
+        needsWhiteBase: true
+    };
+    
+    const telaType = fabricInfo.type;
+    const needsGarmentWhiteBase = fabricInfo.needsWhiteBase !== false;
+    
+    console.log(`   📊 Tela clasificada como: ${fabricInfo.type} (confianza: ${fabricInfo.confidence}%)`);
+    
+    // Clasificar cada color del diseño
+    const designInks = designColors.map(c => ({
+        ...c,
+        inkInfo: window.ColorDatabase?.classifyInk(c.val) || { type: 'unknown' }
+    }));
+    
+    // Separar por categorías
+    const whiteInks = designInks.filter(c => 
+        c.inkInfo.type === 'opaque' || 
+        c.val.toUpperCase().includes('WHITE')
+    );
+    
+    const lightInks = designInks.filter(c => c.inkInfo.type === 'light');
+    const mediumInks = designInks.filter(c => c.inkInfo.type === 'medium');
+    const darkInks = designInks.filter(c => c.inkInfo.type === 'dark');
+    const metallicInks = designInks.filter(c => c.inkInfo.type === 'metallic');
+    const specialInks = designInks.filter(c => c.inkInfo.type === 'special');
+    
+    console.log(`   🎨 Blancos: ${whiteInks.length}, Claros: ${lightInks.length}, Medios: ${mediumInks.length}, Oscuros: ${darkInks.length}, Especiales: ${specialInks.length}`);
+    
+    // ===== CONSTRUCCIÓN DE SECUENCIA =====
+    const steps = [];
+    
+    // PASO 1: Bloqueadores (si la tela los necesita)
+    if (fabricInfo.needsBlocker) {
+        const blockerCount = fabricInfo.blockerCount || 3;
+        const blockerMeshes = inkType === 'PLASTISOL' 
+            ? ['110/64', '156/64', '156/64']
+            : ['122/55', '157/48', ''];
+            
+        for (let i = 0; i < blockerCount; i++) {
+            if (!blockerMeshes[i]) continue;
+            
             steps.push({
                 tipo: 'BLOCKER',
-                screenLetter: '?', // Se asignará después
-                nombre: preset.blocker.nombre,
-                mesh: preset.blocker.meshLight1 || '157/??',
-                additives: preset.blocker.additives
+                screenLetter: i === 0 ? 'A' : '',
+                nombre: inkType === 'PLASTISOL' ? 'BARRIER BASE' : 'BLOCKER CHT',
+                mesh: blockerMeshes[i],
+                additives: 'N/A'
             });
         }
-
-        // --- PASO D: Procesar cada COLOR de diseño ---
-        let colorCounter = 0;
-        const allDesignColorsToProcess = [...lightColors, ...darkColors, ...specialColorsDetails];
-
-        allDesignColorsToProcess.forEach((colorItem) => {
-            let mallasParaEsteColor = [];
-            let aditivosParaEsteColor = preset.color.additives;
-
-            if (typeof colorItem === 'string') { // Color normal
-                mallasParaEsteColor = [preset.color.mesh1, preset.color.mesh2].filter(Boolean);
-                if (mallasParaEsteColor.length === 0) mallasParaEsteColor = ['157/48', '198/40'];
-            } else { // Color especial
-                mallasParaEsteColor = colorItem.mallas;
-                aditivosParaEsteColor = colorItem.aditivos;
-            }
-
-            mallasParaEsteColor.forEach((mesh, meshIndex) => {
-                const screenLetterBase = String.fromCharCode(70 + colorCounter); // F, G, H...
-                const screenLetter = meshIndex === 0 ? screenLetterBase : `${screenLetterBase}${meshIndex + 1}`;
-                const nombre = typeof colorItem === 'string' 
-                    ? `${colorItem}${meshIndex > 0 ? ` (${meshIndex + 1})` : ''}`
-                    : `${colorItem.val}${meshIndex > 0 ? ` (${meshIndex + 1})` : ''}`;
-
-                steps.push({
-                    tipo: 'COLOR',
-                    screenLetter: screenLetter,
-                    nombre: nombre,
-                    mesh: mesh,
-                    additives: aditivosParaEsteColor
-                });
-            });
-
-            colorCounter++;
-        });
-
-        // --- 4. Asignar Letras de Pantalla Finales y Añadir FLASH/COOL ---
-        const finalSequence = [];
-        let screenLetterCode = 65; // 'A'
-
-        steps.forEach((step, index) => {
-            // Asignar letra de pantalla
-            if (!step.screenLetter || step.screenLetter === '?') {
-                step.screenLetter = String.fromCharCode(screenLetterCode);
-                screenLetterCode++;
-            } else {
-                // Si ya tiene letra (como 'A' para blockers), actualizar el contador
-                const currentCode = step.screenLetter.charCodeAt(0);
-                if (currentCode >= screenLetterCode) {
-                    screenLetterCode = currentCode + 1;
-                }
-            }
-            
-            finalSequence.push(step);
-
-            // Añadir FLASH y COOL después de cada paso de tinta, excepto el último
-            if (index < steps.length - 1) {
-                finalSequence.push({ 
-                    tipo: 'FLASH', 
-                    screenLetter: '', 
-                    nombre: 'FLASH', 
-                    mesh: '-', 
-                    additives: '' 
-                });
-                finalSequence.push({ 
-                    tipo: 'COOL', 
-                    screenLetter: '', 
-                    nombre: 'COOL', 
-                    mesh: '-', 
-                    additives: '' 
-                });
-            }
-        });
-
-        console.log(`✅ Secuencia generada con ${finalSequence.length} pasos totales.`);
-        return finalSequence;
     }
-
-    function getCuringConditions(inkType) {
-        syncPresetsFromInkRules();
-        const selectedInk = String(inkType || 'WATER').toUpperCase();
-        return (BASE_PRESETS[selectedInk] || BASE_PRESETS.WATER).curing;
-    }
-
-    // =====================================================
-    // EXPORTAR API PÚBLICA
-    // =====================================================
     
-    return {
-        generarSecuencia,
-        getCuringConditions,
-        clasificarTela,
-        clasificarColor,
-        esColorEspecial,
-        loadExternalRuleCatalogs
-    };
-
-})(); // <-- ¡IMPORTANTE! Esta es la llave de cierre que faltaba
-
-// =====================================================
-// CARGA AUTOMÁTICA AL INICIAR
-// =====================================================
-document.addEventListener('DOMContentLoaded', async () => {
-    if (window.RulesEngine && window.RulesEngine.loadExternalRuleCatalogs) {
-        await window.RulesEngine.loadExternalRuleCatalogs();
+    // PASO 2: ¿La PRENDA necesita base blanca?
+    // Esto es INDEPENDIENTE de los colores del diseño
+    if (needsGarmentWhiteBase) {
+        // Si hay colores claros, necesitamos base blanca
+        if (lightInks.length > 0 || specialInks.length > 0 || whiteInks.length > 0) {
+            const baseCount = telaType === 'light' ? 1 : 2;
+            
+            for (let i = 0; i < baseCount; i++) {
+                steps.push({
+                    tipo: 'WHITE_BASE',
+                    screenLetter: String.fromCharCode(66 + i), // B, C...
+                    nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
+                    mesh: i === 0 ? (inkType === 'PLASTISOL' ? '156/64' : '198/40') : (inkType === 'PLASTISOL' ? '110/64' : '157/48'),
+                    additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
+                });
+            }
+        }
+    } else {
+        console.log('   🚫 La prenda NO requiere base blanca (ej: Midnight Navy)');
     }
-    console.log('✅ RulesEngine actualizado cargado');
+    
+    // PASO 3: Procesar CADA color del diseño
+    let colorLetter = 70; // 'F'
+    
+    // Primero los blancos (si los hay)
+    whiteInks.forEach(ink => {
+        steps.push({
+            tipo: 'COLOR',
+            screenLetter: String.fromCharCode(colorLetter++),
+            nombre: ink.val,
+            mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '156/64',
+            additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
+        });
+    });
+    
+    // Luego los claros (SIEMPRE necesitan base blanca debajo)
+    lightInks.forEach(ink => {
+        // Añadir base blanca para este color claro
+        steps.push({
+            tipo: 'WHITE_BASE',
+            screenLetter: String.fromCharCode(colorLetter++),
+            nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
+            mesh: inkType === 'PLASTISOL' ? '110/64' : '122/??',
+            additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
+        });
+        
+        // El color sobre su base
+        steps.push({
+            tipo: 'COLOR',
+            screenLetter: String.fromCharCode(colorLetter++),
+            nombre: ink.val,
+            mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '157/48',
+            additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
+        });
+    });
+    
+    // Especiales (3 pantallas)
+    specialInks.forEach(ink => {
+        const meshes = ink.inkInfo.meshes || ['157', '198', '110'];
+        meshes.forEach((mesh, idx) => {
+            steps.push({
+                tipo: 'COLOR',
+                screenLetter: String.fromCharCode(colorLetter) + (idx > 0 ? idx + 1 : ''),
+                nombre: ink.val + (idx > 0 ? ` (${idx + 1})` : ''),
+                mesh: mesh + (inkType === 'PLASTISOL' ? '/64' : '/48'),
+                additives: ink.inkInfo.additives || ''
+            });
+        });
+        colorLetter++;
+    });
+    
+    // Metálicos (2 pantallas)
+    metallicInks.forEach(ink => {
+        const screens = ink.inkInfo.screens || 2;
+        for (let i = 0; i < screens; i++) {
+            steps.push({
+                tipo: 'COLOR',
+                screenLetter: String.fromCharCode(colorLetter) + (i > 0 ? i + 1 : ''),
+                nombre: ink.val + (i > 0 ? ` (${i + 1})` : ''),
+                mesh: i === 0 ? '110/64' : '156/64',
+                additives: 'Catalizador especial'
+            });
+        }
+        colorLetter++;
+    });
+    
+    // Medios y oscuros
+    [...mediumInks, ...darkInks].forEach(ink => {
+        steps.push({
+            tipo: 'COLOR',
+            screenLetter: String.fromCharCode(colorLetter++),
+            nombre: ink.val,
+            mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '156/64',
+            additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
+        });
+    });
+    
+    // ===== AÑADIR FLASH/COOL ENTRE PASOS =====
+    const finalSequence = [];
+    let screenLetterCode = 65; // 'A'
+    
+    steps.forEach((step, index) => {
+        // Asignar letras secuenciales si no tienen
+        if (!step.screenLetter) {
+            step.screenLetter = String.fromCharCode(screenLetterCode);
+            screenLetterCode++;
+        } else {
+            const currentCode = step.screenLetter.charCodeAt(0);
+            if (currentCode >= screenLetterCode) {
+                screenLetterCode = currentCode + 1;
+            }
+        }
+        
+        finalSequence.push(step);
+        
+        // FLASH + COOL después de cada paso de tinta (excepto el último)
+        if (index < steps.length - 1) {
+            finalSequence.push({ 
+                tipo: 'FLASH', 
+                screenLetter: '', 
+                nombre: 'FLASH', 
+                mesh: '-', 
+                additives: '' 
+            });
+            finalSequence.push({ 
+                tipo: 'COOL', 
+                screenLetter: '', 
+                nombre: 'COOL', 
+                mesh: '-', 
+                additives: '' 
+            });
+        }
+    });
+    
+    console.log(`✅ Secuencia generada con ${finalSequence.length} pasos totales`);
+    return finalSequence;
 });
