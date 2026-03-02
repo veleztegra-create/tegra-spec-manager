@@ -65,9 +65,26 @@ function getInkPresetSafe(inkType = 'WATER') {
         color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
     };
 
-    const basePreset = (window.Utils && typeof window.Utils.getInkPreset === 'function')
-        ? (window.Utils.getInkPreset(normalizedInkType) || defaultPreset)
-        : defaultPreset;
+    const basePresetRaw = (window.Utils && typeof window.Utils.getInkPreset === 'function')
+        ? (window.Utils.getInkPreset(normalizedInkType) || {})
+        : {};
+
+    const basePreset = {
+        ...defaultPreset,
+        ...basePresetRaw,
+        blocker: {
+            ...defaultPreset.blocker,
+            ...(basePresetRaw.blocker || {})
+        },
+        white: {
+            ...defaultPreset.white,
+            ...(basePresetRaw.white || basePresetRaw.whiteBase || {})
+        },
+        color: {
+            ...defaultPreset.color,
+            ...(basePresetRaw.color || {})
+        }
+    };
 
     const customerValue = (document.getElementById('customer')?.value || '').toUpperCase();
 
