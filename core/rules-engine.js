@@ -1,9 +1,9 @@
 // rules-engine.js - Motor de reglas centralizado
 // Mantiene separación: placement.colors (solo tintas) vs placement.sequence (incluye FLASH/COOL)
 
-window.RulesEngine = (function () {
-    "use strict"; // <-- AÑADIDO: modo estricto para evitar errores comunes
-
+window.RulesEngine = (function() {
+    "use strict";
+    
     // =====================================================
     // CONFIGURACIÓN DE COLORES ESPECIALES
     // =====================================================
@@ -36,7 +36,7 @@ window.RulesEngine = (function () {
         ],
         lightIdentifiers: [
             'blanco', 'white', 'natural', 'crema', 'ivory', 'beige', 
-            'claro', 'light', 'gris claro', 'light gray', 'italy blue' // <-- AÑADIDO: para tu ejemplo
+            'claro', 'light', 'gris claro', 'light gray', 'italy blue'
         ]
     };
 
@@ -95,7 +95,7 @@ window.RulesEngine = (function () {
     };
 
     // =====================================================
-    // PRESETS BASE (CORREGIDOS)
+    // PRESETS BASE
     // =====================================================
     const BASE_PRESETS = {
         WATER: {
@@ -201,6 +201,7 @@ window.RulesEngine = (function () {
     // =====================================================
     
     function mergeUnique(target, values) {
+        if (!target || !values) return;
         (values || []).forEach((value) => {
             const normalized = String(value || '').trim().toLowerCase();
             if (normalized && !target.includes(normalized)) target.push(normalized);
@@ -294,7 +295,7 @@ window.RulesEngine = (function () {
 
     async function loadExternalRuleCatalogs() {
         if (typeof fetch !== 'function') return;
-        // ... (código existente para cargar catálogos)
+        // Aquí iría el código para cargar JSONs externos
     }
 
     // =====================================================
@@ -306,7 +307,7 @@ window.RulesEngine = (function () {
         const telaLower = colorTela.toLowerCase();
         if (FABRIC_RULES.darkIdentifiers.some((o) => telaLower.includes(o))) return 'oscura';
         if (FABRIC_RULES.lightIdentifiers.some((c) => telaLower.includes(c))) return 'clara';
-        return 'clara'; // default
+        return 'clara';
     }
 
     function clasificarColor(colorName) {
@@ -349,211 +350,234 @@ window.RulesEngine = (function () {
     }
 
     // =====================================================
-    // ⭐ FUNCIÓN PRINCIPAL - GENERAR SECUENCIA CORREGIDA ⭐
+    // FUNCIÓN PRINCIPAL - GENERAR SECUENCIA
     // =====================================================
     
-    // En rules-engine.js, dentro de la función generarSecuencia
+    function generarSecuencia(params) {
+        const {
+            customer = '',
+            garmentColor = '',
+            inkType = 'WATER',
+            designColors = []
+        } = params;
 
-function generarSecuencia(params) {
-    const {
-        customer = '',
-        garmentColor = '',
-        inkType = 'WATER',
-        designColors = []
-    } = params;
+        console.log(`⚙️ RulesEngine: Generando secuencia para Tela: "${garmentColor}", Tinta: ${inkType}`);
 
-    console.log(`⚙️ RulesEngine: Generando secuencia para Tela: "${garmentColor}", Tinta: ${inkType}`);
-
-    // ===== USAR LA BASE DE DATOS DE COLORES =====
-    const fabricInfo = window.ColorDatabase?.classifyFabric(garmentColor) || {
-        type: clasificarTela(garmentColor),
-        needsBlocker: true,
-        blockerCount: 3,
-        needsWhiteBase: true
-    };
-    
-    const telaType = fabricInfo.type;
-    const needsGarmentWhiteBase = fabricInfo.needsWhiteBase !== false;
-    
-    console.log(`   📊 Tela clasificada como: ${fabricInfo.type} (confianza: ${fabricInfo.confidence}%)`);
-    
-    // Clasificar cada color del diseño
-    const designInks = designColors.map(c => ({
-        ...c,
-        inkInfo: window.ColorDatabase?.classifyInk(c.val) || { type: 'unknown' }
-    }));
-    
-    // Separar por categorías
-    const whiteInks = designInks.filter(c => 
-        c.inkInfo.type === 'opaque' || 
-        c.val.toUpperCase().includes('WHITE')
-    );
-    
-    const lightInks = designInks.filter(c => c.inkInfo.type === 'light');
-    const mediumInks = designInks.filter(c => c.inkInfo.type === 'medium');
-    const darkInks = designInks.filter(c => c.inkInfo.type === 'dark');
-    const metallicInks = designInks.filter(c => c.inkInfo.type === 'metallic');
-    const specialInks = designInks.filter(c => c.inkInfo.type === 'special');
-    
-    console.log(`   🎨 Blancos: ${whiteInks.length}, Claros: ${lightInks.length}, Medios: ${mediumInks.length}, Oscuros: ${darkInks.length}, Especiales: ${specialInks.length}`);
-    
-    // ===== CONSTRUCCIÓN DE SECUENCIA =====
-    const steps = [];
-    
-    // PASO 1: Bloqueadores (si la tela los necesita)
-    if (fabricInfo.needsBlocker) {
-        const blockerCount = fabricInfo.blockerCount || 3;
-        const blockerMeshes = inkType === 'PLASTISOL' 
-            ? ['110/64', '156/64', '156/64']
-            : ['122/55', '157/48', ''];
-            
-        for (let i = 0; i < blockerCount; i++) {
-            if (!blockerMeshes[i]) continue;
-            
-            steps.push({
-                tipo: 'BLOCKER',
-                screenLetter: i === 0 ? 'A' : '',
-                nombre: inkType === 'PLASTISOL' ? 'BARRIER BASE' : 'BLOCKER CHT',
-                mesh: blockerMeshes[i],
-                additives: 'N/A'
-            });
-        }
-    }
-    
-    // PASO 2: ¿La PRENDA necesita base blanca?
-    // Esto es INDEPENDIENTE de los colores del diseño
-    if (needsGarmentWhiteBase) {
-        // Si hay colores claros, necesitamos base blanca
-        if (lightInks.length > 0 || specialInks.length > 0 || whiteInks.length > 0) {
-            const baseCount = telaType === 'light' ? 1 : 2;
-            
-            for (let i = 0; i < baseCount; i++) {
+        // Usar ColorDatabase si está disponible
+        const fabricInfo = window.ColorDatabase?.classifyFabric(garmentColor) || {
+            type: clasificarTela(garmentColor),
+            needsBlocker: true,
+            blockerCount: 3,
+            needsWhiteBase: true
+        };
+        
+        const telaType = fabricInfo.type;
+        const needsGarmentWhiteBase = fabricInfo.needsWhiteBase !== false;
+        
+        console.log(`   📊 Tela clasificada como: ${fabricInfo.type}`);
+        
+        // Clasificar cada color del diseño
+        const designInks = designColors.map(c => ({
+            ...c,
+            inkInfo: window.ColorDatabase?.classifyInk(c.val) || { type: 'unknown' }
+        }));
+        
+        // Separar por categorías
+        const whiteInks = designInks.filter(c => 
+            c.inkInfo.type === 'opaque' || 
+            c.val.toUpperCase().includes('WHITE')
+        );
+        
+        const lightInks = designInks.filter(c => c.inkInfo.type === 'light');
+        const mediumInks = designInks.filter(c => c.inkInfo.type === 'medium');
+        const darkInks = designInks.filter(c => c.inkInfo.type === 'dark');
+        const metallicInks = designInks.filter(c => c.inkInfo.type === 'metallic');
+        const specialInks = designInks.filter(c => c.inkInfo.type === 'special');
+        
+        console.log(`   🎨 Blancos: ${whiteInks.length}, Claros: ${lightInks.length}, Medios: ${mediumInks.length}, Oscuros: ${darkInks.length}, Especiales: ${specialInks.length}`);
+        
+        // ===== CONSTRUCCIÓN DE SECUENCIA =====
+        const steps = [];
+        
+        // PASO 1: Bloqueadores
+        if (fabricInfo.needsBlocker) {
+            const blockerCount = fabricInfo.blockerCount || 3;
+            const blockerMeshes = inkType === 'PLASTISOL' 
+                ? ['110/64', '156/64', '156/64']
+                : ['122/55', '157/48', ''];
+                
+            for (let i = 0; i < blockerCount; i++) {
+                if (!blockerMeshes[i]) continue;
+                
                 steps.push({
-                    tipo: 'WHITE_BASE',
-                    screenLetter: String.fromCharCode(66 + i), // B, C...
-                    nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
-                    mesh: i === 0 ? (inkType === 'PLASTISOL' ? '156/64' : '198/40') : (inkType === 'PLASTISOL' ? '110/64' : '157/48'),
-                    additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
+                    tipo: 'BLOCKER',
+                    screenLetter: i === 0 ? 'A' : '',
+                    nombre: inkType === 'PLASTISOL' ? 'BARRIER BASE' : 'BLOCKER CHT',
+                    mesh: blockerMeshes[i],
+                    additives: 'N/A'
                 });
             }
         }
-    } else {
-        console.log('   🚫 La prenda NO requiere base blanca (ej: Midnight Navy)');
-    }
-    
-    // PASO 3: Procesar CADA color del diseño
-    let colorLetter = 70; // 'F'
-    
-    // Primero los blancos (si los hay)
-    whiteInks.forEach(ink => {
-        steps.push({
-            tipo: 'COLOR',
-            screenLetter: String.fromCharCode(colorLetter++),
-            nombre: ink.val,
-            mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '156/64',
-            additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
-        });
-    });
-    
-    // Luego los claros (SIEMPRE necesitan base blanca debajo)
-    lightInks.forEach(ink => {
-        // Añadir base blanca para este color claro
-        steps.push({
-            tipo: 'WHITE_BASE',
-            screenLetter: String.fromCharCode(colorLetter++),
-            nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
-            mesh: inkType === 'PLASTISOL' ? '110/64' : '122/??',
-            additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
-        });
         
-        // El color sobre su base
-        steps.push({
-            tipo: 'COLOR',
-            screenLetter: String.fromCharCode(colorLetter++),
-            nombre: ink.val,
-            mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '157/48',
-            additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
-        });
-    });
-    
-    // Especiales (3 pantallas)
-    specialInks.forEach(ink => {
-        const meshes = ink.inkInfo.meshes || ['157', '198', '110'];
-        meshes.forEach((mesh, idx) => {
-            steps.push({
-                tipo: 'COLOR',
-                screenLetter: String.fromCharCode(colorLetter) + (idx > 0 ? idx + 1 : ''),
-                nombre: ink.val + (idx > 0 ? ` (${idx + 1})` : ''),
-                mesh: mesh + (inkType === 'PLASTISOL' ? '/64' : '/48'),
-                additives: ink.inkInfo.additives || ''
-            });
-        });
-        colorLetter++;
-    });
-    
-    // Metálicos (2 pantallas)
-    metallicInks.forEach(ink => {
-        const screens = ink.inkInfo.screens || 2;
-        for (let i = 0; i < screens; i++) {
-            steps.push({
-                tipo: 'COLOR',
-                screenLetter: String.fromCharCode(colorLetter) + (i > 0 ? i + 1 : ''),
-                nombre: ink.val + (i > 0 ? ` (${i + 1})` : ''),
-                mesh: i === 0 ? '110/64' : '156/64',
-                additives: 'Catalizador especial'
-            });
-        }
-        colorLetter++;
-    });
-    
-    // Medios y oscuros
-    [...mediumInks, ...darkInks].forEach(ink => {
-        steps.push({
-            tipo: 'COLOR',
-            screenLetter: String.fromCharCode(colorLetter++),
-            nombre: ink.val,
-            mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '156/64',
-            additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
-        });
-    });
-    
-    // ===== AÑADIR FLASH/COOL ENTRE PASOS =====
-    const finalSequence = [];
-    let screenLetterCode = 65; // 'A'
-    
-    steps.forEach((step, index) => {
-        // Asignar letras secuenciales si no tienen
-        if (!step.screenLetter) {
-            step.screenLetter = String.fromCharCode(screenLetterCode);
-            screenLetterCode++;
-        } else {
-            const currentCode = step.screenLetter.charCodeAt(0);
-            if (currentCode >= screenLetterCode) {
-                screenLetterCode = currentCode + 1;
+        // PASO 2: Base blanca de prenda
+        if (needsGarmentWhiteBase) {
+            if (lightInks.length > 0 || specialInks.length > 0 || whiteInks.length > 0) {
+                const baseCount = telaType === 'light' ? 1 : 2;
+                
+                for (let i = 0; i < baseCount; i++) {
+                    steps.push({
+                        tipo: 'WHITE_BASE',
+                        screenLetter: String.fromCharCode(66 + i),
+                        nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
+                        mesh: i === 0 ? (inkType === 'PLASTISOL' ? '156/64' : '198/40') : (inkType === 'PLASTISOL' ? '110/64' : '157/48'),
+                        additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
+                    });
+                }
             }
+        } else {
+            console.log('   🚫 La prenda NO requiere base blanca');
         }
         
-        finalSequence.push(step);
+        // PASO 3: Procesar colores
+        let colorLetter = 70; // 'F'
         
-        // FLASH + COOL después de cada paso de tinta (excepto el último)
-        if (index < steps.length - 1) {
-            finalSequence.push({ 
-                tipo: 'FLASH', 
-                screenLetter: '', 
-                nombre: 'FLASH', 
-                mesh: '-', 
-                additives: '' 
+        // Blancos
+        whiteInks.forEach(ink => {
+            steps.push({
+                tipo: 'COLOR',
+                screenLetter: String.fromCharCode(colorLetter++),
+                nombre: ink.val,
+                mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '156/64',
+                additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
             });
-            finalSequence.push({ 
-                tipo: 'COOL', 
-                screenLetter: '', 
-                nombre: 'COOL', 
-                mesh: '-', 
-                additives: '' 
+        });
+        
+        // Claros
+        lightInks.forEach(ink => {
+            steps.push({
+                tipo: 'WHITE_BASE',
+                screenLetter: String.fromCharCode(colorLetter++),
+                nombre: inkType === 'PLASTISOL' ? 'TXT POLY WHITE' : 'AQUAFLEX V2',
+                mesh: inkType === 'PLASTISOL' ? '110/64' : '122/??',
+                additives: inkType === 'PLASTISOL' ? '' : '3% CL 500'
             });
-        }
-    });
+            
+            steps.push({
+                tipo: 'COLOR',
+                screenLetter: String.fromCharCode(colorLetter++),
+                nombre: ink.val,
+                mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '157/48',
+                additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
+            });
+        });
+        
+        // Especiales
+        specialInks.forEach(ink => {
+            const meshes = ink.inkInfo.meshes || ['157', '198', '110'];
+            meshes.forEach((mesh, idx) => {
+                steps.push({
+                    tipo: 'COLOR',
+                    screenLetter: String.fromCharCode(colorLetter) + (idx > 0 ? idx + 1 : ''),
+                    nombre: ink.val + (idx > 0 ? ` (${idx + 1})` : ''),
+                    mesh: mesh + (inkType === 'PLASTISOL' ? '/64' : '/48'),
+                    additives: ink.inkInfo.additives || ''
+                });
+            });
+            colorLetter++;
+        });
+        
+        // Metálicos
+        metallicInks.forEach(ink => {
+            const screens = ink.inkInfo.screens || 2;
+            for (let i = 0; i < screens; i++) {
+                steps.push({
+                    tipo: 'COLOR',
+                    screenLetter: String.fromCharCode(colorLetter) + (i > 0 ? i + 1 : ''),
+                    nombre: ink.val + (i > 0 ? ` (${i + 1})` : ''),
+                    mesh: i === 0 ? '110/64' : '156/64',
+                    additives: 'Catalizador especial'
+                });
+            }
+            colorLetter++;
+        });
+        
+        // Medios y oscuros
+        [...mediumInks, ...darkInks].forEach(ink => {
+            steps.push({
+                tipo: 'COLOR',
+                screenLetter: String.fromCharCode(colorLetter++),
+                nombre: ink.val,
+                mesh: window.ColorDatabase?.getMeshForInk(ink.val, inkType) || '156/64',
+                additives: window.ColorDatabase?.getAdditivesForInk(ink.val, inkType) || ''
+            });
+        });
+        
+        // ===== AÑADIR FLASH/COOL =====
+        const finalSequence = [];
+        let screenLetterCode = 65; // 'A'
+        
+        steps.forEach((step, index) => {
+            if (!step.screenLetter) {
+                step.screenLetter = String.fromCharCode(screenLetterCode);
+                screenLetterCode++;
+            } else {
+                const currentCode = step.screenLetter.charCodeAt(0);
+                if (currentCode >= screenLetterCode) {
+                    screenLetterCode = currentCode + 1;
+                }
+            }
+            
+            finalSequence.push(step);
+            
+            if (index < steps.length - 1) {
+                finalSequence.push({ 
+                    tipo: 'FLASH', 
+                    screenLetter: '', 
+                    nombre: 'FLASH', 
+                    mesh: '-', 
+                    additives: '' 
+                });
+                finalSequence.push({ 
+                    tipo: 'COOL', 
+                    screenLetter: '', 
+                    nombre: 'COOL', 
+                    mesh: '-', 
+                    additives: '' 
+                });
+            }
+        });
+        
+        console.log(`✅ Secuencia generada con ${finalSequence.length} pasos totales`);
+        return finalSequence;
+    }
+
+    function getCuringConditions(inkType) {
+        syncPresetsFromInkRules();
+        const selectedInk = String(inkType || 'WATER').toUpperCase();
+        return (BASE_PRESETS[selectedInk] || BASE_PRESETS.WATER).curing;
+    }
+
+    // =====================================================
+    // API PÚBLICA
+    // =====================================================
     
-    console.log(`✅ Secuencia generada con ${finalSequence.length} pasos totales`);
-    return finalSequence;
+    return {
+        generarSecuencia,
+        getCuringConditions,
+        clasificarTela,
+        clasificarColor,
+        esColorEspecial,
+        loadExternalRuleCatalogs
+    };
+
+})(); // <-- CIERRE CORRECTO DEL IIFE
+
+// =====================================================
+// CARGA AUTOMÁTICA
+// =====================================================
+document.addEventListener('DOMContentLoaded', async () => {
+    if (window.RulesEngine && window.RulesEngine.loadExternalRuleCatalogs) {
+        await window.RulesEngine.loadExternalRuleCatalogs();
+    }
+    console.log('✅ RulesEngine actualizado cargado');
 });
