@@ -1,11 +1,21 @@
 // =====================================================
-// rules-engine.js - Versión 7.1 - DEFINITIVA
-// CORREGIDO: generarSecuencia devuelve array directamente
+// rules-engine.js - Versión 8.1 - ARQUITECTURA CORRECTA
+// Sistema categórico: A = Blocker, B = White Base, Números = Colores
+// Los números se repiten si hay múltiples mallas del mismo color
 // =====================================================
 
 window.RulesEngine = (function() {
     "use strict";
     
+    // =====================================================
+    // CONSTANTES SÍMBOLICAS (NUNCA CAMBIAN)
+    // =====================================================
+    const SYMBOL_CODES = {
+        BLOCKER: 'A',        // Siempre A
+        WHITE_BASE: 'B'      // Siempre B
+        // Los colores usan números (1, 2, 3...) y se repiten
+    };
+
     // =====================================================
     // CONFIGURACIÓN DE BASES
     // =====================================================
@@ -15,10 +25,10 @@ window.RulesEngine = (function() {
                 nombre: 'BLOCKER CHT'
             },
             whiteBase: { 
-                nombre: 'AQUAFLEX V2'
+                nombre: 'AQUAFLEX V2'        // Base B normal
             },
             whiteBaseRefuerzo: { 
-                nombre: 'AQUAFLEX MAGNA'
+                nombre: 'REF. AQUAFLEX MAGNA' // Refuerzo (una sola vez)
             },
             color: {
                 mallas: ['157/48', '198/40'],
@@ -183,7 +193,7 @@ window.RulesEngine = (function() {
     };
 
     // =====================================================
-    // FUNCIÓN PRINCIPAL - AHORA DEVUELVE ARRAY DIRECTAMENTE
+    // FUNCIÓN PRINCIPAL
     // =====================================================
     
     function generarSecuencia(params) {
@@ -194,7 +204,7 @@ window.RulesEngine = (function() {
             designColors = []
         } = params;
 
-        console.log(`⚙️ RulesEngine v7.1: Generando secuencia`);
+        console.log(`⚙️ RulesEngine v8.1: Generando secuencia`);
         console.log(`   Cliente: ${customer || 'N/A'}`);
         console.log(`   Tela: ${garmentColor}`);
         console.log(`   Tinta: ${inkType}`);
@@ -231,14 +241,23 @@ window.RulesEngine = (function() {
 
         // ===== CONSTRUIR SECUENCIA =====
         const steps = []; // pasos de impresión
-        let nextLetter = 'A'.charCodeAt(0); // Letras para bloqueadores y bases
-        let nextNumber = 1;                  // Números para colores
+        let nextNumber = 1; // Solo para colores
 
-        // Función para añadir un paso de impresión
+        // ===== FUNCIÓN PARA AÑADIR PASOS (CON LÓGICA SIMBÓLICA CORRECTA) =====
         function addStep(tipo, nombre, mesh, additives) {
+            let screenLetter = '';
+            
+            // ASIGNACIÓN CATEGÓRICA (NO SECUENCIAL)
+            if (tipo === 'BLOCKER') {
+                screenLetter = SYMBOL_CODES.BLOCKER; // Siempre 'A'
+            } else if (tipo === 'WHITE_BASE') {
+                screenLetter = SYMBOL_CODES.WHITE_BASE; // Siempre 'B'
+            }
+            // Los COLORES no tienen letra, se asignan números aparte
+            
             steps.push({
                 tipo: tipo,
-                screenLetter: String.fromCharCode(nextLetter++),
+                screenLetter: screenLetter,
                 nombre: nombre,
                 mesh: mesh,
                 additives: additives
@@ -248,23 +267,29 @@ window.RulesEngine = (function() {
         // ===== PASOS PREVIOS SEGÚN TIPO DE TINTA =====
         if (inkUpper === 'WATER') {
             if (esOscura) {
-                // Tela oscura: 3 bloqueadores
+                // Tela oscura: 3 bloqueadores (todos con letra A)
                 const blockerMallas = ['110/64', '122/55', '157/48'];
                 blockerMallas.forEach(malla => {
                     addStep('BLOCKER', baseConfig.blocker.nombre, malla, '');
                 });
-                // Luego bases con aditivo: 1 o 2 según haya colores claros
+                
+                // Bases blancas: 1 o 2 según haya colores claros
+                // IMPORTANTE: En tela oscura, estas bases son AQUAFLEX V2 (no refuerzo)
                 const numBases = hayColorClaro ? 2 : 1;
                 for (let i = 0; i < numBases; i++) {
-                    addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
+                    addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', baseConfig.baseAdditives);
                 }
             } else {
-                // Tela clara: 2 bases sin aditivo, luego 1 bloqueador, luego 1 base con aditivo
+                // Tela clara: 2 bases sin aditivo (AQUAFLEX V2)
                 const baseMallasIniciales = ['110/64', '122/55'];
                 baseMallasIniciales.forEach(malla => {
                     addStep('WHITE_BASE', baseConfig.whiteBase.nombre, malla, '');
                 });
+                
+                // 1 bloqueador (A)
                 addStep('BLOCKER', baseConfig.blocker.nombre, '157/48', '');
+                
+                // 1 refuerzo (REF. AQUAFLEX MAGNA) - UNA SOLA VEZ
                 addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
             }
         } 
@@ -273,27 +298,29 @@ window.RulesEngine = (function() {
             const variant = detectCustomerVariant(customer);
             const configPlast = (variant === 'PLASTISOL_GFS') ? BASE_CONFIG.PLASTISOL_GFS : BASE_CONFIG.PLASTISOL_FANATICS;
             
-            // Bloqueadores: siempre dos
+            // Bloqueadores: siempre dos (ambos con letra A)
             const blockerMallas = ['110/64', '122/55'];
             blockerMallas.forEach(malla => {
                 addStep('BLOCKER', configPlast.blocker.nombre, malla, '');
             });
             
-            // Bases blancas: solo si hay colores claros
+            // Bases blancas: solo si hay colores claros (ambas con letra B)
             if (hayColorClaro) {
                 const baseMallas = ['157/64', '122/55'];
                 baseMallas.forEach(malla => {
                     addStep('WHITE_BASE', configPlast.whiteBase.nombre, malla, '');
                 });
             }
+            
+            // NOTA: En plastisol no hay concepto de "refuerzo" separado
         } 
         else if (inkUpper === 'SILICONE') {
-            // Un bloqueador y una base blanca
+            // Un bloqueador (A) y una base blanca (B)
             addStep('BLOCKER', baseConfig.blocker.nombre, '110/64', '');
             addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '');
         }
 
-        // ===== PROCESAR CADA COLOR =====
+        // ===== PROCESAR CADA COLOR (USAN NÚMEROS, NO LETRAS) =====
         coloresInfo.forEach(color => {
             const colorNumber = nextNumber++;
             let mallasColor = [];
@@ -337,21 +364,20 @@ window.RulesEngine = (function() {
                 additivesColor = baseConfig.color.additives;
             }
 
-            // Añadir cada malla del color
+            // Añadir cada malla del color (TODAS CON EL MISMO NÚMERO)
             mallasColor.forEach((mesh, idx) => {
-                let screenLetter;
-                if (idx === 0) {
-                    screenLetter = String(colorNumber);
-                } else {
-                    screenLetter = `${colorNumber}-${idx + 1}`;
-                }
+                // MISMO número para todas las mallas de este color
+                let screenLetter = String(colorNumber);
+                
+                // El nombre puede indicar que es la segunda malla, pero el número es el mismo
                 let nombre = nombreBase;
-                if (mallasColor.length > 1) {
-                    nombre += ` (${idx + 1})`;
+                if (mallasColor.length > 1 && idx > 0) {
+                    nombre = nombreBase + ' (2)'; // Segunda malla del mismo color
                 }
+                
                 steps.push({
                     tipo: 'COLOR',
-                    screenLetter: screenLetter,
+                    screenLetter: screenLetter, // MISMO número para todas las mallas
                     nombre: nombre,
                     mesh: mesh,
                     additives: additivesColor
@@ -382,14 +408,11 @@ window.RulesEngine = (function() {
         });
 
         console.log(`✅ Secuencia generada con ${finalSequence.length} pasos`);
-        console.log(`   📝 Letras usadas: A - ${String.fromCharCode(nextLetter-1)}`);
-        console.log(`   🔢 Números de color: 1 - ${nextNumber-1}`);
+        console.log(`   🔢 Números de color usados: 1 - ${nextNumber-1}`);
 
-        // ===== IMPORTANTE: Devolver SOLO el array (lo que espera app.js) =====
         return finalSequence;
     }
 
-    // ===== Función adicional para obtener condiciones de curado =====
     function getCuringConditions(inkType, customer) {
         const config = getBaseConfig(inkType, customer);
         return {
@@ -403,8 +426,8 @@ window.RulesEngine = (function() {
     // =====================================================
     
     return {
-        generarSecuencia,        // Ahora devuelve array directamente
-        getCuringConditions,      // Para obtener temp/tiempo por separado
+        generarSecuencia,
+        getCuringConditions,
         esTelaOscura,
         esColorEspecial,
         esColorMetalico
@@ -413,5 +436,5 @@ window.RulesEngine = (function() {
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ RulesEngine v7.1 - DEFINITIVO (devuelve array directamente)');
+    console.log('✅ RulesEngine v8.1 - ARQUITECTURA CATEGÓRICA CORRECTA');
 });
