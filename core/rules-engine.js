@@ -1,7 +1,5 @@
 // =====================================================
-// rules-engine.js - Versión 8.1 - ARQUITECTURA CORRECTA
-// Sistema categórico: A = Blocker, B = White Base, Números = Colores
-// Los números se repiten si hay múltiples mallas del mismo color
+// rules-engine.js - Versión 8.2 - CON SOPORTE PARA TINTA BLANCA
 // =====================================================
 
 window.RulesEngine = (function() {
@@ -13,7 +11,6 @@ window.RulesEngine = (function() {
     const SYMBOL_CODES = {
         BLOCKER: 'A',        // Siempre A
         WHITE_BASE: 'B'      // Siempre B
-        // Los colores usan números (1, 2, 3...) y se repiten
     };
 
     // =====================================================
@@ -25,10 +22,10 @@ window.RulesEngine = (function() {
                 nombre: 'BLOCKER CHT'
             },
             whiteBase: { 
-                nombre: 'AQUAFLEX V2'        // Base B normal
+                nombre: 'AQUAFLEX V2'
             },
             whiteBaseRefuerzo: { 
-                nombre: 'REF. AQUAFLEX MAGNA' // Refuerzo (una sola vez)
+                nombre: 'REF. AQUAFLEX MAGNA'
             },
             color: {
                 mallas: ['157/48', '198/40'],
@@ -168,14 +165,12 @@ window.RulesEngine = (function() {
     function esColorMetalico(colorName) {
         if (!colorName) return false;
         const upper = colorName.toUpperCase();
-        // Buscar números de 3 dígitos 871-877 seguidos de C (opcional)
         const regex3 = /\b(87[1-7])C?\b/;
         const match3 = upper.match(regex3);
         if (match3) {
             let num = parseInt(match3[1]);
             if (num >= 871 && num <= 877) return true;
         }
-        // Buscar números de 4 dígitos 8001-8965 seguidos de C
         const regex4 = /\b(8[0-9]{3})C?\b/;
         const match4 = upper.match(regex4);
         if (match4) {
@@ -185,7 +180,6 @@ window.RulesEngine = (function() {
         return false;
     }
 
-    // Mapa de sufijos para mallas según tipo de tinta
     const meshSuffixMap = {
         'WATER': { '110': '/64', '122': '/55', '157': '/48', '198': '/40' },
         'PLASTISOL': { '110': '/64', '122': '/55', '157': '/64', '198': '/64' },
@@ -204,12 +198,11 @@ window.RulesEngine = (function() {
             designColors = []
         } = params;
 
-        console.log(`⚙️ RulesEngine v8.1: Generando secuencia`);
+        console.log(`⚙️ RulesEngine v8.2: Generando secuencia`);
         console.log(`   Cliente: ${customer || 'N/A'}`);
         console.log(`   Tela: ${garmentColor}`);
         console.log(`   Tinta: ${inkType}`);
 
-        // ===== CONFIGURACIÓN =====
         const baseConfig = getBaseConfig(inkType, customer);
         const esOscura = esTelaOscura(garmentColor);
         const inkUpper = inkType.toUpperCase();
@@ -217,14 +210,34 @@ window.RulesEngine = (function() {
         console.log(`   📋 Config: ${baseConfig.blocker.nombre} / ${baseConfig.whiteBase.nombre}`);
         console.log(`   📊 Tela: ${esOscura ? 'oscura' : 'clara'}`);
 
-        // ===== CLASIFICAR COLORES =====
+        // ===== PROCESAR COLORES CON DETECCIÓN DE WHITE =====
         const coloresInfo = [];
         let hayColorClaro = false;
+        let whiteYaProcesado = false; // Control para evitar duplicados
 
         designColors.forEach(color => {
             const val = String(color.val || '').toUpperCase().trim();
             if (!val) return;
             
+            // ===== DETECCIÓN DE TINTA BLANCA (SOLO WATER) =====
+            const isWhiteInk = inkUpper === 'WATER' && val === 'WHITE';
+            
+            if (isWhiteInk) {
+                // Solo procesamos una vez aunque venga repetido
+                if (!whiteYaProcesado) {
+                    coloresInfo.push({
+                        val: val,
+                        esBlanco: true,
+                        esClaro: false,
+                        especial: null,
+                        metalico: false
+                    });
+                    whiteYaProcesado = true;
+                }
+                return; // No contar para hayColorClaro
+            }
+            
+            // ===== PROCESAMIENTO NORMAL PARA NO-BLANCOS =====
             const esClaro = esColorClaro(val);
             if (esClaro) hayColorClaro = true;
             
@@ -232,28 +245,27 @@ window.RulesEngine = (function() {
                 val: val,
                 esClaro: esClaro,
                 especial: esColorEspecial(val),
-                metalico: esColorMetalico(val)
+                metalico: esColorMetalico(val),
+                esBlanco: false
             });
         });
 
         console.log(`   🎨 Colores a procesar: ${coloresInfo.length}`);
         console.log(`   🌟 ¿Hay colores claros? ${hayColorClaro ? 'Sí' : 'No'}`);
+        console.log(`   ⚪ ¿Hay tinta blanca? ${whiteYaProcesado ? 'Sí' : 'No'}`);
 
         // ===== CONSTRUIR SECUENCIA =====
-        const steps = []; // pasos de impresión
+        const steps = [];
         let nextNumber = 1; // Solo para colores
 
-        // ===== FUNCIÓN PARA AÑADIR PASOS (CON LÓGICA SIMBÓLICA CORRECTA) =====
         function addStep(tipo, nombre, mesh, additives) {
             let screenLetter = '';
             
-            // ASIGNACIÓN CATEGÓRICA (NO SECUENCIAL)
             if (tipo === 'BLOCKER') {
-                screenLetter = SYMBOL_CODES.BLOCKER; // Siempre 'A'
+                screenLetter = SYMBOL_CODES.BLOCKER;
             } else if (tipo === 'WHITE_BASE') {
-                screenLetter = SYMBOL_CODES.WHITE_BASE; // Siempre 'B'
+                screenLetter = SYMBOL_CODES.WHITE_BASE;
             }
-            // Los COLORES no tienen letra, se asignan números aparte
             
             steps.push({
                 tipo: tipo,
@@ -267,79 +279,80 @@ window.RulesEngine = (function() {
         // ===== PASOS PREVIOS SEGÚN TIPO DE TINTA =====
         if (inkUpper === 'WATER') {
             if (esOscura) {
-                // Tela oscura: 3 bloqueadores (todos con letra A)
                 const blockerMallas = ['110/64', '122/55', '157/48'];
                 blockerMallas.forEach(malla => {
                     addStep('BLOCKER', baseConfig.blocker.nombre, malla, '');
                 });
                 
-                // Bases blancas: 1 o 2 según haya colores claros
-                // IMPORTANTE: En tela oscura, estas bases son AQUAFLEX V2 (no refuerzo)
                 const numBases = hayColorClaro ? 2 : 1;
                 for (let i = 0; i < numBases; i++) {
                     addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', baseConfig.baseAdditives);
                 }
             } else {
-                // Tela clara: 2 bases sin aditivo (AQUAFLEX V2)
                 const baseMallasIniciales = ['110/64', '122/55'];
                 baseMallasIniciales.forEach(malla => {
                     addStep('WHITE_BASE', baseConfig.whiteBase.nombre, malla, '');
                 });
                 
-                // 1 bloqueador (A)
                 addStep('BLOCKER', baseConfig.blocker.nombre, '157/48', '');
                 
-                // 1 refuerzo (REF. AQUAFLEX MAGNA) - UNA SOLA VEZ
                 addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
             }
         } 
         else if (inkUpper === 'PLASTISOL') {
-            // Para plastisol, usar la variante correcta
             const variant = detectCustomerVariant(customer);
             const configPlast = (variant === 'PLASTISOL_GFS') ? BASE_CONFIG.PLASTISOL_GFS : BASE_CONFIG.PLASTISOL_FANATICS;
             
-            // Bloqueadores: siempre dos (ambos con letra A)
             const blockerMallas = ['110/64', '122/55'];
             blockerMallas.forEach(malla => {
                 addStep('BLOCKER', configPlast.blocker.nombre, malla, '');
             });
             
-            // Bases blancas: solo si hay colores claros (ambas con letra B)
             if (hayColorClaro) {
                 const baseMallas = ['157/64', '122/55'];
                 baseMallas.forEach(malla => {
                     addStep('WHITE_BASE', configPlast.whiteBase.nombre, malla, '');
                 });
             }
-            
-            // NOTA: En plastisol no hay concepto de "refuerzo" separado
         } 
         else if (inkUpper === 'SILICONE') {
-            // Un bloqueador (A) y una base blanca (B)
             addStep('BLOCKER', baseConfig.blocker.nombre, '110/64', '');
             addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '');
         }
 
-        // ===== PROCESAR CADA COLOR (USAN NÚMEROS, NO LETRAS) =====
+        // ===== PROCESAR CADA COLOR (LA NUMERACIÓN OCURRE AQUÍ DENTRO) =====
         coloresInfo.forEach(color => {
+            if (color.esBlanco) {
+                // CASO ESPECIAL: TINTA BLANCA EN WATER
+                // Usamos el número actual y luego incrementamos
+                const colorNumber = nextNumber++;
+                
+                steps.push({
+                    tipo: 'COLOR',
+                    screenLetter: String(colorNumber),
+                    nombre: 'REF. AQUAFLEX MAGNA',
+                    mesh: '122/55',
+                    additives: baseConfig.baseAdditives
+                });
+                
+                return; // No procesar como color normal
+            }
+            
+            // CASO NORMAL: procesar color con sus mallas
             const colorNumber = nextNumber++;
             let mallasColor = [];
             let additivesColor = '';
             let nombreBase = color.val;
 
-            // Obtener el mapa de sufijos según tipo de tinta
             const suffixMap = meshSuffixMap[inkUpper] || meshSuffixMap['WATER'];
 
             if (color.metalico) {
-                // Colores metálicos (871-877C, 8001-8965C)
                 mallasColor = ['122/55', '157/48'];
                 additivesColor = '3% cross linker 500 · 3% Binder Flex';
             } 
             else if (color.especial) {
-                // Colores especiales (3 pantallas)
                 color.especial.mallas.forEach((meshNum, idx) => {
                     let fullMesh = meshNum + (suffixMap[meshNum] || '');
-                    // Si no se encontró sufijo, usar el genérico
                     if (!fullMesh.includes('/')) {
                         fullMesh = meshNum + (inkUpper === 'PLASTISOL' ? '/64' : '/48');
                     }
@@ -348,13 +361,11 @@ window.RulesEngine = (function() {
                 additivesColor = color.especial.aditivos;
             } 
             else {
-                // Colores normales
                 if (inkUpper === 'WATER') {
-                    // En waterbase, el orden de mallas depende de la tela
                     if (esOscura) {
-                        mallasColor = ['198/40', '157/48']; // primero 198, luego 157
+                        mallasColor = ['198/40', '157/48'];
                     } else {
-                        mallasColor = ['157/48', '198/40']; // primero 157, luego 198
+                        mallasColor = ['157/48', '198/40'];
                     }
                 } else if (inkUpper === 'PLASTISOL') {
                     mallasColor = ['157/64', '122/55'];
@@ -366,18 +377,16 @@ window.RulesEngine = (function() {
 
             // Añadir cada malla del color (TODAS CON EL MISMO NÚMERO)
             mallasColor.forEach((mesh, idx) => {
-                // MISMO número para todas las mallas de este color
                 let screenLetter = String(colorNumber);
                 
-                // El nombre puede indicar que es la segunda malla, pero el número es el mismo
                 let nombre = nombreBase;
                 if (mallasColor.length > 1 && idx > 0) {
-                    nombre = nombreBase + ' (2)'; // Segunda malla del mismo color
+                    nombre = nombreBase + ' (2)';
                 }
                 
                 steps.push({
                     tipo: 'COLOR',
-                    screenLetter: screenLetter, // MISMO número para todas las mallas
+                    screenLetter: screenLetter,
                     nombre: nombre,
                     mesh: mesh,
                     additives: additivesColor
@@ -436,5 +445,5 @@ window.RulesEngine = (function() {
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ RulesEngine v8.1 - ARQUITECTURA CATEGÓRICA CORRECTA');
+    console.log('✅ RulesEngine v8.2 - CON SOPORTE PARA TINTA BLANCA EN WATER');
 });
