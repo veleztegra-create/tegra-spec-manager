@@ -1,13 +1,85 @@
 // =====================================================
-// rules-engine.js - Motor de reglas TEGRA
-// Versión: 3.0 - Con letras fijas para bases
+// rules-engine.js - Versión 7.0 - DEFINITIVA
+// Genera secuencias según:
+// - Tipo de tinta (Waterbase, Plastisol GFS, Plastisol Fanatics, Silicone)
+// - Color de prenda (oscuro/claro)
+// - Colores de diseño (claros/oscuros/especiales/metálicos)
 // =====================================================
 
 window.RulesEngine = (function() {
     "use strict";
     
     // =====================================================
-    // CONFIGURACIÓN DE COLORES ESPECIALES
+    // CONFIGURACIÓN DE BASES
+    // =====================================================
+    const BASE_CONFIG = {
+        'WATER': {
+            blocker: { 
+                nombre: 'BLOCKER CHT'
+            },
+            whiteBase: { 
+                nombre: 'AQUAFLEX V2'
+            },
+            whiteBaseRefuerzo: { 
+                nombre: 'AQUAFLEX MAGNA'
+            },
+            color: {
+                mallas: ['157/48', '198/40'],  // orden base, luego se invierte si es necesario
+                additives: '3% CL 500 · 5% ecofix XL'
+            },
+            baseAdditives: '3% CL 500',
+            temperatura: '320 °F',
+            tiempo: '1:40 min'
+        },
+        
+        'PLASTISOL_GFS': {
+            blocker: { 
+                nombre: 'BARRIER BASE'
+            },
+            whiteBase: { 
+                nombre: 'TXT POLY WHITE'
+            },
+            color: {
+                mallas: ['157/64', '122/55'],
+                additives: '1% catalyst'
+            },
+            temperatura: '320 °F',
+            tiempo: '1:00 min'
+        },
+        
+        'PLASTISOL_FANATICS': {
+            blocker: { 
+                nombre: 'BARRIER CHT'
+            },
+            whiteBase: { 
+                nombre: 'POLY WHITE'
+            },
+            color: {
+                mallas: ['157/64', '122/55'],
+                additives: '1% catalyst'
+            },
+            temperatura: '320 °F',
+            tiempo: '1:00 min'
+        },
+        
+        'SILICONE': {
+            blocker: { 
+                nombre: 'BLOCKER LIBRA'
+            },
+            whiteBase: { 
+                nombre: 'BASE WHITE LIBRA'
+            },
+            color: {
+                mallas: ['157/48', '157/48'],
+                additives: '3% cat · 2% ret'
+            },
+            temperatura: '320 °F',
+            tiempo: '1:40 min'
+        }
+    };
+
+    // =====================================================
+    // COLORES ESPECIALES (3 PANTALLAS)
     // =====================================================
     const SPECIAL_COLORS = {
         '77c gold': {
@@ -24,119 +96,52 @@ window.RulesEngine = (function() {
             identificadores: ['761', '761 gold', 'university gold'],
             mallas: ['157', '198', '110'],
             aditivos: '3% CL 500 · 5% ecofix XL'
-        },
-        '871c metallic': {
-            identificadores: ['871c', '871', 'metallic 871'],
-            mallas: ['110', '156'],
-            aditivos: 'Catalizador especial'
-        },
-        '877c silver': {
-            identificadores: ['877c', '877', 'silver'],
-            mallas: ['110', '156'],
-            aditivos: 'Catalizador especial'
         }
     };
 
     // =====================================================
-    // REGLAS DE TELA (FABRIC)
+    // IDENTIFICADORES DE TELA OSCURA
     // =====================================================
-    const FABRIC_RULES = {
-        darkIdentifiers: [
-            'negro', 'black', 'navy', 'azul marino', 'charcoal', 'carbon', 
-            'maroon', 'granate', 'dark', 'oscuro', 'forest', 'verde oscuro', 
-            'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal'
-        ],
-        lightIdentifiers: [
-            'blanco', 'white', 'natural', 'crema', 'ivory', 'beige', 
-            'claro', 'light', 'gris claro', 'light gray', 'heather grey'
-        ]
-    };
-
-    // =====================================================
-    // CONFIGURACIÓN DE BASES POR TIPO DE TINTA
-    // =====================================================
-    const BASE_CONFIG = {
-        'PLASTISOL': {
-            'GFS': {
-                blocker: { nombre: 'BARRIER BASE', malla: '110/64' },
-                whiteBase: { nombre: 'TXT POLY WHITE', malla: '156/64' },
-                temperatura: '320 °F',
-                tiempo: '1:00 min'
-            },
-            'FANATICS': {
-                blocker: { nombre: 'BARRIER CHT', malla: '110/64' },
-                whiteBase: { nombre: 'POLY WHITE', malla: '156/64' },
-                temperatura: '320 °F',
-                tiempo: '1:00 min'
-            },
-            'DEFAULT': {
-                blocker: { nombre: 'BARRIER BASE', malla: '110/64' },
-                whiteBase: { nombre: 'TXT POLY WHITE', malla: '156/64' },
-                temperatura: '320 °F',
-                tiempo: '1:00 min'
-            }
-        },
-        'WATER': {
-            'DEFAULT': {
-                blocker: { nombre: 'BLOCKER CHT', malla: '122/55' },
-                whiteBase: { nombre: 'AQUAFLEX V2 WHITE', malla: '198/40' },
-                temperatura: '320 °F',
-                tiempo: '1:40 min'
-            }
-        },
-        'SILICONE': {
-            'DEFAULT': {
-                blocker: { nombre: 'BLOCKER LIBRA', malla: '110/64' },
-                whiteBase: { nombre: 'BASE WHITE LIBRA', malla: '122/55' },
-                temperatura: '320 °F',
-                tiempo: '1:40 min'
-            }
-        }
-    };
+    const DARK_FABRICS = [
+        'negro', 'black', 'navy', 'azul marino', 'charcoal', 'carbon',
+        'maroon', 'granate', 'dark', 'oscuro', 'forest', 'verde oscuro',
+        'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal'
+    ];
 
     // =====================================================
     // FUNCIONES AUXILIARES
     // =====================================================
     
-    function mapInkType(value) {
-        const normalized = String(value || '').toUpperCase().trim();
-        if (normalized === 'WATERBASE') return 'WATER';
-        return normalized;
-    }
-
     function detectCustomerVariant(customer) {
-        if (!customer) return 'DEFAULT';
+        if (!customer) return 'WATER';
         const upper = customer.toUpperCase();
-        if (upper.includes('GFS') || upper.includes('GEAR FOR SPORT')) return 'GFS';
-        if (upper.includes('FANATICS')) return 'FANATICS';
-        return 'DEFAULT';
+        if (upper.includes('GFS') || upper.includes('GEAR FOR SPORT')) return 'PLASTISOL_GFS';
+        if (upper.includes('FANATICS')) return 'PLASTISOL_FANATICS';
+        return 'WATER';
     }
 
     function getBaseConfig(inkType, customer) {
-        const normalizedInk = mapInkType(inkType);
-        const variant = detectCustomerVariant(customer);
+        const ink = String(inkType || 'WATER').toUpperCase();
         
-        if (BASE_CONFIG[normalizedInk] && BASE_CONFIG[normalizedInk][variant]) {
-            return BASE_CONFIG[normalizedInk][variant];
+        if (ink === 'PLASTISOL') {
+            const variant = detectCustomerVariant(customer);
+            if (variant === 'PLASTISOL_GFS') return BASE_CONFIG.PLASTISOL_GFS;
+            if (variant === 'PLASTISOL_FANATICS') return BASE_CONFIG.PLASTISOL_FANATICS;
         }
-        if (BASE_CONFIG[normalizedInk] && BASE_CONFIG[normalizedInk]['DEFAULT']) {
-            return BASE_CONFIG[normalizedInk]['DEFAULT'];
-        }
-        // Fallback a WATER
-        return BASE_CONFIG['WATER']['DEFAULT'];
+        
+        if (ink === 'SILICONE') return BASE_CONFIG.SILICONE;
+        return BASE_CONFIG.WATER;
     }
 
-    function clasificarTela(colorTela) {
-        if (!colorTela) return 'clara';
+    function esTelaOscura(colorTela) {
+        if (!colorTela) return false;
         const telaLower = colorTela.toLowerCase();
-        if (FABRIC_RULES.darkIdentifiers.some(o => telaLower.includes(o))) return 'oscura';
-        if (FABRIC_RULES.lightIdentifiers.some(c => telaLower.includes(c))) return 'clara';
-        return 'clara';
+        return DARK_FABRICS.some(o => telaLower.includes(o));
     }
 
     function esColorEspecial(colorName) {
         if (!colorName) return null;
-        const normalized = (colorName || '').toLowerCase().trim();
+        const normalized = colorName.toLowerCase().trim();
         for (const key in SPECIAL_COLORS) {
             const entry = SPECIAL_COLORS[key];
             if (entry.identificadores.some(id => normalized.includes(id))) {
@@ -146,8 +151,42 @@ window.RulesEngine = (function() {
         return null;
     }
 
+    function esColorClaro(colorName) {
+        if (!colorName) return false;
+        const upper = colorName.toUpperCase();
+        const claros = ['YELLOW', 'GOLD', 'ORANGE', 'PINK', 'AMARILLO', 'DORADO', 'NARANJA', 'ROSA'];
+        return claros.some(c => upper.includes(c));
+    }
+
+    function esColorMetalico(colorName) {
+        if (!colorName) return false;
+        const upper = colorName.toUpperCase();
+        // Buscar números de 3 dígitos 871-877 seguidos de C (opcional)
+        const regex3 = /\b(87[1-7])C?\b/;
+        const match3 = upper.match(regex3);
+        if (match3) {
+            let num = parseInt(match3[1]);
+            if (num >= 871 && num <= 877) return true;
+        }
+        // Buscar números de 4 dígitos 8001-8965 seguidos de C
+        const regex4 = /\b(8[0-9]{3})C?\b/;
+        const match4 = upper.match(regex4);
+        if (match4) {
+            let num = parseInt(match4[1]);
+            if (num >= 8001 && num <= 8965) return true;
+        }
+        return false;
+    }
+
+    // Mapa de sufijos para mallas según tipo de tinta
+    const meshSuffixMap = {
+        'WATER': { '110': '/64', '122': '/55', '157': '/48', '198': '/40' },
+        'PLASTISOL': { '110': '/64', '122': '/55', '157': '/64', '198': '/64' },
+        'SILICONE': { '110': '/64', '122': '/55', '157': '/48', '198': '/40' }
+    };
+
     // =====================================================
-    // FUNCIÓN PRINCIPAL - GENERAR SECUENCIA
+    // FUNCIÓN PRINCIPAL
     // =====================================================
     
     function generarSecuencia(params) {
@@ -158,189 +197,175 @@ window.RulesEngine = (function() {
             designColors = []
         } = params;
 
-        console.log(`⚙️ RulesEngine: Generando secuencia`);
+        console.log(`⚙️ RulesEngine v7.0: Generando secuencia`);
         console.log(`   Cliente: ${customer || 'N/A'}`);
         console.log(`   Tela: ${garmentColor}`);
         console.log(`   Tinta: ${inkType}`);
 
-        // ===== OBTENER CONFIGURACIÓN DE BASES =====
+        // ===== CONFIGURACIÓN =====
         const baseConfig = getBaseConfig(inkType, customer);
-        console.log(`   📋 Configuración: ${baseConfig.blocker.nombre} / ${baseConfig.whiteBase.nombre}`);
-
-        // ===== CLASIFICACIÓN DE TELA =====
-        const telaType = clasificarTela(garmentColor);
-        const needsBlocker = telaType === 'oscura';
+        const esOscura = esTelaOscura(garmentColor);
+        const inkUpper = inkType.toUpperCase();
         
-        console.log(`   📊 Tela clasificada como: ${telaType}`);
+        console.log(`   📋 Config: ${baseConfig.blocker.nombre} / ${baseConfig.whiteBase.nombre}`);
+        console.log(`   📊 Tela: ${esOscura ? 'oscura' : 'clara'}`);
 
-        // ===== CLASIFICACIÓN DE COLORES =====
-        const colors = {
-            white: [],      // Tintas blancas
-            light: [],      // Colores claros
-            special: [],    // Colores especiales (3 pantallas)
-            metallic: [],   // Metálicos
-            other: []       // Otros colores
-        };
-        
+        // ===== CLASIFICAR COLORES =====
+        const coloresInfo = [];
+        let hayColorClaro = false;
+
         designColors.forEach(color => {
-            const colorVal = String(color.val || '').toUpperCase().trim();
-            if (!colorVal) return;
+            const val = String(color.val || '').toUpperCase().trim();
+            if (!val) return;
             
-            const especial = esColorEspecial(colorVal);
-            if (especial) {
-                colors.special.push({ ...color, info: especial });
-            } else if (colorVal.includes('WHITE')) {
-                colors.white.push(color);
-            } else if (colorVal.includes('YELLOW') || colorVal.includes('GOLD') || 
-                       colorVal.includes('ORANGE') || colorVal.includes('PINK')) {
-                colors.light.push(color);
-            } else {
-                colors.other.push(color);
-            }
+            const esClaro = esColorClaro(val);
+            if (esClaro) hayColorClaro = true;
+            
+            coloresInfo.push({
+                val: val,
+                esClaro: esClaro,
+                especial: esColorEspecial(val),
+                metalico: esColorMetalico(val)
+            });
         });
 
-        console.log(`   🎨 Blancos: ${colors.white.length}`);
-        console.log(`   🎨 Claros: ${colors.light.length}`);
-        console.log(`   🎨 Especiales: ${colors.special.length}`);
-        
-        // ===== CONSTRUCCIÓN DE SECUENCIA =====
-        const steps = [];
-        let nextLetter = 67; // 'C' para siguientes procesos después de A y B
-        let nextNumber = 1;  // 1, 2, 3... para colores
-        
-        // ===== PASO 1: BLOQUEADORES (SIEMPRE LETRA A) =====
-        if (needsBlocker) {
-            // Primer bloqueador (A)
+        console.log(`   🎨 Colores a procesar: ${coloresInfo.length}`);
+        console.log(`   🌟 ¿Hay colores claros? ${hayColorClaro ? 'Sí' : 'No'}`);
+
+        // ===== CONSTRUIR SECUENCIA =====
+        const steps = []; // pasos de impresión
+        let nextLetter = 'A'.charCodeAt(0); // Letras para bloqueadores y bases
+        let nextNumber = 1;                  // Números para colores
+
+        // Función para añadir un paso de impresión
+        function addStep(tipo, nombre, mesh, additives) {
             steps.push({
-                tipo: 'BLOCKER',
-                screenLetter: 'A',
-                nombre: baseConfig.blocker.nombre,
-                mesh: baseConfig.blocker.malla,
-                additives: 'N/A'
+                tipo: tipo,
+                screenLetter: String.fromCharCode(nextLetter++),
+                nombre: nombre,
+                mesh: mesh,
+                additives: additives
             });
-            
-            // Segundo y tercer bloqueador según tipo de tinta
-            if (inkType === 'WATER') {
-                steps.push({
-                    tipo: 'BLOCKER',
-                    screenLetter: String.fromCharCode(nextLetter++), // C
-                    nombre: baseConfig.blocker.nombre,
-                    mesh: '157/48',
-                    additives: 'N/A'
+        }
+
+        // ===== PASOS PREVIOS SEGÚN TIPO DE TINTA =====
+        if (inkUpper === 'WATER') {
+            if (esOscura) {
+                // Tela oscura: 3 bloqueadores
+                const blockerMallas = ['110/64', '122/55', '157/48'];
+                blockerMallas.forEach(malla => {
+                    addStep('BLOCKER', baseConfig.blocker.nombre, malla, '');
                 });
-            } else if (inkType === 'PLASTISOL') {
-                steps.push({
-                    tipo: 'BLOCKER',
-                    screenLetter: String.fromCharCode(nextLetter++), // C
-                    nombre: baseConfig.blocker.nombre,
-                    mesh: '156/64',
-                    additives: 'N/A'
+                // Luego bases con aditivo: 1 o 2 según haya colores claros
+                const numBases = hayColorClaro ? 2 : 1;
+                for (let i = 0; i < numBases; i++) {
+                    addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
+                }
+            } else {
+                // Tela clara: 2 bases sin aditivo, luego 1 bloqueador, luego 1 base con aditivo
+                const baseMallasIniciales = ['110/64', '122/55'];
+                baseMallasIniciales.forEach(malla => {
+                    addStep('WHITE_BASE', baseConfig.whiteBase.nombre, malla, '');
                 });
-                steps.push({
-                    tipo: 'BLOCKER',
-                    screenLetter: String.fromCharCode(nextLetter++), // D
-                    nombre: baseConfig.blocker.nombre,
-                    mesh: '156/64',
-                    additives: 'N/A'
-                });
-            } else if (inkType === 'SILICONE') {
-                // Silicone solo tiene un bloqueador
+                addStep('BLOCKER', baseConfig.blocker.nombre, '157/48', '');
+                addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
             }
-        }
-        
-        // ===== PASO 2: WHITE BASE DE PRENDA (SIEMPRE LETRA B) =====
-        // ¿Necesita base blanca la prenda?
-        const hasLightOrSpecial = colors.light.length > 0 || colors.special.length > 0;
-        const hasWhite = colors.white.length > 0;
-        
-        if (telaType === 'oscura' && (hasLightOrSpecial || hasWhite)) {
-            steps.push({
-                tipo: 'WHITE_BASE',
-                screenLetter: 'B',
-                nombre: baseConfig.whiteBase.nombre,
-                mesh: baseConfig.whiteBase.malla,
-                additives: inkType === 'WATER' ? '3% CL 500' : ''
-            });
-        }
-        
-        // ===== PASO 3: PROCESAR COLORES =====
-        
-        // 3.1 Blancos (necesitan su propia base)
-        colors.white.forEach(ink => {
-            // Base blanca para este blanco
-            steps.push({
-                tipo: 'WHITE_BASE',
-                screenLetter: String.fromCharCode(nextLetter++),
-                nombre: baseConfig.whiteBase.nombre,
-                mesh: inkType === 'PLASTISOL' ? '110/64' : baseConfig.whiteBase.malla,
-                additives: inkType === 'WATER' ? '3% CL 500' : ''
+        } 
+        else if (inkUpper === 'PLASTISOL') {
+            // Para plastisol, usar la variante correcta
+            const variant = detectCustomerVariant(customer);
+            const configPlast = (variant === 'PLASTISOL_GFS') ? BASE_CONFIG.PLASTISOL_GFS : BASE_CONFIG.PLASTISOL_FANATICS;
+            
+            // Bloqueadores: siempre dos
+            const blockerMallas = ['110/64', '122/55'];
+            blockerMallas.forEach(malla => {
+                addStep('BLOCKER', configPlast.blocker.nombre, malla, '');
             });
             
-            // El color blanco
-            steps.push({
-                tipo: 'COLOR',
-                screenLetter: String(nextNumber++),
-                nombre: ink.val,
-                mesh: inkType === 'PLASTISOL' ? '156/64' : '157/48',
-                additives: inkType === 'WATER' ? '3% CL 500 · 5% ecofix XL' : 
-                           (inkType === 'PLASTISOL' ? '1% catalyst' : '')
-            });
-        });
-        
-        // 3.2 Claros (necesitan base blanca)
-        colors.light.forEach(ink => {
-            steps.push({
-                tipo: 'WHITE_BASE',
-                screenLetter: String.fromCharCode(nextLetter++),
-                nombre: baseConfig.whiteBase.nombre,
-                mesh: inkType === 'PLASTISOL' ? '110/64' : '122/??',
-                additives: inkType === 'WATER' ? '3% CL 500' : ''
-            });
-            
-            steps.push({
-                tipo: 'COLOR',
-                screenLetter: String(nextNumber++),
-                nombre: ink.val,
-                mesh: '157/48',
-                additives: inkType === 'WATER' ? '3% CL 500 · 5% ecofix XL' : 
-                           (inkType === 'PLASTISOL' ? '1% catalyst' : '3% cat · 2% ret')
-            });
-        });
-        
-        // 3.3 Especiales (3 pantallas)
-        colors.special.forEach(special => {
+            // Bases blancas: solo si hay colores claros
+            if (hayColorClaro) {
+                const baseMallas = ['157/64', '122/55'];
+                baseMallas.forEach(malla => {
+                    addStep('WHITE_BASE', configPlast.whiteBase.nombre, malla, '');
+                });
+            }
+        } 
+        else if (inkUpper === 'SILICONE') {
+            // Un bloqueador y una base blanca
+            addStep('BLOCKER', baseConfig.blocker.nombre, '110/64', '');
+            addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '');
+        }
+
+        // ===== PROCESAR CADA COLOR =====
+        coloresInfo.forEach(color => {
             const colorNumber = nextNumber++;
-            const info = special.info;
-            
-            info.mallas.forEach((mesh, idx) => {
+            let mallasColor = [];
+            let additivesColor = '';
+            let nombreBase = color.val;
+
+            // Obtener el mapa de sufijos según tipo de tinta
+            const suffixMap = meshSuffixMap[inkUpper] || meshSuffixMap['WATER'];
+
+            if (color.metalico) {
+                // Colores metálicos (871-877C, 8001-8965C)
+                mallasColor = ['122/55', '157/48'];
+                additivesColor = '3% cross linker 500 · 3% Binder Flex';
+            } 
+            else if (color.especial) {
+                // Colores especiales (3 pantallas)
+                color.especial.mallas.forEach((meshNum, idx) => {
+                    let fullMesh = meshNum + (suffixMap[meshNum] || '');
+                    // Si no se encontró sufijo, usar el genérico
+                    if (!fullMesh.includes('/')) {
+                        fullMesh = meshNum + (inkUpper === 'PLASTISOL' ? '/64' : '/48');
+                    }
+                    mallasColor.push(fullMesh);
+                });
+                additivesColor = color.especial.aditivos;
+            } 
+            else {
+                // Colores normales
+                if (inkUpper === 'WATER') {
+                    // En waterbase, el orden de mallas depende de la tela
+                    if (esOscura) {
+                        mallasColor = ['198/40', '157/48']; // primero 198, luego 157
+                    } else {
+                        mallasColor = ['157/48', '198/40']; // primero 157, luego 198
+                    }
+                } else if (inkUpper === 'PLASTISOL') {
+                    mallasColor = ['157/64', '122/55'];
+                } else if (inkUpper === 'SILICONE') {
+                    mallasColor = ['157/48', '157/48'];
+                }
+                additivesColor = baseConfig.color.additives;
+            }
+
+            // Añadir cada malla del color
+            mallasColor.forEach((mesh, idx) => {
+                let screenLetter;
+                if (idx === 0) {
+                    screenLetter = String(colorNumber);
+                } else {
+                    screenLetter = `${colorNumber}-${idx + 1}`;
+                }
+                let nombre = nombreBase;
+                if (mallasColor.length > 1) {
+                    nombre += ` (${idx + 1})`;
+                }
                 steps.push({
                     tipo: 'COLOR',
-                    screenLetter: idx === 0 ? String(colorNumber) : `${colorNumber}-${idx + 1}`,
-                    nombre: special.val + (idx > 0 ? ` (${idx + 1})` : ''),
-                    mesh: mesh + (inkType === 'PLASTISOL' ? '/64' : '/48'),
-                    additives: info.aditivos
+                    screenLetter: screenLetter,
+                    nombre: nombre,
+                    mesh: mesh,
+                    additives: additivesColor
                 });
             });
         });
-        
-        // 3.4 Otros colores
-        colors.other.forEach(ink => {
-            steps.push({
-                tipo: 'COLOR',
-                screenLetter: String(nextNumber++),
-                nombre: ink.val,
-                mesh: inkType === 'PLASTISOL' ? '156/64' : '157/48',
-                additives: inkType === 'WATER' ? '3% CL 500 · 5% ecofix XL' : 
-                           (inkType === 'PLASTISOL' ? '1% catalyst' : '3% cat · 2% ret')
-            });
-        });
-        
-        // ===== AÑADIR FLASH/COOL ENTRE PASOS =====
+
+        // ===== AÑADIR FLASH Y COOL ENTRE PASOS =====
         const finalSequence = [];
-        
         steps.forEach((step, index) => {
             finalSequence.push(step);
-            
             if (index < steps.length - 1) {
                 finalSequence.push({ 
                     tipo: 'FLASH', 
@@ -358,9 +383,11 @@ window.RulesEngine = (function() {
                 });
             }
         });
-        
-        console.log(`✅ Secuencia generada con ${finalSequence.length} pasos totales`);
-        
+
+        console.log(`✅ Secuencia generada con ${finalSequence.length} pasos`);
+        console.log(`   📝 Letras usadas: A - ${String.fromCharCode(nextLetter-1)}`);
+        console.log(`   🔢 Números de color: 1 - ${nextNumber-1}`);
+
         return {
             sequence: finalSequence,
             temperatura: baseConfig.temperatura,
@@ -369,10 +396,10 @@ window.RulesEngine = (function() {
     }
 
     function getCuringConditions(inkType, customer) {
-        const baseConfig = getBaseConfig(inkType, customer);
+        const config = getBaseConfig(inkType, customer);
         return {
-            temp: baseConfig.temperatura,
-            time: baseConfig.tiempo
+            temp: config.temperatura,
+            time: config.tiempo
         };
     }
 
@@ -383,15 +410,13 @@ window.RulesEngine = (function() {
     return {
         generarSecuencia,
         getCuringConditions,
-        clasificarTela,
-        esColorEspecial
+        esTelaOscura,
+        esColorEspecial,
+        esColorMetalico
     };
 
 })();
 
-// =====================================================
-// CARGA AUTOMÁTICA
-// =====================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ RulesEngine v3.0 cargado');
+    console.log('✅ RulesEngine v7.0 - DEFINITIVO (con todas las reglas actualizadas)');
 });
