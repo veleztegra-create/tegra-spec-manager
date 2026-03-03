@@ -1,5 +1,5 @@
 // =====================================================
-// rules-engine.js - Versión 8.2 - CON SOPORTE PARA TINTA BLANCA
+// rules-engine.js - Versión 8.3 - JERARQUÍA CORREGIDA
 // =====================================================
 
 window.RulesEngine = (function() {
@@ -11,6 +11,127 @@ window.RulesEngine = (function() {
     const SYMBOL_CODES = {
         BLOCKER: 'A',        // Siempre A
         WHITE_BASE: 'B'      // Siempre B
+    };
+
+    // =====================================================
+    // RANGOS METÁLICOS OFICIALES (REGLA MATEMÁTICA)
+    // =====================================================
+    const METALLIC_RANGES = [
+        { start: 871, end: 877 },
+        { start: 8001, end: 8965 }
+    ];
+
+    const METALLIC_CONFIG = {
+        mallas: ['122/55', '157/48'],
+        aditivos: '3% cross linker 500 · 3% Binder Flex'
+    };
+
+    // =====================================================
+    // COLORES ESPECIALES 3 PANTALLAS (NO METÁLICOS)
+    // =====================================================
+    const SPECIAL_COLORS = {
+        '77c gold': {
+            identificadores: ['77c', '77c gold', 'gold 77c'],
+            mallas: ['157', '198', '110'],
+            aditivos: '3% CL 500 · 5% ecofix XL'
+        },
+        '78h amarillo': {
+            identificadores: ['78h', '78h amarillo', 'amarillo 78h'],
+            mallas: ['157', '198', '110'],
+            aditivos: '3% CL 500 · 5% ecofix XL'
+        },
+        '761 university gold': {
+            identificadores: ['761', '761 gold', 'university gold'],
+            mallas: ['157', '198', '110'],
+            aditivos: '3% CL 500 · 5% ecofix XL'
+        }
+    };
+
+    // =====================================================
+    // IDENTIFICADORES DE TELA OSCURA
+    // =====================================================
+    const DARK_FABRICS = [
+        'negro', 'black', 'navy', 'azul marino', 'charcoal', 'carbon',
+        'maroon', 'granate', 'dark', 'oscuro', 'forest', 'verde oscuro',
+        'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal'
+    ];
+
+    // =====================================================
+    // FUNCIONES AUXILIARES
+    // =====================================================
+    
+    function detectCustomerVariant(customer) {
+        if (!customer) return 'WATER';
+        const upper = customer.toUpperCase();
+        if (upper.includes('GFS') || upper.includes('GEAR FOR SPORT')) return 'PLASTISOL_GFS';
+        if (upper.includes('FANATICS')) return 'PLASTISOL_FANATICS';
+        return 'WATER';
+    }
+
+    function getBaseConfig(inkType, customer) {
+        const ink = String(inkType || 'WATER').toUpperCase();
+        
+        if (ink === 'PLASTISOL') {
+            const variant = detectCustomerVariant(customer);
+            if (variant === 'PLASTISOL_GFS') return BASE_CONFIG.PLASTISOL_GFS;
+            if (variant === 'PLASTISOL_FANATICS') return BASE_CONFIG.PLASTISOL_FANATICS;
+        }
+        
+        if (ink === 'SILICONE') return BASE_CONFIG.SILICONE;
+        return BASE_CONFIG.WATER;
+    }
+
+    function esTelaOscura(colorTela) {
+        if (!colorTela) return false;
+        const telaLower = colorTela.toLowerCase();
+        return DARK_FABRICS.some(o => telaLower.includes(o));
+    }
+
+    function extractPantoneNumber(colorName) {
+        if (!colorName) return null;
+        const match = colorName.toUpperCase().match(/\b(\d{3,4})C?\b/);
+        return match ? parseInt(match[1], 10) : null;
+    }
+
+    function esColorMetalico(colorName) {
+        const number = extractPantoneNumber(colorName);
+        if (!number) return false;
+        return METALLIC_RANGES.some(range => number >= range.start && number <= range.end);
+    }
+
+    function esThreeScreenSpecial(colorName) {
+        if (!colorName) return null;
+        const upper = colorName.toUpperCase();
+        for (const key in SPECIAL_COLORS) {
+            const entry = SPECIAL_COLORS[key];
+            if (entry.identificadores.some(id => upper.includes(id.toUpperCase()))) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    function esColorClaro(colorName) {
+        if (!colorName) return false;
+        const upper = colorName.toUpperCase();
+        const claros = ['YELLOW', 'GOLD', 'ORANGE', 'PINK', 'AMARILLO', 'DORADO', 'NARANJA', 'ROSA', 'LIGHT', 'CLARO'];
+        return claros.some(c => upper.includes(c));
+    }
+
+    // Detección de grises oscuros (para posibles reglas futuras, pero por ahora solo afecta la clasificación)
+    const DARK_GREY_TERMS = ['GREY', 'GRAY', 'GRIS', 'CHARCOAL', 'CARBON', 'OSCURO', 'DARK'];
+    function esGrisOscuro(colorName) {
+        if (!colorName) return false;
+        const upper = colorName.toUpperCase();
+        const tieneGris = DARK_GREY_TERMS.some(term => upper.includes(term));
+        const noEsClaro = !esColorClaro(colorName);
+        return tieneGris && noEsClaro;
+    }
+
+    const meshSuffixMap = {
+        'WATER': { '110': '/64', '122': '/55', '157': '/48', '198': '/40' },
+        'PLASTISOL': { '110': '/64', '122': '/55', '157': '/64', '198': '/64' },
+        'SILICONE': { '110': '/64', '122': '/55', '157': '/48', '198': '/40' }
     };
 
     // =====================================================
@@ -83,110 +204,6 @@ window.RulesEngine = (function() {
     };
 
     // =====================================================
-    // COLORES ESPECIALES (3 PANTALLAS)
-    // =====================================================
-    const SPECIAL_COLORS = {
-        '77c gold': {
-            identificadores: ['77c', '77c gold', 'gold 77c'],
-            mallas: ['157', '198', '110'],
-            aditivos: '3% CL 500 · 5% ecofix XL'
-        },
-        '78h amarillo': {
-            identificadores: ['78h', '78h amarillo', 'amarillo 78h'],
-            mallas: ['157', '198', '110'],
-            aditivos: '3% CL 500 · 5% ecofix XL'
-        },
-        '761 university gold': {
-            identificadores: ['761', '761 gold', 'university gold'],
-            mallas: ['157', '198', '110'],
-            aditivos: '3% CL 500 · 5% ecofix XL'
-        }
-    };
-
-    // =====================================================
-    // IDENTIFICADORES DE TELA OSCURA
-    // =====================================================
-    const DARK_FABRICS = [
-        'negro', 'black', 'navy', 'azul marino', 'charcoal', 'carbon',
-        'maroon', 'granate', 'dark', 'oscuro', 'forest', 'verde oscuro',
-        'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal'
-    ];
-
-    // =====================================================
-    // FUNCIONES AUXILIARES
-    // =====================================================
-    
-    function detectCustomerVariant(customer) {
-        if (!customer) return 'WATER';
-        const upper = customer.toUpperCase();
-        if (upper.includes('GFS') || upper.includes('GEAR FOR SPORT')) return 'PLASTISOL_GFS';
-        if (upper.includes('FANATICS')) return 'PLASTISOL_FANATICS';
-        return 'WATER';
-    }
-
-    function getBaseConfig(inkType, customer) {
-        const ink = String(inkType || 'WATER').toUpperCase();
-        
-        if (ink === 'PLASTISOL') {
-            const variant = detectCustomerVariant(customer);
-            if (variant === 'PLASTISOL_GFS') return BASE_CONFIG.PLASTISOL_GFS;
-            if (variant === 'PLASTISOL_FANATICS') return BASE_CONFIG.PLASTISOL_FANATICS;
-        }
-        
-        if (ink === 'SILICONE') return BASE_CONFIG.SILICONE;
-        return BASE_CONFIG.WATER;
-    }
-
-    function esTelaOscura(colorTela) {
-        if (!colorTela) return false;
-        const telaLower = colorTela.toLowerCase();
-        return DARK_FABRICS.some(o => telaLower.includes(o));
-    }
-
-    function esColorEspecial(colorName) {
-        if (!colorName) return null;
-        const normalized = colorName.toLowerCase().trim();
-        for (const key in SPECIAL_COLORS) {
-            const entry = SPECIAL_COLORS[key];
-            if (entry.identificadores.some(id => normalized.includes(id))) {
-                return entry;
-            }
-        }
-        return null;
-    }
-
-    function esColorClaro(colorName) {
-        if (!colorName) return false;
-        const upper = colorName.toUpperCase();
-        const claros = ['YELLOW', 'GOLD', 'ORANGE', 'PINK', 'AMARILLO', 'DORADO', 'NARANJA', 'ROSA', 'LIGHT', 'CLARO'];
-        return claros.some(c => upper.includes(c));
-    }
-
-    function esColorMetalico(colorName) {
-        if (!colorName) return false;
-        const upper = colorName.toUpperCase();
-        const regex3 = /\b(87[1-7])C?\b/;
-        const match3 = upper.match(regex3);
-        if (match3) {
-            let num = parseInt(match3[1]);
-            if (num >= 871 && num <= 877) return true;
-        }
-        const regex4 = /\b(8[0-9]{3})C?\b/;
-        const match4 = upper.match(regex4);
-        if (match4) {
-            let num = parseInt(match4[1]);
-            if (num >= 8001 && num <= 8965) return true;
-        }
-        return false;
-    }
-
-    const meshSuffixMap = {
-        'WATER': { '110': '/64', '122': '/55', '157': '/48', '198': '/40' },
-        'PLASTISOL': { '110': '/64', '122': '/55', '157': '/64', '198': '/64' },
-        'SILICONE': { '110': '/64', '122': '/55', '157': '/48', '198': '/40' }
-    };
-
-    // =====================================================
     // FUNCIÓN PRINCIPAL
     // =====================================================
     
@@ -198,7 +215,7 @@ window.RulesEngine = (function() {
             designColors = []
         } = params;
 
-        console.log(`⚙️ RulesEngine v8.2: Generando secuencia`);
+        console.log(`⚙️ RulesEngine v8.3: Generando secuencia`);
         console.log(`   Cliente: ${customer || 'N/A'}`);
         console.log(`   Tela: ${garmentColor}`);
         console.log(`   Tinta: ${inkType}`);
@@ -210,49 +227,65 @@ window.RulesEngine = (function() {
         console.log(`   📋 Config: ${baseConfig.blocker.nombre} / ${baseConfig.whiteBase.nombre}`);
         console.log(`   📊 Tela: ${esOscura ? 'oscura' : 'clara'}`);
 
-        // ===== PROCESAR COLORES CON DETECCIÓN DE WHITE =====
+        // ===== PROCESAR COLORES CON JERARQUÍA CORRECTA =====
         const coloresInfo = [];
         let hayColorClaro = false;
-        let whiteYaProcesado = false; // Control para evitar duplicados
 
         designColors.forEach(color => {
             const val = String(color.val || '').toUpperCase().trim();
             if (!val) return;
-            
-            // ===== DETECCIÓN DE TINTA BLANCA (SOLO WATER) =====
-            const isWhiteInk = inkUpper === 'WATER' && val === 'WHITE';
-            
-            if (isWhiteInk) {
-                // Solo procesamos una vez aunque venga repetido
-                if (!whiteYaProcesado) {
-                    coloresInfo.push({
-                        val: val,
-                        esBlanco: true,
-                        esClaro: false,
-                        especial: null,
-                        metalico: false
-                    });
-                    whiteYaProcesado = true;
-                }
-                return; // No contar para hayColorClaro
+
+            // 1️⃣ METÁLICOS (máxima prioridad)
+            if (esColorMetalico(val)) {
+                coloresInfo.push({
+                    val: val,
+                    esMetalico: true,
+                    esClaro: false, // no afecta bases
+                    config: null
+                });
+                return;
             }
-            
-            // ===== PROCESAMIENTO NORMAL PARA NO-BLANCOS =====
+
+            // 2️⃣ ESPECIALES DE 3 PANTALLAS (amarillos muy claros)
+            const especial3 = esThreeScreenSpecial(val);
+            if (especial3) {
+                coloresInfo.push({
+                    val: val,
+                    esEspecial3: true,
+                    config: especial3,
+                    esClaro: true // son claros, afectan bases
+                });
+                hayColorClaro = true;
+                return;
+            }
+
+            // 3️⃣ GRISES OSCUROS (no afectan bases, pero se identifican)
+            if (esGrisOscuro(val)) {
+                coloresInfo.push({
+                    val: val,
+                    esGrisOscuro: true,
+                    esClaro: false,
+                    config: null
+                });
+                return;
+            }
+
+            // 4️⃣ RESTO (colores normales)
             const esClaro = esColorClaro(val);
             if (esClaro) hayColorClaro = true;
             
             coloresInfo.push({
                 val: val,
                 esClaro: esClaro,
-                especial: esColorEspecial(val),
-                metalico: esColorMetalico(val),
-                esBlanco: false
+                esMetalico: false,
+                esEspecial3: false,
+                esGrisOscuro: false,
+                config: null
             });
         });
 
         console.log(`   🎨 Colores a procesar: ${coloresInfo.length}`);
         console.log(`   🌟 ¿Hay colores claros? ${hayColorClaro ? 'Sí' : 'No'}`);
-        console.log(`   ⚪ ¿Hay tinta blanca? ${whiteYaProcesado ? 'Sí' : 'No'}`);
 
         // ===== CONSTRUIR SECUENCIA =====
         const steps = [];
@@ -320,52 +353,38 @@ window.RulesEngine = (function() {
             addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '');
         }
 
-        // ===== PROCESAR CADA COLOR (LA NUMERACIÓN OCURRE AQUÍ DENTRO) =====
+        // ===== PROCESAR CADA COLOR CON LA JERARQUÍA ESTABLECIDA =====
         coloresInfo.forEach(color => {
-            if (color.esBlanco) {
-                // CASO ESPECIAL: TINTA BLANCA EN WATER
-                // Usamos el número actual y luego incrementamos
-                const colorNumber = nextNumber++;
-                
-                steps.push({
-                    tipo: 'COLOR',
-                    screenLetter: String(colorNumber),
-                    nombre: 'REF. AQUAFLEX MAGNA',
-                    mesh: '122/55',
-                    additives: baseConfig.baseAdditives
-                });
-                
-                return; // No procesar como color normal
-            }
-            
-            // CASO NORMAL: procesar color con sus mallas
             const colorNumber = nextNumber++;
             let mallasColor = [];
             let additivesColor = '';
             let nombreBase = color.val;
 
-            const suffixMap = meshSuffixMap[inkUpper] || meshSuffixMap['WATER'];
-
-            if (color.metalico) {
-                mallasColor = ['122/55', '157/48'];
-                additivesColor = '3% cross linker 500 · 3% Binder Flex';
-            } 
-            else if (color.especial) {
-                color.especial.mallas.forEach((meshNum, idx) => {
+            if (color.esMetalico) {
+                // Metálicos: configuración especial
+                mallasColor = METALLIC_CONFIG.mallas;
+                additivesColor = METALLIC_CONFIG.aditivos;
+            }
+            else if (color.esEspecial3) {
+                // Especiales 3 pantallas: usar la configuración de SPECIAL_COLORS
+                const config = color.config;
+                const suffixMap = meshSuffixMap[inkUpper] || meshSuffixMap['WATER'];
+                mallasColor = config.mallas.map(meshNum => {
                     let fullMesh = meshNum + (suffixMap[meshNum] || '');
                     if (!fullMesh.includes('/')) {
                         fullMesh = meshNum + (inkUpper === 'PLASTISOL' ? '/64' : '/48');
                     }
-                    mallasColor.push(fullMesh);
+                    return fullMesh;
                 });
-                additivesColor = color.especial.aditivos;
-            } 
+                additivesColor = config.aditivos;
+            }
             else {
+                // Colores normales (incluyendo grises oscuros, que se tratan igual)
                 if (inkUpper === 'WATER') {
                     if (esOscura) {
-                        mallasColor = ['198/40', '157/48'];
+                        mallasColor = ['198/40', '157/48']; // orden para tela oscura
                     } else {
-                        mallasColor = ['157/48', '198/40'];
+                        mallasColor = ['157/48', '198/40']; // orden para tela clara
                     }
                 } else if (inkUpper === 'PLASTISOL') {
                     mallasColor = ['157/64', '122/55'];
@@ -375,10 +394,9 @@ window.RulesEngine = (function() {
                 additivesColor = baseConfig.color.additives;
             }
 
-            // Añadir cada malla del color (TODAS CON EL MISMO NÚMERO)
+            // Añadir cada malla del color (todas con el mismo número)
             mallasColor.forEach((mesh, idx) => {
                 let screenLetter = String(colorNumber);
-                
                 let nombre = nombreBase;
                 if (mallasColor.length > 1 && idx > 0) {
                     nombre = nombreBase + ' (2)';
@@ -438,12 +456,13 @@ window.RulesEngine = (function() {
         generarSecuencia,
         getCuringConditions,
         esTelaOscura,
-        esColorEspecial,
-        esColorMetalico
+        esColorMetalico,
+        esThreeScreenSpecial,
+        esGrisOscuro
     };
 
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ RulesEngine v8.2 - CON SOPORTE PARA TINTA BLANCA EN WATER');
+    console.log('✅ RulesEngine v8.3 - JERARQUÍA CORREGIDA (metálicos, 3 pantallas, grises)');
 });
