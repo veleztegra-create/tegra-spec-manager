@@ -1,9 +1,6 @@
 // =====================================================
-// rules-engine.js - Versión 7.0 - DEFINITIVA
-// Genera secuencias según:
-// - Tipo de tinta (Waterbase, Plastisol GFS, Plastisol Fanatics, Silicone)
-// - Color de prenda (oscuro/claro)
-// - Colores de diseño (claros/oscuros/especiales/metálicos)
+// rules-engine.js - Versión 7.1 - DEFINITIVA
+// CORREGIDO: generarSecuencia devuelve array directamente
 // =====================================================
 
 window.RulesEngine = (function() {
@@ -24,7 +21,7 @@ window.RulesEngine = (function() {
                 nombre: 'AQUAFLEX MAGNA'
             },
             color: {
-                mallas: ['157/48', '198/40'],  // orden base, luego se invierte si es necesario
+                mallas: ['157/48', '198/40'],
                 additives: '3% CL 500 · 5% ecofix XL'
             },
             baseAdditives: '3% CL 500',
@@ -154,7 +151,7 @@ window.RulesEngine = (function() {
     function esColorClaro(colorName) {
         if (!colorName) return false;
         const upper = colorName.toUpperCase();
-        const claros = ['YELLOW', 'GOLD', 'ORANGE', 'PINK', 'AMARILLO', 'DORADO', 'NARANJA', 'ROSA'];
+        const claros = ['YELLOW', 'GOLD', 'ORANGE', 'PINK', 'AMARILLO', 'DORADO', 'NARANJA', 'ROSA', 'LIGHT', 'CLARO'];
         return claros.some(c => upper.includes(c));
     }
 
@@ -186,7 +183,7 @@ window.RulesEngine = (function() {
     };
 
     // =====================================================
-    // FUNCIÓN PRINCIPAL
+    // FUNCIÓN PRINCIPAL - AHORA DEVUELVE ARRAY DIRECTAMENTE
     // =====================================================
     
     function generarSecuencia(params) {
@@ -197,7 +194,7 @@ window.RulesEngine = (function() {
             designColors = []
         } = params;
 
-        console.log(`⚙️ RulesEngine v7.0: Generando secuencia`);
+        console.log(`⚙️ RulesEngine v7.1: Generando secuencia`);
         console.log(`   Cliente: ${customer || 'N/A'}`);
         console.log(`   Tela: ${garmentColor}`);
         console.log(`   Tinta: ${inkType}`);
@@ -388,18 +385,16 @@ window.RulesEngine = (function() {
         console.log(`   📝 Letras usadas: A - ${String.fromCharCode(nextLetter-1)}`);
         console.log(`   🔢 Números de color: 1 - ${nextNumber-1}`);
 
-        return {
-            sequence: finalSequence,
-            temperatura: baseConfig.temperatura,
-            tiempo: baseConfig.tiempo
-        };
+        // ===== IMPORTANTE: Devolver SOLO el array (lo que espera app.js) =====
+        return finalSequence;
     }
 
+    // ===== Función adicional para obtener condiciones de curado =====
     function getCuringConditions(inkType, customer) {
         const config = getBaseConfig(inkType, customer);
         return {
-            temp: config.temperatura,
-            time: config.tiempo
+            temperatura: config.temperatura,
+            tiempo: config.tiempo
         };
     }
 
@@ -408,8 +403,8 @@ window.RulesEngine = (function() {
     // =====================================================
     
     return {
-        generarSecuencia,
-        getCuringConditions,
+        generarSecuencia,        // Ahora devuelve array directamente
+        getCuringConditions,      // Para obtener temp/tiempo por separado
         esTelaOscura,
         esColorEspecial,
         esColorMetalico
@@ -418,5 +413,5 @@ window.RulesEngine = (function() {
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ RulesEngine v7.0 - DEFINITIVO (con todas las reglas actualizadas)');
+    console.log('✅ RulesEngine v7.1 - DEFINITIVO (devuelve array directamente)');
 });
