@@ -12,6 +12,7 @@ let placements = [];
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
+let draggedColorContext = null;
 
 // =====================================================
 // FUNCIONES AUXILIARES BÁSICAS
@@ -1812,7 +1813,13 @@ function renderPlacementColors(placementId) {
 
         const div = document.createElement('div');
         div.className = 'color-item';
+        div.draggable = true;
+        div.dataset.colorId = String(color.id);
+        div.dataset.placementId = String(placementId);
         div.innerHTML = `
+            <button type="button" class="drag-handle" title="Arrastra para reordenar" aria-label="Arrastra para reordenar">
+                <i class="fas fa-grip-vertical"></i>
+            </button>
             <span class="badge ${badgeClass}">${label}</span>
             <input type="text" 
                    style="width: 60px; text-align: center; font-weight: bold;" 
@@ -1849,10 +1856,84 @@ function renderPlacementColors(placementId) {
                 <i class="fas fa-times"></i>
             </button>
         `;
+        div.addEventListener('dragstart', handlePlacementColorDragStart);
+        div.addEventListener('dragover', handlePlacementColorDragOver);
+        div.addEventListener('drop', handlePlacementColorDrop);
+        div.addEventListener('dragend', handlePlacementColorDragEnd);
+
         container.appendChild(div);
 
         setTimeout(() => updatePlacementColorPreview(placementId, color.id), 10);
     });
+}
+
+function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement || !Array.isArray(placement.colors)) return;
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= placement.colors.length || toIndex >= placement.colors.length) return;
+
+    const [moved] = placement.colors.splice(fromIndex, 1);
+    placement.colors.splice(toIndex, 0, moved);
+
+    syncPlacementSequenceWithColors(placement, true);
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+}
+
+function handlePlacementColorDragStart(event) {
+    const target = event.target.closest('.color-item');
+    if (!target) return;
+
+    const fromPlacementId = Number(target.dataset.placementId);
+    const fromColorId = target.dataset.colorId;
+    if (!fromPlacementId || !fromColorId) return;
+
+    draggedColorContext = {
+        placementId: fromPlacementId,
+        colorId: fromColorId
+    };
+
+    target.classList.add('dragging');
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', fromColorId);
+    }
+}
+
+function handlePlacementColorDragOver(event) {
+    const target = event.target.closest('.color-item');
+    if (!target || !draggedColorContext) return;
+
+    if (Number(target.dataset.placementId) !== draggedColorContext.placementId) return;
+    event.preventDefault();
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+    }
+}
+
+function handlePlacementColorDrop(event) {
+    const target = event.target.closest('.color-item');
+    if (!target || !draggedColorContext) return;
+
+    const placementId = Number(target.dataset.placementId);
+    if (placementId !== draggedColorContext.placementId) return;
+
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement || !Array.isArray(placement.colors)) return;
+
+    event.preventDefault();
+
+    const fromIndex = placement.colors.findIndex(c => String(c.id) === draggedColorContext.colorId);
+    const toIndex = placement.colors.findIndex(c => String(c.id) === String(target.dataset.colorId));
+    movePlacementColorByIndex(placementId, fromIndex, toIndex);
+    showStatus('↕️ Secuencia de colores actualizada');
+}
+
+function handlePlacementColorDragEnd(event) {
+    document.querySelectorAll('.color-item.dragging').forEach((item) => item.classList.remove('dragging'));
+    draggedColorContext = null;
 }
 
 function updatePlacementColorValue(placementId, colorId, value) {
@@ -1918,16 +1999,7 @@ function movePlacementColorItem(placementId, colorId, direction) {
     const targetIndex = currentIndex + direction;
     if (targetIndex < 0 || targetIndex >= placement.colors.length) return;
 
-    const temp = placement.colors[currentIndex];
-    placement.colors[currentIndex] = placement.colors[targetIndex];
-    placement.colors[targetIndex] = temp;
-
-    syncPlacementSequenceWithColors(placement, true);
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-    checkForSpecialtiesInColors(placementId);
-
+    movePlacementColorByIndex(placementId, currentIndex, targetIndex);
     showStatus('↕️ Secuencia de colores actualizada');
 }
 
