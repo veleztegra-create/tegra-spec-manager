@@ -38,6 +38,60 @@
     };
   }
 
+  function normalizeTextValue(value, fallback = '') {
+    const normalized = String(value ?? '').trim();
+    if (!normalized || normalized.toLowerCase() === 'undefined' || normalized.toLowerCase() === 'null') return fallback;
+    return normalized;
+  }
+
+  function formatScaledValue(value, factor) {
+    const n = Number.parseFloat(value);
+    if (!Number.isFinite(n)) return '--';
+    return (Math.round((n * factor) * 1000) / 1000).toFixed(3).replace(/\.?0+$/, '');
+  }
+
+  function formatOffsetValue(value, offset) {
+    const n = Number.parseFloat(value);
+    if (!Number.isFinite(n)) return '--';
+    return (Math.round((n + offset) * 1000) / 1000).toFixed(3).replace(/\.?0+$/, '');
+  }
+
+  function getSizeNotes(data, placement) {
+    const width = normalizeTextValue(placement.width, '');
+    const height = normalizeTextValue(placement.height, '');
+    if (!width || !height) return [];
+
+    const notes = [];
+    notes.push(`Tamaño Final = ${width} x ${height}`);
+
+    const fabric = String(data?.fabric || '').toUpperCase();
+    const customer = String(data?.customer || '').toUpperCase();
+    const isNfsArt = String(placement.type || '').toUpperCase().includes('NFS')
+      || String(placement.name || '').toUpperCase().includes('NFS')
+      || String(placement.placementDetails || '').toUpperCase().includes('NFS');
+
+    if (fabric.includes('TWILL')) {
+      notes.push(`Tamaño con -1% = ${formatScaledValue(width, 0.99)} x ${formatScaledValue(height, 0.99)}`);
+      notes.push(`Tamaño con -4mm = ${formatOffsetValue(width, -0.1575)} x ${formatOffsetValue(height, -0.1575)}`);
+    }
+
+    if (customer.includes('NCAA')) {
+      notes.push(`Tamaño -1.5% = ${formatScaledValue(width, 0.985)} x ${formatScaledValue(height, 0.985)}`);
+    }
+
+    if (isNfsArt) {
+      const currentH = Number.parseFloat(height);
+      const currentW = Number.parseFloat(width);
+      if (Number.isFinite(currentH) && Number.isFinite(currentW) && currentH > 0) {
+        const newHeight = currentH - 0.1181;
+        const factor = newHeight / currentH;
+        notes.push(`Tamaño -3mm alto proporcional = ${formatScaledValue(width, factor)} x ${formatOffsetValue(height, -0.1181)}`);
+      }
+    }
+
+    return notes;
+  }
+
   function generateStationsData(placement) {
     const stations = [];
     let st = 1;
@@ -63,10 +117,10 @@
         mesh = meshWhite;
         add = preset.white.additives;
       } else if (item.type === 'METALLIC') {
-        mesh = '110/64';
+        mesh = '122/55';
         strokesVal = '1';
         duro = '70';
-        add = 'Catalizador especial';
+        add = '3% cross linker 500 · 3% Binder Flex';
       }
 
       stations.push({
@@ -83,7 +137,7 @@
 
       if (idx < arr.length - 1) {
         stations.push({ st: st++, screenLetter: '', screenCombined: 'FLASH' });
-        stations.push({ st: st++, screenLetter: '', screenCombined: 'COOL' });
+        stations.push({ st: st++, screenLetter: '', screenCombined: 'COOL', add: 'HEAT PLATE / ROLLER SQUEEGEE' });
       }
     });
 
@@ -113,15 +167,18 @@
       </div>`).join('') || '<div class="color-name">Sin colores registrados</div>';
 
     const rows = generateStationsData(placement).map((r) => {
-      const isFlash = /FLASH|COOL/.test(String(r.screenCombined || '').toUpperCase());
-      if (isFlash) {
-        return `<tr class="flash-row"><td class="station-number">${esc(r.st)}</td><td></td><td colspan="7">${esc(r.screenCombined)}</td></tr>`;
+      const stationUpper = String(r.screenCombined || '').toUpperCase();
+      const isFlash = stationUpper === 'FLASH';
+      const isCool = stationUpper === 'COOL';
+      if (isFlash || isCool) {
+        const extraAdd = isCool && r.add ? `<span style="margin-left:12px;color:#1f9d55;font-weight:700;">${esc(r.add)}</span>` : '';
+        return `<tr class="flash-row"><td class="station-number">${esc(r.st)}</td><td></td><td colspan="7">${esc(r.screenCombined)}${extraAdd}</td></tr>`;
       }
       return `<tr>
         <td class="station-number">${esc(r.st)}</td>
         <td class="screen-letter">${esc(r.screenLetter)}</td>
         <td class="ink-name">${esc(r.screenCombined)}</td>
-        <td class="additives">${esc(r.add || '')}</td>
+        <td class="additives"><span style="color:#1f9d55;font-weight:700;">${esc(r.add || '')}</span></td>
         <td>${esc(r.mesh || '')}</td>
         <td>${esc(r.strokes || '')}</td>
         <td>${esc(r.angle || '')}</td>
@@ -129,6 +186,14 @@
         <td>${esc(r.duro || '')}</td>
       </tr>`;
     }).join('') || '<tr><td colspan="9">Sin secuencia</td></tr>';
+
+    const safeTemp = normalizeTextValue(placement.temp, '320°F');
+    const safeTime = normalizeTextValue(placement.time, '1:40 min');
+    const safeSpecialInstructions = normalizeTextValue(placement.specialInstructions, '---');
+    const sizeNotes = getSizeNotes(data, placement);
+    const sizeNotesHtml = sizeNotes.length
+      ? `<div class=\"detail-row\" style=\"display:block;\"><span class=\"detail-label\">Tamaños Spec</span><div class=\"detail-value\" style=\"display:flex;flex-direction:column;gap:3px;\">${sizeNotes.map((n)=>`<span>${esc(n)}</span>`).join('')}</div></div>`
+      : '';
 
     return `
       <section class="placement-section">
@@ -141,6 +206,7 @@
             <div class="detail-row"><span class="detail-label">Ubicación</span><span class="detail-value">${esc(placement.placementDetails || '---')}</span></div>
             <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${esc(placement.specialties || '—')}</span></div>
             <div class="detail-row"><span class="detail-label">Talla Base</span><span class="detail-value">${esc(placement.baseSize || data.baseSize || '---')}</span></div>
+            ${sizeNotesHtml}
           </div>
         </div>
 
@@ -157,8 +223,8 @@
         <div class="curing-section">
           <div class="curing-title">Condiciones de Curado</div>
           <div class="curing-grid">
-            <div class="curing-item"><div class="curing-label">Temperatura</div><div class="curing-value">${esc(placement.temp || '320°F')}</div></div>
-            <div class="curing-item"><div class="curing-label">Tiempo</div><div class="curing-value">${esc(placement.time || '1:40 min')}</div></div>
+            <div class="curing-item"><div class="curing-label">Temperatura</div><div class="curing-value">${esc(safeTemp)}</div></div>
+            <div class="curing-item"><div class="curing-label">Tiempo</div><div class="curing-value">${esc(safeTime)}</div></div>
             <div class="curing-item"><div class="curing-label">Tela</div><div class="curing-value small">${esc(placement.fabric || data.fabric || '---')}</div></div>
           </div>
         </div>
@@ -168,6 +234,7 @@
           <div class="info-grid">
             <div class="info-row"><span class="info-label">NOMBRE TÉCNICO:</span><span class="info-value">${esc(data.technicianName || '________________________')}</span></div>
             <div class="info-row"><span class="info-label">COMENTARIOS TÉCNICOS:</span><span class="info-value">${esc(data.technicalComments || '____________________________________________')}</span></div>
+            <div class="info-row"><span class="info-label">INSTRUCCIONES ESPECIALES:</span><span class="info-value">${esc(safeSpecialInstructions)}</span></div>
           </div>
         </div>
 

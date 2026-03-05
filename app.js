@@ -12,6 +12,7 @@ let placements = [];
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
+let draggedColorContext = null;
 
 // =====================================================
 // FUNCIONES AUXILIARES BÁSICAS
@@ -26,6 +27,14 @@ function stringToHash(str) {
         hash = hash & hash;
     }
     return Math.abs(hash);
+}
+
+function normalizeTextValue(value, fallback = '') {
+    const normalized = String(value ?? '').trim();
+    if (!normalized || normalized.toLowerCase() === 'undefined' || normalized.toLowerCase() === 'null') {
+        return fallback;
+    }
+    return normalized;
 }
 
 function updateDateTime() {
@@ -594,6 +603,24 @@ function getNextPlacementNumber() {
     return placements.length + 1;
 }
 
+function getPlacementsForExcelExport(sourcePlacements = []) {
+    const expanded = [];
+
+    sourcePlacements.forEach((placement) => {
+        const rawType = String(placement.type || '').replace('CUSTOM: ', '').trim().toUpperCase();
+
+        if (rawType === 'SLEEVE' || rawType === 'SHOULDER') {
+            expanded.push({ ...placement, excelPlacementType: `LEFT ${rawType}` });
+            expanded.push({ ...placement, excelPlacementType: `RIGHT ${rawType}` });
+            return;
+        }
+
+        expanded.push({ ...placement, excelPlacementType: rawType || String(placement.type || '') });
+    });
+
+    return expanded;
+}
+
 // =====================================================
 // FUNCIÓN PARA GENERAR ID ÚNICO GFS (STYLE-COLORWAY)
 // =====================================================
@@ -853,6 +880,10 @@ function renderPlacementHTML(placement) {
 
     const dimensions = extractDimensions(placement.dimensions);
 
+    const safeTemp = normalizeTextValue(placement.temp, preset.temp || '320 °F');
+    const safeTime = normalizeTextValue(placement.time, preset.time || '1:40 min');
+    const safeSpecialInstructions = normalizeTextValue(placement.specialInstructions, '');
+
     const sectionHTML = `
         <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
             <div class="placement-header">
@@ -984,7 +1015,7 @@ function renderPlacementHTML(placement) {
                                     <input type="text" 
                                            id="temp-${placement.id}"
                                            class="form-control placement-temp"
-                                           value="${placement.temp}"
+                                           value="${safeTemp}"
                                            readonly
                                            title="Determinado por el tipo de tinta seleccionado">
                                 </div>
@@ -993,7 +1024,7 @@ function renderPlacementHTML(placement) {
                                     <input type="text" 
                                            id="time-${placement.id}"
                                            class="form-control placement-time"
-                                           value="${placement.time}"
+                                           value="${safeTime}"
                                            readonly
                                            title="Determinado por el tipo de tinta seleccionado">
                                 </div>
@@ -1144,7 +1175,7 @@ function renderPlacementHTML(placement) {
                                   class="form-control placement-special-instructions"
                                   rows="3"
                                   placeholder="Instrucciones especiales para este placement..."
-                                  oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${placement.specialInstructions}</textarea>
+                                  oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${safeSpecialInstructions}</textarea>
                     </div>
                     
                     <!-- Vista previa de colores -->
@@ -1159,6 +1190,10 @@ function renderPlacementHTML(placement) {
             </div>
         </div>
     `;
+
+    placement.temp = safeTemp;
+    placement.time = safeTime;
+    placement.specialInstructions = safeSpecialInstructions;
 
     container.innerHTML += sectionHTML;
 
@@ -1778,7 +1813,13 @@ function renderPlacementColors(placementId) {
 
         const div = document.createElement('div');
         div.className = 'color-item';
+        div.draggable = true;
+        div.dataset.colorId = String(color.id);
+        div.dataset.placementId = String(placementId);
         div.innerHTML = `
+            <button type="button" class="drag-handle" title="Arrastra para reordenar" aria-label="Arrastra para reordenar">
+                <i class="fas fa-grip-vertical"></i>
+            </button>
             <span class="badge ${badgeClass}">${label}</span>
             <input type="text" 
                    style="width: 60px; text-align: center; font-weight: bold;" 
@@ -1815,10 +1856,84 @@ function renderPlacementColors(placementId) {
                 <i class="fas fa-times"></i>
             </button>
         `;
+        div.addEventListener('dragstart', handlePlacementColorDragStart);
+        div.addEventListener('dragover', handlePlacementColorDragOver);
+        div.addEventListener('drop', handlePlacementColorDrop);
+        div.addEventListener('dragend', handlePlacementColorDragEnd);
+
         container.appendChild(div);
 
         setTimeout(() => updatePlacementColorPreview(placementId, color.id), 10);
     });
+}
+
+function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement || !Array.isArray(placement.colors)) return;
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= placement.colors.length || toIndex >= placement.colors.length) return;
+
+    const [moved] = placement.colors.splice(fromIndex, 1);
+    placement.colors.splice(toIndex, 0, moved);
+
+    syncPlacementSequenceWithColors(placement, true);
+    renderPlacementColors(placementId);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
+}
+
+function handlePlacementColorDragStart(event) {
+    const target = event.target.closest('.color-item');
+    if (!target) return;
+
+    const fromPlacementId = Number(target.dataset.placementId);
+    const fromColorId = target.dataset.colorId;
+    if (!fromPlacementId || !fromColorId) return;
+
+    draggedColorContext = {
+        placementId: fromPlacementId,
+        colorId: fromColorId
+    };
+
+    target.classList.add('dragging');
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', fromColorId);
+    }
+}
+
+function handlePlacementColorDragOver(event) {
+    const target = event.target.closest('.color-item');
+    if (!target || !draggedColorContext) return;
+
+    if (Number(target.dataset.placementId) !== draggedColorContext.placementId) return;
+    event.preventDefault();
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+    }
+}
+
+function handlePlacementColorDrop(event) {
+    const target = event.target.closest('.color-item');
+    if (!target || !draggedColorContext) return;
+
+    const placementId = Number(target.dataset.placementId);
+    if (placementId !== draggedColorContext.placementId) return;
+
+    const placement = placements.find(p => p.id === placementId);
+    if (!placement || !Array.isArray(placement.colors)) return;
+
+    event.preventDefault();
+
+    const fromIndex = placement.colors.findIndex(c => String(c.id) === draggedColorContext.colorId);
+    const toIndex = placement.colors.findIndex(c => String(c.id) === String(target.dataset.colorId));
+    movePlacementColorByIndex(placementId, fromIndex, toIndex);
+    showStatus('↕️ Secuencia de colores actualizada');
+}
+
+function handlePlacementColorDragEnd(event) {
+    document.querySelectorAll('.color-item.dragging').forEach((item) => item.classList.remove('dragging'));
+    draggedColorContext = null;
 }
 
 function updatePlacementColorValue(placementId, colorId, value) {
@@ -1884,16 +1999,7 @@ function movePlacementColorItem(placementId, colorId, direction) {
     const targetIndex = currentIndex + direction;
     if (targetIndex < 0 || targetIndex >= placement.colors.length) return;
 
-    const temp = placement.colors[currentIndex];
-    placement.colors[currentIndex] = placement.colors[targetIndex];
-    placement.colors[targetIndex] = temp;
-
-    syncPlacementSequenceWithColors(placement, true);
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-    checkForSpecialtiesInColors(placementId);
-
+    movePlacementColorByIndex(placementId, currentIndex, targetIndex);
     showStatus('↕️ Secuencia de colores actualizada');
 }
 
@@ -2069,24 +2175,15 @@ function checkForSpecialtiesInColors(placementId) {
 function isMetallicColor(colorName) {
     if (!colorName) return false;
 
-    const upperColor = colorName.toUpperCase();
+    const upperColor = String(colorName).toUpperCase();
+    const pantoneMatch = upperColor.match(/\b(\d{3,4})\s*C?\b/);
+    if (!pantoneMatch) return false;
 
-    if (upperColor.match(/(8[7-9][0-9]\s*C?)/i)) {
-        return true;
-    }
+    const pantone = parseInt(pantoneMatch[1], 10);
+    if (!Number.isFinite(pantone)) return false;
 
-    const METALLIC_CODES = [
-        "871C", "872C", "873C", "874C", "875C", "876C", "877C",
-        "METALLIC", "GOLD", "SILVER", "BRONZE", "METÁLICO", "METALIC"
-    ];
-
-    for (const metallicCode of METALLIC_CODES) {
-        if (upperColor.includes(metallicCode)) {
-            return true;
-        }
-    }
-
-    return false;
+    // Solo rangos metálicos oficiales: 871C-877C y 8001C-8965C
+    return (pantone >= 871 && pantone <= 877) || (pantone >= 8001 && pantone <= 8965);
 }
 
 function getColorHex(colorName) {
@@ -2216,13 +2313,13 @@ function updatePlacementStations(placementId, returnOnly = false) {
         // CASO 4: Es METALLIC
         // =========================================
         else if (item.type === 'METALLIC') {
-            mesh = item.mesh || '110/64';
+            mesh = item.mesh || '122/55';
             strokesVal = '1';
             duro = '70';
             ang = '15';
             press = '40';
             spd = '35';
-            add = item.additives || 'Catalizador especial para metálicos';
+            add = item.additives || '3% cross linker 500 · 3% Binder Flex';
         } 
         // =========================================
         // CASO 5: Es COLOR
@@ -3100,10 +3197,12 @@ function exportToExcel() {
         const rows = [];
 
         if (placements && Array.isArray(placements) && placements.length > 0) {
-            placements.forEach((placement, index) => {
-                const placementType = placement.type.includes('CUSTOM:')
-                    ? placement.type.replace('CUSTOM: ', '').toLowerCase()
-                    : placement.type.toLowerCase();
+            const exportPlacements = getPlacementsForExcelExport(placements);
+
+            exportPlacements.forEach((placement, index) => {
+                const placementType = normalizeTextValue(placement.excelPlacementType, placement.type)
+                    .replace('CUSTOM: ', '')
+                    .toLowerCase();
 
                 const screenCount = placement.sequence ? placement.sequence.length : 0;
                 const colorCount = placement.colors ? placement.colors.length : 0;
