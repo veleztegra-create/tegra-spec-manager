@@ -28,6 +28,14 @@ function stringToHash(str) {
     return Math.abs(hash);
 }
 
+function normalizeTextValue(value, fallback = '') {
+    const normalized = String(value ?? '').trim();
+    if (!normalized || normalized.toLowerCase() === 'undefined' || normalized.toLowerCase() === 'null') {
+        return fallback;
+    }
+    return normalized;
+}
+
 function updateDateTime() {
     const now = new Date();
     const options = {
@@ -594,6 +602,24 @@ function getNextPlacementNumber() {
     return placements.length + 1;
 }
 
+function getPlacementsForExcelExport(sourcePlacements = []) {
+    const expanded = [];
+
+    sourcePlacements.forEach((placement) => {
+        const rawType = String(placement.type || '').replace('CUSTOM: ', '').trim().toUpperCase();
+
+        if (rawType === 'SLEEVE' || rawType === 'SHOULDER') {
+            expanded.push({ ...placement, excelPlacementType: `LEFT ${rawType}` });
+            expanded.push({ ...placement, excelPlacementType: `RIGHT ${rawType}` });
+            return;
+        }
+
+        expanded.push({ ...placement, excelPlacementType: rawType || String(placement.type || '') });
+    });
+
+    return expanded;
+}
+
 // =====================================================
 // FUNCIÓN PARA GENERAR ID ÚNICO GFS (STYLE-COLORWAY)
 // =====================================================
@@ -853,6 +879,10 @@ function renderPlacementHTML(placement) {
 
     const dimensions = extractDimensions(placement.dimensions);
 
+    const safeTemp = normalizeTextValue(placement.temp, preset.temp || '320 °F');
+    const safeTime = normalizeTextValue(placement.time, preset.time || '1:40 min');
+    const safeSpecialInstructions = normalizeTextValue(placement.specialInstructions, '');
+
     const sectionHTML = `
         <div id="${sectionId}" class="placement-section" data-placement-id="${placement.id}">
             <div class="placement-header">
@@ -984,7 +1014,7 @@ function renderPlacementHTML(placement) {
                                     <input type="text" 
                                            id="temp-${placement.id}"
                                            class="form-control placement-temp"
-                                           value="${placement.temp}"
+                                           value="${safeTemp}"
                                            readonly
                                            title="Determinado por el tipo de tinta seleccionado">
                                 </div>
@@ -993,7 +1023,7 @@ function renderPlacementHTML(placement) {
                                     <input type="text" 
                                            id="time-${placement.id}"
                                            class="form-control placement-time"
-                                           value="${placement.time}"
+                                           value="${safeTime}"
                                            readonly
                                            title="Determinado por el tipo de tinta seleccionado">
                                 </div>
@@ -1144,7 +1174,7 @@ function renderPlacementHTML(placement) {
                                   class="form-control placement-special-instructions"
                                   rows="3"
                                   placeholder="Instrucciones especiales para este placement..."
-                                  oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${placement.specialInstructions}</textarea>
+                                  oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${safeSpecialInstructions}</textarea>
                     </div>
                     
                     <!-- Vista previa de colores -->
@@ -1159,6 +1189,10 @@ function renderPlacementHTML(placement) {
             </div>
         </div>
     `;
+
+    placement.temp = safeTemp;
+    placement.time = safeTime;
+    placement.specialInstructions = safeSpecialInstructions;
 
     container.innerHTML += sectionHTML;
 
@@ -3100,10 +3134,12 @@ function exportToExcel() {
         const rows = [];
 
         if (placements && Array.isArray(placements) && placements.length > 0) {
-            placements.forEach((placement, index) => {
-                const placementType = placement.type.includes('CUSTOM:')
-                    ? placement.type.replace('CUSTOM: ', '').toLowerCase()
-                    : placement.type.toLowerCase();
+            const exportPlacements = getPlacementsForExcelExport(placements);
+
+            exportPlacements.forEach((placement, index) => {
+                const placementType = normalizeTextValue(placement.excelPlacementType, placement.type)
+                    .replace('CUSTOM: ', '')
+                    .toLowerCase();
 
                 const screenCount = placement.sequence ? placement.sequence.length : 0;
                 const colorCount = placement.colors ? placement.colors.length : 0;
