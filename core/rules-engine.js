@@ -128,6 +128,12 @@ window.RulesEngine = (function() {
         return tieneGris && noEsClaro;
     }
 
+    function esColorWhiteRefuerzo(colorName) {
+        if (!colorName) return false;
+        const upper = String(colorName).toUpperCase().trim();
+        return upper === 'WHITE' || upper === 'BLANCO' || upper === 'WHITE 1' || upper === 'BLANCO 1';
+    }
+
     const meshSuffixMap = {
         'WATER': { '110': '/64', '122': '/55', '157': '/48', '198': '/40' },
         'PLASTISOL': { '110': '/64', '122': '/55', '157': '/64', '198': '/64' },
@@ -365,7 +371,13 @@ window.RulesEngine = (function() {
             let additivesColor = '';
             let nombreBase = color.val;
 
-            if (color.esMetalico) {
+            if (esColorWhiteRefuerzo(color.val)) {
+                // WHITE 1 / BLANCO 1: usar un solo pase de refuerzo, sin duplicar mallas
+                mallasColor = ['122/55'];
+                additivesColor = baseConfig.baseAdditives || baseConfig.color.additives;
+                nombreBase = baseConfig.whiteBaseRefuerzo?.nombre || 'REF. AQUAFLEX MAGNA';
+            }
+            else if (color.esMetalico) {
                 // Metálicos: configuración especial
                 mallasColor = METALLIC_CONFIG.mallas;
                 additivesColor = METALLIC_CONFIG.aditivos;
