@@ -321,6 +321,11 @@ window.RulesEngine = (function() {
                 for (let i = 0; i < numBases; i++) {
                     addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', baseConfig.baseAdditives);
                 }
+
+                // Refuerzo blanco (solo una vez) cuando ya se aplicaron dos bases B iniciales
+                if (numBases >= 2 && baseConfig.whiteBaseRefuerzo?.nombre) {
+                    addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
+                }
             } else {
                 const baseMallasIniciales = ['110/64', '122/55'];
                 baseMallasIniciales.forEach(malla => {
