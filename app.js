@@ -12,7 +12,7 @@ let placements = [];
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
-let draggedColorContext = null;
+let placementColorDndManager = null;
 
 // =====================================================
 // FUNCIONES AUXILIARES BÁSICAS
@@ -1859,23 +1859,21 @@ function renderPlacementColors(placementId) {
                 <i class="fas fa-times"></i>
             </button>
         `;
-        const dragHandle = div.querySelector('.drag-handle');
-        if (dragHandle) {
-            dragHandle.addEventListener('mousedown', () => {
-                div.dataset.dragArmed = '1';
-            });
-            dragHandle.addEventListener('mouseup', () => {
-                delete div.dataset.dragArmed;
-            });
-            dragHandle.addEventListener('mouseleave', () => {
-                delete div.dataset.dragArmed;
+        if (!placementColorDndManager && window.PlacementColorDnD?.createPlacementColorDndManager) {
+            placementColorDndManager = window.PlacementColorDnD.createPlacementColorDndManager({
+                getPlacementById: (id) => placements.find(p => p.id === id),
+                syncPlacementSequenceWithColors,
+                renderPlacementColors,
+                updatePlacementStations,
+                updatePlacementColorsPreview,
+                checkForSpecialtiesInColors,
+                showStatus
             });
         }
 
-        div.addEventListener('dragstart', handlePlacementColorDragStart);
-        div.addEventListener('dragover', handlePlacementColorDragOver);
-        div.addEventListener('drop', handlePlacementColorDrop);
-        div.addEventListener('dragend', handlePlacementColorDragEnd);
+        if (placementColorDndManager) {
+            placementColorDndManager.bindColorItem(div);
+        }
 
         container.appendChild(div);
 
@@ -1884,6 +1882,11 @@ function renderPlacementColors(placementId) {
 }
 
 function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
+    if (placementColorDndManager) {
+        placementColorDndManager.moveByIndex(placementId, fromIndex, toIndex);
+        return;
+    }
+
     const placement = placements.find(p => p.id === placementId);
     if (!placement || !Array.isArray(placement.colors)) return;
     if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= placement.colors.length || toIndex >= placement.colors.length) return;
@@ -1898,71 +1901,8 @@ function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
     checkForSpecialtiesInColors(placementId);
 }
 
-function handlePlacementColorDragStart(event) {
-    const target = event.target.closest('.color-item');
-    if (!target) return;
-
-    // Permitir arrastre SOLO desde el handle para no interferir al seleccionar texto en inputs
-    const isFromHandle = !!event.target.closest('.drag-handle') || target.dataset.dragArmed === '1';
-    if (!isFromHandle) {
-        event.preventDefault();
-        return;
-    }
-
-    const fromPlacementId = Number(target.dataset.placementId);
-    const fromColorId = target.dataset.colorId;
-    if (!fromPlacementId || !fromColorId) return;
-
-    draggedColorContext = {
-        placementId: fromPlacementId,
-        colorId: fromColorId
-    };
-
-    target.classList.add('dragging');
-    if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', fromColorId);
-    }
-}
-
-function handlePlacementColorDragOver(event) {
-    const target = event.target.closest('.color-item');
-    if (!target || !draggedColorContext) return;
-
-    if (Number(target.dataset.placementId) !== draggedColorContext.placementId) return;
-    event.preventDefault();
-    if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = 'move';
-    }
-}
-
-function handlePlacementColorDrop(event) {
-    const target = event.target.closest('.color-item');
-    if (!target || !draggedColorContext) return;
-
-    const placementId = Number(target.dataset.placementId);
-    if (placementId !== draggedColorContext.placementId) return;
-
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement || !Array.isArray(placement.colors)) return;
-
-    event.preventDefault();
-
-    const fromIndex = placement.colors.findIndex(c => String(c.id) === draggedColorContext.colorId);
-    const toIndex = placement.colors.findIndex(c => String(c.id) === String(target.dataset.colorId));
-    movePlacementColorByIndex(placementId, fromIndex, toIndex);
-    showStatus('↕️ Secuencia de colores actualizada');
-}
-
-function handlePlacementColorDragEnd(event) {
-    document.querySelectorAll('.color-item.dragging').forEach((item) => {
-        item.classList.remove('dragging');
-        delete item.dataset.dragArmed;
-    });
-    draggedColorContext = null;
-}
-
 function updatePlacementColorValue(placementId, colorId, value) {
+
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
