@@ -1828,6 +1828,7 @@ function renderPlacementColors(placementId) {
                    data-color-id="${color.id}"
                    data-placement-id="${placementId}"
                    oninput="updatePlacementScreenLetter(${placementId}, ${color.id}, this.value)"
+                   ondblclick="this.select()"
                    title="Letra/Número de Pantalla">
             <input type="text" 
                    class="form-control placement-ink-input"
@@ -1835,14 +1836,16 @@ function renderPlacementColors(placementId) {
                    data-placement-id="${placementId}"
                    placeholder="Nombre de la tinta..." 
                    value="${color.val}"
-                   oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)">
+                   oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)"
+                   ondblclick="this.select()">
             <input type="text"
                    style="width: 82px; text-align:center;"
                    class="form-control placement-mesh-line"
                    value="${color.mesh || ''}"
                    placeholder="Malla"
                    title="Malla por tinta"
-                   oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)">
+                   oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)"
+                   ondblclick="this.select()">
             <div class="color-preview" 
                  id="placement-color-preview-${placementId}-${color.id}" 
                  title="Vista previa del color"></div>
@@ -1856,6 +1859,19 @@ function renderPlacementColors(placementId) {
                 <i class="fas fa-times"></i>
             </button>
         `;
+        const dragHandle = div.querySelector('.drag-handle');
+        if (dragHandle) {
+            dragHandle.addEventListener('mousedown', () => {
+                div.dataset.dragArmed = '1';
+            });
+            dragHandle.addEventListener('mouseup', () => {
+                delete div.dataset.dragArmed;
+            });
+            dragHandle.addEventListener('mouseleave', () => {
+                delete div.dataset.dragArmed;
+            });
+        }
+
         div.addEventListener('dragstart', handlePlacementColorDragStart);
         div.addEventListener('dragover', handlePlacementColorDragOver);
         div.addEventListener('drop', handlePlacementColorDrop);
@@ -1887,7 +1903,7 @@ function handlePlacementColorDragStart(event) {
     if (!target) return;
 
     // Permitir arrastre SOLO desde el handle para no interferir al seleccionar texto en inputs
-    const isFromHandle = !!event.target.closest('.drag-handle');
+    const isFromHandle = !!event.target.closest('.drag-handle') || target.dataset.dragArmed === '1';
     if (!isFromHandle) {
         event.preventDefault();
         return;
@@ -1939,7 +1955,10 @@ function handlePlacementColorDrop(event) {
 }
 
 function handlePlacementColorDragEnd(event) {
-    document.querySelectorAll('.color-item.dragging').forEach((item) => item.classList.remove('dragging'));
+    document.querySelectorAll('.color-item.dragging').forEach((item) => {
+        item.classList.remove('dragging');
+        delete item.dataset.dragArmed;
+    });
     draggedColorContext = null;
 }
 
