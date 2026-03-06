@@ -1766,7 +1766,9 @@ function addPlacementColorItem(placementId, type) {
         id: colorId,
         type: type,
         screenLetter: initialLetter,
-        val: initialVal
+        val: initialVal,
+        mesh: null,
+        additives: null
     });
 
     syncPlacementSequenceWithColors(placement, true);
@@ -3013,7 +3015,8 @@ function collectData() {
             type: c.type,
             val: c.val,
             screenLetter: c.screenLetter,
-            mesh: c.mesh || ''
+            mesh: c.mesh || '',
+            additives: c.additives || ''
         })),
         sequence: placement.sequence || [], // Guardar la secuencia completa
         placementDetails: placement.placementDetails,
