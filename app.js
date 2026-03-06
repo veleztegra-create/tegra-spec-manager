@@ -1886,6 +1886,13 @@ function handlePlacementColorDragStart(event) {
     const target = event.target.closest('.color-item');
     if (!target) return;
 
+    // Permitir arrastre SOLO desde el handle para no interferir al seleccionar texto en inputs
+    const isFromHandle = !!event.target.closest('.drag-handle');
+    if (!isFromHandle) {
+        event.preventDefault();
+        return;
+    }
+
     const fromPlacementId = Number(target.dataset.placementId);
     const fromColorId = target.dataset.colorId;
     if (!fromPlacementId || !fromColorId) return;
