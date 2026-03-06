@@ -170,10 +170,14 @@ window.RulesEngine = (function() {
             whiteBase: { 
                 nombre: 'TXT POLY WHITE'
             },
+            whiteBaseRefuerzo: {
+                nombre: 'POLY WHITE'
+            },
             color: {
                 mallas: ['157/64', '122/55'],
                 additives: '1% catalyst'
             },
+            baseAdditives: '1% catalyst',
             temperatura: '320 °F',
             tiempo: '1:00 min'
         },
@@ -185,10 +189,14 @@ window.RulesEngine = (function() {
             whiteBase: { 
                 nombre: 'POLY WHITE'
             },
+            whiteBaseRefuerzo: {
+                nombre: 'POLY WHITE'
+            },
             color: {
                 mallas: ['157/64', '122/55'],
                 additives: '1% catalyst'
             },
+            baseAdditives: '1% catalyst',
             temperatura: '320 °F',
             tiempo: '1:00 min'
         },
@@ -200,10 +208,14 @@ window.RulesEngine = (function() {
             whiteBase: { 
                 nombre: 'BASE WHITE LIBRA'
             },
+            whiteBaseRefuerzo: {
+                nombre: 'WHITE LIBRA'
+            },
             color: {
                 mallas: ['157/48', '157/48'],
                 additives: '3% cat · 2% ret'
             },
+            baseAdditives: 'Matte Additive 0.3%',
             temperatura: '320 °F',
             tiempo: '1:40 min'
         }
@@ -372,10 +384,19 @@ window.RulesEngine = (function() {
             let nombreBase = color.val;
 
             if (esColorWhiteRefuerzo(color.val)) {
-                // WHITE 1 / BLANCO 1: usar un solo pase de refuerzo, sin duplicar mallas
+                // WHITE 1 / BLANCO 1: un solo pase según tipo de tinta
                 mallasColor = ['122/55'];
-                additivesColor = baseConfig.baseAdditives || baseConfig.color.additives;
-                nombreBase = baseConfig.whiteBaseRefuerzo?.nombre || 'REF. AQUAFLEX MAGNA';
+
+                if (inkUpper === 'SILICONE') {
+                    nombreBase = baseConfig.whiteBaseRefuerzo?.nombre || 'WHITE LIBRA';
+                    additivesColor = baseConfig.baseAdditives || 'Matte Additive 0.3%';
+                } else if (inkUpper === 'PLASTISOL') {
+                    nombreBase = baseConfig.whiteBaseRefuerzo?.nombre || 'POLY WHITE';
+                    additivesColor = baseConfig.baseAdditives || baseConfig.color.additives;
+                } else {
+                    nombreBase = baseConfig.whiteBaseRefuerzo?.nombre || 'REF. AQUAFLEX MAGNA';
+                    additivesColor = baseConfig.baseAdditives || baseConfig.color.additives;
+                }
             }
             else if (color.esMetalico) {
                 // Metálicos: configuración especial
