@@ -603,23 +603,7 @@ function getNextPlacementNumber() {
     return placements.length + 1;
 }
 
-function getPlacementsForExcelExport(sourcePlacements = []) {
-    const expanded = [];
-
-    sourcePlacements.forEach((placement) => {
-        const rawType = String(placement.type || '').replace('CUSTOM: ', '').trim().toUpperCase();
-
-        if (rawType === 'SLEEVE' || rawType === 'SHOULDER') {
-            expanded.push({ ...placement, excelPlacementType: `LEFT ${rawType}` });
-            expanded.push({ ...placement, excelPlacementType: `RIGHT ${rawType}` });
-            return;
-        }
-
-        expanded.push({ ...placement, excelPlacementType: rawType || String(placement.type || '') });
-    });
-
-    return expanded;
-}
+// getPlacementsForExcelExport movido a modules/export-excel.js
 
 // =====================================================
 // FUNCIÓN PARA GENERAR ID ÚNICO GFS (STYLE-COLORWAY)
@@ -628,18 +612,18 @@ function getPlacementsForExcelExport(sourcePlacements = []) {
 function generarGFSIdentifier() {
     const customer = document.getElementById('customer')?.value || '';
     const customerUpper = customer.toUpperCase();
-    
+
     // Solo aplicar para GFS
     const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.'].some(v => customerUpper.includes(v));
-    
+
     if (!isGFS) return null;
-    
+
     const style = document.getElementById('style')?.value || '';
     const colorway = document.getElementById('colorway')?.value || '';
-    
+
     // Extraer código de colorway (ej: "W001" o "PMD5-Red" -> "PMD5")
     let colorCode = '';
-    
+
     // Si tiene guión, tomar la primera parte
     if (colorway.includes('-')) {
         colorCode = colorway.split('-')[0].trim();
@@ -652,13 +636,13 @@ function generarGFSIdentifier() {
             colorCode = colorway.toUpperCase();
         }
     }
-    
+
     if (style && colorCode) {
         const identifier = `${style}-${colorCode}`.toUpperCase();
         console.log('🏷️ GFS Identifier generado:', identifier);
         return identifier;
     }
-    
+
     return null;
 }
 
@@ -699,12 +683,12 @@ function normalizeGearForSportStyleAndColorway(style, colorway, customer = '') {
 if (typeof window.errorHandler === 'undefined') {
     window.errorHandler = {
         errors: [],
-        log: function(context, error) {
+        log: function (context, error) {
             console.error(`[${context}]`, error);
             this.errors.push({ context, error, timestamp: new Date() });
         },
-        getErrors: function() { return this.errors; },
-        clearErrors: function() { this.errors = []; console.log("🧹 Errores limpiados"); }
+        getErrors: function () { return this.errors; },
+        clearErrors: function () { this.errors = []; console.log("🧹 Errores limpiados"); }
     };
     console.log("✅ errorHandler creado");
 }
@@ -713,7 +697,7 @@ if (typeof window.errorHandler === 'undefined') {
 // ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE (MEJORADA) ⭐
 // =====================================================
 
-window.generarConAsistente = async function(placementId) {
+window.generarConAsistente = async function (placementId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) {
         showStatus('❌ Placement no encontrado', 'error');
@@ -729,9 +713,9 @@ window.generarConAsistente = async function(placementId) {
         const customer = document.getElementById('customer')?.value || '';
         const garmentColor = document.getElementById('colorway')?.value || '';
         const inkType = placement.inkType || 'WATER';
-        
+
         // Obtener SOLO los colores del diseño (los que el usuario agregó manualmente)
-        const designColors = placement.colors.filter(c => 
+        const designColors = placement.colors.filter(c =>
             c.type === 'COLOR' || c.type === 'METALLIC'
         ).map(c => ({ id: c.id, val: c.val }));
 
@@ -762,12 +746,12 @@ window.generarConAsistente = async function(placementId) {
         // =============================================
         // 3. SEPARAR: COLORES REALES vs SECUENCIA COMPLETA
         // =============================================
-        
+
         // 3.1 COLORES REALES (para la UI de colores) - SOLO tintas
-        const coloresReales = secuenciaCompleta.filter(paso => 
-            paso.tipo === 'WHITE_BASE' || 
-            paso.tipo === 'BLOCKER' || 
-            paso.tipo === 'COLOR' || 
+        const coloresReales = secuenciaCompleta.filter(paso =>
+            paso.tipo === 'WHITE_BASE' ||
+            paso.tipo === 'BLOCKER' ||
+            paso.tipo === 'COLOR' ||
             paso.tipo === 'METALLIC'
         );
 
@@ -794,10 +778,10 @@ window.generarConAsistente = async function(placementId) {
         // =============================================
         // 4. ACTUALIZAR CONDICIONES DE CURADO
         // =============================================
-        const curing = window.RulesEngine.getCuringConditions 
+        const curing = window.RulesEngine.getCuringConditions
             ? window.RulesEngine.getCuringConditions(inkType, customer)
             : { temp: '320 °F', time: '1:40 min' };
-            
+
         placement.temp = curing.temp;
         placement.time = curing.time;
 
@@ -814,7 +798,7 @@ window.generarConAsistente = async function(placementId) {
         syncPlacementSequenceWithColors(placement);
         updatePlacementStations(placementId);
         updatePlacementColorsPreview(placementId);
-        
+
         showStatus(`✅ Secuencia generada (${placement.sequence.length} pasos totales, ${placement.colors.length} colores)`, 'success');
 
     } catch (error) {
@@ -1198,12 +1182,12 @@ function renderPlacementHTML(placement) {
     container.innerHTML += sectionHTML;
 
     renderPlacementColors(placement.id);
-    
+
     // Usar la secuencia guardada si existe, o generar una nueva
     if (placement.sequence && placement.sequence.length > 0) {
         updatePlacementStations(placement.id);
     }
-    
+
     updatePlacementColorsPreview(placement.id);
 
     if (placement.imageData) {
@@ -2182,7 +2166,7 @@ function updatePlacementColorsPreview(placementId) {
 
     placement.colors.forEach(color => {
         if (color.type === 'COLOR' || color.type === 'METALLIC') {
-            const colorVal = (color.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/,'').trim();
+            const colorVal = (color.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
             if (colorVal && !seenColors.has(colorVal)) {
                 seenColors.add(colorVal);
                 uniqueColors.push({
@@ -2224,7 +2208,7 @@ function updatePlacementStations(placementId, returnOnly = false) {
 
     // ✅ USAR LA SECUENCIA COMPLETA si existe
     const sequence = placement.sequence || [];
-    
+
     if (sequence.length === 0) {
         if (!returnOnly) {
             const div = document.getElementById(`placement-sequence-table-${placementId}`);
@@ -2240,7 +2224,7 @@ function updatePlacementStations(placementId, returnOnly = false) {
     // Recorrer la secuencia completa (YA incluye FLASH/COOL en la posición correcta)
     for (let idx = 0; idx < sequence.length; idx++) {
         const item = sequence[idx];
-        
+
         // =========================================
         // CASO 1: Es FLASH o COOL (ya están en la secuencia)
         // =========================================
@@ -2265,18 +2249,18 @@ function updatePlacementStations(placementId, returnOnly = false) {
         // CASO 2: Es BLOCKER
         // =========================================
         let mesh, strokesVal, duro, ang, press, spd, add;
-        
+
         if (item.type === 'BLOCKER') {
             mesh = item.mesh || placement.meshBlocker || preset.blocker.mesh1;
             add = item.additives || placement.additives || preset.blocker.additives;
-        } 
+        }
         // =========================================
         // CASO 3: Es WHITE_BASE
         // =========================================
         else if (item.type === 'WHITE_BASE') {
             mesh = item.mesh || placement.meshWhite || preset.white.mesh1;
             add = item.additives || placement.additives || preset.white.additives;
-        } 
+        }
         // =========================================
         // CASO 4: Es METALLIC
         // =========================================
@@ -2288,7 +2272,7 @@ function updatePlacementStations(placementId, returnOnly = false) {
             press = '40';
             spd = '35';
             add = item.additives || '3% cross linker 500 · 3% Binder Flex';
-        } 
+        }
         // =========================================
         // CASO 5: Es COLOR
         // =========================================
@@ -2487,7 +2471,7 @@ function processExcelData(worksheet, sheetName = '') {
                 else if (label.includes('STYLE:')) {
                     extracted.style = val;
                     extracted.team = detectTeamFromStyle(val, extracted.colorway, extracted.customer);
-                    
+
                     if (extracted.customer && extracted.customer.toUpperCase().includes('GEAR')) {
                         extracted.gender = extractGenderFromStyle(val);
                         console.log(`🏈 GFS detectado - estilo: ${val}, género: ${extracted.gender}`);
@@ -2985,65 +2969,11 @@ function saveCurrentSpec() {
 }
 
 function collectData() {
-    const generalData = {
-        customer: document.getElementById('customer')?.value || '',
-        style: document.getElementById('style')?.value || '',
-        folder: document.getElementById('folder-num')?.value || '',
-        colorway: document.getElementById('colorway')?.value || '',
-        season: document.getElementById('season')?.value || '',
-        pattern: document.getElementById('pattern')?.value || '',
-        po: document.getElementById('po')?.value || '',
-        sampleType: document.getElementById('sample-type')?.value || '',
-        nameTeam: document.getElementById('name-team')?.value || '',
-        gender: document.getElementById('gender')?.value || '',
-        designer: document.getElementById('designer')?.value || '',
-        baseSize: document.getElementById('base-size')?.value || '',
-        fabric: document.getElementById('fabric')?.value || '',
-        technicianName: document.getElementById('technician-name')?.value || '',
-        technicalComments: document.getElementById('technical-comments')?.value || '',
-        savedAt: new Date().toISOString()
-    };
-
-    const placementsData = placements.map(placement => ({
-        id: placement.id,
-        type: placement.type,
-        name: placement.name,
-        imageData: placement.imageData,
-        // ✅ Guardar AMBAS cosas
-        colors: placement.colors.map(c => ({
-            id: c.id,
-            type: c.type,
-            val: c.val,
-            screenLetter: c.screenLetter,
-            mesh: c.mesh || '',
-            additives: c.additives || ''
-        })),
-        sequence: placement.sequence || [], // Guardar la secuencia completa
-        placementDetails: placement.placementDetails,
-        dimensions: placement.dimensions,
-        width: placement.width,
-        height: placement.height,
-        temp: placement.temp,
-        time: placement.time,
-        specialties: placement.specialties,
-        specialInstructions: placement.specialInstructions,
-        inkType: placement.inkType,
-        placementSelect: placement.placementSelect,
-        meshColor: placement.meshColor,
-        meshWhite: placement.meshWhite,
-        meshBlocker: placement.meshBlocker,
-        durometer: placement.durometer,
-        strokes: placement.strokes,
-        angle: placement.angle,
-        pressure: placement.pressure,
-        speed: placement.speed,
-        additives: placement.additives
-    }));
-
-    return {
-        ...generalData,
-        placements: placementsData
-    };
+    if (typeof buildSpecData === 'function') {
+        return buildSpecData();
+    }
+    console.error('buildSpecData no encontrado! Revisa que modules/spec-data-model.js esté cargado.');
+    return { placements: [] };
 }
 
 // =====================================================
@@ -3104,7 +3034,7 @@ async function exportHTML() {
 
         // ✅ IMPORTANTE: Recolectar datos ACTUALES del formulario y placements
         const data = collectData();
-        
+
         // ✅ Forzar actualización de la secuencia en los datos
         data.placements = placements.map(p => ({
             ...p,
@@ -3114,7 +3044,7 @@ async function exportHTML() {
         }));
 
         console.log('📤 Exportando HTML con datos:', data);
-        
+
         const htmlContent = window.generateSpecHTMLDocument(data);
         const style = getInputValue('style', 'Spec') || 'Spec';
         const folderNum = getInputValue('folder-num', '00000') || '00000';
@@ -3137,164 +3067,7 @@ async function exportHTML() {
     }
 }
 
-function exportToExcel() {
-    try {
-        if (typeof XLSX === 'undefined') {
-            showStatus('❌ Error: Biblioteca Excel no cargada', 'error');
-            return;
-        }
-
-        const data = {
-            designer: getInputValue('designer'),
-            customer: getInputValue('customer'),
-            season: getInputValue('season'),
-            folder: getInputValue('folder-num'),
-            nameTeam: getInputValue('name-team'),
-            colorway: getInputValue('colorway'),
-            style: getInputValue('style')
-        };
-
-        const wb = XLSX.utils.book_new();
-
-        const headers = [
-            'Area', 'Designer', 'Customer', 'Division', 'SEASON',
-            '', '#Folder/SPEC', '', '', '', '', '', '', '', '', '', '', '', '', '',
-            'TEAM', '', '', 'COLORWAY', '', 'PLACEMENTS', '', 'SPEC #', '#SCREEEN',
-            'NO. COLORES', 'Stations', 'setup', 'size', 'W', 'H', 'TYPE OF ART', 'INK TYPE'
-        ];
-
-        const rows = [];
-
-        if (placements && Array.isArray(placements) && placements.length > 0) {
-            const exportPlacements = getPlacementsForExcelExport(placements);
-
-            exportPlacements.forEach((placement, index) => {
-                const placementType = normalizeTextValue(placement.excelPlacementType, placement.type)
-                    .replace('CUSTOM: ', '')
-                    .toLowerCase();
-
-                const screenCount = placement.sequence ? placement.sequence.length : 0;
-                const colorCount = placement.colors ? placement.colors.length : 0;
-                const stationCount = screenCount;
-                const artType = 'Vector';
-
-                let inkType = 'WB MAGNA';
-                if (placement.inkType === 'WATER') inkType = 'WB MAGNA';
-                if (placement.inkType === 'PLASTISOL') inkType = 'PLASTISOL';
-                if (placement.inkType === 'SILICONE') inkType = 'SILICONE';
-
-                const width = placement.width || extractDimensions(placement.dimensions).width;
-                const height = placement.height || extractDimensions(placement.dimensions).height;
-
-                const row = [
-                    'Development',
-                    data.designer,
-                    data.customer,
-                    'NFL / jersey',
-                    data.season,
-                    '',
-                    data.folder,
-                    '', '', '', '', '', '', '', '', '', '', '', '', '',
-                    data.nameTeam,
-                    '', '',
-                    data.colorway,
-                    '',
-                    placementType,
-                    '',
-                    `SPEC ${index + 1}`,
-                    screenCount,
-                    colorCount,
-                    stationCount,
-                    1,
-                    'L',
-                    `${width}"`,
-                    `${height}"`,
-                    artType,
-                    inkType
-                ];
-
-                rows.push(row);
-            });
-        } else {
-            const defaultRow = [
-                'Development',
-                data.designer,
-                data.customer,
-                'NFL / jersey',
-                data.season,
-                '',
-                data.folder,
-                '', '', '', '', '', '', '', '', '', '', '', '', '',
-                data.nameTeam,
-                '', '',
-                data.colorway,
-                '',
-                'front',
-                '',
-                'SPEC 1',
-                0,
-                0,
-                0,
-                1,
-                'L',
-                '15.34"',
-                '12"',
-                'Vector',
-                'WB MAGNA'
-            ];
-
-            rows.push(defaultRow);
-        }
-
-        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-
-        const colWidths = [];
-        for (let i = 0; i < headers.length; i++) {
-            if (i === 0) colWidths.push({ wch: 12 });
-            else if (i === 1) colWidths.push({ wch: 12 });
-            else if (i === 2) colWidths.push({ wch: 15 });
-            else if (i === 3) colWidths.push({ wch: 15 });
-            else if (i === 4) colWidths.push({ wch: 8 });
-            else if (i === 6) colWidths.push({ wch: 12 });
-            else if (i === 20) colWidths.push({ wch: 25 });
-            else if (i === 23) colWidths.push({ wch: 15 });
-            else if (i === 25) colWidths.push({ wch: 12 });
-            else if (i === 27) colWidths.push({ wch: 8 });
-            else if (i === 28) colWidths.push({ wch: 10 });
-            else if (i === 29) colWidths.push({ wch: 12 });
-            else if (i === 30) colWidths.push({ wch: 10 });
-            else if (i === 34) colWidths.push({ wch: 10 });
-            else if (i === 35) colWidths.push({ wch: 12 });
-            else colWidths.push({ wch: 3 });
-        }
-        ws['!cols'] = colWidths;
-
-        const headerRange = XLSX.utils.decode_range(ws['!ref']);
-        for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
-            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
-            if (!ws[cellAddress]) continue;
-
-            if (headers[C] && headers[C] !== '') {
-                ws[cellAddress].s = {
-                    font: { bold: true, color: { rgb: "FFFFFF" } },
-                    fill: { fgColor: { rgb: "4472C4" } },
-                    alignment: { horizontal: "center", vertical: "center" }
-                };
-            }
-        }
-
-        XLSX.utils.book_append_sheet(wb, ws, 'Hoja1');
-
-        const fileName = `Calculadora_${data.style || 'Spec'}_${data.folder || '00000'}.xlsx`;
-        XLSX.writeFile(wb, fileName);
-
-        showStatus('📊 Spec Excel generada correctamente', 'success');
-
-    } catch (error) {
-        console.error('Error al exportar Excel:', error);
-        showStatus('❌ Error al generar Spec Excel: ' + error.message, 'error');
-    }
-}
+// exportToExcel movido a modules/export-excel.js
 
 async function downloadProjectZip() {
     try {
