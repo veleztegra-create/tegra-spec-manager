@@ -24,7 +24,7 @@
                 <div class="form-group">
                     <label for="customer" class="form-label">CLIENTE:</label>
                     <input type="text" id="customer" class="form-control" list="customer-list"
-                        oninput="updateClientLogo(); handleGearForSportLogic();">
+                        data-bind-general="customer" oninput="updateClientLogo(); handleGearForSportLogic();">
                     <datalist id="customer-list">
                         <option value="GEAR FOR SPORT">
                         <option value="ADIDAS">
@@ -36,39 +36,41 @@
                 </div>
                 <div class="form-group">
                     <label for="style" class="form-label">STYLE:</label>
-                    <input type="text" id="style" class="form-control" oninput="handleGearForSportLogic();">
+                    <input type="text" id="style" class="form-control" data-bind-general="style"
+                        oninput="handleGearForSportLogic();">
                 </div>
                 <div class="form-group">
                     <label for="colorway" class="form-label">COLORWAY:</label>
-                    <input type="text" id="colorway" class="form-control">
+                    <input type="text" id="colorway" class="form-control" data-bind-general="colorway">
                 </div>
                 <div class="form-group">
                     <label for="season" class="form-label">SEASON:</label>
-                    <input type="text" id="season" class="form-control">
+                    <input type="text" id="season" class="form-control" data-bind-general="season">
                 </div>
                 <div class="form-group">
                     <label for="pattern" class="form-label">PATTERN #:</label>
-                    <input type="text" id="pattern" class="form-control">
+                    <input type="text" id="pattern" class="form-control" data-bind-general="pattern">
                 </div>
                 <div class="form-group">
                     <label for="po" class="form-label">P.O. #:</label>
-                    <input type="text" id="po" class="form-control" oninput="handleGearForSportLogic();">
+                    <input type="text" id="po" class="form-control" data-bind-general="po"
+                        oninput="handleGearForSportLogic();">
                 </div>
                 <div class="form-group">
                     <label for="sample-type" class="form-label">SAMPLE TYPE:</label>
-                    <input type="text" id="sample-type" class="form-control">
+                    <input type="text" id="sample-type" class="form-control" data-bind-general="sampleType">
                 </div>
                 <div class="form-group">
                     <label for="name-team" class="form-label">NAME / TEAM:</label>
-                    <input type="text" id="name-team" class="form-control">
+                    <input type="text" id="name-team" class="form-control" data-bind-general="nameTeam">
                 </div>
                 <div class="form-group">
                     <label for="gender" class="form-label">GENDER:</label>
-                    <input type="text" id="gender" class="form-control">
+                    <input type="text" id="gender" class="form-control" data-bind-general="gender">
                 </div>
                 <div class="form-group">
                     <label for="designer" class="form-label">DISEÑADOR:</label>
-                    <select id="designer" class="form-control">
+                    <select id="designer" class="form-control" data-bind-general="designer">
                         <option value="">Seleccionar...</option>
                         <option value="ELMER VELEZ">ELMER VELEZ</option>
                         <option value="DANIEL HERNANDEZ">DANIEL HERNANDEZ</option>
@@ -80,11 +82,13 @@
                 </div>
                 <div class="form-group">
                     <label for="base-size" class="form-label">TALLA BASE:</label>
-                    <input type="text" id="base-size" class="form-control" placeholder="M / L">
+                    <input type="text" id="base-size" class="form-control" data-bind-general="baseSize"
+                        placeholder="M / L">
                 </div>
                 <div class="form-group">
                     <label for="fabric" class="form-label">TELA:</label>
-                    <input type="text" id="fabric" class="form-control" placeholder="Algodón, Polyester, Twill...">
+                    <input type="text" id="fabric" class="form-control" data-bind-general="fabric"
+                        placeholder="Algodón, Polyester, Twill...">
                 </div>
             </div>
         </div>
@@ -116,12 +120,13 @@
             <div class="form-grid two-col">
                 <div class="form-group">
                     <label for="technician-name" class="form-label">NOMBRE TÉCNICO:</label>
-                    <input type="text" id="technician-name" class="form-control" placeholder="Nombre del técnico">
+                    <input type="text" id="technician-name" class="form-control" data-bind-general="technicianName"
+                        placeholder="Nombre del técnico">
                 </div>
                 <div class="form-group" style="grid-column: 1 / -1;">
                     <label for="technical-comments" class="form-label">COMENTARIOS TÉCNICOS:</label>
-                    <textarea id="technical-comments" class="form-control" rows="2"
-                        placeholder="Notas para planta..."></textarea>
+                    <textarea id="technical-comments" class="form-control" data-bind-general="technicalComments"
+                        rows="2" placeholder="Notas para planta..."></textarea>
                 </div>
             </div>
         </div>
@@ -134,6 +139,10 @@
         </div>
         <div class="card-body">
             <div class="global-actions">
+                <button type="button" class="btn btn-secondary" onclick="Store.undo()"><i class="fas fa-undo"></i>
+                    Deshacer</button>
+                <button type="button" class="btn btn-secondary" onclick="Store.redo()"><i class="fas fa-redo"></i>
+                    Rehacer</button>
                 <button type="button" class="btn btn-primary" onclick="saveCurrentSpec()"><i class="fas fa-save"></i>
                     Guardar Spec</button>
                 <button type="button" class="btn btn-success" onclick="exportHTML()"><i class="fas fa-file-pdf"></i>
