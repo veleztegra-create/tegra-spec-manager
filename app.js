@@ -8,7 +8,11 @@
 // VARIABLES GLOBALES
 // =====================================================
 const stateManager = new StateManager();
-let placements = [];
+// 'placements' is now linked to the Reactive Store to ensure single source of truth
+Object.defineProperty(window, 'placements', {
+    get: () => Store.state.placements,
+    set: (val) => { Store.state.placements = val; }
+});
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
@@ -573,7 +577,7 @@ function addNewPlacement(type = null, isFirst = false) {
     };
 
     if (!isFirst) {
-        placements.push(newPlacement);
+        placements = [...placements, newPlacement];
     } else {
         placements = [newPlacement];
     }
@@ -1455,7 +1459,7 @@ function duplicatePlacement(placementId) {
 
     if (!duplicate.specialties) duplicate.specialties = '';
 
-    placements.push(duplicate);
+    placements = [...placements, duplicate];
 
     renderPlacementHTML(duplicate);
     updatePlacementsTabs();
@@ -1484,7 +1488,8 @@ function removePlacement(placementId) {
 
     const removedType = placements[index].type;
 
-    placements.splice(index, 1);
+    // Use immutable filter instead of splice
+    placements = placements.filter((_, i) => i !== index);
 
     const section = document.getElementById(`placement-section-${placementId}`);
     if (section) {
@@ -2841,7 +2846,7 @@ function loadSpecData(data) {
             if (index === 0) {
                 placements = [placement];
             } else {
-                placements.push(placement);
+                placements = [...placements, placement];
             }
 
             renderPlacementHTML(placement);
@@ -3364,6 +3369,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // Una vez que los templates están cargados, podemos inicializar todo
             console.log('✅ Templates cargados, inicializando app...');
 
+            // --- INICIALIZAR REACTIVE STORE ---
+            if (window.Store && window.initBindings && window.enableAutosave && window.enableStateDebugger) {
+                const savedState = localStorage.getItem("spec-autosave");
+                if (savedState) {
+                    try {
+                        const parsedState = JSON.parse(savedState);
+                        console.log("📥 [Autosave] Cargando Spec guardado...");
+                        Store.replaceState(parsedState);
+                    } catch (e) { console.error("Error cargando autosave", e); }
+                }
+
+                initBindings();
+                enableAutosave();
+                enableStateDebugger();
+            }
+
             updateDateTime();
             updateDashboard();
             loadSavedSpecsList(); // Ahora el contenedor ya existe
@@ -3390,6 +3411,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Inicializar placements solo si el contenedor existe
             if (placements.length === 0 && document.getElementById('placements-container')) {
                 initializePlacements();
+            } else if (placements.length > 0 && document.getElementById('placements-container')) {
+                // Si fueron cargados de autosave, re-dibujarlos
+                placements.forEach(p => renderPlacementHTML(p));
+                updatePlacementsTabs();
+                showPlacement(placements[0] ? placements[0].id : null);
             } else {
                 console.warn("No se pudo inicializar placements: contenedor no encontrado.");
             }
