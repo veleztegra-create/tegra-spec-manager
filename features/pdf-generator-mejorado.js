@@ -137,7 +137,15 @@
 
       if (idx < arr.length - 1) {
         stations.push({ st: st++, screenLetter: '', screenCombined: 'FLASH' });
-        stations.push({ st: st++, screenLetter: '', screenCombined: 'COOL', add: 'HEAT PLATE / ROLLER SQUEEGEE' });
+
+        // Add 'HEAT PLATE / ROLLER SQUEEGEE' ONLY to the first COOL station (idx === 0)
+        const isFirstCool = (idx === 0);
+        stations.push({
+          st: st++,
+          screenLetter: '',
+          screenCombined: 'COOL',
+          add: isFirstCool ? 'HEAT PLATE / ROLLER SQUEEGEE' : ''
+        });
       }
     });
 
@@ -154,7 +162,7 @@
     const seenColorNames = new Set();
     (placement.colors || []).forEach((c) => {
       if (c.type !== 'COLOR' && c.type !== 'METALLIC') return;
-      const normalized = String(c.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/,'').trim();
+      const normalized = String(c.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
       if (!normalized || seenColorNames.has(normalized)) return;
       seenColorNames.add(normalized);
       uniqueDesignColors.push(c);
@@ -192,7 +200,7 @@
     const safeSpecialInstructions = normalizeTextValue(placement.specialInstructions, '---');
     const sizeNotes = getSizeNotes(data, placement);
     const sizeNotesHtml = sizeNotes.length
-      ? `<div class=\"detail-row\" style=\"display:block;\"><span class=\"detail-label\">Tamaños Spec</span><div class=\"detail-value\" style=\"display:flex;flex-direction:column;gap:3px;\">${sizeNotes.map((n)=>`<span>${esc(n)}</span>`).join('')}</div></div>`
+      ? `<div class=\"detail-row\" style=\"display:block;\"><span class=\"detail-label\">Tamaños Spec</span><div class=\"detail-value\" style=\"display:flex;flex-direction:column;gap:3px;\">${sizeNotes.map((n) => `<span>${esc(n)}</span>`).join('')}</div></div>`
       : '';
 
     return `
