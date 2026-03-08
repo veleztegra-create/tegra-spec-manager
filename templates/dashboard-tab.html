@@ -24,7 +24,21 @@
     </div>
 </div>
 
-<div class="card">
+<!-- NUEVO: BUSCADOR DE SPECS EN EL DASHBOARD -->
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-search"></i> Buscar Specs</h2>
+    </div>
+    <div class="card-body">
+        <input type="text" id="dashboard-spec-search" class="form-control" placeholder="Buscar por código/style, cliente, PO o colorway..." oninput="debouncedSearchDashboardSpecs()">
+        <div id="dashboard-search-results" style="margin-top: 15px; max-height: 300px; overflow-y: auto;">
+            <!-- Resultados de la búsqueda -->
+            <p style="color: var(--text-secondary); text-align: center; padding: 15px;">Escribe para buscar specs guardadas...</p>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
     <div class="card-header">
         <h2 class="card-title"><i class="fas fa-rocket"></i> Acciones Rápidas</h2>
         <div class="no-print">
@@ -39,7 +53,7 @@
                 <i class="fas fa-plus"></i> Nueva Spec
             </button>
             <button class="btn btn-warning btn-lg" onclick="document.getElementById('excelFile').click()">
-                <i class="fas fa-folder-open"></i> Cargar Spec
+                <i class="fas fa-folder-open"></i> Cargar Spec (JSON/ZIP)
             </button>
             <button class="btn btn-success btn-lg" onclick="document.getElementById('excelFile').click()">
                 <i class="fas fa-file-excel"></i> Cargar SWO
