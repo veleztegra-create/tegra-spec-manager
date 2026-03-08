@@ -3371,6 +3371,100 @@ function normalizeGearForSportColor(colorName) {
 
     return colorName;
 }
+// =====================================================
+// FUNCIONES PARA EL DASHBOARD MEJORADO
+// =====================================================
+
+// Debouncer para la búsqueda en el dashboard
+const debouncedSearchDashboardSpecs = (() => {
+    let timer;
+    return function() {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            searchDashboardSpecs();
+        }, 300);
+    };
+})();
+
+function searchDashboardSpecs() {
+    const searchInput = document.getElementById('dashboard-spec-search');
+    const resultsDiv = document.getElementById('dashboard-search-results');
+    if (!searchInput || !resultsDiv) return;
+
+    const query = searchInput.value.toUpperCase().trim();
+    const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
+
+    if (query.length < 2) {
+        resultsDiv.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 15px;">Escribe al menos 2 caracteres...</p>';
+        return;
+    }
+
+    if (specs.length === 0) {
+        resultsDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">No hay specs guardadas.</p>';
+        return;
+    }
+
+    let visibleCount = 0;
+    let resultsHtml = '';
+
+    specs.forEach(key => {
+        try {
+            const data = JSON.parse(localStorage.getItem(key));
+            const searchableText = [
+                key,
+                data.style || '',
+                data.customer || '',
+                data.po || '',
+                data.colorway || ''
+            ].join(' ').toUpperCase();
+
+            if (query && !searchableText.includes(query)) {
+                return;
+            }
+
+            visibleCount += 1;
+            resultsHtml += `
+                <div style="padding:12px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | PO: ${data.po || 'N/A'}</div>
+                    </div>
+                    <div style="display: flex; gap: 5px; flex-shrink:0;">
+                        <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})' title="Abrir para editar"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-outline btn-sm" onclick='duplicateSpecFromData(${JSON.stringify(data).replace(/'/g, "\\'")})' title="Duplicar"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+            `;
+        } catch (e) {
+            console.error('Error al parsear spec guardada:', key, e);
+        }
+    });
+
+    if (visibleCount === 0) {
+        resultsDiv.innerHTML = `
+            <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                <i class="fas fa-search" style="margin-right: 6px;"></i>
+                No se encontraron specs para <strong>${query}</strong>
+            </p>
+        `;
+    } else {
+        resultsDiv.innerHTML = resultsHtml;
+    }
+}
+
+// Función para duplicar una spec directamente desde los datos guardados
+function duplicateSpecFromData(data) {
+    // Crear una copia profunda de los datos
+    const duplicatedData = JSON.parse(JSON.stringify(data));
+    // Modificar el nombre o algo para indicar que es una copia
+    duplicatedData.style = (duplicatedData.style || 'Spec') + ' (Copia)';
+    duplicatedData.savedAt = new Date().toISOString();
+
+    // Cargar los datos duplicados en el formulario
+    loadSpecData(duplicatedData);
+    showTab('spec-creator');
+    showStatus('📋 Spec duplicada. ¡Revisa y guarda los cambios!', 'success');
+}
 
 // =====================================================
 // EXPORTAR FUNCIONES GLOBALES
