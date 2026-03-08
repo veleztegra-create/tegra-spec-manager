@@ -1,8 +1,4 @@
 // =====================================================
-// EXPORTAR A EXCEL (CALCULADORA)
-// =====================================================
-
-// =====================================================
 // EXPORTAR A EXCEL (CALCULADORA) - VERSIÓN CORREGIDA
 // =====================================================
 
@@ -17,7 +13,7 @@ function getPlacementsForExcelExport(sourcePlacements = []) {
             expanded.push({
                 ...placement,
                 excelPlacementType: `LEFT ${rawType}`,
-                type: `LEFT ${rawType}` // También cambiar el tipo para que se vea en la UI si es necesario? Mejor no.
+                type: `LEFT ${rawType}`
             });
             expanded.push({
                 ...placement,
@@ -31,9 +27,6 @@ function getPlacementsForExcelExport(sourcePlacements = []) {
     });
 
     return expanded;
-}
-
-
 }
 
 function exportToExcel() {
@@ -206,4 +199,3 @@ function exportToExcel() {
         if (typeof showStatus === 'function') showStatus('❌ Error al generar Spec Excel: ' + error.message, 'error');
     }
 }
-
