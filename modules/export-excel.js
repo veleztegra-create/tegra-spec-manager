@@ -2,15 +2,28 @@
 // EXPORTAR A EXCEL (CALCULADORA)
 // =====================================================
 
+// =====================================================
+// EXPORTAR A EXCEL (CALCULADORA) - VERSIÓN CORREGIDA
+// =====================================================
+
 function getPlacementsForExcelExport(sourcePlacements = []) {
     const expanded = [];
 
     sourcePlacements.forEach((placement) => {
         const rawType = String(placement.type || '').replace('CUSTOM: ', '').trim().toUpperCase();
 
-        if (rawType === 'SLEEVE' || rawType === 'SHOULDER') {
-            expanded.push({ ...placement, excelPlacementType: `LEFT ${rawType}` });
-            expanded.push({ ...placement, excelPlacementType: `RIGHT ${rawType}` });
+        // Usar la bandera isPaired para decidir si expandir
+        if (placement.isPaired || rawType === 'SLEEVE' || rawType === 'SHOULDER') {
+            expanded.push({
+                ...placement,
+                excelPlacementType: `LEFT ${rawType}`,
+                type: `LEFT ${rawType}` // También cambiar el tipo para que se vea en la UI si es necesario? Mejor no.
+            });
+            expanded.push({
+                ...placement,
+                excelPlacementType: `RIGHT ${rawType}`,
+                type: `RIGHT ${rawType}`
+            });
             return;
         }
 
@@ -18,6 +31,9 @@ function getPlacementsForExcelExport(sourcePlacements = []) {
     });
 
     return expanded;
+}
+
+
 }
 
 function exportToExcel() {
@@ -190,3 +206,4 @@ function exportToExcel() {
         if (typeof showStatus === 'function') showStatus('❌ Error al generar Spec Excel: ' + error.message, 'error');
     }
 }
+
