@@ -2463,63 +2463,47 @@ function processExcelData(worksheet, sheetName = '') {
     
     const extracted = {};
 
-    const isSWOSheet = sheetName.includes('SWO') || sheetName.includes('PPS') || sheetName.includes('Proto');
+    const normalizedSheetName = String(sheetName || '').toUpperCase();
+    const isSWOSheet = normalizedSheetName.includes('SWO') || normalizedSheetName.includes('PPS') || normalizedSheetName.includes('PROTO');
     console.log('🔍 isSWOSheet:', isSWOSheet);
 
     // --- 1. EXTRACCIÓN DE DATOS BÁSICOS ---
+    const assignByLabel = (labelRaw, valueRaw) => {
+        const label = String(labelRaw || '').trim().toUpperCase();
+        const value = String(valueRaw || '').trim();
+        if (!label || !value) return;
+
+        if (label.includes('CUSTOMER')) extracted.customer = value;
+        else if (label.includes('STYLE')) extracted.style = value;
+        else if (label.includes('COLORWAY')) extracted.colorway = value;
+        else if (label.includes('SEASON')) extracted.season = value;
+        else if (label.includes('PATTERN')) extracted.pattern = value;
+        else if (label.includes('P.O.') || label.includes('PO')) extracted.po = value;
+        else if (label.includes('SAMPLE TYPE') || label.includes('SAMPLE')) extracted.sample = value;
+        else if (label.includes('TEAM')) extracted.team = value;
+        else if (label.includes('GENDER')) extracted.gender = value;
+    };
+
     if (isSWOSheet) {
-        console.log('🔍 Buscando en formato SWO...');
+        console.log('🔍 Buscando en formato SWO flexible...');
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
-            if (!row || row.length < 2) continue;
+            if (!row || row.length === 0) continue;
 
-            const label = String(row[1] || '').trim();
-            const val = String(row[2] || '').trim();
-
-            if (label && val) {
-                console.log(`   📌 Fila ${i}: "${label}" = "${val}"`);
-                
-                if (label.includes('CUSTOMER:')) {
-                    extracted.customer = val;
-                }
-                else if (label.includes('STYLE:')) {
-                    extracted.style = val;
-                }
-                else if (label.includes('COLORWAY')) {
-                    extracted.colorway = val;
-                }
-                else if (label.includes('SEASON:')) extracted.season = val;
-                else if (label.includes('PATTERN')) extracted.pattern = val;
-                else if (label.includes('P.O.')) extracted.po = val;
-                else if (label.includes('SAMPLE TYPE')) extracted.sample = val;
-                else if (label.includes('TEAM:')) extracted.team = val;
-                else if (label.includes('GENDER:')) extracted.gender = val;
+            for (let j = 0; j < row.length - 1; j++) {
+                assignByLabel(row[j], row[j + 1]);
             }
         }
-    } else {
+    }
+
+    if (Object.keys(extracted).length === 0 || !isSWOSheet) {
         console.log('🔍 Buscando en formato genérico...');
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
             if (!row) continue;
 
             for (let j = 0; j < row.length; j++) {
-                const cell = String(row[j] || '').trim();
-
-                if (cell.includes('CUSTOMER:')) {
-                    extracted.customer = String(row[j + 1] || '').trim();
-                } else if (cell.includes('STYLE:')) {
-                    extracted.style = String(row[j + 1] || '').trim();
-                } else if (cell.includes('COLORWAY')) {
-                    extracted.colorway = String(row[j + 1] || '').trim();
-                } else if (cell.includes('SEASON:')) {
-                    extracted.season = String(row[j + 1] || '').trim();
-                } else if (cell.includes('PATTERN')) {
-                    extracted.pattern = String(row[j + 1] || '').trim();
-                } else if (cell.includes('P.O.')) {
-                    extracted.po = String(row[j + 1] || '').trim();
-                } else if (cell.includes('SAMPLE TYPE') || cell.includes('SAMPLE:')) {
-                    extracted.sample = String(row[j + 1] || '').trim();
-                }
+                assignByLabel(row[j], row[j + 1]);
             }
         }
     }
@@ -2577,6 +2561,48 @@ function processExcelData(worksheet, sheetName = '') {
     }, 500);
 
     showStatus(`✅ "${sheetName || 'hoja'}" procesado`, 'success');
+}
+
+function setupExcelImportHandler() {
+    const excelInput = document.getElementById('excelFile');
+    if (!excelInput || excelInput.dataset.bound === '1') return;
+
+    excelInput.addEventListener('change', async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            showStatus(`📥 Cargando archivo: ${file.name}...`, 'info');
+            const buffer = await file.arrayBuffer();
+            const workbook = XLSX.read(buffer, { type: 'array' });
+
+            if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                throw new Error('El archivo no contiene hojas para procesar');
+            }
+
+            const preferredSheetName = workbook.SheetNames.find((name) => {
+                const normalizedName = String(name || '').toUpperCase();
+                return normalizedName.includes('SWO') || normalizedName.includes('PPS') || normalizedName.includes('PROTO');
+            }) || workbook.SheetNames[0];
+
+            const worksheet = workbook.Sheets[preferredSheetName];
+            if (!worksheet) {
+                throw new Error(`No se encontró la hoja "${preferredSheetName}"`);
+            }
+
+            processExcelData(worksheet, preferredSheetName);
+        } catch (error) {
+            console.error('❌ Error procesando SWO:', error);
+            showStatus(`❌ Error al cargar SWO: ${error.message || error}`, 'error');
+            if (window.errorHandler) {
+                window.errorHandler.log('excel_import', error, { fileName: file.name });
+            }
+        } finally {
+            event.target.value = '';
+        }
+    });
+
+    excelInput.dataset.bound = '1';
 }
 // =====================================================
 // FUNCIONES DE DASHBOARD
@@ -3328,6 +3354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateDashboard();
             loadSavedSpecsList(); // Ahora el contenedor ya existe
             setupPasteHandler();
+            setupExcelImportHandler();
             loadThemePreference();
             bindSpecCreatorFormSafety();
 
