@@ -2463,7 +2463,8 @@ function processExcelData(worksheet, sheetName = '') {
     
     const extracted = {};
 
-    const isSWOSheet = sheetName.includes('SWO') || sheetName.includes('PPS') || sheetName.includes('Proto');
+    const normalizedSheetName = String(sheetName || '').toUpperCase();
+    const isSWOSheet = normalizedSheetName.includes('SWO') || normalizedSheetName.includes('PPS') || normalizedSheetName.includes('PROTO');
     console.log('🔍 isSWOSheet:', isSWOSheet);
 
     // --- 1. EXTRACCIÓN DE DATOS BÁSICOS ---
@@ -2577,6 +2578,48 @@ function processExcelData(worksheet, sheetName = '') {
     }, 500);
 
     showStatus(`✅ "${sheetName || 'hoja'}" procesado`, 'success');
+}
+
+function setupExcelImportHandler() {
+    const excelInput = document.getElementById('excelFile');
+    if (!excelInput || excelInput.dataset.bound === '1') return;
+
+    excelInput.addEventListener('change', async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            showStatus(`📥 Cargando archivo: ${file.name}...`, 'info');
+            const buffer = await file.arrayBuffer();
+            const workbook = XLSX.read(buffer, { type: 'array' });
+
+            if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                throw new Error('El archivo no contiene hojas para procesar');
+            }
+
+            const preferredSheetName = workbook.SheetNames.find((name) => {
+                const normalizedName = String(name || '').toUpperCase();
+                return normalizedName.includes('SWO') || normalizedName.includes('PPS') || normalizedName.includes('PROTO');
+            }) || workbook.SheetNames[0];
+
+            const worksheet = workbook.Sheets[preferredSheetName];
+            if (!worksheet) {
+                throw new Error(`No se encontró la hoja "${preferredSheetName}"`);
+            }
+
+            processExcelData(worksheet, preferredSheetName);
+        } catch (error) {
+            console.error('❌ Error procesando SWO:', error);
+            showStatus(`❌ Error al cargar SWO: ${error.message || error}`, 'error');
+            if (window.errorHandler) {
+                window.errorHandler.log('excel_import', error, { fileName: file.name });
+            }
+        } finally {
+            event.target.value = '';
+        }
+    });
+
+    excelInput.dataset.bound = '1';
 }
 // =====================================================
 // FUNCIONES DE DASHBOARD
@@ -3328,6 +3371,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateDashboard();
             loadSavedSpecsList(); // Ahora el contenedor ya existe
             setupPasteHandler();
+            setupExcelImportHandler();
             loadThemePreference();
             bindSpecCreatorFormSafety();
 
