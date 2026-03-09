@@ -632,6 +632,31 @@ select.form-control option {
     background: var(--bg-card-hover);
 }
 
+
+.color-item.dragging {
+    opacity: 0.45;
+    transform: scale(0.99);
+    border-color: var(--accent);
+}
+
+.drag-handle {
+    border: 1px dashed var(--border-dark);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    flex-shrink: 0;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
 .color-item .form-control[title="Letra/Número de Pantalla"] {
     width: 60px; 
     text-align: center; 
