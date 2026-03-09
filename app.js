@@ -3558,6 +3558,43 @@ function duplicateSpecFromData(data) {
     showTab('spec-creator');
     showStatus('📋 Spec duplicada. ¡Revisa y guarda los cambios!', 'success');
 }
+// Función de prueba para Tech Pack
+function testTechPack() {
+    if (typeof NikeTechPackExtractor === 'undefined') {
+        showStatus('❌ NikeTechPackExtractor no está cargado', 'error');
+        console.error('NikeTechPackExtractor no está definido');
+        return;
+    }
+    
+    // Crear input de archivo temporal
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf';
+    input.onchange = async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        showStatus('📄 Procesando Tech Pack...', 'info');
+        
+        try {
+            const extractor = new NikeTechPackExtractor();
+            const datosPDF = await extractor.procesarPDF(file);
+            console.log('📊 Datos extraídos del PDF:', datosPDF);
+            
+            // Si tegra-adapter está disponible, usarlo
+            if (window.tegraAdapter) {
+                window.tegraAdapter.poblarFormularioConPDF(datosPDF);
+                showTab('spec-creator');
+            } else {
+                showStatus('✅ PDF procesado, pero tegra-adapter no está disponible', 'success');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showStatus('❌ Error: ' + error.message, 'error');
+        }
+    };
+    input.click();
+}
 
 // =====================================================
 // EXPORTAR FUNCIONES GLOBALES
