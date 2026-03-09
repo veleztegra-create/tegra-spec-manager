@@ -2572,7 +2572,25 @@ function setupExcelImportHandler() {
         if (!file) return;
 
         try {
-            showStatus(`📥 Cargando archivo: ${file.name}...`, 'info');
+            const fileName = String(file.name || '');
+            const normalizedFileName = fileName.toLowerCase();
+
+            if (normalizedFileName.endsWith('.zip')) {
+                await loadProjectZip(file);
+                return;
+            }
+
+            if (normalizedFileName.endsWith('.json')) {
+                showStatus(`📥 Cargando JSON: ${fileName}...`, 'info');
+                const jsonText = await file.text();
+                const parsedData = JSON.parse(jsonText);
+                loadSpecData(parsedData);
+                showTab('spec-creator');
+                showStatus(`✅ Archivo JSON "${fileName}" cargado correctamente`, 'success');
+                return;
+            }
+
+            showStatus(`📥 Cargando archivo Excel: ${file.name}...`, 'info');
             const buffer = await file.arrayBuffer();
             const workbook = XLSX.read(buffer, { type: 'array' });
 
@@ -2592,8 +2610,8 @@ function setupExcelImportHandler() {
 
             processExcelData(worksheet, preferredSheetName);
         } catch (error) {
-            console.error('❌ Error procesando SWO:', error);
-            showStatus(`❌ Error al cargar SWO: ${error.message || error}`, 'error');
+            console.error('❌ Error procesando archivo importado:', error);
+            showStatus(`❌ Error al cargar archivo: ${error.message || error}`, 'error');
             if (window.errorHandler) {
                 window.errorHandler.log('excel_import', error, { fileName: file.name });
             }
