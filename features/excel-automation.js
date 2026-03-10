@@ -1,53 +1,31 @@
 // excel-automation.js - Automatización inteligente de placements desde Excel
-// VERSIÓN MEJORADA - Con mejor detección de técnicas y ubicaciones
+// VERSIÓN CORREGIDA - Compatibilidad SWO y PPS
 
 window.ExcelAutomation = (function() {
     'use strict';
 
-    // ============================================
-    // CONFIGURACIÓN
-    // ============================================
-    
     const CONFIG = {
-        // Técnicas que SIEMPRE debemos procesar (imprimir)
-        TECHNIQUES_TO_PROCESS: [
-            'SCREENPRINT', 'SCREEN PRINT', 'SCREEN', 
-            'SILICONE', 'WATERBASE', 'WATER BASE', 'PLASTISOL'
-        ],
-        
-        // Técnicas que DEBEMOS IGNORAR (a menos que tengan palabras clave)
-        TECHNIQUES_TO_IGNORE: [
-            'EMBROIDERY', 'EMB', 
-            'SUBLIMATION', 'SUB', 
-            'HEAT TRANSFER', 'HT',
-            'DTF', 'DIRECT TO FILM',
-            'Puff'
-        ],
-        
-        // Palabras clave que fuerzan el procesamiento incluso en técnicas ignoradas
-        FORCE_PROCESS_KEYWORDS: [
-            'SILICONE', 'SHINY SILICONE', 'WATERBASE', 'PLASTISOL'
-        ],
-        
-        // Mapeo de ubicaciones detectadas a tipos de placement
-        LOCATION_MAPPING: {
-            'FRONT': 'FRONT',
-            'BACK': 'BACK',
-            'SHOULDER': 'SHOULDER',
-            'SLEEVE': 'SLEEVE',
-            'COLLAR': 'COLLAR',
-            'NECK': 'COLLAR',
-            'CHEST': 'CHEST',
-            'NAMEPLATE': 'BACK',
-            'NUMBERS': 'TV. NUMBERS',
-            'TV NUMBERS': 'TV. NUMBERS',
-            'WORDMARK': 'FRONT',
-            'LOGO': 'FRONT',
-            'SWOOSH': 'SLEEVE',
-            'STRIPES': 'SLEEVE'
+        CLIENT_INK_DEFAULTS: {
+            'FANATICS': 'WATER',
+            'FANATIC': 'WATER',
+            'GEAR FOR SPORT': 'PLASTISOL',
+            'GEARFORSPORT': 'PLASTISOL',
+            'GFS': 'PLASTISOL',
+            'NIKE': 'WATER',
+            'ADIDAS': 'PLASTISOL',
+            'UNDER ARMOUR': 'WATER',
+            'UA': 'WATER'
         },
         
-        // Patrones para detectar ubicaciones en el texto
+        INK_KEYWORDS: {
+            'SILICONE': 'SILICONE',
+            'SHINY SILICONE': 'SILICONE',
+            'PLASTISOL': 'PLASTISOL',
+            'WATERBASE': 'WATER',
+            'WATER-BASE': 'WATER',
+            'WATER BASE': 'WATER'
+        },
+        
         LOCATION_PATTERNS: [
             { regex: /front/i, location: 'FRONT' },
             { regex: /back/i, location: 'BACK' },
@@ -65,91 +43,81 @@ window.ExcelAutomation = (function() {
             { regex: /stripes?/i, location: 'STRIPES' }
         ],
         
-        // Patrones para detectar si un placement es doble (izquierda/derecha)
-        PAIRED_PATTERNS: [
-            /left and right/i,
-            /both (sleeves|shoulders)/i,
-            /left & right/i
-        ],
-        
-        // Palabras clave para tipo de tinta
-        INK_KEYWORDS: {
-            'SILICONE': 'SILICONE',
-            'SHINY SILICONE': 'SILICONE',
-            'PLASTISOL': 'PLASTISOL',
-            'WATERBASE': 'WATER',
-            'WATER-BASE': 'WATER',
-            'WATER BASE': 'WATER'
-        },
-        
-        // Tinta por defecto según cliente
-        CLIENT_INK_DEFAULTS: {
-            'FANATICS': 'WATER',
-            'FANATIC': 'WATER',
-            'GEAR FOR SPORT': 'PLASTISOL',
-            'GEARFORSPORT': 'PLASTISOL',
-            'GFS': 'PLASTISOL',
-            'G.F.S.': 'PLASTISOL',
-            'NIKE': 'WATER',
-            'ADIDAS': 'PLASTISOL',
-            'UNDER ARMOUR': 'WATER',
-            'UA': 'WATER'
-        }
+        TECHNIQUES_TO_PROCESS: ['SCREENPRINT', 'SCREEN PRINT', 'SCREEN', 'SILICONE', 'WATERBASE', 'PLASTISOL'],
+        TECHNIQUES_TO_IGNORE: ['EMBROIDERY', 'EMB', 'SUBLIMATION', 'SUB', 'HEAT TRANSFER', 'HT', 'DTF'],
+        FORCE_PROCESS_KEYWORDS: ['SILICONE', 'SHINY SILICONE', 'WATERBASE', 'PLASTISOL']
     };
 
-    // ============================================
-    // FUNCIONES PRINCIPALES
-    // ============================================
-
     /**
-     * Procesa el Excel y extrae datos + placements
-     */
-    function processExcelWithAutomation(worksheet, sheetName = '') {
-        console.log('🤖 ExcelAutomation: Procesando hoja', sheetName);
-        
-        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-        const extracted = extractBasicData(data, sheetName);
-        const placements = detectPlacements(data, extracted.customer);
-        
-        console.log(`📊 Datos extraídos:`, extracted);
-        console.log(`📦 Placements detectados:`, placements);
-        
-        return { ...extracted, autoPlacements: placements };
-    }
-
-    /**
-     * Extrae datos básicos del Excel (customer, style, etc.)
+     * EXTRACT BASIC DATA - VERSIÓN UNIFICADA SWO/PPS
      */
     function extractBasicData(data, sheetName = '') {
         const extracted = {};
-        const isSWOSheet = sheetName.includes('SWO') || sheetName.includes('PPS');
+        const sheetUpper = (sheetName || '').toUpperCase();
+        
+        // Detectar tipo de formato
+        const isSWO = sheetUpper.includes('SWO');
+        const isPPS = sheetUpper.includes('PPS');
+        const isStructuredFormat = isSWO || isPPS;
+        
+        console.log(`📄 Procesando hoja: ${sheetName} (Formato: ${isStructuredFormat ? 'SWO/PPS' : 'Genérico'})`);
 
-        for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            if (!row) continue;
+        if (isStructuredFormat) {
+            // Formato SWO/PPS: Labels en col A o B, valores en col siguiente
+            for (let i = 0; i < Math.min(data.length, 30); i++) {
+                const row = data[i];
+                if (!row || row.length < 2) continue;
 
-            for (let j = 0; j < row.length; j++) {
-                const cell = String(row[j] || '').trim();
+                // Buscar en columnas A (0) y B (1) por labels
+                for (let col = 0; col < 2; col++) {
+                    const label = String(row[col] || '').trim().toUpperCase();
+                    const value = String(row[col + 1] || '').trim();
 
-                if (cell.includes('CUSTOMER:')) {
-                    extracted.customer = String(row[j + 1] || '').trim();
-                } else if (cell.includes('STYLE:')) {
-                    extracted.style = String(row[j + 1] || '').trim();
-                    if (window.detectTeamFromStyle) {
-                        extracted.team = window.detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
+                    if (!label) continue;
+
+                    if (label.includes('CUSTOMER') && !label.includes('IM#')) {
+                        extracted.customer = value;
+                    } else if (label.includes('STYLE') && !label.includes('TYPE')) {
+                        extracted.style = value.replace(/<br>/gi, ' ').trim();
+                    } else if (label.includes('COLORWAY')) {
+                        extracted.colorway = value;
+                    } else if (label.includes('SEASON')) {
+                        extracted.season = value;
+                    } else if (label.includes('P.O.') || label.includes('PO #')) {
+                        extracted.po = value;
+                    } else if (label.includes('SAMPLE TYPE') || label === 'SAMPLE:') {
+                        extracted.sample = value;
+                    } else if (label.includes('PATTERN')) {
+                        extracted.pattern = value;
+                    } else if (label.includes('TEAM')) {
+                        extracted.team = value;
+                    } else if (label.includes('GENDER')) {
+                        extracted.gender = value;
                     }
-                } else if (cell.includes('COLORWAY')) {
-                    extracted.colorway = String(row[j + 1] || '').trim();
-                } else if (cell.includes('SEASON:')) {
-                    extracted.season = String(row[j + 1] || '').trim();
-                } else if (cell.includes('P.O.')) {
-                    extracted.po = String(row[j + 1] || '').trim();
-                } else if (cell.includes('SAMPLE TYPE')) {
-                    extracted.sample = String(row[j + 1] || '').trim();
-                } else if (cell.includes('TEAM:')) {
-                    extracted.team = String(row[j + 1] || '').trim();
-                } else if (cell.includes('GENDER:')) {
-                    extracted.gender = String(row[j + 1] || '').trim();
+                }
+            }
+        } else {
+            // Formato genérico: Buscar "LABEL: valor" en cualquier celda
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                if (!row) continue;
+
+                for (let j = 0; j < row.length; j++) {
+                    const cell = String(row[j] || '').trim();
+                    
+                    if (cell.includes('CUSTOMER:')) {
+                        extracted.customer = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('STYLE:')) {
+                        extracted.style = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('COLORWAY')) {
+                        extracted.colorway = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('SEASON:')) {
+                        extracted.season = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('P.O.')) {
+                        extracted.po = String(row[j + 1] || '').trim();
+                    } else if (cell.includes('SAMPLE TYPE')) {
+                        extracted.sample = String(row[j + 1] || '').trim();
+                    }
                 }
             }
         }
@@ -163,17 +131,24 @@ window.ExcelAutomation = (function() {
             extracted.colorway = normalized.colorway || extracted.colorway;
         }
 
+        // Detectar equipo si no está definido
+        if (!extracted.team && window.detectTeamFromStyle) {
+            extracted.team = window.detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
+        }
+
+        console.log('✅ Datos extraídos:', extracted);
         return extracted;
     }
 
     /**
-     * Detecta placements en la sección de embellishments
+     * DETECTAR PLACEMENTS EN SECCIÓN EMBELLISHMENTS
      */
     function detectPlacements(data, customer = '') {
         const placements = [];
         let inEmbellishmentsSection = false;
         let techniqueCol = -1;
         let descriptionCol = -1;
+        let headerRow = -1;
 
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
@@ -182,26 +157,39 @@ window.ExcelAutomation = (function() {
             const rowText = row.map(c => String(c || '').toUpperCase()).join(' ');
 
             // Detectar inicio de sección EMBELLISHMENTS
-            if (rowText.includes('EMBELLISHMENTS') || rowText.includes('APPLICATION')) {
+            if (rowText.includes('EMBELLISHMENTS') && !rowText.includes('END')) {
                 inEmbellishmentsSection = true;
+                headerRow = i;
+                console.log(`🎯 Sección EMBELLISHMENTS encontrada en fila ${i}`);
                 
-                // Encontrar índices de columnas
-                row.forEach((cell, idx) => {
+                // Encontrar índices de columnas en la siguiente fila (header)
+                const nextRow = data[i + 1] || [];
+                nextRow.forEach((cell, idx) => {
                     const cellUpper = String(cell || '').toUpperCase();
                     if (cellUpper.includes('AREA') || cellUpper.includes('TECHNIQUE') || cellUpper.includes('PROCESS')) {
                         techniqueCol = idx;
+                        console.log(`   📍 Columna técnica: ${idx} (${cell})`);
                     }
                     if (cellUpper.includes('APPLICATION') || cellUpper.includes('DESCRIPTION')) {
                         descriptionCol = idx;
+                        console.log(`   📍 Columna descripción: ${idx} (${cell})`);
                     }
                 });
+                
+                // Si no encontramos headers, asumir columnas 0 y 1
+                if (techniqueCol === -1) techniqueCol = 0;
+                if (descriptionCol === -1) descriptionCol = 1;
+                
+                i++; // Saltar la fila de headers
                 continue;
             }
 
             // Detectar fin de sección
             if (inEmbellishmentsSection && 
-                (rowText.includes('SHIPPING') || rowText.includes('TOTAL UNITS'))) {
+                (rowText.includes('SHIPPING') || rowText.includes('TOTAL UNITS') || 
+                 rowText.includes('SUPPLIES') || rowText.includes('FABRICS'))) {
                 inEmbellishmentsSection = false;
+                console.log(`🏁 Fin de sección EMBELLISHMENTS en fila ${i}`);
                 break;
             }
 
@@ -210,74 +198,60 @@ window.ExcelAutomation = (function() {
                 const technique = String(row[techniqueCol] || '').trim();
                 const description = descriptionCol >= 0 ? String(row[descriptionCol] || '').trim() : '';
 
-                if (technique && technique.toUpperCase() !== 'AREA') {
+                if (technique && technique.toUpperCase() !== 'AREA' && technique.length > 1) {
                     const placement = parsePlacementRow(technique, description, customer);
                     if (placement) {
                         placements.push(placement);
+                        console.log(`   ✓ Placement detectado: ${technique} - ${description.substring(0, 50)}`);
                     }
                 }
             }
         }
 
+        console.log(`📦 Total placements detectados: ${placements.length}`);
         return placements;
     }
 
     /**
-     * Parsea una fila individual de embellishment
+     * PARSEAR UNA FILA INDIVIDUAL
      */
     function parsePlacementRow(technique, description, customer) {
         const techUpper = technique.toUpperCase().trim();
-        const descUpper = description.toUpperCase();
+        const descUpper = (description || '').toUpperCase();
 
-        // --- 1. VERIFICAR SI DEBEMOS PROCESAR ESTA TÉCNICA ---
-        
-        // Verificar si tiene palabras clave que fuerzan el procesamiento
-        const hasForceKeyword = CONFIG.FORCE_PROCESS_KEYWORDS.some(keyword => 
-            descUpper.includes(keyword) || techUpper.includes(keyword)
-        );
+        // Verificar si debemos procesar esta técnica
+        const hasForceKeyword = CONFIG.FORCE_PROCESS_KEYWORDS.some(kw => descUpper.includes(kw));
+        const isIgnored = CONFIG.TECHNIQUES_TO_IGNORE.some(ign => techUpper.includes(ign));
+        const isProcessable = CONFIG.TECHNIQUES_TO_PROCESS.some(proc => techUpper.includes(proc));
 
-        // Verificar si es una técnica a ignorar
-        const isIgnoredTechnique = CONFIG.TECHNIQUES_TO_IGNORE.some(ignoreTech => 
-            techUpper.includes(ignoreTech)
-        );
-
-        // Verificar si es una técnica a procesar
-        const isProcessTechnique = CONFIG.TECHNIQUES_TO_PROCESS.some(processTech => 
-            techUpper.includes(processTech)
-        );
-
-        // Decidir si procesamos
-        if (!hasForceKeyword && isIgnoredTechnique) {
-            console.log(`⏭️ Ignorando técnica: ${technique} - ${description}`);
+        if (!hasForceKeyword && isIgnored) {
+            console.log(`   ⏭️ Ignorado (técnica excluida): ${technique}`);
             return null;
         }
 
-        if (!hasForceKeyword && !isProcessTechnique) {
-            console.log(`⏭️ Técnica no soportada: ${technique}`);
+        if (!hasForceKeyword && !isProcessable) {
+            console.log(`   ⏭️ Ignorado (técnica no soportada): ${technique}`);
             return null;
         }
 
-        // --- 2. DETERMINAR TIPO DE TINTA ---
+        // Determinar tinta
         const inkType = determineInkType(techUpper, descUpper, customer);
 
-        // --- 3. EXTRAER UBICACIONES ---
-        let locations = extractLocations(description, descUpper);
-
-        // Si no hay ubicaciones, intentar inferir
+        // Extraer ubicaciones
+        let locations = extractLocations(description);
+        
+        // Inferir ubicaciones si no se encontraron explícitamente
         if (locations.length === 0) {
             locations = inferLocationsFromDescription(descUpper);
         }
 
-        // Si sigue sin ubicaciones, no crear placement
         if (locations.length === 0) {
-            console.log(`⚠️ No se pudo determinar ubicación para: ${description}`);
+            console.log(`   ⚠️ Sin ubicación clara: ${description}`);
             return null;
         }
 
-        // --- 4. DETECTAR SI ES UN PLACEMENT PAREADO (izquierda/derecha) ---
-        const isPaired = CONFIG.PAIRED_PATTERNS.some(pattern => 
-            pattern.test(description)
-        ) || locations.some(loc => loc === 'SLEEVE' || loc === 'SHOULDER');
+        // Detectar si es par (izq/der)
+        const isPaired = /left and right|both (sleeves|shoulders)|left & right/i.test(description);
 
         return {
             technique: technique,
@@ -289,46 +263,34 @@ window.ExcelAutomation = (function() {
         };
     }
 
-    /**
-     * Determina el tipo de tinta basado en la descripción y el cliente
-     */
     function determineInkType(technique, description, customer) {
-        // 1. Prioridad: palabras clave en descripción
         for (const [keyword, ink] of Object.entries(CONFIG.INK_KEYWORDS)) {
-            if (description.includes(keyword)) {
-                console.log(`🎨 Tinta detectada por keyword: ${keyword} -> ${ink}`);
-                return ink;
-            }
+            if (description.includes(keyword)) return ink;
         }
-
-        // 2. Palabras clave en técnica
+        
         if (technique.includes('SILICONE')) return 'SILICONE';
         if (technique.includes('PLASTISOL')) return 'PLASTISOL';
         if (technique.includes('WATER')) return 'WATER';
 
-        // 3. Default por cliente
         const customerUpper = (customer || '').toUpperCase();
         for (const [client, defaultInk] of Object.entries(CONFIG.CLIENT_INK_DEFAULTS)) {
-            if (customerUpper.includes(client)) {
-                console.log(`🎨 Tinta por cliente: ${client} -> ${defaultInk}`);
-                return defaultInk;
-            }
+            if (customerUpper.includes(client)) return defaultInk;
         }
 
         return 'WATER';
     }
 
-    /**
-     * Extrae ubicaciones del texto de descripción
-     */
-    function extractLocations(description, descUpper) {
+    function extractLocations(description) {
         const locations = [];
+        if (!description) return locations;
+        
+        const descUpper = description.toUpperCase();
         
         CONFIG.LOCATION_PATTERNS.forEach(pattern => {
             if (pattern.regex.test(descUpper)) {
-                const mappedLocation = CONFIG.LOCATION_MAPPING[pattern.location] || pattern.location;
-                if (!locations.includes(mappedLocation)) {
-                    locations.push(mappedLocation);
+                const mapped = pattern.location;
+                if (!locations.includes(mapped)) {
+                    locations.push(mapped);
                 }
             }
         });
@@ -336,24 +298,21 @@ window.ExcelAutomation = (function() {
         return locations;
     }
 
-    /**
-     * Infiere ubicaciones cuando no se encuentran explícitamente
-     */
     function inferLocationsFromDescription(descUpper) {
         const locations = [];
         
-        if (descUpper.includes('NUMBER')) locations.push('TV. NUMBERS');
+        if (descUpper.includes('NUMBER')) locations.push(descUpper.includes('TV') ? 'TV. NUMBERS' : 'NUMBERS');
         if (descUpper.includes('NAME')) locations.push('NAMEPLATE');
         if (descUpper.includes('LOGO')) locations.push('LOGO');
         if (descUpper.includes('WORDMARK')) locations.push('WORDMARK');
         if (descUpper.includes('SWOOSH')) locations.push('SWOOSH');
         if (descUpper.includes('STRIPE')) locations.push('STRIPES');
 
-        return locations.map(loc => CONFIG.LOCATION_MAPPING[loc] || loc);
+        return locations;
     }
 
     /**
-     * Crea los placements en la UI
+     * CREAR PLACEMENTS EN LA UI
      */
     function autoCreatePlacements(detectedPlacements) {
         if (!Array.isArray(detectedPlacements) || detectedPlacements.length === 0) {
@@ -361,19 +320,26 @@ window.ExcelAutomation = (function() {
             return 0;
         }
 
+        if (!Array.isArray(window.placements)) {
+            console.error('❌ window.placements no está definido');
+            return 0;
+        }
+
         console.log(`🎯 Creando ${detectedPlacements.length} placements...`);
+        
+        // Limpiar placements existentes si son automáticos
+        window.placements = window.placements.filter(p => !p.isAutoGenerated);
         
         let placementCount = 0;
 
-        detectedPlacements.forEach((detected) => {
-            // Determinar si debemos expandir este placement en múltiples ubicaciones
+        detectedPlacements.forEach((detected, idx) => {
             const locationsToCreate = expandLocations(detected.locations, detected.isPaired, detected.description);
             
-            locationsToCreate.forEach(location => {
+            locationsToCreate.forEach((location, locIdx) => {
                 const placementType = mapLocationToType(location, detected.description);
                 
                 const newPlacement = {
-                    id: Date.now() + placementCount + Math.random(),
+                    id: Date.now() + idx * 100 + locIdx,
                     type: placementType,
                     name: placementType,
                     imageData: null,
@@ -387,73 +353,54 @@ window.ExcelAutomation = (function() {
                     specialInstructions: detected.description,
                     inkType: detected.inkType,
                     isAutoGenerated: true,
-                    isPaired: false // Ya expandido, ya no es "par"
+                    isPaired: false
                 };
 
-                // Añadir a window.placements
-                if (Array.isArray(window.placements)) {
-                    window.placements.push(newPlacement);
-                    if (typeof window.renderPlacementHTML === 'function') {
-                        window.renderPlacementHTML(newPlacement);
-                    }
-                    placementCount++;
+                window.placements.push(newPlacement);
+                
+                if (typeof window.renderPlacementHTML === 'function') {
+                    window.renderPlacementHTML(newPlacement);
                 }
+                placementCount++;
             });
         });
 
-        if (placementCount > 0 && typeof window.updatePlacementsTabs === 'function') {
-            window.updatePlacementsTabs();
-        }
-        if (placementCount > 0 && typeof window.showStatus === 'function') {
-            window.showStatus(`✅ ${placementCount} placements generados`, 'success');
+        if (placementCount > 0) {
+            if (typeof window.updatePlacementsTabs === 'function') {
+                window.updatePlacementsTabs();
+            }
+            if (typeof window.showStatus === 'function') {
+                window.showStatus(`✅ ${placementCount} placements generados automáticamente`, 'success');
+            }
         }
 
         return placementCount;
     }
 
-    /**
-     * Expande ubicaciones según sea necesario
-     */
     function expandLocations(locations, isPaired, description) {
         const expanded = [];
+        const descUpper = (description || '').toUpperCase();
         
         locations.forEach(location => {
-            switch(location) {
-                case 'SLEEVE':
-                case 'SHOULDER':
-                    if (isPaired || description.toUpperCase().includes('BOTH')) {
-                        expanded.push(`LEFT ${location}`);
-                        expanded.push(`RIGHT ${location}`);
-                    } else {
-                        expanded.push(location);
-                    }
-                    break;
-                    
-                case 'FRONT':
-                case 'BACK':
-                case 'COLLAR':
-                case 'CHEST':
-                default:
-                    expanded.push(location);
-                    break;
+            if ((location === 'SLEEVE' || location === 'SHOULDER') && 
+                (isPaired || descUpper.includes('BOTH') || descUpper.includes('LEFT AND RIGHT'))) {
+                expanded.push(`LEFT ${location}`);
+                expanded.push(`RIGHT ${location}`);
+            } else {
+                expanded.push(location);
             }
         });
         
         return expanded;
     }
 
-    /**
-     * Mapea ubicación a tipo de placement
-     */
     function mapLocationToType(location, description) {
-        const descUpper = description.toUpperCase();
+        const descUpper = (description || '').toUpperCase();
         
-        // Mapeo especial para números
         if (location.includes('NUMBERS') || location.includes('TV')) {
             return descUpper.includes('TV') ? 'TV. NUMBERS' : 'NUMBERS';
         }
         
-        // Quitar prefijos LEFT/RIGHT para el tipo base
         const baseLocation = location.replace(/^(LEFT|RIGHT)\s+/, '');
         
         const typeMap = {
@@ -465,7 +412,6 @@ window.ExcelAutomation = (function() {
             'CHEST': 'CHEST',
             'NAMEPLATE': 'BACK',
             'NUMBERS': 'TV. NUMBERS',
-            'TV. NUMBERS': 'TV. NUMBERS',
             'WORDMARK': 'FRONT',
             'LOGO': 'FRONT',
             'SWOOSH': 'SLEEVE',
@@ -475,17 +421,16 @@ window.ExcelAutomation = (function() {
         return typeMap[baseLocation] || baseLocation || 'CUSTOM';
     }
 
-    /**
-     * Genera detalles de ubicación para el campo placementDetails
-     */
     function generatePlacementDetails(detected, location) {
         const details = [];
-        const descUpper = detected.description.toUpperCase();
+        const descUpper = (detected.description || '').toUpperCase();
         
         if (location.includes('FRONT')) details.push('Center Front');
         if (location.includes('BACK')) details.push('Center Back');
-        if (location.includes('SHOULDER')) details.push(location.includes('LEFT') ? 'Left Shoulder' : 'Right Shoulder');
-        if (location.includes('SLEEVE')) details.push(location.includes('LEFT') ? 'Left Sleeve' : 'Right Sleeve');
+        if (location.includes('LEFT')) details.push('Left Side');
+        if (location.includes('RIGHT')) details.push('Right Side');
+        if (location.includes('SHOULDER')) details.push('Shoulder');
+        if (location.includes('SLEEVE')) details.push('Sleeve');
         if (location.includes('COLLAR')) details.push('Collar');
         
         if (descUpper.includes('NUMBER')) details.push('Player Numbers');
@@ -497,9 +442,6 @@ window.ExcelAutomation = (function() {
         return details.join(' • ') || '#.#" FROM COLLAR SEAM';
     }
 
-    /**
-     * Detecta especialidades (HD, Metallic, etc.)
-     */
     function detectSpecialties(detected) {
         const specialties = [];
         const desc = (detected.description || '').toUpperCase();
@@ -511,53 +453,43 @@ window.ExcelAutomation = (function() {
         return specialties.join(', ');
     }
 
-    /**
-     * Obtiene temperatura según tipo de tinta
-     */
     function getTempForInk(inkType) {
         const temps = { 'WATER': '320 °F', 'PLASTISOL': '320 °F', 'SILICONE': '320 °F' };
         return temps[inkType] || '320 °F';
     }
 
-    /**
-     * Obtiene tiempo según tipo de tinta
-     */
     function getTimeForInk(inkType) {
         const times = { 'WATER': '1:40 min', 'PLASTISOL': '1:00 min', 'SILICONE': '1:40 min' };
         return times[inkType] || '1:40 min';
     }
-    document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        if (typeof processExcelData === 'function') {
-            const originalProcessExcelData = processExcelData;
-            
-            window.processExcelData = function(worksheet, sheetName) {
-                originalProcessExcelData(worksheet, sheetName);
-                
-                setTimeout(() => {
-                    try {
-                        const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName);
-                        console.log('✅ Automatización completada:', result);
-                    } catch (error) {
-                        console.error('❌ Error:', error);
-                    }
-                }, 200);
-            };
+
+    /**
+     * FUNCIÓN PRINCIPAL
+     */
+    function processExcelWithAutomation(worksheet, sheetName = '') {
+        console.log('🤖 ExcelAutomation: Procesando hoja', sheetName);
+        
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        const extracted = extractBasicData(data, sheetName);
+        const placements = detectPlacements(data, extracted.customer);
+        
+        // Solo crear placements si estamos en el contexto de la app
+        if (typeof window.placements !== 'undefined') {
+            autoCreatePlacements(placements);
         }
-    }, 1000);
-});
+        
+        return { ...extracted, autoPlacements: placements };
+    }
 
-    // ============================================
-    // API PÚBLICA
-    // ============================================
-
+    // API Pública
     return {
         processExcelWithAutomation: processExcelWithAutomation,
         autoCreatePlacements: autoCreatePlacements,
         extractBasicData: extractBasicData,
+        detectPlacements: detectPlacements,
         CONFIG: CONFIG
     };
 
 })();
 
-console.log('✅ Excel Automation (v3 mejorada) cargado');
+console.log('✅ Excel Automation (v4 - SWO/PPS compatible) cargado');
