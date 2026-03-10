@@ -526,6 +526,26 @@ window.ExcelAutomation = (function() {
         const times = { 'WATER': '1:40 min', 'PLASTISOL': '1:00 min', 'SILICONE': '1:40 min' };
         return times[inkType] || '1:40 min';
     }
+    document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        if (typeof processExcelData === 'function') {
+            const originalProcessExcelData = processExcelData;
+            
+            window.processExcelData = function(worksheet, sheetName) {
+                originalProcessExcelData(worksheet, sheetName);
+                
+                setTimeout(() => {
+                    try {
+                        const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName);
+                        console.log('✅ Automatización completada:', result);
+                    } catch (error) {
+                        console.error('❌ Error:', error);
+                    }
+                }, 200);
+            };
+        }
+    }, 1000);
+});
 
     // ============================================
     // API PÚBLICA
