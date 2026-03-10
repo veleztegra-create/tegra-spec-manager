@@ -2534,7 +2534,7 @@ function processExcelData(worksheet, sheetName = '') {
     if (window.ExcelAutomation) {
         console.log('🤖 Ejecutando ExcelAutomation.processExcelWithAutomation...');
         try {
-            const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName);
+         const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
             console.log('🤖 Resultado de ExcelAutomation:', result);
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
