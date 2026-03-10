@@ -2451,12 +2451,13 @@ function updatePlacementField(placementId, field, value) {
 
 
 // =====================================================
-// FUNCIÓN PARA PROCESAR DATOS EXCEL (VERSIÓN CON LOGS)
+// FUNCIÓN PARA PROCESAR DATOS EXCEL (VERSIÓN CON LOGS Y SOPORTE PARA WORKBOOK)
 // =====================================================
 
-function processExcelData(worksheet, sheetName = '') {
+function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('📁 processExcelData INICIANDO con hoja:', sheetName);
     console.log('📊 worksheet:', worksheet);
+    console.log('📚 workbook recibido:', workbook ? 'SÍ' : 'NO');
     
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     console.log('📊 data raw:', data);
@@ -2534,7 +2535,8 @@ function processExcelData(worksheet, sheetName = '') {
     if (window.ExcelAutomation) {
         console.log('🤖 Ejecutando ExcelAutomation.processExcelWithAutomation...');
         try {
-         const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
+            // PASAR EL WORKBOOK A EXCELAUTOMATION
+            const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
             console.log('🤖 Resultado de ExcelAutomation:', result);
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
@@ -2608,7 +2610,8 @@ function setupExcelImportHandler() {
                 throw new Error(`No se encontró la hoja "${preferredSheetName}"`);
             }
 
-            processExcelData(worksheet, preferredSheetName);
+            // PASAR EL WORKBOOK A processExcelData
+            processExcelData(worksheet, preferredSheetName, workbook);
         } catch (error) {
             console.error('❌ Error procesando archivo importado:', error);
             showStatus(`❌ Error al cargar archivo: ${error.message || error}`, 'error');
