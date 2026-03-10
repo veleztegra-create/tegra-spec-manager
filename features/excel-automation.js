@@ -1,5 +1,5 @@
 // excel-automation.js - Automatización inteligente de placements desde Excel
-// VERSIÓN v5.1 - Auto-detección de hoja con datos (con fallback robusto)
+// VERSIÓN v5.2 - Auto-detección robusta con manejo de workbook undefined
 
 window.ExcelAutomation = (function() {
     'use strict';
@@ -9,27 +9,21 @@ window.ExcelAutomation = (function() {
     // ============================================
     
     const CONFIG = {
-        // Técnicas que SIEMPRE debemos procesar (imprimir)
         TECHNIQUES_TO_PROCESS: [
             'SCREENPRINT', 'SCREEN PRINT', 'SCREEN', 'SCREENPRINTG',
             'SILICONE', 'WATERBASE', 'WATER BASE', 'PLASTISOL'
         ],
         
-        // Técnicas que DEBEMOS IGNORAR (a menos que tengan palabras clave)
         TECHNIQUES_TO_IGNORE: [
-            'EMBROIDERY', 'EMB', 
-            'SUBLIMATION', 'SUB', 
-            'HEAT TRANSFER', 'HT',
-            'DTF', 'DIRECT TO FILM',
+            'EMBROIDERY', 'EMB', 'SUBLIMATION', 'SUB', 
+            'HEAT TRANSFER', 'HT', 'DTF', 'DIRECT TO FILM',
             'Puff', 'LASER', 'TWILL'
         ],
         
-        // Palabras clave que fuerzan el procesamiento incluso en técnicas ignoradas
         FORCE_PROCESS_KEYWORDS: [
             'SILICONE', 'SHINY SILICONE', 'WATERBASE', 'PLASTISOL'
         ],
         
-        // Mapeo de ubicaciones detectadas a tipos de placement
         LOCATION_MAPPING: {
             'FRONT': 'FRONT',
             'BACK': 'BACK',
@@ -49,7 +43,6 @@ window.ExcelAutomation = (function() {
             'PANEL': 'PANEL'
         },
         
-        // Patrones para detectar ubicaciones en el texto
         LOCATION_PATTERNS: [
             { regex: /front/i, location: 'FRONT' },
             { regex: /back/i, location: 'BACK' },
@@ -69,14 +62,12 @@ window.ExcelAutomation = (function() {
             { regex: /stripes?/i, location: 'STRIPES' }
         ],
         
-        // Patrones para detectar si un placement es doble (izquierda/derecha)
         PAIRED_PATTERNS: [
             /left and right/i,
             /both (sleeves|shoulders)/i,
             /left & right/i
         ],
         
-        // Palabras clave para tipo de tinta
         INK_KEYWORDS: {
             'SILICONE': 'SILICONE',
             'SHINY SILICONE': 'SILICONE',
@@ -87,7 +78,6 @@ window.ExcelAutomation = (function() {
             'DISCHARGE': 'DISCHARGE'
         },
         
-        // Tinta por defecto según cliente
         CLIENT_INK_DEFAULTS: {
             'FANATICS': 'WATER',
             'FANATIC': 'WATER',
@@ -101,10 +91,6 @@ window.ExcelAutomation = (function() {
             'UA': 'WATER'
         },
         
-        // Indicadores de hojas válidas (con datos reales)
-        VALID_SHEET_INDICATORS: ['SWO', 'PPS', 'SAMPLE WORK ORDER', 'WORK ORDER'],
-        
-        // Hojas a ignorar
         IGNORE_SHEET_NAMES: ['HOW TO', 'LISTS', 'LIST', 'INSTRUCTION', 'PROTO', 'HOJA TÉCNICA', 'TEMPLATE']
     };
 
@@ -112,29 +98,22 @@ window.ExcelAutomation = (function() {
     // EXTRACCIÓN DE DATOS BÁSICOS
     // ============================================
 
-    /**
-     * Extrae datos básicos del Excel (customer, style, etc.)
-     * Versión mejorada con múltiples estrategias de búsqueda
-     */
     function extractBasicData(data, sheetName = '') {
         const extracted = {};
         const sheetUpper = (sheetName || '').toUpperCase();
         
-        // Estrategia 1: Formato SWO/PPS estructurado (tabla con labels en col A/B)
         const isStructuredFormat = sheetUpper.includes('SWO') || 
                                    sheetUpper.includes('PPS') || 
                                    sheetUpper.includes('SAMPLE');
-        
-        console.log(`📄 Procesando hoja: ${sheetName} (Formato detectado: ${isStructuredFormat ? 'SWO/PPS' : 'Genérico'})`);
 
-        // Intentar extracción estructurada primero
+        console.log(`📄 Procesando hoja: ${sheetName} (Formato: ${isStructuredFormat ? 'SWO/PPS' : 'Genérico'})`);
+
         if (isStructuredFormat) {
             extractFromStructuredFormat(data, extracted);
         }
         
-        // Si no encontramos datos, intentar extracción agresiva
         if (!extracted.customer && !extracted.style) {
-            console.log('🔍 Extracción estructurada falló, intentando modo agresivo...');
+            console.log('🔍 Intentando extracción agresiva...');
             extractFromGenericFormat(data, extracted);
         }
 
@@ -148,7 +127,6 @@ window.ExcelAutomation = (function() {
             extracted.colorway = normalized.colorway || extracted.colorway;
         }
 
-        // Detectar equipo si no está definido
         if (!extracted.team && window.detectTeamFromStyle) {
             extracted.team = window.detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
         }
@@ -166,15 +144,11 @@ window.ExcelAutomation = (function() {
         return extracted;
     }
 
-    /**
-     * Extracción para formato SWO/PPS estructurado
-     */
     function extractFromStructuredFormat(data, extracted) {
         for (let i = 0; i < Math.min(data.length, 35); i++) {
             const row = data[i];
             if (!row || row.length < 2) continue;
 
-            // Buscar en primeras 3 columnas
             for (let col = 0; col < Math.min(3, row.length); col++) {
                 const rawCell = row[col];
                 if (rawCell === undefined || rawCell === null) continue;
@@ -184,7 +158,6 @@ window.ExcelAutomation = (function() {
                 
                 if (!cell || cell.length < 2) continue;
 
-                // Obtener valor: columna siguiente, o fila siguiente, o misma celda después de ":"
                 let value = '';
                 
                 // Opción 1: Valor en columna siguiente
@@ -195,7 +168,7 @@ window.ExcelAutomation = (function() {
                     }
                 }
                 
-                // Opción 2: Valor en fila siguiente (formato vertical)
+                // Opción 2: Valor en fila siguiente
                 if (!value && i + 1 < data.length && data[i + 1]) {
                     const belowVal = data[i + 1][col];
                     if (belowVal !== undefined && belowVal !== null && belowVal !== '') {
@@ -208,16 +181,13 @@ window.ExcelAutomation = (function() {
                     value = cell.split(':').slice(1).join(':').trim();
                 }
 
-                // Mapeo de campos con múltiples variantes de nombres
+                // Mapeo de campos
                 if (matchesField(cellUpper, ['CUSTOMER']) && 
-                    !cellUpper.includes('IM#') && 
-                    !cellUpper.includes('VENDOR')) {
+                    !cellUpper.includes('IM#') && !cellUpper.includes('VENDOR')) {
                     extracted.customer = value || extracted.customer;
                 }
                 else if (matchesField(cellUpper, ['STYLE']) && 
-                         !cellUpper.includes('TYPE') && 
-                         !cellUpper.includes('PATTERN') &&
-                         !cellUpper.includes('SAMPLE')) {
+                         !cellUpper.includes('TYPE') && !cellUpper.includes('PATTERN')) {
                     extracted.style = cleanValue(value) || extracted.style;
                 }
                 else if (matchesField(cellUpper, ['COLORWAY', 'COLORWAY #', 'COLORWAY #:']) && 
@@ -243,19 +213,16 @@ window.ExcelAutomation = (function() {
                 else if (matchesField(cellUpper, ['GENDER'])) {
                     extracted.gender = value || extracted.gender;
                 }
-                else if (matchesField(cellUpper, ['DATE', 'DATE:'])) {
+                else if (matchesField(cellUpper, ['DATE'])) {
                     extracted.date = value || extracted.date;
                 }
-                else if (matchesField(cellUpper, ['REQUESTED BY', 'REQUESTED BY:'])) {
+                else if (matchesField(cellUpper, ['REQUESTED BY'])) {
                     extracted.requestedBy = value || extracted.requestedBy;
                 }
             }
         }
     }
 
-    /**
-     * Extracción genérica/agresiva para cualquier formato
-     */
     function extractFromGenericFormat(data, extracted) {
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
@@ -268,29 +235,23 @@ window.ExcelAutomation = (function() {
                 const cellUpper = cell.toUpperCase();
                 const nextCell = String(row[j + 1] || '').trim();
 
-                // Buscar patrones tipo "LABEL: valor" o "LABEL valor"
                 if (cellUpper.includes('CUSTOMER:') || cellUpper === 'CUSTOMER') {
                     extracted.customer = nextCell || cell.split(':')[1]?.trim() || extracted.customer;
                 } else if (cellUpper.includes('STYLE:') || cellUpper === 'STYLE') {
                     extracted.style = cleanValue(nextCell) || cleanValue(cell.split(':')[1]?.trim()) || extracted.style;
                 } else if (cellUpper.includes('COLORWAY')) {
                     extracted.colorway = nextCell || cell.split(':')[1]?.trim() || extracted.colorway;
-                } else if (cellUpper.includes('SEASON:') || cellUpper === 'SEASON') {
+                } else if (cellUpper.includes('SEASON:')) {
                     extracted.season = nextCell || cell.split(':')[1]?.trim() || extracted.season;
-                } else if (cellUpper.includes('P.O.') || cellUpper.includes('PO #')) {
+                } else if (cellUpper.includes('P.O.')) {
                     extracted.po = nextCell || cell.split(':')[1]?.trim() || extracted.po;
-                } else if (cellUpper.includes('SAMPLE TYPE') || cellUpper.includes('SAMPLE:')) {
+                } else if (cellUpper.includes('SAMPLE TYPE')) {
                     extracted.sample = nextCell || cell.split(':')[1]?.trim() || extracted.sample;
-                } else if (cellUpper.includes('PATTERN')) {
-                    extracted.pattern = nextCell || cell.split(':')[1]?.trim() || extracted.pattern;
                 }
             }
         }
     }
 
-    /**
-     * Verifica si una celda coincide con alguno de los campos buscados
-     */
     function matchesField(cellUpper, fieldNames) {
         return fieldNames.some(field => {
             const fieldUpper = field.toUpperCase();
@@ -300,9 +261,6 @@ window.ExcelAutomation = (function() {
         });
     }
 
-    /**
-     * Limpia valores (remove HTML, espacios extra)
-     */
     function cleanValue(value) {
         if (!value) return value;
         return value.replace(/<br\s*\/?>/gi, ' ')
@@ -314,9 +272,6 @@ window.ExcelAutomation = (function() {
     // DETECCIÓN DE PLACEMENTS
     // ============================================
 
-    /**
-     * Detecta placements en la sección de embellishments
-     */
     function detectPlacements(data, customer = '') {
         const placements = [];
         let inEmbellishmentsSection = false;
@@ -330,14 +285,12 @@ window.ExcelAutomation = (function() {
 
             const rowText = (row || []).map(c => String(c || '').toUpperCase()).join(' ');
 
-            // Detectar inicio de sección EMBELLISHMENTS
             if (rowText.includes('EMBELLISHMENTS') && 
                 !rowText.includes('END') && 
                 !rowText.includes('COMMENTS')) {
                 inEmbellishmentsSection = true;
-                console.log(`🎯 Sección EMBELLISHMENTS encontrada en fila ${i}`);
+                console.log(`🎯 Sección EMBELLISHMENTS en fila ${i}`);
                 
-                // Encontrar índices de columnas en la siguiente fila (header) o misma fila
                 const headerRowData = data[i + 1] || row;
                 headerRowData.forEach((cell, idx) => {
                     const cellUpper = String(cell || '').toUpperCase();
@@ -353,21 +306,18 @@ window.ExcelAutomation = (function() {
                     }
                 });
                 
-                // Si no encontramos headers, asumir columnas 0 y 1
                 if (techniqueCol === -1) techniqueCol = 0;
                 if (descriptionCol === -1) descriptionCol = 1;
                 
-                // Verificar si la siguiente fila es header
                 if (data[i + 1] && data[i + 1].some(c => {
                     const val = String(c || '').toUpperCase();
                     return val.includes('AREA') || val.includes('TECHNIQUE');
                 })) {
-                    i++; // Saltar la fila de headers
+                    i++;
                 }
                 continue;
             }
 
-            // Detectar fin de sección
             if (inEmbellishmentsSection && 
                 (rowText.includes('SHIPPING') || 
                  rowText.includes('TOTAL UNITS') || 
@@ -376,11 +326,10 @@ window.ExcelAutomation = (function() {
                  rowText.includes('TRIMS') ||
                  rowText.includes('PACKAGING'))) {
                 inEmbellishmentsSection = false;
-                console.log(`🏁 Fin de sección EMBELLISHMENTS en fila ${i} (${dataRowsFound} filas de datos)`);
+                console.log(`🏁 Fin EMBELLISHMENTS en fila ${i} (${dataRowsFound} filas)`);
                 break;
             }
 
-            // Procesar fila de embellishment
             if (inEmbellishmentsSection && techniqueCol >= 0) {
                 const technique = String(row[techniqueCol] || '').trim();
                 const description = descriptionCol >= 0 ? String(row[descriptionCol] || '').trim() : '';
@@ -401,20 +350,16 @@ window.ExcelAutomation = (function() {
             }
         }
 
-        console.log(`📦 Total placements detectados: ${placements.length}`);
+        console.log(`📦 Total placements: ${placements.length}`);
         return placements;
     }
 
-    /**
-     * Parsea una fila individual de embellishment
-     */
     function parsePlacementRow(technique, description, customer) {
         if (!technique) return null;
         
         const techUpper = technique.toUpperCase().trim();
         const descUpper = (description || '').toUpperCase();
 
-        // Verificar si debemos procesar esta técnica
         const hasForceKeyword = CONFIG.FORCE_PROCESS_KEYWORDS.some(keyword => 
             descUpper.includes(keyword) || techUpper.includes(keyword)
         );
@@ -427,35 +372,28 @@ window.ExcelAutomation = (function() {
             techUpper.includes(processTech)
         );
 
-        // Decidir si procesamos
         if (!hasForceKeyword && isIgnoredTechnique) {
-            console.log(`   ⏭️ Ignorando técnica excluida: ${technique}`);
+            console.log(`   ⏭️ Ignorado: ${technique}`);
             return null;
         }
 
         if (!hasForceKeyword && !isProcessTechnique) {
-            console.log(`   ⏭️ Técnica no soportada: ${technique}`);
+            console.log(`   ⏭️ No soportado: ${technique}`);
             return null;
         }
 
-        // Determinar tipo de tinta
         const inkType = determineInkType(techUpper, descUpper, customer);
-
-        // Extraer ubicaciones
         let locations = extractLocations(description, descUpper);
 
-        // Si no hay ubicaciones, intentar inferir
         if (locations.length === 0) {
             locations = inferLocationsFromDescription(descUpper);
         }
 
-        // Si sigue sin ubicaciones, usar genérico
         if (locations.length === 0) {
-            console.log(`   ⚠️ Sin ubicación clara para: "${description.substring(0, 40)}", usando FRONT`);
+            console.log(`   ⚠️ Sin ubicación: "${description.substring(0, 40)}", usando FRONT`);
             locations = ['FRONT'];
         }
 
-        // Detectar si es un placement pareado
         const isPaired = CONFIG.PAIRED_PATTERNS.some(pattern => 
             pattern.test(description)
         ) || (descUpper.includes('BOTH') && (descUpper.includes('SLEEVE') || descUpper.includes('SHOULDER')));
@@ -474,23 +412,15 @@ window.ExcelAutomation = (function() {
         };
     }
 
-    /**
-     * Determina el tipo de tinta
-     */
     function determineInkType(technique, description, customer) {
-        // 1. Prioridad: palabras clave en descripción
         for (const [keyword, ink] of Object.entries(CONFIG.INK_KEYWORDS)) {
-            if (description.includes(keyword)) {
-                return ink;
-            }
+            if (description.includes(keyword)) return ink;
         }
 
-        // 2. Palabras clave en técnica
         if (technique.includes('SILICONE')) return 'SILICONE';
         if (technique.includes('PLASTISOL')) return 'PLASTISOL';
         if (technique.includes('WATER')) return 'WATER';
 
-        // 3. Default por cliente
         const customerUpper = (customer || '').toUpperCase();
         for (const [client, defaultInk] of Object.entries(CONFIG.CLIENT_INK_DEFAULTS)) {
             if (customerUpper.includes(client)) return defaultInk;
@@ -499,12 +429,8 @@ window.ExcelAutomation = (function() {
         return 'WATER';
     }
 
-    /**
-     * Extrae ubicaciones del texto
-     */
     function extractLocations(description, descUpper) {
         const locations = [];
-        
         if (!description) return locations;
         
         CONFIG.LOCATION_PATTERNS.forEach(pattern => {
@@ -519,9 +445,6 @@ window.ExcelAutomation = (function() {
         return locations;
     }
 
-    /**
-     * Infiere ubicaciones
-     */
     function inferLocationsFromDescription(descUpper) {
         const locations = [];
         
@@ -541,9 +464,6 @@ window.ExcelAutomation = (function() {
     // CREACIÓN DE PLACEMENTS EN UI
     // ============================================
 
-    /**
-     * Crea los placements en la UI
-     */
     function autoCreatePlacements(detectedPlacements) {
         if (!Array.isArray(detectedPlacements) || detectedPlacements.length === 0) {
             console.log('📭 No hay placements para crear');
@@ -551,17 +471,15 @@ window.ExcelAutomation = (function() {
         }
 
         if (!Array.isArray(window.placements)) {
-            console.error('❌ window.placements no está definido');
+            console.error('❌ window.placements no definido');
             return 0;
         }
 
         console.log(`🎯 Creando ${detectedPlacements.length} placements...`);
         
-        // Limpiar placements automáticos anteriores
         const manualPlacements = window.placements.filter(p => !p.isAutoGenerated);
         window.placements = manualPlacements;
         
-        // Limpiar UI
         const container = document.getElementById('placements-container');
         const tabsContainer = document.getElementById('placements-tabs');
         if (container) container.innerHTML = '';
@@ -615,9 +533,6 @@ window.ExcelAutomation = (function() {
         return placementCount;
     }
 
-    /**
-     * Expande ubicaciones
-     */
     function expandLocations(locations, isPaired, description) {
         const expanded = [];
         const descUpper = (description || '').toUpperCase();
@@ -626,8 +541,7 @@ window.ExcelAutomation = (function() {
             if (location === 'SLEEVE' || location === 'SHOULDER') {
                 if (isPaired || 
                     descUpper.includes('BOTH') || 
-                    descUpper.includes('LEFT AND RIGHT') ||
-                    descUpper.includes('LEFT & RIGHT')) {
+                    descUpper.includes('LEFT AND RIGHT')) {
                     expanded.push(`LEFT ${location}`);
                     expanded.push(`RIGHT ${location}`);
                 } else if (descUpper.includes('LEFT') && !descUpper.includes('RIGHT')) {
@@ -635,7 +549,6 @@ window.ExcelAutomation = (function() {
                 } else if (descUpper.includes('RIGHT') && !descUpper.includes('LEFT')) {
                     expanded.push(`RIGHT ${location}`);
                 } else {
-                    // Por defecto, ambos lados
                     expanded.push(`LEFT ${location}`);
                     expanded.push(`RIGHT ${location}`);
                 }
@@ -647,9 +560,6 @@ window.ExcelAutomation = (function() {
         return expanded;
     }
 
-    /**
-     * Mapea ubicación a tipo
-     */
     function mapLocationToType(location, description) {
         const descUpper = (description || '').toUpperCase();
         
@@ -680,9 +590,6 @@ window.ExcelAutomation = (function() {
         return typeMap[baseLocation] || baseLocation || 'CUSTOM';
     }
 
-    /**
-     * Genera detalles de ubicación
-     */
     function generatePlacementDetails(detected, location) {
         const details = [];
         const descUpper = (detected.description || '').toUpperCase();
@@ -694,7 +601,6 @@ window.ExcelAutomation = (function() {
         if (location.includes('SHOULDER')) details.push('Shoulder');
         if (location.includes('SLEEVE')) details.push('Sleeve');
         if (location.includes('COLLAR')) details.push('Collar');
-        if (location.includes('CHEST')) details.push('Chest');
         
         if (descUpper.includes('NUMBER')) details.push('Player Numbers');
         if (descUpper.includes('NAME')) details.push('Player Name');
@@ -704,9 +610,6 @@ window.ExcelAutomation = (function() {
         return details.join(' • ') || '#.#" FROM COLLAR SEAM';
     }
 
-    /**
-     * Detecta especialidades
-     */
     function detectSpecialties(detected) {
         const specialties = [];
         const desc = (detected.description || '').toUpperCase();
@@ -746,19 +649,23 @@ window.ExcelAutomation = (function() {
 
     /**
      * Procesa el Excel y extrae datos + placements
-     * Versión robusta que funciona con o sin workbook completo
+     * @param {Object} worksheet - Hoja de trabajo actual
+     * @param {string} sheetName - Nombre de la hoja
+     * @param {Object} workbook - Workbook completo (opcional, para auto-detección)
      */
     function processExcelWithAutomation(worksheet, sheetName = '', workbook = null) {
-        console.log('🤖 ExcelAutomation v5.1: Iniciando...');
+        console.log('🤖 ExcelAutomation v5.2: Iniciando...');
+        console.log('   📄 Hoja proporcionada:', sheetName);
+        console.log('   📚 Workbook recibido:', workbook ? 'SÍ' : 'NO');
         
         try {
             let targetData;
+            let finalSheetName = sheetName;
             
-            // Si tenemos workbook completo, intentar encontrar mejor hoja
-            if (workbook && workbook.SheetNames && workbook.SheetNames.length > 0) {
-                console.log(`📚 Workbook detectado con ${workbook.SheetNames.length} hojas`);
+            // CASO 1: Tenemos workbook completo - buscar mejor hoja
+            if (workbook && typeof workbook === 'object' && workbook.SheetNames && workbook.SheetNames.length > 0) {
+                console.log(`📚 Analizando ${workbook.SheetNames.length} hojas...`);
                 
-                // Buscar hoja con mejor score
                 let bestSheet = null;
                 let bestScore = -1;
                 
@@ -767,43 +674,74 @@ window.ExcelAutomation = (function() {
                     
                     // Ignorar hojas de referencia
                     if (CONFIG.IGNORE_SHEET_NAMES.some(ignore => upperName.includes(ignore))) {
+                        console.log(`   ⏭️ Ignorando: ${name}`);
                         continue;
                     }
                     
-                    const sheet = workbook.Sheets[name];
-                    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                    
-                    // Calcular score rápido
-                    let score = 0;
-                    const sampleText = data.slice(0, 20).map(r => r.join(' ')).join(' ').toUpperCase();
-                    
-                    if (upperName.includes('SWO')) score += 30;
-                    if (upperName.includes('PPS')) score += 30;
-                    if (sampleText.includes('SAMPLE WORK ORDER')) score += 20;
-                    if (sampleText.includes('CUSTOMER') && sampleText.match(/CUSTOMER[:\s]+([A-Z])/)) score += 25;
-                    
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestSheet = { name, data, sheet };
+                    try {
+                        const sheet = workbook.Sheets[name];
+                        const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                        
+                        // Calcular score
+                        let score = 0;
+                        const sampleText = data.slice(0, 25).map(r => r.join(' ')).join(' ').toUpperCase();
+                        
+                        // Bonus por nombre
+                        if (upperName.includes('SWO')) score += 40;
+                        if (upperName.includes('PPS')) score += 40;
+                        if (upperName.includes('SAMPLE')) score += 20;
+                        
+                        // Bonus por contenido
+                        if (sampleText.includes('SAMPLE WORK ORDER')) score += 30;
+                        
+                        // Bonus por CUSTOMER con valor real
+                        for (let i = 0; i < Math.min(20, data.length); i++) {
+                            const row = data[i];
+                            if (!row) continue;
+                            for (let j = 0; j < row.length; j++) {
+                                const cell = String(row[j] || '').toUpperCase();
+                                const nextCell = String(row[j + 1] || '').trim();
+                                if ((cell.includes('CUSTOMER') || cell === 'CUSTOMER:') && 
+                                    nextCell && 
+                                    nextCell.length > 2 &&
+                                    !nextCell.toUpperCase().includes('CUSTOMER')) {
+                                    score += 35; // Customer real encontrado!
+                                }
+                            }
+                        }
+                        
+                        console.log(`   📊 ${name}: score ${score}`);
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestSheet = { name, data, score };
+                        }
+                    } catch (e) {
+                        console.warn(`   ⚠️ Error leyendo hoja ${name}:`, e.message);
                     }
                 }
                 
-                if (bestSheet && bestScore > 20) {
-                    console.log(`🏆 Usando hoja: "${bestSheet.name}" (score: ${bestScore})`);
+                // Usar la mejor hoja si tiene score decente
+                if (bestSheet && bestScore >= 30) {
+                    console.log(`🏆 MEJOR HOJA: "${bestSheet.name}" (score: ${bestSheet.score})`);
                     targetData = bestSheet.data;
-                    sheetName = bestSheet.name;
+                    finalSheetName = bestSheet.name;
+                } else if (bestSheet) {
+                    console.log(`⚠️ Mejor hoja "${bestSheet.name}" tiene score bajo (${bestScore}), usando proporcionada`);
+                    targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
                 } else {
-                    console.log('⚠️ No se encontró hoja mejor, usando la proporcionada');
+                    console.log('⚠️ No se encontró hoja válida, usando proporcionada');
                     targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
                 }
-            } else {
-                // Modo fallback: usar la hoja proporcionada
-                console.log(`📄 Modo hoja única: ${sheetName}`);
+            } 
+            // CASO 2: No tenemos workbook, usar hoja proporcionada
+            else {
+                console.log('📄 Usando hoja proporcionada (sin workbook)');
                 targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
             }
             
             // Extraer datos básicos
-            const extracted = extractBasicData(targetData, sheetName);
+            const extracted = extractBasicData(targetData, finalSheetName);
             
             // Detectar placements
             const placements = detectPlacements(targetData, extracted.customer);
@@ -811,17 +749,18 @@ window.ExcelAutomation = (function() {
             // Crear en UI
             if (placements.length > 0 && typeof window.placements !== 'undefined') {
                 autoCreatePlacements(placements);
+            } else {
+                console.log('📭 No se encontraron placements para crear');
             }
             
             return { 
                 ...extracted, 
                 autoPlacements: placements,
-                sourceSheet: sheetName 
+                sourceSheet: finalSheetName 
             };
             
         } catch (error) {
             console.error('❌ Error en ExcelAutomation:', error);
-            // Retornar objeto vacío pero válido
             return {
                 customer: '',
                 style: '',
@@ -851,4 +790,4 @@ window.ExcelAutomation = (function() {
 
 })();
 
-console.log('✅ Excel Automation v5.1 (Robusto - con/sin workbook) cargado');
+console.log('✅ Excel Automation v5.2 (Detección robusta de hojas) cargado');
