@@ -2451,12 +2451,13 @@ function updatePlacementField(placementId, field, value) {
 
 
 // =====================================================
-// FUNCIÓN PARA PROCESAR DATOS EXCEL (VERSIÓN CON LOGS)
+// FUNCIÓN PARA PROCESAR DATOS EXCEL (VERSIÓN CON LOGS Y SOPORTE PARA WORKBOOK)
 // =====================================================
 
-function processExcelData(worksheet, sheetName = '') {
+function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('📁 processExcelData INICIANDO con hoja:', sheetName);
     console.log('📊 worksheet:', worksheet);
+    console.log('📚 workbook recibido:', workbook ? 'SÍ' : 'NO');
     
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     console.log('📊 data raw:', data);
@@ -2534,7 +2535,8 @@ function processExcelData(worksheet, sheetName = '') {
     if (window.ExcelAutomation) {
         console.log('🤖 Ejecutando ExcelAutomation.processExcelWithAutomation...');
         try {
-            const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName);
+            // PASAR EL WORKBOOK A EXCELAUTOMATION
+            const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
             console.log('🤖 Resultado de ExcelAutomation:', result);
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
@@ -2572,7 +2574,25 @@ function setupExcelImportHandler() {
         if (!file) return;
 
         try {
-            showStatus(`📥 Cargando archivo: ${file.name}...`, 'info');
+            const fileName = String(file.name || '');
+            const normalizedFileName = fileName.toLowerCase();
+
+            if (normalizedFileName.endsWith('.zip')) {
+                await loadProjectZip(file);
+                return;
+            }
+
+            if (normalizedFileName.endsWith('.json')) {
+                showStatus(`📥 Cargando JSON: ${fileName}...`, 'info');
+                const jsonText = await file.text();
+                const parsedData = JSON.parse(jsonText);
+                loadSpecData(parsedData);
+                showTab('spec-creator');
+                showStatus(`✅ Archivo JSON "${fileName}" cargado correctamente`, 'success');
+                return;
+            }
+
+            showStatus(`📥 Cargando archivo Excel: ${file.name}...`, 'info');
             const buffer = await file.arrayBuffer();
             const workbook = XLSX.read(buffer, { type: 'array' });
 
@@ -2590,10 +2610,11 @@ function setupExcelImportHandler() {
                 throw new Error(`No se encontró la hoja "${preferredSheetName}"`);
             }
 
-            processExcelData(worksheet, preferredSheetName);
+            // PASAR EL WORKBOOK A processExcelData
+            processExcelData(worksheet, preferredSheetName, workbook);
         } catch (error) {
-            console.error('❌ Error procesando SWO:', error);
-            showStatus(`❌ Error al cargar SWO: ${error.message || error}`, 'error');
+            console.error('❌ Error procesando archivo importado:', error);
+            showStatus(`❌ Error al cargar archivo: ${error.message || error}`, 'error');
             if (window.errorHandler) {
                 window.errorHandler.log('excel_import', error, { fileName: file.name });
             }
