@@ -2511,25 +2511,31 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
 
     console.log('📦 Datos extraídos:', extracted);
 
-    // --- 2. ASIGNAR VALORES A LOS INPUTS ---
-    if (extracted.customer) {
-        setInputValue('customer', extracted.customer);
-        console.log('✅ customer asignado:', extracted.customer);
-    }
-    if (extracted.style) {
-        setInputValue('style', extracted.style);
-        console.log('✅ style asignado:', extracted.style);
-    }
-    if (extracted.colorway) {
-        setInputValue('colorway', extracted.colorway);
-        console.log('✅ colorway asignado:', extracted.colorway);
-    }
-    if (extracted.season) setInputValue('season', extracted.season);
-    if (extracted.pattern) setInputValue('pattern', extracted.pattern);
-    if (extracted.po) setInputValue('po', extracted.po);
-    if (extracted.sample) setInputValue('sample-type', extracted.sample);
-    if (extracted.team) setInputValue('name-team', extracted.team);
-    if (extracted.gender) setInputValue('gender', extracted.gender);
+    const applyGeneralInfo = (info, source = 'manual') => {
+        if (!info || typeof info !== 'object') return;
+
+        if (info.customer) {
+            setInputValue('customer', info.customer);
+            console.log(`✅ customer asignado (${source}):`, info.customer);
+        }
+        if (info.style) {
+            setInputValue('style', info.style);
+            console.log(`✅ style asignado (${source}):`, info.style);
+        }
+        if (info.colorway) {
+            setInputValue('colorway', info.colorway);
+            console.log(`✅ colorway asignado (${source}):`, info.colorway);
+        }
+        if (info.season) setInputValue('season', info.season);
+        if (info.pattern) setInputValue('pattern', info.pattern);
+        if (info.po) setInputValue('po', info.po);
+        if (info.sample || info.sampleType) setInputValue('sample-type', info.sample || info.sampleType);
+        if (info.team || info.nameTeam) setInputValue('name-team', info.team || info.nameTeam);
+        if (info.gender) setInputValue('gender', info.gender);
+    };
+
+    // --- 2. ASIGNAR VALORES INICIALES A LOS INPUTS ---
+    applyGeneralInfo(extracted, 'extracción base');
 
     // --- 3. EJECUTAR AUTOMATIZACIÓN DE PLACEMENTS ---
     if (window.ExcelAutomation) {
@@ -2538,6 +2544,9 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
             // PASAR EL WORKBOOK A EXCELAUTOMATION
             const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
             console.log('🤖 Resultado de ExcelAutomation:', result);
+
+            // Completar/actualizar información general con la mejor hoja detectada
+            applyGeneralInfo(result, 'ExcelAutomation');
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
                 console.log(`📦 Se detectaron ${result.autoPlacements.length} placements automáticos`);
