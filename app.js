@@ -367,11 +367,25 @@ function detectTeamFromStyle(style, colorway = '', customer = '') {
     return '';
 }
 
-function extractGenderFromStyle(style) {
+function extractGenderFromStyle(style, customer = '') {
     if (!style) return '';
 
     try {
         const styleStr = style.toString().toUpperCase().trim();
+        const customerStr = String(customer || '').toUpperCase().trim();
+
+        // Fanatics NFL jersey convention (ej: 67NM / 67NW, 31NM / 31NW)
+        // NM = Men, NW = Women
+        const fanaticsNMatch = styleStr.match(/(?:^|[^A-Z0-9])(?:67|31)N([MW])(?:[^A-Z0-9]|$)/);
+        if (fanaticsNMatch && fanaticsNMatch[1]) {
+            return fanaticsNMatch[1] === 'W' ? 'Women' : 'Men';
+        }
+
+        // Fallback for other two-digit prefixes that still use NM/NW convention
+        const genericNMatch = styleStr.match(/(?:^|[^A-Z0-9])\d{2}N([MW])(?:[^A-Z0-9]|$)/);
+        if (genericNMatch && genericNMatch[1] && (customerStr.includes('FANATICS') || customerStr.includes('FANATIC'))) {
+            return genericNMatch[1] === 'W' ? 'Women' : 'Men';
+        }
 
         if (window.SchoolsConfig && window.SchoolsConfig.extractGenderFromStyle) {
             const gender = window.SchoolsConfig.extractGenderFromStyle(styleStr);
@@ -424,6 +438,22 @@ function extractGenderFromStyle(style) {
     }
 
     return '';
+}
+
+
+function normalizeGenderValue(rawGender, style = '', customer = '') {
+    const normalizedRaw = String(rawGender || '').trim();
+    if (!normalizedRaw) return extractGenderFromStyle(style, customer);
+
+    const upper = normalizedRaw.toUpperCase();
+
+    if (upper.includes("WOMEN") || upper.includes("WOMAN") || upper.includes("LADIES") || upper === 'W') return 'Women';
+    if (upper.includes("MEN") || upper.includes("MAN") || upper === 'M') return 'Men';
+    if (upper.includes("YOUTH") || upper === 'Y') return 'Youth';
+    if (upper.includes("KID") || upper.includes("TODDLER") || upper === 'K') return 'Kids';
+    if (upper.includes("UNISEX") || upper === 'U') return 'Unisex';
+
+    return normalizedRaw;
 }
 
 // =====================================================
@@ -2509,27 +2539,88 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         }
     }
 
+    const extractBaseSizeFromGrid = (grid) => {
+        if (!Array.isArray(grid) || grid.length === 0) return '';
+
+        const normalizeSize = (raw) => {
+            const text = String(raw || '').trim().toUpperCase();
+            if (!text) return '';
+            if (text.includes('BASE SIZE') || text === 'SIZE' || text.includes('MEASUREMENT')) return '';
+
+            const sizeMatch = text.match(/\b(XXS|XS|S|M|L|XL|XXL|XXXL|2XL|3XL|4XL|5XL)\b/);
+            if (!sizeMatch) return '';
+
+            const normalized = sizeMatch[1];
+            if (normalized === 'XXXL') return '3XL';
+            if (normalized === 'XXL') return '2XL';
+            return normalized;
+        };
+
+        // Preferencia SWO/PPS: fila 16, columnas C:J
+        if (grid[15]) {
+            for (let col = 2; col <= 9; col++) {
+                const candidate = normalizeSize(grid[15][col]);
+                if (candidate) return candidate;
+            }
+        }
+
+        // Fallback: buscar etiqueta BASE SIZE en cualquier fila
+        for (const row of grid) {
+            if (!Array.isArray(row) || row.length === 0) continue;
+
+            for (let col = 0; col < row.length; col++) {
+                const label = String(row[col] || '').toUpperCase();
+                if (!label.includes('BASE SIZE')) continue;
+
+                const sameRow = normalizeSize(row[col + 1]);
+                if (sameRow) return sameRow;
+            }
+        }
+
+        return '';
+    };
+
+    // Intentar inferir gender por estilo si no viene explícito en Excel
+    if (!extracted.gender && extracted.style) {
+        extracted.gender = normalizeGenderValue('', extracted.style, extracted.customer);
+    }
+
+    // Base size suele venir en fila 16 (C16:J16) en SWO/PPS
+    if (!extracted.baseSize) {
+        extracted.baseSize = extractBaseSizeFromGrid(data);
+    }
+
     console.log('📦 Datos extraídos:', extracted);
 
-    // --- 2. ASIGNAR VALORES A LOS INPUTS ---
-    if (extracted.customer) {
-        setInputValue('customer', extracted.customer);
-        console.log('✅ customer asignado:', extracted.customer);
-    }
-    if (extracted.style) {
-        setInputValue('style', extracted.style);
-        console.log('✅ style asignado:', extracted.style);
-    }
-    if (extracted.colorway) {
-        setInputValue('colorway', extracted.colorway);
-        console.log('✅ colorway asignado:', extracted.colorway);
-    }
-    if (extracted.season) setInputValue('season', extracted.season);
-    if (extracted.pattern) setInputValue('pattern', extracted.pattern);
-    if (extracted.po) setInputValue('po', extracted.po);
-    if (extracted.sample) setInputValue('sample-type', extracted.sample);
-    if (extracted.team) setInputValue('name-team', extracted.team);
-    if (extracted.gender) setInputValue('gender', extracted.gender);
+    const applyGeneralInfo = (info, source = 'manual') => {
+        if (!info || typeof info !== 'object') return;
+
+        if (info.customer) {
+            setInputValue('customer', info.customer);
+            console.log(`✅ customer asignado (${source}):`, info.customer);
+        }
+        if (info.style) {
+            setInputValue('style', info.style);
+            console.log(`✅ style asignado (${source}):`, info.style);
+        }
+        if (info.colorway) {
+            setInputValue('colorway', info.colorway);
+            console.log(`✅ colorway asignado (${source}):`, info.colorway);
+        }
+        if (info.season) setInputValue('season', info.season);
+        if (info.pattern) setInputValue('pattern', info.pattern);
+        if (info.po) setInputValue('po', info.po);
+        if (info.sample || info.sampleType) setInputValue('sample-type', info.sample || info.sampleType);
+        if (info.team || info.nameTeam) setInputValue('name-team', info.team || info.nameTeam);
+
+        const resolvedGender = normalizeGenderValue(info.gender, info.style, info.customer);
+        if (resolvedGender) setInputValue('gender', resolvedGender);
+
+        if (info.baseSize) setInputValue('base-size', info.baseSize);
+    };
+
+    // --- 2. ASIGNAR VALORES INICIALES A LOS INPUTS ---
+    applyGeneralInfo(extracted, 'extracción base');
 
     // --- 3. EJECUTAR AUTOMATIZACIÓN DE PLACEMENTS ---
     if (window.ExcelAutomation) {
@@ -2538,6 +2629,15 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
             // PASAR EL WORKBOOK A EXCELAUTOMATION
             const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
             console.log('🤖 Resultado de ExcelAutomation:', result);
+
+            // Completar base size desde la hoja óptima detectada por automatización
+            if (!result.baseSize && workbook && result.sourceSheet && workbook.Sheets && workbook.Sheets[result.sourceSheet]) {
+                const sourceData = XLSX.utils.sheet_to_json(workbook.Sheets[result.sourceSheet], { header: 1, defval: '' });
+                result.baseSize = extractBaseSizeFromGrid(sourceData);
+            }
+
+            // Completar/actualizar información general con la mejor hoja detectada
+            applyGeneralInfo(result, 'ExcelAutomation');
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
                 console.log(`📦 Se detectaron ${result.autoPlacements.length} placements automáticos`);
