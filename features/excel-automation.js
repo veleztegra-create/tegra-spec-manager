@@ -1,5 +1,5 @@
 // excel-automation.js - Automatización inteligente de placements desde Excel
-// VERSIÓN v5.2 - Auto-detección robusta con manejo de workbook undefined
+// VERSIÓN v5.3 - CORREGIDA: No ignora hojas PROTO y usa scoring mejorado
 
 window.ExcelAutomation = (function() {
     'use strict';
@@ -91,7 +91,8 @@ window.ExcelAutomation = (function() {
             'UA': 'WATER'
         },
         
-        IGNORE_SHEET_NAMES: ['HOW TO', 'LISTS', 'LIST', 'INSTRUCTION', 'PROTO', 'HOJA TÉCNICA', 'TEMPLATE']
+        // ⚠️ CORRECCIÓN: Eliminamos 'PROTO' de esta lista para que las hojas "Proto 1" sean evaluadas
+        IGNORE_SHEET_NAMES: ['HOW TO', 'LISTS', 'LIST', 'INSTRUCTION', 'HOJA TÉCNICA', 'TEMPLATE']
     };
 
     // ============================================
@@ -104,9 +105,10 @@ window.ExcelAutomation = (function() {
         
         const isStructuredFormat = sheetUpper.includes('SWO') || 
                                    sheetUpper.includes('PPS') || 
-                                   sheetUpper.includes('SAMPLE');
+                                   sheetUpper.includes('SAMPLE') ||
+                                   sheetUpper.includes('PROTO'); // Añadimos PROTO como formato estructurado
 
-        console.log(`📄 Procesando hoja: ${sheetName} (Formato: ${isStructuredFormat ? 'SWO/PPS' : 'Genérico'})`);
+        console.log(`📄 Procesando hoja: ${sheetName} (Formato: ${isStructuredFormat ? 'SWO/PPS/PROTO' : 'Genérico'})`);
 
         if (isStructuredFormat) {
             extractFromStructuredFormat(data, extracted);
@@ -644,37 +646,39 @@ window.ExcelAutomation = (function() {
     }
 
     // ============================================
-    // FUNCIÓN PRINCIPAL PÚBLICA
+    // FUNCIÓN PRINCIPAL PÚBLICA (CORREGIDA)
     // ============================================
 
     /**
      * Procesa el Excel y extrae datos + placements
-     * @param {Object} worksheet - Hoja de trabajo actual
-     * @param {string} sheetName - Nombre de la hoja
-     * @param {Object} workbook - Workbook completo (opcional, para auto-detección)
+     * @param {Object} worksheet - Hoja de trabajo actual (se ignora si hay workbook)
+     * @param {string} sheetName - Nombre de la hoja (se ignora si hay workbook)
+     * @param {Object} workbook - Workbook completo (ahora es OBLIGATORIO para mejor detección)
      */
     function processExcelWithAutomation(worksheet, sheetName = '', workbook = null) {
-        console.log('🤖 ExcelAutomation v5.2: Iniciando...');
-        console.log('   📄 Hoja proporcionada:', sheetName);
-        console.log('   📚 Workbook recibido:', workbook ? 'SÍ' : 'NO');
+        console.log('🤖 ExcelAutomation v5.3: Iniciando con scoring mejorado...');
         
         try {
             let targetData;
             let finalSheetName = sheetName;
             
-            // CASO 1: Tenemos workbook completo - buscar mejor hoja
+            // ============================================
+            // PASO 1: Buscar la mejor hoja (si tenemos workbook)
+            // ============================================
             if (workbook && typeof workbook === 'object' && workbook.SheetNames && workbook.SheetNames.length > 0) {
-                console.log(`📚 Analizando ${workbook.SheetNames.length} hojas...`);
+                console.log(`📚 Analizando ${workbook.SheetNames.length} hojas para encontrar la mejor...`);
                 
                 let bestSheet = null;
                 let bestScore = -1;
+                let bestSheetIndex = -1;
                 
-                for (const name of workbook.SheetNames) {
+                for (let idx = 0; idx < workbook.SheetNames.length; idx++) {
+                    const name = workbook.SheetNames[idx];
                     const upperName = name.toUpperCase();
                     
-                    // Ignorar hojas de referencia
+                    // Ignorar hojas de referencia (ya sin PROTO)
                     if (CONFIG.IGNORE_SHEET_NAMES.some(ignore => upperName.includes(ignore))) {
-                        console.log(`   ⏭️ Ignorando: ${name}`);
+                        console.log(`   ⏭️ Ignorando hoja de referencia: ${name}`);
                         continue;
                     }
                     
@@ -682,68 +686,85 @@ window.ExcelAutomation = (function() {
                         const sheet = workbook.Sheets[name];
                         const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
                         
-                        // Calcular score
+                        // Calcular score para esta hoja
                         let score = 0;
-                        const sampleText = data.slice(0, 25).map(r => r.join(' ')).join(' ').toUpperCase();
                         
-                        // Bonus por nombre
+                        // Bonus por nombre de hoja
                         if (upperName.includes('SWO')) score += 40;
                         if (upperName.includes('PPS')) score += 40;
-                        if (upperName.includes('SAMPLE')) score += 20;
+                        if (upperName.includes('SAMPLE')) score += 30;
+                        if (upperName.includes('PROTO')) score += 35; // Importante: Proto ahora suma puntos
                         
-                        // Bonus por contenido
+                        // Bonus por contenido (primeras 30 filas)
+                        const sampleText = data.slice(0, 30).map(r => r.join(' ')).join(' ').toUpperCase();
+                        
                         if (sampleText.includes('SAMPLE WORK ORDER')) score += 30;
+                        if (sampleText.includes('EMBELLISHMENTS')) score += 25; // Tiene sección de placements
                         
-                        // Bonus por CUSTOMER con valor real
+                        // Buscar CUSTOMER con valor real (puntaje alto)
                         for (let i = 0; i < Math.min(20, data.length); i++) {
                             const row = data[i];
                             if (!row) continue;
-                            for (let j = 0; j < row.length; j++) {
-                                const cell = String(row[j] || '').toUpperCase();
+                            for (let j = 0; j < row.length - 1; j++) {
+                                const cell = String(row[j] || '').toUpperCase().trim();
                                 const nextCell = String(row[j + 1] || '').trim();
-                                if ((cell.includes('CUSTOMER') || cell === 'CUSTOMER:') && 
+                                if ((cell === 'CUSTOMER' || cell === 'CUSTOMER:') && 
                                     nextCell && 
                                     nextCell.length > 2 &&
                                     !nextCell.toUpperCase().includes('CUSTOMER')) {
-                                    score += 35; // Customer real encontrado!
+                                    score += 50; // ¡Puntaje máximo! Encontramos un cliente real
+                                    console.log(`   🎯 Cliente encontrado en ${name}: "${nextCell}"`);
                                 }
                             }
                         }
                         
-                        console.log(`   📊 ${name}: score ${score}`);
+                        console.log(`   📊 Hoja "${name}" (índice ${idx}): score ${score}`);
                         
                         if (score > bestScore) {
                             bestScore = score;
-                            bestSheet = { name, data, score };
+                            bestSheet = { name, data, score, index: idx };
                         }
                     } catch (e) {
                         console.warn(`   ⚠️ Error leyendo hoja ${name}:`, e.message);
                     }
                 }
                 
-                // Usar la mejor hoja si tiene score decente
+                // Usar la mejor hoja si tiene un score mínimo
                 if (bestSheet && bestScore >= 30) {
-                    console.log(`🏆 MEJOR HOJA: "${bestSheet.name}" (score: ${bestSheet.score})`);
+                    console.log(`🏆 MEJOR HOJA: "${bestSheet.name}" (índice ${bestSheet.index}, score: ${bestSheet.score})`);
                     targetData = bestSheet.data;
                     finalSheetName = bestSheet.name;
                 } else if (bestSheet) {
-                    console.log(`⚠️ Mejor hoja "${bestSheet.name}" tiene score bajo (${bestScore}), usando proporcionada`);
-                    targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                    // Si el score es bajo, pero es la única opción, la usamos de todas formas
+                    console.log(`⚠️ La mejor hoja "${bestSheet.name}" tiene score bajo (${bestScore}), pero se usará.`);
+                    targetData = bestSheet.data;
+                    finalSheetName = bestSheet.name;
                 } else {
-                    console.log('⚠️ No se encontró hoja válida, usando proporcionada');
-                    targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                    // Fallback: usar la primera hoja si no se encontró ninguna con score
+                    console.log('⚠️ No se encontró hoja con score mínimo. Usando primera hoja como fallback.');
+                    const firstName = workbook.SheetNames[0];
+                    targetData = XLSX.utils.sheet_to_json(workbook.Sheets[firstName], { header: 1, defval: '' });
+                    finalSheetName = firstName;
                 }
             } 
-            // CASO 2: No tenemos workbook, usar hoja proporcionada
+            // ============================================
+            // PASO 2: No tenemos workbook, usar hoja proporcionada
+            // ============================================
             else {
-                console.log('📄 Usando hoja proporcionada (sin workbook)');
+                console.log('📄 Usando hoja proporcionada directamente (sin workbook completo)');
+                if (!worksheet) {
+                    throw new Error('No se proporcionó worksheet ni workbook válido');
+                }
                 targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                // No cambiamos finalSheetName, usamos el sheetName proporcionado
             }
             
-            // Extraer datos básicos
-            const extracted = extractBasicData(targetData, finalSheetName);
+            // ============================================
+            // PASO 3: Extraer datos y placements
+            // ============================================
+            console.log(`📊 Procesando hoja "${finalSheetName}" con ${targetData.length} filas`);
             
-            // Detectar placements
+            const extracted = extractBasicData(targetData, finalSheetName);
             const placements = detectPlacements(targetData, extracted.customer);
             
             // Crear en UI
@@ -761,6 +782,7 @@ window.ExcelAutomation = (function() {
             
         } catch (error) {
             console.error('❌ Error en ExcelAutomation:', error);
+            // Devolver un objeto vacío pero con el error para no romper la cadena
             return {
                 customer: '',
                 style: '',
@@ -790,4 +812,4 @@ window.ExcelAutomation = (function() {
 
 })();
 
-console.log('✅ Excel Automation v5.2 (Detección robusta de hojas) cargado');
+console.log('✅ Excel Automation v5.3 (Detección robusta con scoring mejorado) cargado');
