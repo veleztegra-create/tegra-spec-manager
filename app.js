@@ -2595,7 +2595,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     if (window.ExcelAutomation) {
         console.log('🤖 Ejecutando ExcelAutomation.processExcelWithAutomation...');
         try {
-            // PASAR EL WORKBOOK A EXCELAUTOMATION
+            // PASAR EL WORKBOOK A EXCELAUTOMATION (¡ESTO YA ESTÁ BIEN!)
             const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
             console.log('🤖 Resultado de ExcelAutomation:', result);
 
@@ -2632,6 +2632,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     }, 500);
 
     showStatus(`✅ "${sheetName || 'hoja'}" procesado`, 'success');
+
 }
 
 function setupExcelImportHandler() {
