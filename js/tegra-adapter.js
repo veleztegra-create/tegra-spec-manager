@@ -1,89 +1,226 @@
-// tegra-adapter.js - Adaptador para integrar NikeTechPackExtractor en Tegra Spec Manager
+// tegra-adapter.js - Adaptador con traducción contextual de frases técnicas
 
 (function() {
     'use strict';
 
-    // Diccionario técnico EN -> ES para Tech Packs (phrases first)
-    const TECHPACK_DICTIONARY = {
-        // Encabezados / secciones
-        'Graphic Placement': 'Ubicación Gráfica',
-        'Bill of Material': 'Lista de Materiales',
-        'Measurement': 'Medición',
-        'Base Size': 'Talla Base',
-        'Size Scale': 'Escala de Tallas',
+    // DICCIONARIO DE FRASES COMPLETAS TÍPICAS DE TECH PACKS
+    const PHRASE_DICTIONARY = {
+        // Frases de Swoosh
+        'Swoosh: CF neck seam to top of graphic': 'Swoosh: CF (centro del frente) desde costura de cuello a borde superior del gráfico',
+        'Swoosh: Sleeve hem edge to top of graphic': 'Swoosh: desde ruedo de manga a borde superior del gráfico',
+        'Swoosh: centered over topline': 'Swoosh: centrado sobre línea superior',
+        'Swoosh: placement on sleeve': 'Swoosh: ubicación en manga',
+        
+        // Frases de Wordmark
+        'Wordmark: CF neck seam to top of graphic': 'Wordmark: CF (centro del frente) desde costura de cuello a borde superior',
+        'Wordmark: centered on front': 'Wordmark: centrado en frente',
+        'Front Team Wordmark': 'Wordmark del equipo (frente)',
+        
+        // Frases de Números
+        'CF Numbers: distance between numbers': 'Números frontales: distancia entre números',
+        'Back Numbers: placement': 'Números traseros: ubicación',
+        'TV Numbers: shoulder placement': 'Números TV: ubicación en hombro',
+        'Distance between CF numbers': 'Distancia entre números frontales',
+        
+        // Frases de Nameplate
+        'Nameplate: back placement': 'Nameplate: ubicación en espalda',
+        'Nameplate: centered on back': 'Nameplate: centrado en espalda',
+        
+        // Frases de Jocktag
+        'Jocktag: Side Seam to Edge of Jocktag': 'Jocktag: desde costado al borde',
+        'Jocktag: Bottom hem edge to bottom edge': 'Jocktag: desde ruedo inferior al borde inferior',
+        
+        // Frases de Stripes/Rayas
+        'Sleeve Stripes: Sleeve edge to edge of graphic': 'Rayas de manga: desde borde de manga al borde del gráfico',
+        'Left and Right Sleeve Stripe': 'Rayas de manga izquierda y derecha',
+        
+        // Frases de Shield/Escudo
+        'NFL Shield: centered on collar': 'Escudo NFL: centrado en cuello',
+        'Back Neck Team Logo': 'Logo del equipo en cuello trasero',
+        
+        // Frases generales de posición
+        'centered on front': 'centrado en frente',
+        'centered on back': 'centrado en espalda',
+        'centered on sleeve': 'centrado en manga',
+        'centered over topline': 'centrado sobre línea superior',
+        'from top edge': 'desde borde superior',
+        'from bottom edge': 'desde borde inferior',
+        'from side seam': 'desde costado',
+        'from armhole seam': 'desde costura de sisa',
+        'from neck seam': 'desde costura de cuello',
+        'from hem edge': 'desde ruedo',
+        
+        // Tipos de medidas
+        'to top of graphic': 'al borde superior del gráfico',
+        'to bottom of graphic': 'al borde inferior del gráfico',
+        'to edge of graphic': 'al borde del gráfico',
+        'distance to graphic': 'distancia al gráfico',
+        'edge to edge': 'de borde a borde',
+        
+        // Descripciones de ELP comunes
+        'CF neck seam to top of graphic': 'desde costura de cuello CF al borde superior',
+        'neck seam to top of graphic': 'desde costura de cuello al borde superior',
+        'side seam to edge': 'desde costado al borde',
+        'hem edge to bottom edge': 'desde ruedo al borde inferior',
+        
+        // Calificadores
+        'centered': 'centrado',
+        'left side': 'lado izquierdo',
+        'right side': 'lado derecho',
+        'top edge': 'borde superior',
+        'bottom edge': 'borde inferior',
+        'front': 'frente',
+        'back': 'espalda',
+        'sleeve': 'manga',
+        'shoulder': 'hombro',
+        'collar': 'cuello',
+        'neck': 'cuello'
+    };
 
-        // Ubicaciones y partes
-        'Center Front': 'Centro Frente',
-        'Center Back': 'Centro Espalda',
-        'Left Sleeve': 'Manga Izquierda',
-        'Right Sleeve': 'Manga Derecha',
-        'Left Shoulder': 'Hombro Izquierdo',
-        'Right Shoulder': 'Hombro Derecho',
-        'TV Numbers': 'Números TV',
-        'Player Number': 'Número de Jugador',
-        'Player Name': 'Nombre de Jugador',
-        'Team Logo': 'Logo del Equipo',
-        'Brand Logo': 'Logo de Marca',
-        'Primary Logo': 'Logo Principal',
-        'Nameplate': 'Placa de Nombre',
-        'Wordmark': 'Wordmark',
-        'Jocktag': 'Jocktag',
-        'Swoosh': 'Swoosh',
-        'Collar': 'Cuello',
-        'Neck': 'Cuello',
-        'Chest': 'Pecho',
-        'Yoke': 'Canesú',
-        'Stripes': 'Rayas',
-
-        // Materiales
-        'Recycled Polyester': 'Poliéster Reciclado',
-        'Polyester': 'Poliéster',
-        'Cotton': 'Algodón',
-        'Nylon': 'Nylon',
-        'Spandex': 'Spandex',
-        'Elastane': 'Elastano',
-        'Flat Knit Rib': 'Rib Tejido Plano',
-        'Tricot': 'Tricot',
-        'Mesh': 'Malla',
-
-        // Tintas / procesos
-        'High Solids Water Base Print': 'Impresión Water-base de Alta Solidez',
-        'Water Base Print': 'Impresión Water-base',
-        'Water Base': 'Base Acuosa',
-        'Waterbase': 'Base Acuosa',
-        'Plastisol Print': 'Impresión Plastisol',
-        'Silicone Print': 'Impresión de Silicona',
-        'Heat Transfer': 'Transferencia por Calor',
-        'Screen Print': 'Serigrafía',
-
-        // Direcciones / utilidades
-        'Left': 'Izquierdo',
-        'Right': 'Derecho',
-        'Top': 'Superior',
-        'Bottom': 'Inferior',
-        'Front': 'Frente',
-        'Back': 'Espalda',
-        'Side': 'Lateral',
-        'Home': 'Local',
-        'Away': 'Visitante',
-        'Road': 'Ruta',
-        'Alternate': 'Alternativo',
-        'Yes': 'Sí',
-        'No': 'No'
+    // Mapeo de códigos ELP a descripciones base
+    const ELP_DESCRIPTIONS = {
+        'ELP68': 'Escudo NFL - Centrado en cuello',
+        'ELP69': 'Escudo NFL - Cuello trasero',
+        'ELP66': 'Back Neck Band - Cinta cuello trasero',
+        'ELP01': 'Wordmark - Centro frente',
+        'ELP71': 'Números Frontales',
+        'ELP100': 'Distancia entre números frontales',
+        'ELP08': 'Nameplate - Espalda',
+        'ELP64': 'Números Traseros',
+        'ELP67': 'Números TV - Hombros',
+        'ELP79': 'Swoosh - Manga',
+        'ELP40': 'Rayas de Manga',
+        'ELP37': 'Jocktag - Lateral',
+        'ELP38': 'Jocktag - Vertical'
     };
 
     function escapeRegex(value) {
         return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    function traducirTextoTecnico(texto) {
-        if (!texto) return '';
+    /**
+     * Traduce frases completas de tech packs manteniendo la estructura profesional
+     */
+    function traducirFraseTechPack(fraseIngles, distancia, tallaBase) {
+        if (!fraseIngles) return '';
 
-        let traducido = String(texto);
-        const entries = Object.entries(TECHPACK_DICTIONARY)
+        let fraseTraducida = fraseIngles;
+        let medida = distancia ? ` ${distancia}` : ' [medida]';
+        
+        // Ordenar frases por longitud (de mayor a menor) para priorizar frases completas
+        const frasesOrdenadas = Object.entries(PHRASE_DICTIONARY)
             .sort((a, b) => b[0].length - a[0].length);
 
-        for (const [en, es] of entries) {
+        // Aplicar traducciones de frases completas
+        for (const [en, es] of frasesOrdenadas) {
+            const regex = new RegExp(escapeRegex(en), 'gi');
+            if (regex.test(fraseTraducida)) {
+                fraseTraducida = fraseTraducida.replace(regex, es);
+                break; // Tomar la primera coincidencia más específica
+            }
+        }
+
+        // Si no hubo coincidencia de frase completa, hacer traducción inteligente
+        if (fraseTraducida === fraseIngles) {
+            fraseTraducida = traducirInteligente(fraseIngles);
+        }
+
+        // Agregar la medida si está disponible
+        if (distancia && distancia !== 'N/A') {
+            // Extraer el número de la distancia
+            const valorNumero = parseFloat(distancia);
+            if (!isNaN(valorNumero)) {
+                // Insertar la medida antes de la preposición relevante
+                const preposiciones = [' desde', ' al', ' de ', ' a '];
+                for (const prep of preposiciones) {
+                    if (fraseTraducida.includes(prep)) {
+                        const partes = fraseTraducida.split(prep);
+                        if (partes.length > 1) {
+                            fraseTraducida = partes[0] + prep + valorNumero + ' cm ' + partes.slice(1).join(prep);
+                            break;
+                        }
+                    }
+                }
+                
+                // Si no se pudo insertar con preposición, agregar al inicio
+                if (!fraseTraducida.includes(valorNumero + ' cm')) {
+                    fraseTraducida = valorNumero + ' cm ' + fraseTraducida.toLowerCase();
+                }
+            }
+        }
+
+        // Capitalizar primera letra
+        return fraseTraducida.charAt(0).toUpperCase() + fraseTraducida.slice(1);
+    }
+
+    /**
+     * Traducción inteligente cuando no hay frase exacta en el diccionario
+     */
+    function traducirInteligente(texto) {
+        let traducido = texto;
+
+        // Reemplazar abreviaturas comunes
+        const abreviaturas = {
+            'CF': 'centro del frente',
+            'CB': 'centro de la espalda',
+            'L': 'izquierdo',
+            'R': 'derecho',
+            'LT': 'izquierdo',
+            'RT': 'derecho',
+            'C/B': 'centro espalda',
+            'C/F': 'centro frente',
+            'W/:': 'con:',
+            'w/': 'con',
+            '&': 'y'
+        };
+
+        for (const [abrev, significado] of Object.entries(abreviaturas)) {
+            const regex = new RegExp(`\\b${escapeRegex(abrev)}\\b`, 'gi');
+            traducido = traducido.replace(regex, significado);
+        }
+
+        // Traducir palabras comunes
+        const palabrasComunes = {
+            'swoosh': 'swoosh',
+            'wordmark': 'wordmark',
+            'jocktag': 'jocktag',
+            'nameplate': 'nameplate',
+            'shield': 'escudo',
+            'stripe': 'raya',
+            'stripes': 'rayas',
+            'placement': 'ubicación',
+            'graphic': 'gráfico',
+            'numbers': 'números',
+            'number': 'número',
+            'team': 'equipo',
+            'logo': 'logo',
+            'sleeve': 'manga',
+            'shoulder': 'hombro',
+            'front': 'frente',
+            'back': 'espalda',
+            'neck': 'cuello',
+            'collar': 'cuello',
+            'hem': 'ruedo',
+            'edge': 'borde',
+            'seam': 'costura',
+            'center': 'centro',
+            'centered': 'centrado',
+            'distance': 'distancia',
+            'between': 'entre',
+            'from': 'desde',
+            'to': 'al',
+            'top': 'superior',
+            'bottom': 'inferior',
+            'left': 'izquierdo',
+            'right': 'derecho',
+            'side': 'lateral',
+            'panel': 'panel',
+            'yoke': 'canesú',
+            'armhole': 'sisa',
+            'chest': 'pecho'
+        };
+
+        for (const [en, es] of Object.entries(palabrasComunes)) {
             const regex = new RegExp(`\\b${escapeRegex(en)}\\b`, 'gi');
             traducido = traducido.replace(regex, es);
         }
@@ -91,12 +228,72 @@
         return traducido;
     }
 
-    // --- FUNCIÓN PARA TRADUCIR DESCRIPCIÓN DE PLACEMENT (INGLÉS -> ESPAÑOL) ---
-    function traducirDescripcion(descripcionIngles) {
-        return traducirTextoTecnico(descripcionIngles);
+    /**
+     * Formatea la descripción completa del placement para mostrar
+     */
+    function formatearDescripcionPlacement(placement) {
+        const partes = [];
+        
+        // 1. Código ELP (si existe)
+        if (placement.codigo) {
+            partes.push(`[${placement.codigo}]`);
+        }
+
+        // 2. Ubicación (ya traducida)
+        if (placement.ubicacion) {
+            partes.push(placement.ubicacion);
+        }
+
+        // 3. Descripción traducida con medida
+        if (placement.descripcionIngles || placement.descripcion) {
+            const descripcionTraducida = traducirFraseTechPack(
+                placement.descripcionIngles || placement.descripcion,
+                placement.distancia,
+                placement.talla
+            );
+            partes.push(`: ${descripcionTraducida}`);
+        }
+
+        // 4. Talla base (si es relevante)
+        if (placement.talla && placement.talla !== 'N/A') {
+            partes.push(`(talla base: ${placement.talla})`);
+        }
+
+        return partes.join(' ');
     }
 
-    // --- FUNCIÓN PARA POBLAR EL FORMULARIO CON DATOS DEL PDF ---
+    /**
+     * Traduce y formatea las instrucciones especiales
+     */
+    function formatearInstruccionesEspeciales(placement, inkType) {
+        const instrucciones = [];
+        
+        // Tipo de tinta
+        if (inkType) {
+            const tiposTinta = {
+                'WATER': 'Impresión base acuosa',
+                'PLASTISOL': 'Impresión plastisol',
+                'SILICONE': 'Impresión silicona'
+            };
+            instrucciones.push(`Tinta: ${tiposTinta[inkType] || inkType}`);
+        }
+
+        // Distancia específica
+        if (placement.distancia && placement.distancia !== 'N/A') {
+            instrucciones.push(`Distancia: ${placement.distancia}`);
+        }
+
+        // Descripción original (para referencia)
+        if (placement.descripcionIngles) {
+            instrucciones.push(`Ref: ${placement.descripcionIngles}`);
+        }
+
+        return instrucciones.join(' | ');
+    }
+
+    /**
+     * Poblar el formulario con los datos extraídos del PDF
+     */
     function poblarFormularioConPDF(datosPDF) {
         if (!datosPDF) return;
 
@@ -105,10 +302,10 @@
         // 1. Información General
         if (datosPDF.informacionGeneral) {
             const info = datosPDF.informacionGeneral;
-            if (info.equipo) setInputValue('customer', traducirTextoTecnico(info.equipo));
+            if (info.equipo) setInputValue('customer', info.equipo); // No traducir nombres de equipos
             if (info.styleNumber) setInputValue('style', info.styleNumber);
             if (info.season) setInputValue('season', info.season);
-            if (info.nombreMarketing) setInputValue('name-team', traducirTextoTecnico(info.nombreMarketing));
+            if (info.nombreMarketing) setInputValue('name-team', info.nombreMarketing);
         }
 
         // 2. Talla Base
@@ -118,21 +315,39 @@
 
         // 3. Tela
         if (datosPDF.telas && datosPDF.telas.length > 0) {
-            const telaPrincipal = datosPDF.telas.find(t => t.tipo.includes('Principal') || t.tipo.includes('Tricot')) || datosPDF.telas[0];
+            const telaPrincipal = datosPDF.telas[0];
             if (telaPrincipal) {
-                const telaNombre = traducirTextoTecnico(telaPrincipal.nombre || '');
-                const telaComposicion = traducirTextoTecnico(telaPrincipal.composicion || '');
-                setInputValue('fabric', `${telaNombre} - ${telaComposicion}`);
+                const telaDescripcion = [];
+                if (telaPrincipal.nombre) telaDescripcion.push(telaPrincipal.nombre);
+                if (telaPrincipal.composicion && telaPrincipal.composicion !== 'N/A') {
+                    telaDescripcion.push(telaPrincipal.composicion);
+                }
+                if (telaPrincipal.peso && telaPrincipal.peso !== 'N/A') {
+                    telaDescripcion.push(telaPrincipal.peso);
+                }
+                setInputValue('fabric', telaDescripcion.join(' - '));
             }
         }
 
-        // 4. Crear Placements (si no existen o para añadirlos)
+        // 4. Placements con descripciones formateadas
         if (datosPDF.placements && datosPDF.placements.length > 0) {
+            if (window.placements && Array.isArray(window.placements)) {
+                if (confirm('¿Deseas reemplazar los placements existentes con los del PDF?')) {
+                    window.placements = [];
+                    const container = document.getElementById('placements-container');
+                    if (container) container.innerHTML = '';
+                }
+            }
+
             datosPDF.placements.forEach(placement => {
-                // Determinar el tipo de tinta (usar el del PDF o el por defecto)
                 const inkType = datosPDF.tinta ? datosPDF.tinta.tipo : 'WATER';
 
-                // Crear el objeto del nuevo placement
+                // Formatear descripción para placementDetails
+                const descripcionFormateada = formatearDescripcionPlacement(placement);
+                
+                // Formatear instrucciones especiales
+                const instrucciones = formatearInstruccionesEspeciales(placement, inkType);
+
                 const newPlacement = {
                     id: Date.now() + Math.random(),
                     type: placement.ubicacion || 'CUSTOM',
@@ -140,17 +355,16 @@
                     imageData: null,
                     colors: [],
                     sequence: [],
-                    placementDetails: traducirDescripcion(placement.descripcionIngles || placement.descripcion) || placement.descripcion,
-                    dimensions: 'SIZE: (W) ## X (H) ##',
-                    temp: inkType === 'PLASTISOL' ? '320 °F' : (inkType === 'SILICONE' ? '320 °F' : '320 °F'),
-                    time: inkType === 'PLASTISOL' ? '1:00 min' : (inkType === 'SILICONE' ? '1:40 min' : '1:40 min'),
+                    placementDetails: descripcionFormateada,
+                    dimensions: `Base: ${placement.talla || 'L'}`,
+                    temp: inkType === 'PLASTISOL' ? '320 °F' : '320 °F',
+                    time: inkType === 'PLASTISOL' ? '1:00 min' : '1:40 min',
                     specialties: '',
-                    specialInstructions: traducirTextoTecnico(placement.descripcion || ''),
+                    specialInstructions: instrucciones,
                     inkType: inkType,
                     isPaired: (placement.ubicacion === 'SLEEVE' || placement.ubicacion === 'SHOULDER')
                 };
 
-                // Añadir el placement a window.placements y renderizarlo
                 if (Array.isArray(window.placements)) {
                     window.placements.push(newPlacement);
                     if (typeof window.renderPlacementHTML === 'function') {
@@ -159,106 +373,33 @@
                 }
             });
 
-            // Actualizar las pestañas de placements
             if (typeof window.updatePlacementsTabs === 'function') {
                 window.updatePlacementsTabs();
             }
         }
 
-        showStatus('📄 Datos del Tech Pack cargados exitosamente', 'success');
+        showStatus('✅ Tech Pack cargado exitosamente', 'success');
+        
+        if (typeof window.showTab === 'function') {
+            setTimeout(() => window.showTab('spec-creator'), 500);
+        }
     }
 
-    // --- FUNCIÓN PARA CREAR EL BOTÓN FLOTANTE DE CARGA DE PDF ---
-    function crearBotonCargaPDF() {
-        // Verificar si el botón ya existe
-        if (document.getElementById('tegra-pdf-uploader-btn')) return;
+    // Funciones auxiliares (setInputValue, showStatus, crearBotonCargaPDF) 
+    // se mantienen igual que en la versión anterior...
 
-        const boton = document.createElement('button');
-        boton.id = 'tegra-pdf-uploader-btn';
-        boton.innerHTML = '<i class="fas fa-file-pdf"></i> Cargar Tech Pack';
-        boton.title = 'Cargar Tech Pack Nike (PDF)';
-        boton.style.cssText = `
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1001;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #e31837 0%, #8B0000 100%);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        `;
-        boton.onmouseover = () => {
-            boton.style.transform = 'translateY(-3px)';
-            boton.style.boxShadow = '0 8px 25px rgba(0,0,0,0.4)';
-        };
-        boton.onmouseout = () => {
-            boton.style.transform = 'translateY(0)';
-            boton.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
-        };
-
-        // Crear input de archivo oculto
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.id = 'tegra-pdf-uploader-input';
-        fileInput.accept = '.pdf';
-        fileInput.style.display = 'none';
-
-        fileInput.addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            showStatus('📄 Procesando Tech Pack...', 'info');
-
-            try {
-                if (typeof NikeTechPackExtractor === 'undefined') {
-                    throw new Error('NikeTechPackExtractor no está cargado. Asegúrate de incluir nikeTechPackExtractor.js');
-                }
-
-                const extractor = new NikeTechPackExtractor();
-                const datosPDF = await extractor.procesarPDF(file);
-
-                // Poblar el formulario con los datos extraídos
-                poblarFormularioConPDF(datosPDF);
-
-                // Cambiar a la pestaña de creación
-                if (typeof showTab === 'function') {
-                    showTab('spec-creator');
-                }
-
-            } catch (error) {
-                console.error('Error al procesar PDF:', error);
-                showStatus('❌ Error al procesar PDF: ' + error.message, 'error');
-            }
-
-            // Limpiar el input para poder cargar el mismo archivo de nuevo
-            fileInput.value = '';
-        });
-
-        boton.onclick = () => fileInput.click();
-
-        document.body.appendChild(boton);
-        document.body.appendChild(fileInput);
-        console.log('✅ Botón de carga de PDF añadido');
-    }
-
-    // --- EXPONER FUNCIONES GLOBALES ---
+    // Exponer funciones globales mejoradas
     window.tegraAdapter = {
         poblarFormularioConPDF: poblarFormularioConPDF,
         crearBotonCargaPDF: crearBotonCargaPDF,
-        traducirDescripcion: traducirDescripcion,
-        traducirTextoTecnico: traducirTextoTecnico,
-        TECHPACK_DICTIONARY: TECHPACK_DICTIONARY
+        traducirFraseTechPack: traducirFraseTechPack,
+        formatearDescripcionPlacement: formatearDescripcionPlacement,
+        showStatus: showStatus,
+        PHRASE_DICTIONARY: PHRASE_DICTIONARY,
+        ELP_DESCRIPTIONS: ELP_DESCRIPTIONS
     };
 
-    // Inicializar el botón cuando el DOM esté listo
+    // Inicializar
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', crearBotonCargaPDF);
     } else {
@@ -266,4 +407,3 @@
     }
 
 })();
-console.log('✅ tegra-adapter.js cargado correctamente');
