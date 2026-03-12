@@ -1,6 +1,6 @@
 // =====================================================
 // data-binding.js - Binding bidireccional entre inputs y Store
-// Versión: 2.1 - CORREGIDO: Usar getCleanState() y state
+// Versión: 2.2 - CORREGIDO: Usar getCleanState() en lugar de getState()
 // =====================================================
 
 (function() {
@@ -27,6 +27,7 @@
 
     let boundInputs = new Set();
     let isUpdating = false;
+    let unsubscribe = null;
 
     // =============================================
     // ACTUALIZAR INPUTS DESDE STORE
@@ -37,7 +38,7 @@
         isUpdating = true;
         
         try {
-            // ✅ Usar getCleanState() para obtener estado limpio
+            // ✅ CORREGIDO: Usar getCleanState() en lugar de getState()
             const cleanState = window.Store.getCleanState();
             const generalData = cleanState.generalData || {};
             
@@ -79,8 +80,12 @@
         isUpdating = true;
         
         try {
-            // Actualizar store
-            window.Store.state.generalData[propName] = input.value;
+            // Actualizar store (usando el estado reactivo)
+            if (window.Store.state && window.Store.state.generalData) {
+                window.Store.state.generalData[propName] = input.value;
+            } else {
+                console.warn('Store.state.generalData no disponible');
+            }
             
         } catch (e) {
             console.error(`Error updating store from input ${inputId}:`, e);
@@ -113,6 +118,7 @@
                 input.addEventListener('change', handleInputChange);
                 
                 boundInputs.add(inputId);
+                console.log(`🔗 Input ${inputId} bindeado`);
             }
         });
         
@@ -131,20 +137,39 @@
         
         console.log('🔄 Inicializando data binding...');
         
+        // Verificar que la API del Store sea la esperada
+        console.log('📊 Store API disponible:', {
+            hasGetCleanState: typeof window.Store.getCleanState === 'function',
+            hasState: !!window.Store.state,
+            hasSubscribe: typeof window.Store.subscribe === 'function'
+        });
+        
         // Bindear inputs existentes
         bindInputs();
         
+        // Si ya había una suscripción previa, cancelarla
+        if (unsubscribe && typeof unsubscribe === 'function') {
+            unsubscribe();
+        }
+        
         // Suscribirse a cambios del store
-        window.Store.subscribe((cleanState) => {
+        unsubscribe = window.Store.subscribe((cleanState) => {
             // Solo actualizar si no estamos en medio de una actualización
             if (!isUpdating) {
                 updateInputsFromStore();
             }
         });
         
-        // Observar nuevos inputs que puedan aparecer (para placements)
-        const observer = new MutationObserver(() => {
-            bindInputs();
+        // Observar nuevos inputs que puedan aparecer (para elementos dinámicos)
+        const observer = new MutationObserver((mutations) => {
+            // Solo verificar si se añadieron nuevos nodos
+            const shouldRebind = mutations.some(m => 
+                m.type === 'childList' && m.addedNodes.length > 0
+            );
+            
+            if (shouldRebind) {
+                bindInputs();
+            }
         });
         
         observer.observe(document.body, {
@@ -152,7 +177,20 @@
             subtree: true
         });
         
-        console.log('✅ Data binding inicializado');
+        console.log('✅ Data binding inicializado correctamente');
+    }
+
+    // =============================================
+    // LIMPIEZA
+    // =============================================
+    function destroyBindings() {
+        if (unsubscribe && typeof unsubscribe === 'function') {
+            unsubscribe();
+            unsubscribe = null;
+        }
+        
+        boundInputs.clear();
+        console.log('🧹 Data bindings limpiados');
     }
 
     // =============================================
@@ -160,5 +198,16 @@
     // =============================================
     window.initBindings = initBindings;
     window.updateInputsFromStore = updateInputsFromStore;
+    window.destroyBindings = destroyBindings;
+
+    // Auto-inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            // No inicializar automáticamente, esperar a que app.js lo llame
+            console.log('📋 data-binding.js cargado, esperando initBindings()');
+        });
+    } else {
+        console.log('📋 data-binding.js cargado, esperando initBindings()');
+    }
 
 })();
