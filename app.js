@@ -2388,6 +2388,29 @@ function openImagePickerForPlacement(placementId) {
 }
 
 // =====================================================
+// FUNCIÓN FALTANTE: removePlacementImage
+// =====================================================
+
+function removePlacementImage(placementId) {
+    const placement = (window.placements || []).find(p => p.id === placementId);
+    if (!placement) return;
+
+    const img = document.getElementById(`placement-image-preview-${placementId}`);
+    const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
+
+    if (img) {
+        img.src = '';
+        img.style.display = 'none';
+    }
+
+    if (imageActions) {
+        imageActions.style.display = 'none';
+    }
+
+    placement.imageData = null;
+    showStatus('🗑️ Imagen eliminada del placement');
+}
+// =====================================================
 // FUNCIONES DE ACTUALIZACIÓN
 // =====================================================
 
@@ -2413,6 +2436,72 @@ function updatePlacementField(placementId, field, value) {
     }
 }
 
+// =====================================================
+// FUNCIÓN FALTANTE: updateDefaultParameters
+// =====================================================
+
+function updateDefaultParameters(placementId, inkType) {
+    const placement = (window.placements || []).find(p => p.id === placementId);
+    if (!placement) return;
+
+    const preset = getInkPresetSafe(inkType);
+
+    // Actualizar campos de malla si están vacíos
+    if (!placement.meshColor) {
+        placement.meshColor = preset.color.mesh;
+        const meshColorField = document.getElementById(`mesh-color-${placementId}`);
+        if (meshColorField) meshColorField.value = preset.color.mesh;
+    }
+
+    if (!placement.meshWhite) {
+        placement.meshWhite = preset.white.mesh1;
+        const meshWhiteField = document.getElementById(`mesh-white-${placementId}`);
+        if (meshWhiteField) meshWhiteField.value = preset.white.mesh1;
+    }
+
+    if (!placement.meshBlocker) {
+        placement.meshBlocker = preset.blocker.mesh1;
+        const meshBlockerField = document.getElementById(`mesh-blocker-${placementId}`);
+        if (meshBlockerField) meshBlockerField.value = preset.blocker.mesh1;
+    }
+
+    // Actualizar otros parámetros si están vacíos
+    if (!placement.durometer) {
+        placement.durometer = preset.color.durometer;
+        const durometerField = document.getElementById(`durometer-${placementId}`);
+        if (durometerField) durometerField.value = preset.color.durometer;
+    }
+
+    if (!placement.strokes) {
+        placement.strokes = preset.color.strokes;
+        const strokesField = document.getElementById(`strokes-${placementId}`);
+        if (strokesField) strokesField.value = preset.color.strokes;
+    }
+
+    if (!placement.angle) {
+        placement.angle = preset.color.angle;
+        const angleField = document.getElementById(`angle-${placementId}`);
+        if (angleField) angleField.value = preset.color.angle;
+    }
+
+    if (!placement.pressure) {
+        placement.pressure = preset.color.pressure;
+        const pressureField = document.getElementById(`pressure-${placementId}`);
+        if (pressureField) pressureField.value = preset.color.pressure;
+    }
+
+    if (!placement.speed) {
+        placement.speed = preset.color.speed;
+        const speedField = document.getElementById(`speed-${placementId}`);
+        if (speedField) speedField.value = preset.color.speed;
+    }
+
+    if (!placement.additives) {
+        placement.additives = preset.color.additives;
+        const additivesField = document.getElementById(`additives-${placementId}`);
+        if (additivesField) additivesField.value = preset.color.additives;
+    }
+}
 // =====================================================
 // FUNCIÓN PARA PROCESAR DATOS EXCEL
 // =====================================================
@@ -3556,7 +3645,7 @@ window.showPlacement = showPlacement;
 window.updatePlacementType = updatePlacementType;
 window.updatePlacementInkType = updatePlacementInkType;
 window.openImagePickerForPlacement = openImagePickerForPlacement;
-window.removePlacementImage = removePlacementImage;
+window.removePlacementImage = removePlacementImage;  // ✅ AHORA ESTÁ DEFINIDA
 window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.movePlacementColorItem = movePlacementColorItem;
@@ -3583,7 +3672,7 @@ window.updatePlacementField = updatePlacementField;
 window.syncPlacementSequenceWithColors = syncPlacementSequenceWithColors;
 window.renderPlacementColors = renderPlacementColors;
 window.checkForSpecialtiesInColors = checkForSpecialtiesInColors;
-window.updateDefaultParameters = updateDefaultParameters;
+window.updateDefaultParameters = updateDefaultParameters;  // ✅ AHORA ESTÁ DEFINIDA
 window.updatePlacementDimension = updatePlacementDimension;
 window.handleDimensionInput = handleDimensionInput;
 window.handleDimensionPaste = handleDimensionPaste;
