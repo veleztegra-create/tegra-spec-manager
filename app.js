@@ -1871,7 +1871,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = placement.colors.find(c => String(c.id) === String(colorId));
     if (color) {
         color.val = value;
         updatePlacementColorPreview(placementId, colorId);
@@ -1887,7 +1887,7 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = placement.colors.find(c => String(c.id) === String(colorId));
     if (color) {
         color.screenLetter = value.toUpperCase();
         syncPlacementSequenceWithColors(placement, true);
@@ -1899,7 +1899,7 @@ function updatePlacementColorMesh(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = placement.colors.find(c => String(c.id) === String(colorId));
     if (!color) return;
 
     color.mesh = value;
@@ -1911,7 +1911,7 @@ function removePlacementColorItem(placementId, colorId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    placement.colors = placement.colors.filter(c => c.id !== colorId);
+    placement.colors = placement.colors.filter(c => String(c.id) !== String(colorId));
     syncPlacementSequenceWithColors(placement, true);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
@@ -1924,7 +1924,7 @@ function movePlacementColorItem(placementId, colorId, direction) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement || !Array.isArray(placement.colors)) return;
 
-    const currentIndex = placement.colors.findIndex(c => c.id === colorId);
+    const currentIndex = placement.colors.findIndex(c => String(c.id) === String(colorId));
     if (currentIndex < 0) return;
 
     const targetIndex = currentIndex + direction;
@@ -1938,7 +1938,7 @@ function updatePlacementColorPreview(placementId, colorId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = placement.colors.find(c => String(c.id) === String(colorId));
     if (!color) return;
 
     const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
