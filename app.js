@@ -495,8 +495,26 @@ function updateClientLogo() {
 
 function setInputValue(id, value) {
     const element = document.getElementById(id);
-    if (element) {
-        element.value = value;
+    if (!element) return;
+
+    const nextValue = value == null ? '' : String(value);
+    const changed = element.value !== nextValue;
+
+    if (changed) {
+        element.value = nextValue;
+    }
+
+    // Mantener Store.generalData sincronizado para que no se borre al actualizar placements/UI
+    const generalKey = element.getAttribute('data-bind-general');
+    if (generalKey && window.Store && Store.state && Store.state.generalData) {
+        if (Store.state.generalData[generalKey] !== nextValue) {
+            Store.state.generalData[generalKey] = nextValue;
+        }
+    }
+
+    // Disparar input para ejecutar lógica ligada al campo (logos, defaults, etc.)
+    if (changed) {
+        element.dispatchEvent(new Event('input', { bubbles: true }));
     }
 }
 
