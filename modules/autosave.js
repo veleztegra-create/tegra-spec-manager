@@ -1,47 +1,86 @@
-// autosave.js - LocalStorage persistence with Debounce
+// =====================================================
+// autosave.js - Autoguardado en localStorage
+// Versión: 2.1 - CORREGIDO: Usar getCleanState()
+// =====================================================
 
-(function () {
-    let saveTimer;
-
-    function enableAutosave() {
-        if (!window.Store) {
-            console.error("Store is not initialized for Autosave.");
-            return;
+(function() {
+    'use strict';
+    
+    const AUTOSAVE_KEY = 'spec-autosave';
+    let autosaveTimeout = null;
+    let isEnabled = false;
+    
+    function saveToLocalStorage() {
+        if (!isEnabled || !window.Store) return;
+        
+        try {
+            // ✅ USAR getCleanState() EN VEZ DE Store.state
+            const cleanState = window.Store.getCleanState();
+            
+            // Crear objeto para guardar
+            const saveData = {
+                timestamp: Date.now(),
+                state: cleanState
+            };
+            
+            localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(saveData));
+            console.log('[Autosave] State successfully saved locally.');
+        } catch (e) {
+            console.error('[Autosave] Error saving to localStorage:', e);
         }
-
-        Store.subscribe((state) => {
-            // Debounce save to prevent heavy disk writes on every keystroke
-            clearTimeout(saveTimer);
-            saveTimer = setTimeout(() => {
-                try {
-                    // Crear una copia ligera sin datos grandes
-                    const lightState = {
-                        generalData: state.generalData,
-                        placements: state.placements.map(p => ({
-                            ...p,
-                            // Excluir imágenes del autosave para ahorrar espacio
-                            imageData: p.imageData ? '[IMAGE_DATA]' : null
-                        }))
-                    };
-                    localStorage.setItem("spec-autosave", JSON.stringify(lightState));
-                    console.log("[Autosave] State successfully saved locally.");
-                } catch (e) {
-                    console.error("[Autosave] Failed to save state to localStorage", e);
-                    // Si falla, intentar sin datos de placements
-                    try {
-                        const minimalState = {
-                            generalData: state.generalData,
-                            placements: []
-                        };
-                        localStorage.setItem("spec-autosave", JSON.stringify(minimalState));
-                        console.log("[Autosave] Minimal state saved");
-                    } catch (e2) {
-                        console.error("[Autosave] Critical: Cannot save even minimal state");
-                    }
-                }
-            }, 1000); // Aumentar debounce a 1000ms
-        });
     }
-
+    
+    function scheduleAutosave() {
+        if (autosaveTimeout) {
+            clearTimeout(autosaveTimeout);
+        }
+        autosaveTimeout = setTimeout(() => {
+            saveToLocalStorage();
+            autosaveTimeout = null;
+        }, 2000); // 2 segundos después del último cambio
+    }
+    
+    function enableAutosave() {
+        if (isEnabled) return;
+        
+        isEnabled = true;
+        
+        // Suscribirse a cambios del Store
+        if (window.Store) {
+            window.Store.subscribe(() => {
+                scheduleAutosave();
+            });
+        }
+        
+        console.log('✅ Autosave enabled');
+    }
+    
+    function disableAutosave() {
+        isEnabled = false;
+        if (autosaveTimeout) {
+            clearTimeout(autosaveTimeout);
+            autosaveTimeout = null;
+        }
+        console.log('⏸️ Autosave disabled');
+    }
+    
+    // Cargar autosave guardado
+    function loadAutosave() {
+        try {
+            const saved = localStorage.getItem(AUTOSAVE_KEY);
+            if (!saved) return null;
+            
+            const parsed = JSON.parse(saved);
+            return parsed.state || null;
+        } catch (e) {
+            console.error('[Autosave] Error loading autosave:', e);
+            return null;
+        }
+    }
+    
+    // API pública
     window.enableAutosave = enableAutosave;
+    window.disableAutosave = disableAutosave;
+    window.loadAutosave = loadAutosave;
+    
 })();
