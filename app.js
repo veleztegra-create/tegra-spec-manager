@@ -1,6 +1,6 @@
 // =====================================================
 // app.js - TEGRA TECHNICAL SPEC MANAGER
-// Versión: 3.0 - Con secuencias optimizadas y corrección de FLASH/COOL
+// Versión: 3.2 - COMPLETAMENTE CORREGIDA
 // 100% local - 0% dependencias externas de IA
 // =====================================================
 
@@ -8,15 +8,59 @@
 // VARIABLES GLOBALES
 // =====================================================
 const stateManager = new StateManager();
-// 'placements' is now linked to the Reactive Store to ensure single source of truth
+
+// ✅ CORREGIDO: Asegurar que placements siempre sea un array
 Object.defineProperty(window, 'placements', {
-    get: () => Store.state.placements,
-    set: (val) => { Store.state.placements = val; }
+    get: () => {
+        return window.Store && window.Store.state && Array.isArray(window.Store.state.placements) 
+            ? window.Store.state.placements 
+            : [];
+    },
+    set: (val) => {
+        if (window.Store && window.Store.state) {
+            window.Store.state.placements = Array.isArray(val) ? val : [];
+        }
+    }
 });
+
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
 let placementColorDndManager = null;
+
+// =====================================================
+// FUNCIÓN loadTabTemplates (DEFINIDA PRIMERO)
+// =====================================================
+async function loadTabTemplates() {
+    console.log('📦 Cargando templates...');
+    const templateSections = Array.from(document.querySelectorAll('[data-template]'));
+    
+    if (templateSections.length === 0) {
+        console.warn('⚠️ No se encontraron secciones con data-template');
+        return;
+    }
+    
+    await Promise.all(templateSections.map(async (section) => {
+        const templatePath = section.dataset.template;
+        if (!templatePath) return;
+
+        try {
+            console.log(`📄 Cargando template: ${templatePath}`);
+            const response = await fetch(templatePath);
+            if (!response.ok) {
+                throw new Error(`No se pudo cargar el template: ${templatePath}`);
+            }
+            section.innerHTML = await response.text();
+            console.log(`✅ Template cargado: ${templatePath}`);
+        } catch (error) {
+            console.error('❌ Error cargando template:', templatePath, error);
+            section.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--text-secondary);">No se pudo cargar esta sección.</p></div></div>';
+            if (window.errorHandler) {
+                window.errorHandler.log('template_load', error);
+            }
+        }
+    }));
+}
 
 // =====================================================
 // FUNCIONES AUXILIARES BÁSICAS
@@ -148,28 +192,6 @@ function bindSpecCreatorFormSafety() {
     form.dataset.submitGuardBound = '1';
 }
 
-async function loadTabTemplates() {
-    const templateSections = Array.from(document.querySelectorAll('[data-template]'));
-    await Promise.all(templateSections.map(async (section) => {
-        const templatePath = section.dataset.template;
-        if (!templatePath) return;
-
-        try {
-            const response = await fetch(templatePath);
-            if (!response.ok) {
-                throw new Error(`No se pudo cargar el template: ${templatePath}`);
-            }
-            section.innerHTML = await response.text();
-        } catch (error) {
-            console.error('Error cargando template:', templatePath, error);
-            section.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--text-secondary);">No se pudo cargar esta sección.</p></div></div>';
-            if (window.errorHandler) {
-                window.errorHandler.log('template_load', error);
-            }
-        }
-    }));
-}
-
 // =====================================================
 // FUNCIONES DE TEMA
 // =====================================================
@@ -225,15 +247,15 @@ function showTab(tabName) {
 
     // Llamar a funciones específicas solo si el elemento existe
     if (tabName === 'saved-specs' && document.getElementById('saved-specs-list')) {
-        loadSavedSpecsList();
+        if (typeof loadSavedSpecsList === 'function') loadSavedSpecsList();
     }
-    if (tabName === 'dashboard') updateDashboard();
+    if (tabName === 'dashboard' && typeof updateDashboard === 'function') updateDashboard();
     if (tabName === 'error-log' && document.getElementById('error-log-content')) {
-        loadErrorLog();
+        if (typeof loadErrorLog === 'function') loadErrorLog();
     }
     if (tabName === 'spec-creator') {
-        if (placements.length === 0 && document.getElementById('placements-container')) {
-            initializePlacements();
+        if ((!window.placements || window.placements.length === 0) && document.getElementById('placements-container')) {
+            if (typeof initializePlacements === 'function') initializePlacements();
         }
     }
 }
@@ -264,7 +286,7 @@ function setupPasteHandler() {
 
                 reader.onload = function (event) {
                     const placementId = activePlacement.dataset.placementId;
-                    const placement = placements.find(p => p.id === parseInt(placementId));
+                    const placement = window.placements.find(p => p.id === parseInt(placementId));
 
                     if (placement) {
                         placement.imageData = event.target.result;
@@ -367,11 +389,22 @@ function detectTeamFromStyle(style, colorway = '', customer = '') {
     return '';
 }
 
-function extractGenderFromStyle(style) {
+function extractGenderFromStyle(style, customer = '') {
     if (!style) return '';
 
     try {
         const styleStr = style.toString().toUpperCase().trim();
+        const customerStr = String(customer || '').toUpperCase().trim();
+
+        const fanaticsNMatch = styleStr.match(/(?:^|[^A-Z0-9])(?:67|31)N([MW])(?:[^A-Z0-9]|$)/);
+        if (fanaticsNMatch && fanaticsNMatch[1]) {
+            return fanaticsNMatch[1] === 'W' ? 'Women' : 'Men';
+        }
+
+        const genericNMatch = styleStr.match(/(?:^|[^A-Z0-9])\d{2}N([MW])(?:[^A-Z0-9]|$)/);
+        if (genericNMatch && genericNMatch[1] && (customerStr.includes('FANATICS') || customerStr.includes('FANATIC'))) {
+            return genericNMatch[1] === 'W' ? 'Women' : 'Men';
+        }
 
         if (window.SchoolsConfig && window.SchoolsConfig.extractGenderFromStyle) {
             const gender = window.SchoolsConfig.extractGenderFromStyle(styleStr);
@@ -470,15 +503,23 @@ function setInputValue(id, value) {
     }
 }
 
-
+// =====================================================
+// FUNCIÓN CORREGIDA: applyCustomerInkDefaults
+// =====================================================
 function applyCustomerInkDefaults() {
     const customerValue = (document.getElementById('customer')?.value || '').toUpperCase().trim();
     const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S'].some(v => customerValue.includes(v));
     const targetInk = isGFS ? 'PLASTISOL' : null;
+    
     if (!targetInk) return;
 
-    placements.forEach((placement) => {
-        if (placement.inkType !== targetInk) {
+    if (!window.placements || !Array.isArray(window.placements)) {
+        console.log('⚠️ placements no disponible en applyCustomerInkDefaults');
+        return;
+    }
+
+    window.placements.forEach((placement) => {
+        if (placement && placement.inkType !== targetInk) {
             placement.inkType = targetInk;
         }
 
@@ -487,10 +528,15 @@ function applyCustomerInkDefaults() {
             select.value = targetInk;
         }
 
-        updatePlacementInkType(placement.id, targetInk);
+        if (typeof updatePlacementInkType === 'function') {
+            updatePlacementInkType(placement.id, targetInk);
+        }
     });
 }
 
+// =====================================================
+// FUNCIÓN CORREGIDA: handleGearForSportLogic
+// =====================================================
 function handleGearForSportLogic() {
     const customerInput = document.getElementById('customer');
     const nameTeamInput = document.getElementById('name-team');
@@ -525,6 +571,61 @@ function handleGearForSportLogic() {
 }
 
 // =====================================================
+// FUNCIÓN updatePlacementInkType
+// =====================================================
+function updatePlacementInkType(placementId, inkType) {
+    const placement = window.placements.find(p => p.id === placementId);
+    if (!placement) return;
+
+    placement.inkType = inkType;
+
+    const preset = getInkPresetSafe(inkType);
+
+    placement.temp = preset.temp;
+    placement.time = preset.time;
+
+    const tempField = document.getElementById(`temp-${placementId}`);
+    const timeField = document.getElementById(`time-${placementId}`);
+
+    if (tempField) {
+        tempField.value = preset.temp;
+        tempField.setAttribute('readonly', true);
+        tempField.title = `Temperatura para tinta ${inkType}`;
+    }
+
+    if (timeField) {
+        timeField.value = preset.time;
+        timeField.setAttribute('readonly', true);
+        timeField.title = `Tiempo de curado para tinta ${inkType}`;
+    }
+
+    if (typeof updateDefaultParameters === 'function') {
+        updateDefaultParameters(placementId, inkType);
+    }
+    if (typeof updatePlacementStations === 'function') {
+        updatePlacementStations(placementId);
+    }
+    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
+}
+
+// =====================================================
+// CORRECCIÓN PARA ERROR HANDLER
+// =====================================================
+
+if (typeof window.errorHandler === 'undefined') {
+    window.errorHandler = {
+        errors: [],
+        log: function (context, error, extraData) {
+            console.error(`[${context}]`, error, extraData || '');
+            this.errors.push({ context, error: error || { message: 'Unknown error' }, timestamp: new Date(), extraData });
+        },
+        getErrors: function () { return this.errors; },
+        clearErrors: function () { this.errors = []; console.log("🧹 Errores limpiados"); }
+    };
+    console.log("✅ errorHandler creado");
+}
+
+// =====================================================
 // FUNCIONES PARA MÚLTIPLES PLACEMENTS
 // =====================================================
 
@@ -536,12 +637,18 @@ function initializePlacements() {
     }
     const firstPlacementId = addNewPlacement('FRONT', true);
 
-    if (placements.length > 0) {
-        renderPlacementHTML(placements[0]);
+    if (window.placements && window.placements.length > 0) {
+        if (typeof renderPlacementHTML === 'function') {
+            renderPlacementHTML(window.placements[0]);
+        }
     }
 
-    updatePlacementsTabs();
-    showPlacement(firstPlacementId);
+    if (typeof updatePlacementsTabs === 'function') {
+        updatePlacementsTabs();
+    }
+    if (typeof showPlacement === 'function') {
+        showPlacement(firstPlacementId);
+    }
 }
 
 function addNewPlacement(type = null, isFirst = false) {
@@ -553,8 +660,8 @@ function addNewPlacement(type = null, isFirst = false) {
         type: placementType,
         name: `Placement ${getNextPlacementNumber()}`,
         imageData: null,
-        colors: [], // Solo tintas reales (WHITE_BASE, BLOCKER, COLOR, METALLIC)
-        sequence: [], // Secuencia completa (incluye FLASH/COOL)
+        colors: [],
+        sequence: [],
         placementDetails: '#.#" FROM COLLAR SEAM',
         dimensions: 'SIZE: (W) ## X (H) ##',
         temp: '320 °F',
@@ -577,22 +684,28 @@ function addNewPlacement(type = null, isFirst = false) {
     };
 
     if (!isFirst) {
-        placements = [...placements, newPlacement];
+        window.placements = [...window.placements, newPlacement];
     } else {
-        placements = [newPlacement];
+        window.placements = [newPlacement];
     }
 
     if (!isFirst) {
-        renderPlacementHTML(newPlacement);
-        showPlacement(placementId);
-        updatePlacementsTabs();
+        if (typeof renderPlacementHTML === 'function') {
+            renderPlacementHTML(newPlacement);
+        }
+        if (typeof showPlacement === 'function') {
+            showPlacement(placementId);
+        }
+        if (typeof updatePlacementsTabs === 'function') {
+            updatePlacementsTabs();
+        }
     }
 
     return placementId;
 }
 
 function getNextPlacementType() {
-    const usedTypes = placements.map(p => p.type);
+    const usedTypes = (window.placements || []).map(p => p.type);
     const allTypes = ['FRONT', 'BACK', 'SLEEVE', 'CHEST', 'TV. NUMBERS', 'SHOULDER', 'COLLAR', 'CUSTOM'];
 
     for (const type of allTypes) {
@@ -604,20 +717,17 @@ function getNextPlacementType() {
 }
 
 function getNextPlacementNumber() {
-    return placements.length + 1;
+    return (window.placements || []).length + 1;
 }
 
-// getPlacementsForExcelExport movido a modules/export-excel.js
-
 // =====================================================
-// FUNCIÓN PARA GENERAR ID ÚNICO GFS (STYLE-COLORWAY)
+// FUNCIÓN PARA GENERAR ID ÚNICO GFS
 // =====================================================
 
 function generarGFSIdentifier() {
     const customer = document.getElementById('customer')?.value || '';
     const customerUpper = customer.toUpperCase();
 
-    // Solo aplicar para GFS
     const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.'].some(v => customerUpper.includes(v));
 
     if (!isGFS) return null;
@@ -625,14 +735,11 @@ function generarGFSIdentifier() {
     const style = document.getElementById('style')?.value || '';
     const colorway = document.getElementById('colorway')?.value || '';
 
-    // Extraer código de colorway (ej: "W001" o "PMD5-Red" -> "PMD5")
     let colorCode = '';
 
-    // Si tiene guión, tomar la primera parte
     if (colorway.includes('-')) {
         colorCode = colorway.split('-')[0].trim();
     } else {
-        // Si no tiene guión, tomar el código completo si parece un código (letras y números)
         const match = colorway.match(/^([A-Z0-9]{3,5})/i);
         if (match) {
             colorCode = match[1].toUpperCase();
@@ -649,7 +756,6 @@ function generarGFSIdentifier() {
 
     return null;
 }
-
 
 function normalizeGearForSportStyleAndColorway(style, colorway, customer = '') {
     const customerUpper = String(customer || '').toUpperCase();
@@ -680,29 +786,11 @@ function normalizeGearForSportStyleAndColorway(style, colorway, customer = '') {
 }
 
 // =====================================================
-// CORRECCIÓN PARA ERROR HANDLER (si no existe)
-// =====================================================
-
-// Si errorHandler no está definido, créalo
-if (typeof window.errorHandler === 'undefined') {
-    window.errorHandler = {
-        errors: [],
-        log: function (context, error) {
-            console.error(`[${context}]`, error);
-            this.errors.push({ context, error, timestamp: new Date() });
-        },
-        getErrors: function () { return this.errors; },
-        clearErrors: function () { this.errors = []; console.log("🧹 Errores limpiados"); }
-    };
-    console.log("✅ errorHandler creado");
-}
-
-// =====================================================
-// ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE (MEJORADA) ⭐
+// ⭐ FUNCIÓN PRINCIPAL - GENERAR CON ASISTENTE ⭐
 // =====================================================
 
 window.generarConAsistente = async function (placementId) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = window.placements.find(p => p.id === placementId);
     if (!placement) {
         showStatus('❌ Placement no encontrado', 'error');
         return;
@@ -711,15 +799,11 @@ window.generarConAsistente = async function (placementId) {
     showStatus('🤖 Generando secuencia inteligente...', 'info');
 
     try {
-        // =============================================
-        // 1. OBTENER DATOS NECESARIOS
-        // =============================================
         const customer = document.getElementById('customer')?.value || '';
         const garmentColor = document.getElementById('colorway')?.value || '';
         const inkType = placement.inkType || 'WATER';
 
-        // Obtener SOLO los colores del diseño (los que el usuario agregó manualmente)
-        const designColors = placement.colors.filter(c =>
+        const designColors = (placement.colors || []).filter(c =>
             c.type === 'COLOR' || c.type === 'METALLIC'
         ).map(c => ({ id: c.id, val: c.val }));
 
@@ -730,14 +814,10 @@ window.generarConAsistente = async function (placementId) {
 
         console.log('📋 Procesando con RulesEngine:', { customer, garmentColor, inkType, designColors });
 
-        // =============================================
-        // 2. CONSULTAR AL MOTOR DE REGLAS
-        // =============================================
         if (!window.RulesEngine) {
             throw new Error('Motor de reglas no disponible');
         }
 
-        // Generar secuencia COMPLETA (incluye FLASH/COOL en la posición correcta)
         const secuenciaCompleta = window.RulesEngine.generarSecuencia({
             customer: customer,
             garmentColor: garmentColor,
@@ -747,11 +827,6 @@ window.generarConAsistente = async function (placementId) {
 
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
-        // =============================================
-        // 3. SEPARAR: COLORES REALES vs SECUENCIA COMPLETA
-        // =============================================
-
-        // 3.1 COLORES REALES (para la UI de colores) - SOLO tintas
         const coloresReales = secuenciaCompleta.filter(paso =>
             paso.tipo === 'WHITE_BASE' ||
             paso.tipo === 'BLOCKER' ||
@@ -759,7 +834,6 @@ window.generarConAsistente = async function (placementId) {
             paso.tipo === 'METALLIC'
         );
 
-        // 3.2 SECUENCIA COMPLETA (para la tabla de estaciones)
         placement.sequence = secuenciaCompleta.map((paso, index) => ({
             id: Date.now() + Math.random() + index,
             type: paso.tipo,
@@ -769,7 +843,6 @@ window.generarConAsistente = async function (placementId) {
             additives: paso.additives || ''
         }));
 
-        // 3.3 ACTUALIZAR SOLO los colores reales en placement.colors
         placement.colors = coloresReales.map((paso, index) => ({
             id: Date.now() + Math.random() + index,
             type: paso.tipo,
@@ -779,9 +852,6 @@ window.generarConAsistente = async function (placementId) {
             additives: paso.additives || ''
         }));
 
-        // =============================================
-        // 4. ACTUALIZAR CONDICIONES DE CURADO
-        // =============================================
         const curing = window.RulesEngine.getCuringConditions
             ? window.RulesEngine.getCuringConditions(inkType, customer)
             : { temp: '320 °F', time: '1:40 min' };
@@ -789,19 +859,23 @@ window.generarConAsistente = async function (placementId) {
         placement.temp = curing.temp;
         placement.time = curing.time;
 
-        // Actualizar campos de temperatura en el HTML
         const tempField = document.getElementById(`temp-${placementId}`);
         const timeField = document.getElementById(`time-${placementId}`);
         if (tempField) tempField.value = placement.temp;
         if (timeField) timeField.value = placement.time;
 
-        // =============================================
-        // 5. ACTUALIZAR UI
-        // =============================================
-        renderPlacementColors(placementId);
-        syncPlacementSequenceWithColors(placement);
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
+        if (typeof renderPlacementColors === 'function') {
+            renderPlacementColors(placementId);
+        }
+        if (typeof syncPlacementSequenceWithColors === 'function') {
+            syncPlacementSequenceWithColors(placement);
+        }
+        if (typeof updatePlacementStations === 'function') {
+            updatePlacementStations(placementId);
+        }
+        if (typeof updatePlacementColorsPreview === 'function') {
+            updatePlacementColorsPreview(placementId);
+        }
 
         showStatus(`✅ Secuencia generada (${placement.sequence.length} pasos totales, ${placement.colors.length} colores)`, 'success');
 
@@ -815,7 +889,7 @@ window.generarConAsistente = async function (placementId) {
 };
 
 // =====================================================
-// FUNCIÓN PARA AUTCOMPLETADO DE PLACEMENTS
+// FUNCIÓN PARA AUTOCOMPLETADO DE PLACEMENTS
 // =====================================================
 
 function setupPlacementAutocomplete(inputElement, placementId) {
@@ -829,7 +903,9 @@ function setupPlacementAutocomplete(inputElement, placementId) {
         const suggestions = window.PlacementsDB.search(this.value);
         if (suggestions.length === 1 && suggestions[0].toUpperCase() === this.value.toUpperCase()) {
             this.value = suggestions[0];
-            updateCustomPlacement(placementId, this.value);
+            if (typeof updateCustomPlacement === 'function') {
+                updateCustomPlacement(placementId, this.value);
+            }
         }
     });
 }
@@ -866,7 +942,9 @@ function renderPlacementHTML(placement) {
     const defaultSpeed = preset.color.speed || '35';
     const defaultAdditives = preset.color.additives || '3 % cross-linker 500 · 1.5 % antitack';
 
-    const dimensions = extractDimensions(placement.dimensions);
+    const dimensions = (placement.dimensions && typeof extractDimensions === 'function') 
+        ? extractDimensions(placement.dimensions) 
+        : { width: placement.width || '', height: placement.height || '' };
 
     const safeTemp = normalizeTextValue(placement.temp, preset.temp || '320 °F');
     const safeTime = normalizeTextValue(placement.time, preset.time || '1:40 min');
@@ -883,7 +961,7 @@ function renderPlacementHTML(placement) {
                     <button class="btn btn-outline btn-sm" onclick="duplicatePlacement(${placement.id})">
                         <i class="fas fa-copy"></i> Duplicar
                     </button>
-                    ${placements.length > 1 ? `
+                    ${window.placements && window.placements.length > 1 ? `
                     <button class="btn btn-danger btn-sm" onclick="removePlacement(${placement.id})">
                         <i class="fas fa-trash"></i> Eliminar
                     </button>
@@ -893,7 +971,6 @@ function renderPlacementHTML(placement) {
             
             <div class="placement-grid">
                 <div class="placement-left-column">
-                    <!-- Tipo de Placement -->
                     <div class="form-group">
                         <label class="form-label">TIPO DE PLACEMENT:</label>
                         <select class="form-control placement-type-select" 
@@ -910,7 +987,6 @@ function renderPlacementHTML(placement) {
                         </select>
                     </div>
                     
-                    <!-- Input para custom placement con autocompletado mejorado -->
                     <div id="custom-placement-input-${placement.id}" style="display:${isCustom ? 'block' : 'none'}; margin-top:10px;">
                         <label class="form-label">NOMBRE DEL PLACEMENT:</label>
                         <input type="text" 
@@ -927,7 +1003,6 @@ function renderPlacementHTML(placement) {
                         </small>
                     </div>
                     
-                    <!-- Imagen de Referencia -->
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title" style="font-size: 1rem;">
@@ -954,7 +1029,6 @@ function renderPlacementHTML(placement) {
                         </div>
                     </div>
                     
-                    <!-- Condiciones de Impresión -->
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title" style="font-size: 1rem;">
@@ -972,7 +1046,6 @@ function renderPlacementHTML(placement) {
                                            oninput="updatePlacementField(${placement.id}, 'placementDetails', this.value)">
                                 </div>
                                 
-                                <!-- Dimensiones separadas -->
                                 <div class="form-group">
                                     <label class="form-label">DIMENSIONES:</label>
                                     <div style="display: flex; gap: 10px; align-items: center;">
@@ -980,7 +1053,7 @@ function renderPlacementHTML(placement) {
                                                id="dimension-w-${placement.id}"
                                                class="form-control placement-dimension-w"
                                                placeholder="Ancho"
-                                               value="${placement.width || dimensions.width.replace('"', '')}"
+                                               value="${placement.width || dimensions.width || ''}"
                                                oninput="handleDimensionInput(${placement.id}, 'width', this)"
                                                onpaste="handleDimensionPaste(event, ${placement.id}, 'width')"
                                                style="width: 100px;">
@@ -989,7 +1062,7 @@ function renderPlacementHTML(placement) {
                                                id="dimension-h-${placement.id}"
                                                class="form-control placement-dimension-h"
                                                placeholder="Alto"
-                                               value="${placement.height || dimensions.height.replace('"', '')}"
+                                               value="${placement.height || dimensions.height || ''}"
                                                oninput="handleDimensionInput(${placement.id}, 'height', this)"
                                                onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
                                                style="width: 100px;">
@@ -997,7 +1070,6 @@ function renderPlacementHTML(placement) {
                                     </div>
                                 </div>
                                 
-                                <!-- Campos de temperatura y tiempo -->
                                 <div class="form-group">
                                     <label class="form-label">TEMPERATURA:</label>
                                     <input type="text" 
@@ -1017,7 +1089,6 @@ function renderPlacementHTML(placement) {
                                            title="Determinado por el tipo de tinta seleccionado">
                                 </div>
                                 
-                                <!-- CAMPO SPECIALTIES -->
                                 <div class="form-group">
                                     <label class="form-label">SPECIALTIES:</label>
                                     <input type="text" 
@@ -1032,7 +1103,6 @@ function renderPlacementHTML(placement) {
                         </div>
                     </div>
                     
-                    <!-- Parámetros de Impresión Editables -->
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title" style="font-size: 1rem;">
@@ -1041,7 +1111,6 @@ function renderPlacementHTML(placement) {
                         </div>
                         <div class="card-body">
                             <div class="form-grid">
-                                <!-- Durómetro -->
                                 <div class="form-group">
                                     <label class="form-label">DURÓMETRO:</label>
                                     <input type="text" 
@@ -1052,7 +1121,6 @@ function renderPlacementHTML(placement) {
                                            title="Durometer (dureza de la racleta)">
                                 </div>
                                 
-                                <!-- STROKES -->
                                 <div class="form-group">
                                     <label class="form-label">STROKES:</label>
                                     <input type="text" 
@@ -1063,7 +1131,6 @@ function renderPlacementHTML(placement) {
                                            title="Número de strokes">
                                 </div>
                                 
-                                <!-- ANGLE -->
                                 <div class="form-group">
                                     <label class="form-label">ANGLE:</label>
                                     <input type="text" 
@@ -1074,7 +1141,6 @@ function renderPlacementHTML(placement) {
                                            title="Ángulo de la racleta">
                                 </div>
                                 
-                                <!-- PRESSURE -->
                                 <div class="form-group">
                                     <label class="form-label">PRESSURE:</label>
                                     <input type="text" 
@@ -1085,7 +1151,6 @@ function renderPlacementHTML(placement) {
                                            title="Presión de impresión">
                                 </div>
                                 
-                                <!-- SPEED -->
                                 <div class="form-group">
                                     <label class="form-label">SPEED:</label>
                                     <input type="text" 
@@ -1096,7 +1161,6 @@ function renderPlacementHTML(placement) {
                                            title="Velocidad de impresión">
                                 </div>
                                 
-                                <!-- Aditivos -->
                                 <div class="form-group">
                                     <label class="form-label">ADITIVOS:</label>
                                     <input type="text" 
@@ -1112,7 +1176,6 @@ function renderPlacementHTML(placement) {
                 </div>
                 
                 <div class="placement-right-column">
-                    <!-- Tipo de Tinta -->
                     <div class="form-group">
                         <label class="form-label">TIPO DE TINTA:</label>
                         <select class="form-control placement-ink-type"
@@ -1124,7 +1187,6 @@ function renderPlacementHTML(placement) {
                         </select>
                     </div>
                     
-                    <!-- Colores y Tintas -->
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title" style="font-size: 1rem;">
@@ -1156,7 +1218,6 @@ function renderPlacementHTML(placement) {
                         </button>
                     </div>
                     
-                    <!-- Instrucciones Especiales -->
                     <div class="form-group">
                         <label class="form-label">INSTRUCCIONES ESPECIALES:</label>
                         <textarea id="special-instructions-${placement.id}"
@@ -1166,10 +1227,8 @@ function renderPlacementHTML(placement) {
                                   oninput="updatePlacementField(${placement.id}, 'specialInstructions', this.value)">${safeSpecialInstructions}</textarea>
                     </div>
                     
-                    <!-- Vista previa de colores -->
                     <div id="placement-colors-preview-${placement.id}" class="color-legend"></div>
                     
-                    <!-- Secuencia de Estaciones -->
                     <h4 style="margin:15px 0 10px; font-size:0.9rem; color:var(--primary);">
                         <i class="fas fa-list-ol"></i> Secuencia de ${displayType}
                     </h4>
@@ -1185,14 +1244,19 @@ function renderPlacementHTML(placement) {
 
     container.innerHTML += sectionHTML;
 
-    renderPlacementColors(placement.id);
-
-    // Usar la secuencia guardada si existe, o generar una nueva
-    if (placement.sequence && placement.sequence.length > 0) {
-        updatePlacementStations(placement.id);
+    if (typeof renderPlacementColors === 'function') {
+        renderPlacementColors(placement.id);
     }
 
-    updatePlacementColorsPreview(placement.id);
+    if (placement.sequence && placement.sequence.length > 0) {
+        if (typeof updatePlacementStations === 'function') {
+            updatePlacementStations(placement.id);
+        }
+    }
+
+    if (typeof updatePlacementColorsPreview === 'function') {
+        updatePlacementColorsPreview(placement.id);
+    }
 
     if (placement.imageData) {
         const img = document.getElementById(`placement-image-preview-${placement.id}`);
@@ -1212,7 +1276,7 @@ function updatePlacementsTabs() {
 
     tabsContainer.innerHTML = '';
 
-    placements.forEach(placement => {
+    (window.placements || []).forEach(placement => {
         const displayType = placement.type.includes('CUSTOM:')
             ? placement.type.replace('CUSTOM: ', '')
             : placement.type;
@@ -1223,12 +1287,14 @@ function updatePlacementsTabs() {
         tab.innerHTML = `
             <i class="fas fa-${getPlacementIcon(placement.type)}"></i>
             ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
-            ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
+            ${window.placements && window.placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
         `;
 
         tab.addEventListener('click', (e) => {
             if (!e.target.classList.contains('remove-tab')) {
-                showPlacement(placement.id);
+                if (typeof showPlacement === 'function') {
+                    showPlacement(placement.id);
+                }
             }
         });
         tabsContainer.appendChild(tab);
@@ -1275,7 +1341,7 @@ function getPlacementIcon(type) {
 // =====================================================
 
 function updatePlacementType(placementId, type) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (placement) {
         const customInput = document.getElementById(`custom-placement-input-${placementId}`);
 
@@ -1290,13 +1356,15 @@ function updatePlacementType(placementId, type) {
             placement.name = type;
         }
 
-        updateAllPlacementTitles(placementId);
+        if (typeof updateAllPlacementTitles === 'function') {
+            updateAllPlacementTitles(placementId);
+        }
         showStatus(`✅ Tipo de placement cambiado a ${type}`);
     }
 }
 
 function updateCustomPlacement(placementId, customName) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
     let finalName = customName.trim();
@@ -1314,13 +1382,15 @@ function updateCustomPlacement(placementId, customName) {
         placement.type = `CUSTOM: ${finalName}`;
         placement.name = finalName;
 
-        updateAllPlacementTitles(placementId);
+        if (typeof updateAllPlacementTitles === 'function') {
+            updateAllPlacementTitles(placementId);
+        }
         showStatus(`✅ Placement personalizado: "${finalName}" creado`);
     }
 }
 
 function updateAllPlacementTitles(placementId) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
     const displayType = placement.type.includes('CUSTOM:')
@@ -1358,94 +1428,13 @@ function updateAllPlacementTitles(placementId) {
         sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${displayType}`;
     }
 
-    updatePlacementsTabs();
-}
-
-function updatePlacementInkType(placementId, inkType) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
-
-    placement.inkType = inkType;
-
-    const preset = getInkPresetSafe(inkType);
-
-    placement.temp = preset.temp;
-    placement.time = preset.time;
-
-    const tempField = document.getElementById(`temp-${placementId}`);
-    const timeField = document.getElementById(`time-${placementId}`);
-
-    if (tempField) {
-        tempField.value = preset.temp;
-        tempField.setAttribute('readonly', true);
-        tempField.title = `Temperatura para tinta ${inkType}`;
-    }
-
-    if (timeField) {
-        timeField.value = preset.time;
-        timeField.setAttribute('readonly', true);
-        timeField.title = `Tiempo de curado para tinta ${inkType}`;
-    }
-
-    updateDefaultParameters(placementId, inkType);
-    updatePlacementStations(placementId);
-    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
-}
-
-function updateDefaultParameters(placementId, inkType) {
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement) return;
-
-    const preset = getInkPresetSafe(inkType);
-
-    if (!placement.meshColor) {
-        const meshColorField = document.getElementById(`mesh-color-${placementId}`);
-        if (meshColorField) meshColorField.value = preset.color.mesh;
-    }
-
-    if (!placement.meshWhite) {
-        const meshWhiteField = document.getElementById(`mesh-white-${placementId}`);
-        if (meshWhiteField) meshWhiteField.value = preset.white.mesh1;
-    }
-
-    if (!placement.meshBlocker) {
-        const meshBlockerField = document.getElementById(`mesh-blocker-${placementId}`);
-        if (meshBlockerField) meshBlockerField.value = preset.blocker.mesh1;
-    }
-
-    if (!placement.durometer) {
-        const durometerField = document.getElementById(`durometer-${placementId}`);
-        if (durometerField) durometerField.value = preset.color.durometer;
-    }
-
-    if (!placement.strokes) {
-        const strokesField = document.getElementById(`strokes-${placementId}`);
-        if (strokesField) strokesField.value = preset.color.strokes;
-    }
-
-    if (!placement.angle) {
-        const angleField = document.getElementById(`angle-${placementId}`);
-        if (angleField) angleField.value = preset.color.angle;
-    }
-
-    if (!placement.pressure) {
-        const pressureField = document.getElementById(`pressure-${placementId}`);
-        if (pressureField) pressureField.value = preset.color.pressure;
-    }
-
-    if (!placement.speed) {
-        const speedField = document.getElementById(`speed-${placementId}`);
-        if (speedField) speedField.value = preset.color.speed;
-    }
-
-    if (!placement.additives) {
-        const additivesField = document.getElementById(`additives-${placementId}`);
-        if (additivesField) additivesField.value = preset.color.additives;
+    if (typeof updatePlacementsTabs === 'function') {
+        updatePlacementsTabs();
     }
 }
 
 function duplicatePlacement(placementId) {
-    const original = placements.find(p => p.id === placementId);
+    const original = (window.placements || []).find(p => p.id === placementId);
     if (!original) return;
 
     const newId = Date.now();
@@ -1459,14 +1448,22 @@ function duplicatePlacement(placementId) {
 
     if (!duplicate.specialties) duplicate.specialties = '';
 
-    placements = [...placements, duplicate];
+    window.placements = [...window.placements, duplicate];
 
-    renderPlacementHTML(duplicate);
-    updatePlacementsTabs();
-    showPlacement(newId);
+    if (typeof renderPlacementHTML === 'function') {
+        renderPlacementHTML(duplicate);
+    }
+    if (typeof updatePlacementsTabs === 'function') {
+        updatePlacementsTabs();
+    }
+    if (typeof showPlacement === 'function') {
+        showPlacement(newId);
+    }
 
     setTimeout(() => {
-        updateAllPlacementTitles(newId);
+        if (typeof updateAllPlacementTitles === 'function') {
+            updateAllPlacementTitles(newId);
+        }
     }, 100);
 
     showStatus('✅ Placement duplicado correctamente');
@@ -1474,7 +1471,7 @@ function duplicatePlacement(placementId) {
 }
 
 function removePlacement(placementId) {
-    if (placements.length <= 1) {
+    if (!window.placements || window.placements.length <= 1) {
         showStatus('⚠️ No puedes eliminar el único placement', 'warning');
         return;
     }
@@ -1483,23 +1480,26 @@ function removePlacement(placementId) {
         return;
     }
 
-    const index = placements.findIndex(p => p.id === placementId);
+    const index = window.placements.findIndex(p => p.id === placementId);
     if (index === -1) return;
 
-    const removedType = placements[index].type;
+    const removedType = window.placements[index].type;
 
-    // Use immutable filter instead of splice
-    placements = placements.filter((_, i) => i !== index);
+    window.placements = window.placements.filter((_, i) => i !== index);
 
     const section = document.getElementById(`placement-section-${placementId}`);
     if (section) {
         section.remove();
     }
 
-    updatePlacementsTabs();
+    if (typeof updatePlacementsTabs === 'function') {
+        updatePlacementsTabs();
+    }
 
-    if (currentPlacementId === placementId && placements.length > 0) {
-        showPlacement(placements[0].id);
+    if (currentPlacementId === placementId && window.placements.length > 0) {
+        if (typeof showPlacement === 'function') {
+            showPlacement(window.placements[0].id);
+        }
     }
 
     showStatus(`🗑️ Placement "${removedType}" eliminado`, 'success');
@@ -1510,10 +1510,12 @@ function removePlacement(placementId) {
 // =====================================================
 
 function updatePlacementParam(placementId, param, value) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (placement) {
         placement[param] = value;
-        updatePlacementStations(placementId);
+        if (typeof updatePlacementStations === 'function') {
+            updatePlacementStations(placementId);
+        }
         showStatus(`✅ ${param} actualizado`);
     }
 }
@@ -1523,7 +1525,7 @@ function updatePlacementParam(placementId, param, value) {
 // =====================================================
 
 function extractDimensions(dimensionsText) {
-    if (!dimensionsText) return { width: '15.34', height: '12' };
+    if (!dimensionsText) return { width: '', height: '' };
 
     const patterns = [
         /SIZE:\s*\(W\)\s*([\d\.]+)\s*["']?\s*X\s*\(H\)\s*([\d\.]+)/i,
@@ -1543,7 +1545,7 @@ function extractDimensions(dimensionsText) {
         }
     }
 
-    return { width: '15.34', height: '12' };
+    return { width: '', height: '' };
 }
 
 function parseDimensionValue(rawValue) {
@@ -1597,8 +1599,10 @@ function applyDimensionPair(placementId, width, height, detectedUnit = '') {
     if (wField) wField.value = width;
     if (hField) hField.value = height;
 
-    updatePlacementDimension(placementId, 'width', width);
-    updatePlacementDimension(placementId, 'height', height);
+    if (typeof updatePlacementDimension === 'function') {
+        updatePlacementDimension(placementId, 'width', width);
+        updatePlacementDimension(placementId, 'height', height);
+    }
 
     const unitLabel = detectedUnit ? `${detectedUnit} detectado` : 'sin unidad explícita';
     showStatus(`✅ Medidas pegadas automáticamente (${unitLabel})`);
@@ -1619,7 +1623,9 @@ function handleDimensionPaste(event, placementId, type) {
         event.preventDefault();
         const targetField = event.target;
         targetField.value = parsedSingle.displayValue;
-        updatePlacementDimension(placementId, type, parsedSingle.displayValue);
+        if (typeof updatePlacementDimension === 'function') {
+            updatePlacementDimension(placementId, type, parsedSingle.displayValue);
+        }
 
         if (type === 'width') {
             const hField = document.getElementById(`dimension-h-${placementId}`);
@@ -1643,25 +1649,31 @@ function handleDimensionInput(placementId, type, inputElement) {
         if (widthCandidate) {
             const parsedWidth = parseDimensionValue(widthCandidate);
             inputElement.value = parsedWidth ? parsedWidth.displayValue : widthCandidate;
-            updatePlacementDimension(placementId, 'width', inputElement.value);
+            if (typeof updatePlacementDimension === 'function') {
+                updatePlacementDimension(placementId, 'width', inputElement.value);
+            }
         }
 
         const hField = document.getElementById(`dimension-h-${placementId}`);
         if (hField && heightCandidate) {
             const parsedHeight = parseDimensionValue(heightCandidate);
             hField.value = parsedHeight ? parsedHeight.displayValue : heightCandidate;
-            updatePlacementDimension(placementId, 'height', hField.value);
+            if (typeof updatePlacementDimension === 'function') {
+                updatePlacementDimension(placementId, 'height', hField.value);
+            }
         }
 
         if (hField) hField.focus();
         return;
     }
 
-    updatePlacementDimension(placementId, type, value);
+    if (typeof updatePlacementDimension === 'function') {
+        updatePlacementDimension(placementId, type, value);
+    }
 }
 
 function updatePlacementDimension(placementId, type, value) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (placement) {
         const wField = document.getElementById(`dimension-w-${placementId}`);
         const hField = document.getElementById(`dimension-h-${placementId}`);
@@ -1687,7 +1699,7 @@ function syncPlacementSequenceWithColors(placement, force = false) {
     const baseItems = currentSequence.filter(item => item.type !== 'FLASH' && item.type !== 'COOL');
     const hadProcessSteps = currentSequence.some(item => item.type === 'FLASH' || item.type === 'COOL');
 
-    const shouldResync = force || !currentSequence.length || baseItems.length !== placement.colors.length;
+    const shouldResync = force || !currentSequence.length || baseItems.length !== (placement.colors || []).length;
     if (!shouldResync) return;
 
     const existingById = new Map(baseItems.map(item => [String(item.id), item]));
@@ -1722,8 +1734,12 @@ function syncPlacementSequenceWithColors(placement, force = false) {
 }
 
 function addPlacementColorItem(placementId, type) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
+
+    if (!placement.colors) {
+        placement.colors = [];
+    }
 
     let initialLetter = '';
     let initialVal = '';
@@ -1760,22 +1776,33 @@ function addPlacementColorItem(placementId, type) {
         additives: null
     });
 
-    syncPlacementSequenceWithColors(placement, true);
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-
-    checkForSpecialtiesInColors(placementId);
+    if (typeof syncPlacementSequenceWithColors === 'function') {
+        syncPlacementSequenceWithColors(placement, true);
+    }
+    if (typeof renderPlacementColors === 'function') {
+        renderPlacementColors(placementId);
+    }
+    if (typeof updatePlacementStations === 'function') {
+        updatePlacementStations(placementId);
+    }
+    if (typeof updatePlacementColorsPreview === 'function') {
+        updatePlacementColorsPreview(placementId);
+    }
+    if (typeof checkForSpecialtiesInColors === 'function') {
+        checkForSpecialtiesInColors(placementId);
+    }
 }
 
 function renderPlacementColors(placementId) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
     const container = document.getElementById(`placement-colors-container-${placementId}`);
     if (!container) return;
 
-    if (placement.colors.length === 0) {
+    const colors = placement.colors || [];
+
+    if (colors.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
                 <i class="fas fa-palette" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i>
@@ -1787,7 +1814,7 @@ function renderPlacementColors(placementId) {
 
     container.innerHTML = '';
 
-    placement.colors.forEach(color => {
+    colors.forEach(color => {
         let badgeClass = 'badge-color';
         let label = 'COLOR';
 
@@ -1814,7 +1841,7 @@ function renderPlacementColors(placementId) {
             <span class="badge ${badgeClass}">${label}</span>
             <input type="text" 
                    style="width: 60px; text-align: center; font-weight: bold;" 
-                   value="${color.screenLetter}" 
+                   value="${color.screenLetter || ''}" 
                    class="form-control placement-screen-letter"
                    data-color-id="${color.id}"
                    data-placement-id="${placementId}"
@@ -1826,7 +1853,7 @@ function renderPlacementColors(placementId) {
                    data-color-id="${color.id}"
                    data-placement-id="${placementId}"
                    placeholder="Nombre de la tinta..." 
-                   value="${color.val}"
+                   value="${color.val || ''}"
                    oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)"
                    ondblclick="this.select()">
             <input type="text"
@@ -1850,104 +1877,98 @@ function renderPlacementColors(placementId) {
                 <i class="fas fa-times"></i>
             </button>
         `;
-        if (!placementColorDndManager && window.PlacementColorDnD?.createPlacementColorDndManager) {
-            placementColorDndManager = window.PlacementColorDnD.createPlacementColorDndManager({
-                getPlacementById: (id) => placements.find(p => p.id === id),
-                syncPlacementSequenceWithColors,
-                renderPlacementColors,
-                updatePlacementStations,
-                updatePlacementColorsPreview,
-                checkForSpecialtiesInColors,
-                showStatus
-            });
-        }
-
-        if (placementColorDndManager) {
-            placementColorDndManager.bindColorItem(div);
-        }
-
+        
         container.appendChild(div);
 
-        setTimeout(() => updatePlacementColorPreview(placementId, color.id), 10);
+        setTimeout(() => {
+            if (typeof updatePlacementColorPreview === 'function') {
+                updatePlacementColorPreview(placementId, color.id);
+            }
+        }, 10);
     });
 }
 
-function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
-    if (placementColorDndManager) {
-        placementColorDndManager.moveByIndex(placementId, fromIndex, toIndex);
-        return;
-    }
-
-    const placement = placements.find(p => p.id === placementId);
-    if (!placement || !Array.isArray(placement.colors)) return;
-    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= placement.colors.length || toIndex >= placement.colors.length) return;
-
-    const [moved] = placement.colors.splice(fromIndex, 1);
-    placement.colors.splice(toIndex, 0, moved);
-
-    syncPlacementSequenceWithColors(placement, true);
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-    checkForSpecialtiesInColors(placementId);
-}
-
 function updatePlacementColorValue(placementId, colorId, value) {
-
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = (placement.colors || []).find(c => c.id === colorId);
     if (color) {
         color.val = value;
-        updatePlacementColorPreview(placementId, colorId);
-        syncPlacementSequenceWithColors(placement, true);
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
-
-        checkForSpecialtiesInColors(placementId);
+        if (typeof updatePlacementColorPreview === 'function') {
+            updatePlacementColorPreview(placementId, colorId);
+        }
+        if (typeof syncPlacementSequenceWithColors === 'function') {
+            syncPlacementSequenceWithColors(placement, true);
+        }
+        if (typeof updatePlacementStations === 'function') {
+            updatePlacementStations(placementId);
+        }
+        if (typeof updatePlacementColorsPreview === 'function') {
+            updatePlacementColorsPreview(placementId);
+        }
+        if (typeof checkForSpecialtiesInColors === 'function') {
+            checkForSpecialtiesInColors(placementId);
+        }
     }
 }
 
 function updatePlacementScreenLetter(placementId, colorId, value) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = (placement.colors || []).find(c => c.id === colorId);
     if (color) {
         color.screenLetter = value.toUpperCase();
-        syncPlacementSequenceWithColors(placement, true);
-        updatePlacementStations(placementId);
+        if (typeof syncPlacementSequenceWithColors === 'function') {
+            syncPlacementSequenceWithColors(placement, true);
+        }
+        if (typeof updatePlacementStations === 'function') {
+            updatePlacementStations(placementId);
+        }
     }
 }
 
 function updatePlacementColorMesh(placementId, colorId, value) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = (placement.colors || []).find(c => c.id === colorId);
     if (!color) return;
 
     color.mesh = value;
-    syncPlacementSequenceWithColors(placement, true);
-    updatePlacementStations(placementId);
+    if (typeof syncPlacementSequenceWithColors === 'function') {
+        syncPlacementSequenceWithColors(placement, true);
+    }
+    if (typeof updatePlacementStations === 'function') {
+        updatePlacementStations(placementId);
+    }
 }
 
 function removePlacementColorItem(placementId, colorId) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
-    placement.colors = placement.colors.filter(c => c.id !== colorId);
-    syncPlacementSequenceWithColors(placement, true);
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
-
-    checkForSpecialtiesInColors(placementId);
+    placement.colors = (placement.colors || []).filter(c => c.id !== colorId);
+    if (typeof syncPlacementSequenceWithColors === 'function') {
+        syncPlacementSequenceWithColors(placement, true);
+    }
+    if (typeof renderPlacementColors === 'function') {
+        renderPlacementColors(placementId);
+    }
+    if (typeof updatePlacementStations === 'function') {
+        updatePlacementStations(placementId);
+    }
+    if (typeof updatePlacementColorsPreview === 'function') {
+        updatePlacementColorsPreview(placementId);
+    }
+    if (typeof checkForSpecialtiesInColors === 'function') {
+        checkForSpecialtiesInColors(placementId);
+    }
 }
 
 function movePlacementColorItem(placementId, colorId, direction) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement || !Array.isArray(placement.colors)) return;
 
     const currentIndex = placement.colors.findIndex(c => c.id === colorId);
@@ -1956,15 +1977,32 @@ function movePlacementColorItem(placementId, colorId, direction) {
     const targetIndex = currentIndex + direction;
     if (targetIndex < 0 || targetIndex >= placement.colors.length) return;
 
-    movePlacementColorByIndex(placementId, currentIndex, targetIndex);
+    const [moved] = placement.colors.splice(currentIndex, 1);
+    placement.colors.splice(targetIndex, 0, moved);
+
+    if (typeof syncPlacementSequenceWithColors === 'function') {
+        syncPlacementSequenceWithColors(placement, true);
+    }
+    if (typeof renderPlacementColors === 'function') {
+        renderPlacementColors(placementId);
+    }
+    if (typeof updatePlacementStations === 'function') {
+        updatePlacementStations(placementId);
+    }
+    if (typeof updatePlacementColorsPreview === 'function') {
+        updatePlacementColorsPreview(placementId);
+    }
+    if (typeof checkForSpecialtiesInColors === 'function') {
+        checkForSpecialtiesInColors(placementId);
+    }
     showStatus('↕️ Secuencia de colores actualizada');
 }
 
 function updatePlacementColorPreview(placementId, colorId) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = (placement.colors || []).find(c => c.id === colorId);
     if (!color) return;
 
     const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
@@ -2091,12 +2129,12 @@ function updatePlacementColorPreview(placementId, colorId) {
 // =====================================================
 
 function checkForSpecialtiesInColors(placementId) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
     let specialties = [];
 
-    placement.colors.forEach(color => {
+    (placement.colors || []).forEach(color => {
         if (color.val) {
             const colorVal = (color.val || '').toUpperCase();
 
@@ -2123,7 +2161,9 @@ function checkForSpecialtiesInColors(placementId) {
     const specialtiesField = document.getElementById(`specialties-${placementId}`);
     if (specialtiesField) {
         specialtiesField.value = specialties.join(', ');
-        updatePlacementField(placementId, 'specialties', specialtiesField.value);
+        if (typeof updatePlacementField === 'function') {
+            updatePlacementField(placementId, 'specialties', specialtiesField.value);
+        }
     }
 
     return specialties;
@@ -2139,7 +2179,6 @@ function isMetallicColor(colorName) {
     const pantone = parseInt(pantoneMatch[1], 10);
     if (!Number.isFinite(pantone)) return false;
 
-    // Solo rangos metálicos oficiales: 871C-877C y 8001C-8965C
     return (pantone >= 871 && pantone <= 877) || (pantone >= 8001 && pantone <= 8965);
 }
 
@@ -2160,16 +2199,18 @@ function getColorHex(colorName) {
 }
 
 function updatePlacementColorsPreview(placementId) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
     const container = document.getElementById(`placement-colors-preview-${placementId}`);
     if (!container) return;
 
+    const colors = placement.colors || [];
+
     const uniqueColors = [];
     const seenColors = new Set();
 
-    placement.colors.forEach(color => {
+    colors.forEach(color => {
         if (color.type === 'COLOR' || color.type === 'METALLIC') {
             const colorVal = (color.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
             if (colorVal && !seenColors.has(colorVal)) {
@@ -2208,10 +2249,9 @@ function updatePlacementColorsPreview(placementId) {
 // =====================================================
 
 function updatePlacementStations(placementId, returnOnly = false) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return [];
 
-    // ✅ USAR LA SECUENCIA COMPLETA si existe
     const sequence = placement.sequence || [];
 
     if (sequence.length === 0) {
@@ -2226,13 +2266,9 @@ function updatePlacementStations(placementId, returnOnly = false) {
     const stationsData = [];
     let stNum = 1;
 
-    // Recorrer la secuencia completa (YA incluye FLASH/COOL en la posición correcta)
     for (let idx = 0; idx < sequence.length; idx++) {
         const item = sequence[idx];
 
-        // =========================================
-        // CASO 1: Es FLASH o COOL (ya están en la secuencia)
-        // =========================================
         if (item.type === 'FLASH' || item.type === 'COOL') {
             stationsData.push({
                 st: stNum++,
@@ -2247,28 +2283,19 @@ function updatePlacementStations(placementId, returnOnly = false) {
                 speed: '-',
                 add: item.additives || ''
             });
-            continue; // ← IMPORTANTE: No añadir FLASH/COOL adicional
+            continue;
         }
 
-        // =========================================
-        // CASO 2: Es BLOCKER
-        // =========================================
         let mesh, strokesVal, duro, ang, press, spd, add;
 
         if (item.type === 'BLOCKER') {
             mesh = item.mesh || placement.meshBlocker || preset.blocker.mesh1;
             add = item.additives || placement.additives || preset.blocker.additives;
         }
-        // =========================================
-        // CASO 3: Es WHITE_BASE
-        // =========================================
         else if (item.type === 'WHITE_BASE') {
             mesh = item.mesh || placement.meshWhite || preset.white.mesh1;
             add = item.additives || placement.additives || preset.white.additives;
         }
-        // =========================================
-        // CASO 4: Es METALLIC
-        // =========================================
         else if (item.type === 'METALLIC') {
             mesh = item.mesh || '122/55';
             strokesVal = '1';
@@ -2278,9 +2305,6 @@ function updatePlacementStations(placementId, returnOnly = false) {
             spd = '35';
             add = item.additives || '3% cross linker 500 · 3% Binder Flex';
         }
-        // =========================================
-        // CASO 5: Es COLOR
-        // =========================================
         else {
             mesh = item.mesh || placement.meshColor || preset.color.mesh;
             add = item.additives || placement.additives || preset.color.additives;
@@ -2363,48 +2387,12 @@ function openImagePickerForPlacement(placementId) {
     document.getElementById('placementImageInput')?.click();
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    const placementImageInput = document.getElementById('placementImageInput');
-    if (placementImageInput) {
-        placementImageInput.addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const placementId = currentPlacementId;
-            const placement = placements.find(p => p.id === placementId);
-            if (!placement) return;
-
-            if (!file.type.match('image.*')) {
-                showStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function (ev) {
-                const img = document.getElementById(`placement-image-preview-${placementId}`);
-                const imageActions = document.getElementById(`placement-image-actions-${placementId}`);
-
-                if (img) {
-                    img.src = ev.target.result;
-                    img.style.display = 'block';
-                }
-
-                if (imageActions) {
-                    imageActions.style.display = 'flex';
-                }
-
-                placement.imageData = ev.target.result;
-                showStatus(`✅ Imagen cargada para ${placement.type}`);
-            };
-            reader.readAsDataURL(file);
-
-            e.target.value = '';
-        });
-    }
-});
+// =====================================================
+// FUNCIÓN FALTANTE: removePlacementImage
+// =====================================================
 
 function removePlacementImage(placementId) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (!placement) return;
 
     const img = document.getElementById(`placement-image-preview-${placementId}`);
@@ -2422,13 +2410,12 @@ function removePlacementImage(placementId) {
     placement.imageData = null;
     showStatus('🗑️ Imagen eliminada del placement');
 }
-
 // =====================================================
 // FUNCIONES DE ACTUALIZACIÓN
 // =====================================================
 
 function updatePlacementField(placementId, field, value) {
-    const placement = placements.find(p => p.id === placementId);
+    const placement = (window.placements || []).find(p => p.id === placementId);
     if (placement) {
         if (field === 'specialties') {
             let specialties = value.toUpperCase();
@@ -2449,26 +2436,86 @@ function updatePlacementField(placementId, field, value) {
     }
 }
 
-
 // =====================================================
-// FUNCIÓN PARA PROCESAR DATOS EXCEL (VERSIÓN CON LOGS Y SOPORTE PARA WORKBOOK)
+// FUNCIÓN FALTANTE: updateDefaultParameters
+// =====================================================
+
+function updateDefaultParameters(placementId, inkType) {
+    const placement = (window.placements || []).find(p => p.id === placementId);
+    if (!placement) return;
+
+    const preset = getInkPresetSafe(inkType);
+
+    // Actualizar campos de malla si están vacíos
+    if (!placement.meshColor) {
+        placement.meshColor = preset.color.mesh;
+        const meshColorField = document.getElementById(`mesh-color-${placementId}`);
+        if (meshColorField) meshColorField.value = preset.color.mesh;
+    }
+
+    if (!placement.meshWhite) {
+        placement.meshWhite = preset.white.mesh1;
+        const meshWhiteField = document.getElementById(`mesh-white-${placementId}`);
+        if (meshWhiteField) meshWhiteField.value = preset.white.mesh1;
+    }
+
+    if (!placement.meshBlocker) {
+        placement.meshBlocker = preset.blocker.mesh1;
+        const meshBlockerField = document.getElementById(`mesh-blocker-${placementId}`);
+        if (meshBlockerField) meshBlockerField.value = preset.blocker.mesh1;
+    }
+
+    // Actualizar otros parámetros si están vacíos
+    if (!placement.durometer) {
+        placement.durometer = preset.color.durometer;
+        const durometerField = document.getElementById(`durometer-${placementId}`);
+        if (durometerField) durometerField.value = preset.color.durometer;
+    }
+
+    if (!placement.strokes) {
+        placement.strokes = preset.color.strokes;
+        const strokesField = document.getElementById(`strokes-${placementId}`);
+        if (strokesField) strokesField.value = preset.color.strokes;
+    }
+
+    if (!placement.angle) {
+        placement.angle = preset.color.angle;
+        const angleField = document.getElementById(`angle-${placementId}`);
+        if (angleField) angleField.value = preset.color.angle;
+    }
+
+    if (!placement.pressure) {
+        placement.pressure = preset.color.pressure;
+        const pressureField = document.getElementById(`pressure-${placementId}`);
+        if (pressureField) pressureField.value = preset.color.pressure;
+    }
+
+    if (!placement.speed) {
+        placement.speed = preset.color.speed;
+        const speedField = document.getElementById(`speed-${placementId}`);
+        if (speedField) speedField.value = preset.color.speed;
+    }
+
+    if (!placement.additives) {
+        placement.additives = preset.color.additives;
+        const additivesField = document.getElementById(`additives-${placementId}`);
+        if (additivesField) additivesField.value = preset.color.additives;
+    }
+}
+// =====================================================
+// FUNCIÓN PARA PROCESAR DATOS EXCEL
 // =====================================================
 
 function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('📁 processExcelData INICIANDO con hoja:', sheetName);
-    console.log('📊 worksheet:', worksheet);
-    console.log('📚 workbook recibido:', workbook ? 'SÍ' : 'NO');
     
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-    console.log('📊 data raw:', data);
     
     const extracted = {};
 
     const normalizedSheetName = String(sheetName || '').toUpperCase();
     const isSWOSheet = normalizedSheetName.includes('SWO') || normalizedSheetName.includes('PPS') || normalizedSheetName.includes('PROTO');
-    console.log('🔍 isSWOSheet:', isSWOSheet);
 
-    // --- 1. EXTRACCIÓN DE DATOS BÁSICOS ---
     const assignByLabel = (labelRaw, valueRaw) => {
         const label = String(labelRaw || '').trim().toUpperCase();
         const value = String(valueRaw || '').trim();
@@ -2486,7 +2533,6 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     };
 
     if (isSWOSheet) {
-        console.log('🔍 Buscando en formato SWO flexible...');
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
             if (!row || row.length === 0) continue;
@@ -2498,7 +2544,6 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     }
 
     if (Object.keys(extracted).length === 0 || !isSWOSheet) {
-        console.log('🔍 Buscando en formato genérico...');
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
             if (!row) continue;
@@ -2509,57 +2554,102 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         }
     }
 
+    const extractBaseSizeFromGrid = (grid) => {
+        if (!Array.isArray(grid) || !grid[15]) return '';
+
+        const row16 = grid[15];
+        const normalizeSize = (raw) => {
+            const text = String(raw || '').trim().toUpperCase();
+            if (!text) return '';
+            if (text.includes('BASE SIZE') || text === 'SIZE' || text.includes('MEASUREMENT')) return '';
+
+            const sizeMatch = text.match(/\b(XXS|XS|S|M|L|XL|XXL|XXXL|2XL|3XL|4XL|5XL)\b/);
+            if (!sizeMatch) return '';
+
+            const normalized = sizeMatch[1];
+            if (normalized === 'XXXL') return '3XL';
+            if (normalized === 'XXL') return '2XL';
+            return normalized;
+        };
+
+        for (let col = 2; col <= 9; col++) {
+            const candidate = normalizeSize(row16[col]);
+            if (candidate) return candidate;
+        }
+
+        return '';
+    };
+
+    if (!extracted.gender && extracted.style) {
+        extracted.gender = extractGenderFromStyle(extracted.style, extracted.customer);
+    }
+
+    if (!extracted.baseSize) {
+        extracted.baseSize = extractBaseSizeFromGrid(data);
+    }
+
     console.log('📦 Datos extraídos:', extracted);
 
-    // --- 2. ASIGNAR VALORES A LOS INPUTS ---
-    if (extracted.customer) {
-        setInputValue('customer', extracted.customer);
-        console.log('✅ customer asignado:', extracted.customer);
-    }
-    if (extracted.style) {
-        setInputValue('style', extracted.style);
-        console.log('✅ style asignado:', extracted.style);
-    }
-    if (extracted.colorway) {
-        setInputValue('colorway', extracted.colorway);
-        console.log('✅ colorway asignado:', extracted.colorway);
-    }
-    if (extracted.season) setInputValue('season', extracted.season);
-    if (extracted.pattern) setInputValue('pattern', extracted.pattern);
-    if (extracted.po) setInputValue('po', extracted.po);
-    if (extracted.sample) setInputValue('sample-type', extracted.sample);
-    if (extracted.team) setInputValue('name-team', extracted.team);
-    if (extracted.gender) setInputValue('gender', extracted.gender);
+    const applyGeneralInfo = (info, source = 'manual') => {
+        if (!info || typeof info !== 'object') return;
 
-    // --- 3. EJECUTAR AUTOMATIZACIÓN DE PLACEMENTS ---
+        if (info.customer) {
+            setInputValue('customer', info.customer);
+        }
+        if (info.style) {
+            setInputValue('style', info.style);
+        }
+        if (info.colorway) {
+            setInputValue('colorway', info.colorway);
+        }
+        if (info.season) setInputValue('season', info.season);
+        if (info.pattern) setInputValue('pattern', info.pattern);
+        if (info.po) setInputValue('po', info.po);
+        if (info.sample || info.sampleType) setInputValue('sample-type', info.sample || info.sampleType);
+        if (info.team || info.nameTeam) setInputValue('name-team', info.team || info.nameTeam);
+
+        const resolvedGender = info.gender || extractGenderFromStyle(info.style, info.customer);
+        if (resolvedGender) setInputValue('gender', resolvedGender);
+
+        if (info.baseSize) setInputValue('base-size', info.baseSize);
+    };
+
+    applyGeneralInfo(extracted, 'extracción base');
+
     if (window.ExcelAutomation) {
         console.log('🤖 Ejecutando ExcelAutomation.processExcelWithAutomation...');
         try {
-            // PASAR EL WORKBOOK A EXCELAUTOMATION
             const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
             console.log('🤖 Resultado de ExcelAutomation:', result);
+
+            if (!result.baseSize && workbook && result.sourceSheet && workbook.Sheets && workbook.Sheets[result.sourceSheet]) {
+                const sourceData = XLSX.utils.sheet_to_json(workbook.Sheets[result.sourceSheet], { header: 1, defval: '' });
+                result.baseSize = extractBaseSizeFromGrid(sourceData);
+            }
+
+            applyGeneralInfo(result, 'ExcelAutomation');
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
                 console.log(`📦 Se detectaron ${result.autoPlacements.length} placements automáticos`);
-                window.ExcelAutomation.autoCreatePlacements(result.autoPlacements);
+                if (typeof window.ExcelAutomation.autoCreatePlacements === 'function') {
+                    window.ExcelAutomation.autoCreatePlacements(result.autoPlacements);
+                }
             } else {
                 console.log('📭 No se detectaron placements automáticos');
             }
         } catch (error) {
             console.error('❌ Error en ExcelAutomation:', error);
         }
-    } else {
-        console.warn('⚠️ ExcelAutomation no disponible');
     }
 
-    // --- 4. ACTUALIZAR LOGOS Y OTRAS FUNCIONES ---
     updateClientLogo();
     applyCustomerInkDefaults();
     handleGearForSportLogic();
 
-    // --- 5. CAMBIAR A LA PESTAÑA DE CREACIÓN ---
     setTimeout(() => {
-        showTab('spec-creator');
+        if (typeof showTab === 'function') {
+            showTab('spec-creator');
+        }
     }, 500);
 
     showStatus(`✅ "${sheetName || 'hoja'}" procesado`, 'success');
@@ -2578,7 +2668,9 @@ function setupExcelImportHandler() {
             const normalizedFileName = fileName.toLowerCase();
 
             if (normalizedFileName.endsWith('.zip')) {
-                await loadProjectZip(file);
+                if (typeof loadProjectZip === 'function') {
+                    await loadProjectZip(file);
+                }
                 return;
             }
 
@@ -2586,8 +2678,12 @@ function setupExcelImportHandler() {
                 showStatus(`📥 Cargando JSON: ${fileName}...`, 'info');
                 const jsonText = await file.text();
                 const parsedData = JSON.parse(jsonText);
-                loadSpecData(parsedData);
-                showTab('spec-creator');
+                if (typeof loadSpecData === 'function') {
+                    loadSpecData(parsedData);
+                }
+                if (typeof showTab === 'function') {
+                    showTab('spec-creator');
+                }
                 showStatus(`✅ Archivo JSON "${fileName}" cargado correctamente`, 'success');
                 return;
             }
@@ -2610,7 +2706,6 @@ function setupExcelImportHandler() {
                 throw new Error(`No se encontró la hoja "${preferredSheetName}"`);
             }
 
-            // PASAR EL WORKBOOK A processExcelData
             processExcelData(worksheet, preferredSheetName, workbook);
         } catch (error) {
             console.error('❌ Error procesando archivo importado:', error);
@@ -2625,6 +2720,7 @@ function setupExcelImportHandler() {
 
     excelInput.dataset.bound = '1';
 }
+
 // =====================================================
 // FUNCIONES DE DASHBOARD
 // =====================================================
@@ -2638,7 +2734,6 @@ function updateDashboard() {
 
         let lastSpec = null;
         let lastSpecDate = null;
-        let lastSpecKey = null;
 
         specs.forEach(key => {
             try {
@@ -2648,7 +2743,6 @@ function updateDashboard() {
                 if (!lastSpecDate || specDate > lastSpecDate) {
                     lastSpecDate = specDate;
                     lastSpec = data;
-                    lastSpecKey = key;
                 }
             } catch (e) {
                 console.warn('Error al parsear spec:', key, e);
@@ -2660,7 +2754,7 @@ function updateDashboard() {
             const safeStyle = (lastSpec.style || 'Sin nombre').replace(/"/g, '&quot;');
             todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
-                <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastSpecKey)}'))" title="Abrir para seguir editando"
+                <button type="button" onclick="loadSpec('spec_${lastSpec.style}_${lastSpec.savedAt}')" 
                     style="font-size:1.05rem; font-weight:bold; color:var(--primary); background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; text-align:left;">
                     ${safeStyle}
                 </button>
@@ -2778,24 +2872,6 @@ function loadSavedSpecsList() {
     }
 }
 
-function loadSpec(storageKey) {
-    try {
-        if (!storageKey) return;
-        const raw = localStorage.getItem(storageKey);
-        if (!raw) {
-            showStatus('⚠️ No se encontró la spec seleccionada', 'warning');
-            return;
-        }
-        const data = JSON.parse(raw);
-        loadSpecData(data);
-        showTab('spec-creator');
-        showStatus('✅ Spec cargada para edición', 'success');
-    } catch (error) {
-        console.error('Error al cargar spec:', error);
-        showStatus('❌ Error al cargar spec', 'error');
-    }
-}
-
 function loadSpecData(data) {
     setInputValue('customer', data.customer || '');
     setInputValue('style', data.style || '');
@@ -2815,7 +2891,7 @@ function loadSpecData(data) {
 
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
-    placements = [];
+    window.placements = [];
 
     if (data.placements && Array.isArray(data.placements)) {
         data.placements.forEach((placementData, index) => {
@@ -2825,17 +2901,18 @@ function loadSpecData(data) {
                 id: placementId
             };
 
-            // ✅ Restaurar colores y secuencia
             placement.colors = placementData.colors || [];
             placement.sequence = placementData.sequence || [];
 
             if (index === 0) {
-                placements = [placement];
+                window.placements = [placement];
             } else {
-                placements = [...placements, placement];
+                window.placements = [...window.placements, placement];
             }
 
-            renderPlacementHTML(placement);
+            if (typeof renderPlacementHTML === 'function') {
+                renderPlacementHTML(placement);
+            }
 
             if (placement.imageData) {
                 const img = document.getElementById(`placement-image-preview-${placementId}`);
@@ -2848,19 +2925,35 @@ function loadSpecData(data) {
                 }
             }
 
-            renderPlacementColors(placementId);
-            updatePlacementStations(placementId);
-            updatePlacementColorsPreview(placementId);
+            if (typeof renderPlacementColors === 'function') {
+                renderPlacementColors(placementId);
+            }
+            if (typeof updatePlacementStations === 'function') {
+                updatePlacementStations(placementId);
+            }
+            if (typeof updatePlacementColorsPreview === 'function') {
+                updatePlacementColorsPreview(placementId);
+            }
         });
     } else {
-        initializePlacements();
+        if (typeof initializePlacements === 'function') {
+            initializePlacements();
+        }
     }
 
-    updatePlacementsTabs();
-    showPlacement(1);
-    updateClientLogo();
+    if (typeof updatePlacementsTabs === 'function') {
+        updatePlacementsTabs();
+    }
+    if (typeof showPlacement === 'function') {
+        showPlacement(1);
+    }
+    if (typeof updateClientLogo === 'function') {
+        updateClientLogo();
+    }
 
-    showTab('spec-creator');
+    if (typeof showTab === 'function') {
+        showTab('spec-creator');
+    }
     showStatus('📂 Spec cargada correctamente');
 }
 
@@ -2883,8 +2976,12 @@ function downloadSingleSpec(key) {
 function deleteSpec(key) {
     if (confirm('¿Estás seguro de que quieres eliminar esta spec?')) {
         localStorage.removeItem(key);
-        loadSavedSpecsList();
-        updateDashboard();
+        if (typeof loadSavedSpecsList === 'function') {
+            loadSavedSpecsList();
+        }
+        if (typeof updateDashboard === 'function') {
+            updateDashboard();
+        }
         showStatus('🗑️ Spec eliminada', 'success');
     }
 }
@@ -2896,8 +2993,12 @@ function clearAllSpecs() {
                 localStorage.removeItem(key);
             }
         });
-        loadSavedSpecsList();
-        updateDashboard();
+        if (typeof loadSavedSpecsList === 'function') {
+            loadSavedSpecsList();
+        }
+        if (typeof updateDashboard === 'function') {
+            updateDashboard();
+        }
         showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
     }
 }
@@ -2912,7 +3013,7 @@ function saveCurrentSpec() {
         const style = data.style || 'SinEstilo_' + Date.now();
         const storageKey = `spec_${style}_${Date.now()}`;
 
-        placements.forEach(placement => {
+        (window.placements || []).forEach(placement => {
             const specialtiesField = document.getElementById(`specialties-${placement.id}`);
             if (specialtiesField) {
                 placement.specialties = specialtiesField.value;
@@ -2942,14 +3043,20 @@ function saveCurrentSpec() {
             }
         }
 
-        updateDashboard();
-        loadSavedSpecsList();
+        if (typeof updateDashboard === 'function') {
+            updateDashboard();
+        }
+        if (typeof loadSavedSpecsList === 'function') {
+            loadSavedSpecsList();
+        }
 
         showStatus('✅ Spec guardada correctamente', 'success');
 
         setTimeout(() => {
             if (confirm('¿Deseas ver todas las specs guardadas?')) {
-                showTab('saved-specs');
+                if (typeof showTab === 'function') {
+                    showTab('saved-specs');
+                }
             }
         }, 1000);
 
@@ -2960,11 +3067,28 @@ function saveCurrentSpec() {
 }
 
 function collectData() {
-    if (typeof buildSpecData === 'function') {
-        return buildSpecData();
-    }
-    console.error('buildSpecData no encontrado! Revisa que modules/spec-data-model.js esté cargado.');
-    return { placements: [] };
+    const generalData = {
+        customer: document.getElementById('customer')?.value || '',
+        style: document.getElementById('style')?.value || '',
+        folder: document.getElementById('folder-num')?.value || '',
+        colorway: document.getElementById('colorway')?.value || '',
+        season: document.getElementById('season')?.value || '',
+        pattern: document.getElementById('pattern')?.value || '',
+        po: document.getElementById('po')?.value || '',
+        sampleType: document.getElementById('sample-type')?.value || '',
+        nameTeam: document.getElementById('name-team')?.value || '',
+        gender: document.getElementById('gender')?.value || '',
+        designer: document.getElementById('designer')?.value || '',
+        baseSize: document.getElementById('base-size')?.value || '',
+        fabric: document.getElementById('fabric')?.value || '',
+        technicianName: document.getElementById('technician-name')?.value || '',
+        technicalComments: document.getElementById('technical-comments')?.value || ''
+    };
+
+    return {
+        ...generalData,
+        placements: window.placements || []
+    };
 }
 
 // =====================================================
@@ -2980,13 +3104,15 @@ function clearForm() {
         });
         setInputValue('designer', '');
 
-        placements = [];
+        window.placements = [];
         const placementsContainer = document.getElementById('placements-container');
         const placementsTabs = document.getElementById('placements-tabs');
         if (placementsContainer) placementsContainer.innerHTML = '';
         if (placementsTabs) placementsTabs.innerHTML = '';
 
-        initializePlacements();
+        if (typeof initializePlacements === 'function') {
+            initializePlacements();
+        }
 
         const logoElement = document.getElementById('logoCliente');
         if (logoElement) {
@@ -3001,37 +3127,23 @@ function clearForm() {
 // FUNCIONES DE EXPORTACIÓN
 // =====================================================
 
-function hexToRgb(hex) {
-    hex = hex.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    return [r, g, b];
-}
-
 function getInputValue(id, fallback = '') {
     const element = document.getElementById(id);
     return element ? element.value : fallback;
 }
 
-// =====================================================
-// FUNCIÓN EXPORTAR HTML (renombrada)
-// =====================================================
 async function exportHTML() {
     try {
         if (!window.generateSpecHTMLDocument) {
-            throw new Error('Generador HTML no disponible (window.generateSpecHTMLDocument).');
+            throw new Error('Generador HTML no disponible');
         }
 
-        // ✅ IMPORTANTE: Recolectar datos ACTUALES del formulario y placements
         const data = collectData();
 
-        // ✅ Forzar actualización de la secuencia en los datos
-        data.placements = placements.map(p => ({
+        data.placements = (window.placements || []).map(p => ({
             ...p,
-            // Asegurar que los colores sean los actuales
-            colors: p.colors,
-            sequence: p.sequence
+            colors: p.colors || [],
+            sequence: p.sequence || []
         }));
 
         console.log('📤 Exportando HTML con datos:', data);
@@ -3058,8 +3170,6 @@ async function exportHTML() {
     }
 }
 
-// exportToExcel movido a modules/export-excel.js
-
 async function downloadProjectZip() {
     try {
         if (typeof JSZip === 'undefined') {
@@ -3079,11 +3189,9 @@ async function downloadProjectZip() {
         if (window.generateSpecHTMLDocument) {
             const htmlContent = window.generateSpecHTMLDocument(collectData());
             zip.file(`${projectName}.html`, htmlContent);
-        } else {
-            zip.file(`${projectName}_HTML_ERROR.txt`, 'No se pudo generar el archivo HTML del spec.');
         }
 
-        placements.forEach((placement, index) => {
+        (window.placements || []).forEach((placement, index) => {
             if (placement.imageData && placement.imageData.startsWith('data:')) {
                 try {
                     const imageBlob = dataURLToBlob(placement.imageData);
@@ -3097,25 +3205,18 @@ async function downloadProjectZip() {
             }
         });
 
-        const readmeContent = `PROYECTO TEGRA SPEC MANAGER ================================
+        const readmeContent = `PROYECTO TEGRA SPEC MANAGER
 
 Archivos incluidos:
 - ${projectName}.json: Datos de la especificación técnica
-- ${projectName}.html: Spec visual en formato HTML (layout carta)
-${placements.some(p => p.imageData) ? `- Imágenes de placements: ${placements.filter(p => p.imageData).length} archivo(s) de imagen` : ''}
+- ${projectName}.html: Spec visual en formato HTML
 
-Total de Placements: ${placements.length}
+Total de Placements: ${(window.placements || []).length}
 Generado: ${new Date().toLocaleString('es-ES')}
 Cliente: ${document.getElementById('customer')?.value || 'N/A'}
 Estilo: ${document.getElementById('style')?.value || 'N/A'}
 
-Para cargar este proyecto:
-1. Descomprime el archivo ZIP
-2. En Tegra Spec Manager, ve a "Crear Spec"
-3. Haz clic en "Cargar Spec" y selecciona el archivo .json
-4. Las imágenes de placements se cargarán automáticamente
-
-Placements incluidos: ${placements.map(p => p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type).join(', ')}`;
+Placements incluidos: ${(window.placements || []).map(p => p.type.includes('CUSTOM:') ? p.type.replace('CUSTOM: ', '') : p.type).join(', ')}`;
 
         zip.file('LEEME.txt', readmeContent);
 
@@ -3194,26 +3295,33 @@ async function loadProjectZip(file) {
         }
 
         if (jsonData) {
-            loadSpecData(jsonData);
+            if (typeof loadSpecData === 'function') {
+                loadSpecData(jsonData);
+            }
 
-            imageFiles.forEach((imageFile, index) => {
-                const placementIndex = parseInt(imageFile.filename.match(/placement(\d+)/)?.[1]) - 1;
-                if (placementIndex >= 0 && placements[placementIndex]) {
-                    placements[placementIndex].imageData = imageFile.imageData;
+            imageFiles.forEach((imageFile) => {
+                const placementMatch = imageFile.filename.match(/placement(\d+)/);
+                if (placementMatch) {
+                    const placementIndex = parseInt(placementMatch[1]) - 1;
+                    if (placementIndex >= 0 && window.placements && window.placements[placementIndex]) {
+                        window.placements[placementIndex].imageData = imageFile.imageData;
 
-                    const img = document.getElementById(`placement-image-preview-${placements[placementIndex].id}`);
-                    const imageActions = document.getElementById(`placement-image-actions-${placements[placementIndex].id}`);
+                        const img = document.getElementById(`placement-image-preview-${window.placements[placementIndex].id}`);
+                        const imageActions = document.getElementById(`placement-image-actions-${window.placements[placementIndex].id}`);
 
-                    if (img && imageActions) {
-                        img.src = imageFile.imageData;
-                        img.style.display = 'block';
-                        imageActions.style.display = 'flex';
+                        if (img && imageActions) {
+                            img.src = imageFile.imageData;
+                            img.style.display = 'block';
+                            imageActions.style.display = 'flex';
+                        }
                     }
                 }
             });
 
             showStatus('✅ Proyecto ZIP cargado correctamente');
-            showTab('spec-creator');
+            if (typeof showTab === 'function') {
+                showTab('spec-creator');
+            }
         } else {
             throw new Error('No se encontró archivo JSON en el ZIP');
         }
@@ -3232,7 +3340,7 @@ function loadErrorLog() {
     const container = document.getElementById('error-log-content');
     if (!container) return;
 
-    const errors = errorHandler ? errorHandler.getErrors() : [];
+    const errors = window.errorHandler ? window.errorHandler.getErrors() : [];
 
     if (errors.length === 0) {
         container.innerHTML = `
@@ -3290,7 +3398,7 @@ ${JSON.stringify(error.extraData, null, 2)}
 }
 
 function copyErrorDetails(index) {
-    const errors = errorHandler ? errorHandler.getErrors() : [];
+    const errors = window.errorHandler ? window.errorHandler.getErrors() : [];
     if (index < 0 || index >= errors.length) return;
 
     const error = errors[index];
@@ -3308,23 +3416,21 @@ function clearErrorLog() {
         if (window.errorHandler) {
             if (typeof window.errorHandler.clearErrors === 'function') {
                 window.errorHandler.clearErrors();
-            } else if (typeof window.errorHandler.clear === 'function') {
-                window.errorHandler.clear();
-            } else if (Array.isArray(window.errorHandler.errors)) {
-                window.errorHandler.errors = [];
             }
         }
-        loadErrorLog();
+        if (typeof loadErrorLog === 'function') {
+            loadErrorLog();
+        }
         showStatus('🗑️ Log de errores limpiado', 'success');
     }
 }
 
 function exportErrorLog() {
     try {
-        const errors = errorHandler ? errorHandler.getErrors() : [];
+        const errors = window.errorHandler ? window.errorHandler.getErrors() : [];
         const exportData = {
             app: 'Tegra Spec Manager',
-            version: Config.APP.VERSION || '1.0.0',
+            version: (window.Config && window.Config.APP && window.Config.APP.VERSION) || '1.0.0',
             exportDate: new Date().toISOString(),
             totalErrors: errors.length,
             errors: errors
@@ -3346,113 +3452,10 @@ function exportErrorLog() {
 }
 
 // =====================================================
-// FUNCIONES DE INICIALIZACIÓN
+// FUNCIONES DE INICIALIZACIÓN (YA DEFINIDAS ARRIBA)
 // =====================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadTabTemplates()
-        .then(() => {
-            // Una vez que los templates están cargados, podemos inicializar todo
-            console.log('✅ Templates cargados, inicializando app...');
-
-            // --- INICIALIZAR REACTIVE STORE ---
-            if (window.Store && window.initBindings && window.enableAutosave && window.enableStateDebugger) {
-                const savedState = localStorage.getItem("spec-autosave");
-                if (savedState) {
-                    try {
-                        const parsedState = JSON.parse(savedState);
-                        console.log("📥 [Autosave] Cargando Spec guardado...");
-                        Store.replaceState(parsedState);
-                    } catch (e) { console.error("Error cargando autosave", e); }
-                }
-
-                initBindings();
-                enableAutosave();
-                enableStateDebugger();
-            }
-
-            updateDateTime();
-            updateDashboard();
-            loadSavedSpecsList(); // Ahora el contenedor ya existe
-            setupPasteHandler();
-            setupExcelImportHandler();
-            loadThemePreference();
-            bindSpecCreatorFormSafety();
-
-            const themeToggle = document.getElementById('themeToggle');
-            if (themeToggle) {
-                themeToggle.addEventListener('click', toggleTheme);
-            }
-
-            const customerInput = document.getElementById('customer');
-            if (customerInput) {
-                customerInput.addEventListener('change', () => {
-                    updateClientLogo();
-                    applyCustomerInkDefaults();
-                    handleGearForSportLogic();
-                });
-            }
-
-            setInterval(updateDateTime, 60000);
-
-            // Inicializar placements solo si el contenedor existe
-            if (placements.length === 0 && document.getElementById('placements-container')) {
-                initializePlacements();
-            } else if (placements.length > 0 && document.getElementById('placements-container')) {
-                // Si fueron cargados de autosave, re-dibujarlos
-                placements.forEach(p => renderPlacementHTML(p));
-                updatePlacementsTabs();
-                showPlacement(placements[0] ? placements[0].id : null);
-            } else {
-                console.warn("No se pudo inicializar placements: contenedor no encontrado.");
-            }
-
-            if (stateManager) {
-                stateManager.loadFromLocalStorage();
-            }
-
-            setTimeout(() => {
-                // Este código de UI sigue siendo válido
-                const actionButtons = document.querySelector('.card.no-print .card-body');
-                if (actionButtons) {
-                    const buttons = actionButtons.querySelectorAll('button');
-                    const specButton = Array.from(buttons).find(btn =>
-                        btn.textContent.includes('Descargar Spec') ||
-                        btn.textContent.includes('Descargar Calculadora')
-                    );
-                    const htmlButton = Array.from(buttons).find(btn =>
-                        btn.textContent.includes('Exportar HTML') ||
-                        btn.textContent.includes('Descargar HTML')
-                    );
-
-                    if (specButton && htmlButton) {
-                        specButton.textContent = ' Descargar Spec';
-                        specButton.classList.remove('btn-warning');
-                        specButton.classList.add('btn-primary');
-                        specButton.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
-                        specButton.style.borderColor = '#0056b3';
-
-                        htmlButton.textContent = ' Exportar HTML';
-                        htmlButton.classList.remove('btn-warning');
-                        htmlButton.classList.add('btn-success');
-
-                        htmlButton.parentNode.insertBefore(htmlButton, specButton.nextSibling);
-                    }
-                }
-            }, 2000);
-
-            console.log('✅ Tegra Spec Manager v3.0 iniciado');
-            console.log('✅ Motor de reglas disponible:', !!window.RulesEngine);
-        })
-        .catch((error) => {
-            console.error('Error al cargar templates:', error);
-            showStatus('❌ Error al cargar los templates', 'error');
-
-            if (errorHandler) {
-                errorHandler.log('template_load', error);
-            }
-        });
-});
+// La inicialización ya está definida en el evento DOMContentLoaded al inicio
 
 // =====================================================
 // FUNCIONES DE UTILIDAD
@@ -3463,8 +3466,8 @@ function normalizeGearForSportColor(colorName) {
 
     const upperColor = colorName.toUpperCase().trim();
 
-    if (Config && Config.COLOR_DATABASES && Config.COLOR_DATABASES.GEARFORSPORT) {
-        for (const [key, data] of Object.entries(Config.COLOR_DATABASES.GEARFORSPORT)) {
+    if (window.Config && window.Config.COLOR_DATABASES && window.Config.COLOR_DATABASES.GEARFORSPORT) {
+        for (const [key, data] of Object.entries(window.Config.COLOR_DATABASES.GEARFORSPORT)) {
             const keyUpper = key.toUpperCase();
 
             if (upperColor === keyUpper) {
@@ -3487,17 +3490,19 @@ function normalizeGearForSportColor(colorName) {
 
     return colorName;
 }
+
 // =====================================================
 // FUNCIONES PARA EL DASHBOARD MEJORADO
 // =====================================================
 
-// Debouncer para la búsqueda en el dashboard
 const debouncedSearchDashboardSpecs = (() => {
     let timer;
     return function() {
         clearTimeout(timer);
         timer = setTimeout(() => {
-            searchDashboardSpecs();
+            if (typeof searchDashboardSpecs === 'function') {
+                searchDashboardSpecs();
+            }
         }, 300);
     };
 })();
@@ -3568,20 +3573,20 @@ function searchDashboardSpecs() {
     }
 }
 
-// Función para duplicar una spec directamente desde los datos guardados
 function duplicateSpecFromData(data) {
-    // Crear una copia profunda de los datos
     const duplicatedData = JSON.parse(JSON.stringify(data));
-    // Modificar el nombre o algo para indicar que es una copia
     duplicatedData.style = (duplicatedData.style || 'Spec') + ' (Copia)';
     duplicatedData.savedAt = new Date().toISOString();
 
-    // Cargar los datos duplicados en el formulario
-    loadSpecData(duplicatedData);
-    showTab('spec-creator');
+    if (typeof loadSpecData === 'function') {
+        loadSpecData(duplicatedData);
+    }
+    if (typeof showTab === 'function') {
+        showTab('spec-creator');
+    }
     showStatus('📋 Spec duplicada. ¡Revisa y guarda los cambios!', 'success');
 }
-// Función de prueba para Tech Pack
+
 function testTechPack() {
     if (typeof NikeTechPackExtractor === 'undefined') {
         showStatus('❌ NikeTechPackExtractor no está cargado', 'error');
@@ -3589,7 +3594,6 @@ function testTechPack() {
         return;
     }
     
-    // Crear input de archivo temporal
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.pdf';
@@ -3604,10 +3608,11 @@ function testTechPack() {
             const datosPDF = await extractor.procesarPDF(file);
             console.log('📊 Datos extraídos del PDF:', datosPDF);
             
-            // Si tegra-adapter está disponible, usarlo
             if (window.tegraAdapter) {
                 window.tegraAdapter.poblarFormularioConPDF(datosPDF);
-                showTab('spec-creator');
+                if (typeof showTab === 'function') {
+                    showTab('spec-creator');
+                }
             } else {
                 showStatus('✅ PDF procesado, pero tegra-adapter no está disponible', 'success');
             }
@@ -3624,16 +3629,15 @@ function testTechPack() {
 // =====================================================
 window.showTab = showTab;
 window.loadSavedSpecsList = loadSavedSpecsList;
-window.loadSpec = loadSpec;
+window.loadSpecData = loadSpecData;
 window.clearErrorLog = clearErrorLog;
 window.exportErrorLog = exportErrorLog;
 window.clearAllSpecs = clearAllSpecs;
 window.addNewPlacement = addNewPlacement;
 window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
-window.exportToExcel = exportToExcel;
-window.exportHTML = exportHTML; // ✅ Renombrado
-window.exportPDF = exportHTML; // Compatibilidad con botones legacy
+window.exportHTML = exportHTML;
+window.exportPDF = exportHTML;
 window.downloadProjectZip = downloadProjectZip;
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
@@ -3641,7 +3645,7 @@ window.showPlacement = showPlacement;
 window.updatePlacementType = updatePlacementType;
 window.updatePlacementInkType = updatePlacementInkType;
 window.openImagePickerForPlacement = openImagePickerForPlacement;
-window.removePlacementImage = removePlacementImage;
+window.removePlacementImage = removePlacementImage;  // ✅ AHORA ESTÁ DEFINIDA
 window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.movePlacementColorItem = movePlacementColorItem;
@@ -3657,3 +3661,21 @@ window.applyCustomerInkDefaults = applyCustomerInkDefaults;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
 window.generarConAsistente = generarConAsistente;
 window.normalizeGearForSportStyleAndColorway = normalizeGearForSportStyleAndColorway;
+window.processExcelData = processExcelData;
+window.loadTabTemplates = loadTabTemplates;
+window.initializePlacements = initializePlacements;
+window.renderPlacementHTML = renderPlacementHTML;
+window.updatePlacementsTabs = updatePlacementsTabs;
+window.updatePlacementStations = updatePlacementStations;
+window.updatePlacementColorsPreview = updatePlacementColorsPreview;
+window.updatePlacementField = updatePlacementField;
+window.syncPlacementSequenceWithColors = syncPlacementSequenceWithColors;
+window.renderPlacementColors = renderPlacementColors;
+window.checkForSpecialtiesInColors = checkForSpecialtiesInColors;
+window.updateDefaultParameters = updateDefaultParameters;  // ✅ AHORA ESTÁ DEFINIDA
+window.updatePlacementDimension = updatePlacementDimension;
+window.handleDimensionInput = handleDimensionInput;
+window.handleDimensionPaste = handleDimensionPaste;
+window.testTechPack = testTechPack;
+window.searchDashboardSpecs = searchDashboardSpecs;
+window.duplicateSpecFromData = duplicateSpecFromData;

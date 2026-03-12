@@ -1,5 +1,7 @@
+// =====================================================
 // excel-automation.js - Automatización inteligente de placements desde Excel
-// VERSIÓN v5.2 - Auto-detección robusta con manejo de workbook undefined
+// VERSIÓN v6.2 - CORREGIDA: API pública apunta a funciones robustas
+// =====================================================
 
 window.ExcelAutomation = (function() {
     'use strict';
@@ -10,14 +12,19 @@ window.ExcelAutomation = (function() {
     
     const CONFIG = {
         TECHNIQUES_TO_PROCESS: [
-            'SCREENPRINT', 'SCREEN PRINT', 'SCREEN', 'SCREENPRINTG',
-            'SILICONE', 'WATERBASE', 'WATER BASE', 'PLASTISOL'
+            'SCREENPRINT', 'SCREEN PRINT', 'SCREEN', 'SCREENPRINTG', 'SCREEN PRINTG',
+            'SILICONE', 'SHINY SILICONE', 
+            'WATERBASE', 'WATER BASE', 
+            'PLASTISOL',
+            'SUBLIMATION', 'SUB',
+            'EMBROIDERY', 'EMB',
+            'TWILL',
+            'HEAT TRANSFER', 'HT',
+            'LASER', 'LASER CUT'
         ],
         
         TECHNIQUES_TO_IGNORE: [
-            'EMBROIDERY', 'EMB', 'SUBLIMATION', 'SUB', 
-            'HEAT TRANSFER', 'HT', 'DTF', 'DIRECT TO FILM',
-            'Puff', 'LASER', 'TWILL'
+            'Puff', 'PUFF', 'LASER PERFORATION'
         ],
         
         FORCE_PROCESS_KEYWORDS: [
@@ -40,7 +47,10 @@ window.ExcelAutomation = (function() {
             'SWOOSH': 'SLEEVE',
             'STRIPES': 'SLEEVE',
             'YOKE': 'YOKE',
-            'PANEL': 'PANEL'
+            'PANEL': 'PANEL',
+            'LEG': 'LEG',
+            'SIDE': 'SIDE',
+            'JOCKTAG': 'JOCKTAG'
         },
         
         LOCATION_PATTERNS: [
@@ -59,7 +69,10 @@ window.ExcelAutomation = (function() {
             { regex: /wordmark/i, location: 'WORDMARK' },
             { regex: /logo/i, location: 'LOGO' },
             { regex: /swoosh/i, location: 'SWOOSH' },
-            { regex: /stripes?/i, location: 'STRIPES' }
+            { regex: /stripes?/i, location: 'STRIPES' },
+            { regex: /leg/i, location: 'LEG' },
+            { regex: /side/i, location: 'SIDE' },
+            { regex: /jocktag|jock tag/i, location: 'JOCKTAG' }
         ],
         
         PAIRED_PATTERNS: [
@@ -91,32 +104,61 @@ window.ExcelAutomation = (function() {
             'UA': 'WATER'
         },
         
-        IGNORE_SHEET_NAMES: ['HOW TO', 'LISTS', 'LIST', 'INSTRUCTION', 'PROTO', 'HOJA TÉCNICA', 'TEMPLATE']
+        IGNORE_SHEET_NAMES: ['HOW TO', 'LISTS', 'LIST', 'INSTRUCTION', 'HOJA TÉCNICA', 'TEMPLATE', 'SHEET1']
     };
 
     // ============================================
-    // EXTRACCIÓN DE DATOS BÁSICOS
+    // EXTRACCIÓN DE DATOS BÁSICOS (VERSIÓN ROBUSTA)
     // ============================================
 
     function extractBasicData(data, sheetName = '') {
         const extracted = {};
-        const sheetUpper = (sheetName || '').toUpperCase();
         
-        const isStructuredFormat = sheetUpper.includes('SWO') || 
-                                   sheetUpper.includes('PPS') || 
-                                   sheetUpper.includes('SAMPLE');
+        console.log(`🔍 Extrayendo datos de ${data.length} filas en ${sheetName || 'hoja actual'}...`);
+        
+        // Buscar en TODAS las filas
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            if (!row || row.length === 0) continue;
 
-        console.log(`📄 Procesando hoja: ${sheetName} (Formato: ${isStructuredFormat ? 'SWO/PPS' : 'Genérico'})`);
+            for (let j = 0; j < row.length - 1; j++) {
+                const cell = String(row[j] || '').trim();
+                const nextCell = String(row[j + 1] || '').trim();
+                const cellUpper = cell.toUpperCase();
+                
+                if (!cell) continue;
 
-        if (isStructuredFormat) {
-            extractFromStructuredFormat(data, extracted);
+                // Mapeo de campos (flexible)
+                if (cellUpper.includes('CUSTOMER') && !cellUpper.includes('VENDOR') && nextCell) {
+                    extracted.customer = extracted.customer || nextCell;
+                }
+                else if (cellUpper.includes('STYLE') && !cellUpper.includes('TYPE') && nextCell) {
+                    extracted.style = extracted.style || nextCell.replace(/\\n/g, ' ');
+                }
+                else if (cellUpper.includes('COLORWAY') && !cellUpper.includes('NAME') && nextCell) {
+                    extracted.colorway = extracted.colorway || nextCell;
+                }
+                else if (cellUpper.includes('SEASON') && nextCell) {
+                    extracted.season = extracted.season || nextCell;
+                }
+                else if ((cellUpper.includes('P.O.') || cellUpper.includes('PO #')) && nextCell) {
+                    extracted.po = extracted.po || nextCell;
+                }
+                else if (cellUpper.includes('SAMPLE TYPE') && nextCell) {
+                    extracted.sample = extracted.sample || nextCell;
+                }
+                else if (cellUpper.includes('PATTERN') && nextCell) {
+                    extracted.pattern = extracted.pattern || nextCell;
+                }
+                else if (cellUpper.includes('REQUESTED BY') && nextCell) {
+                    extracted.requestedBy = extracted.requestedBy || nextCell;
+                }
+                else if (cellUpper.includes('TEAM') && nextCell) {
+                    extracted.team = extracted.team || nextCell;
+                }
+            }
         }
         
-        if (!extracted.customer && !extracted.style) {
-            console.log('🔍 Intentando extracción agresiva...');
-            extractFromGenericFormat(data, extracted);
-        }
-
         // Normalización GFS
         if (window.normalizeGearForSportStyleAndColorway && extracted.customer && 
             (extracted.style || extracted.colorway)) {
@@ -126,11 +168,12 @@ window.ExcelAutomation = (function() {
             extracted.style = normalized.style || extracted.style;
             extracted.colorway = normalized.colorway || extracted.colorway;
         }
-
+        
+        // Inferir team desde style
         if (!extracted.team && window.detectTeamFromStyle) {
             extracted.team = window.detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
         }
-
+        
         console.log('✅ Datos extraídos:', {
             customer: extracted.customer || '❌',
             style: extracted.style || '❌',
@@ -140,136 +183,12 @@ window.ExcelAutomation = (function() {
             sample: extracted.sample || '❌',
             team: extracted.team || '❌'
         });
-
+        
         return extracted;
     }
 
-    function extractFromStructuredFormat(data, extracted) {
-        for (let i = 0; i < Math.min(data.length, 35); i++) {
-            const row = data[i];
-            if (!row || row.length < 2) continue;
-
-            for (let col = 0; col < Math.min(3, row.length); col++) {
-                const rawCell = row[col];
-                if (rawCell === undefined || rawCell === null) continue;
-                
-                const cell = String(rawCell).trim();
-                const cellUpper = cell.toUpperCase();
-                
-                if (!cell || cell.length < 2) continue;
-
-                let value = '';
-                
-                // Opción 1: Valor en columna siguiente
-                if (col + 1 < row.length) {
-                    const nextVal = row[col + 1];
-                    if (nextVal !== undefined && nextVal !== null && nextVal !== '') {
-                        value = String(nextVal).trim();
-                    }
-                }
-                
-                // Opción 2: Valor en fila siguiente
-                if (!value && i + 1 < data.length && data[i + 1]) {
-                    const belowVal = data[i + 1][col];
-                    if (belowVal !== undefined && belowVal !== null && belowVal !== '') {
-                        value = String(belowVal).trim();
-                    }
-                }
-                
-                // Opción 3: Valor después del ":" en la misma celda
-                if (!value && cell.includes(':')) {
-                    value = cell.split(':').slice(1).join(':').trim();
-                }
-
-                // Mapeo de campos
-                if (matchesField(cellUpper, ['CUSTOMER']) && 
-                    !cellUpper.includes('IM#') && !cellUpper.includes('VENDOR')) {
-                    extracted.customer = value || extracted.customer;
-                }
-                else if (matchesField(cellUpper, ['STYLE']) && 
-                         !cellUpper.includes('TYPE') && !cellUpper.includes('PATTERN')) {
-                    extracted.style = cleanValue(value) || extracted.style;
-                }
-                else if (matchesField(cellUpper, ['COLORWAY', 'COLORWAY #', 'COLORWAY #:']) && 
-                         !cellUpper.includes('NAME')) {
-                    extracted.colorway = value || extracted.colorway;
-                }
-                else if (matchesField(cellUpper, ['SEASON'])) {
-                    extracted.season = value || extracted.season;
-                }
-                else if (matchesField(cellUpper, ['P.O.', 'PO #', 'PO', 'P.O. #']) && 
-                         !cellUpper.includes('IM#')) {
-                    extracted.po = value || extracted.po;
-                }
-                else if (matchesField(cellUpper, ['SAMPLE TYPE', 'SAMPLE:'])) {
-                    extracted.sample = value || extracted.sample;
-                }
-                else if (matchesField(cellUpper, ['PATTERN', 'PATTERN #', 'PATTERN #:'])) {
-                    extracted.pattern = value || extracted.pattern;
-                }
-                else if (matchesField(cellUpper, ['TEAM'])) {
-                    extracted.team = value || extracted.team;
-                }
-                else if (matchesField(cellUpper, ['GENDER'])) {
-                    extracted.gender = value || extracted.gender;
-                }
-                else if (matchesField(cellUpper, ['DATE'])) {
-                    extracted.date = value || extracted.date;
-                }
-                else if (matchesField(cellUpper, ['REQUESTED BY'])) {
-                    extracted.requestedBy = value || extracted.requestedBy;
-                }
-            }
-        }
-    }
-
-    function extractFromGenericFormat(data, extracted) {
-        for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            if (!row) continue;
-
-            for (let j = 0; j < row.length; j++) {
-                const cell = String(row[j] || '').trim();
-                if (!cell) continue;
-                
-                const cellUpper = cell.toUpperCase();
-                const nextCell = String(row[j + 1] || '').trim();
-
-                if (cellUpper.includes('CUSTOMER:') || cellUpper === 'CUSTOMER') {
-                    extracted.customer = nextCell || cell.split(':')[1]?.trim() || extracted.customer;
-                } else if (cellUpper.includes('STYLE:') || cellUpper === 'STYLE') {
-                    extracted.style = cleanValue(nextCell) || cleanValue(cell.split(':')[1]?.trim()) || extracted.style;
-                } else if (cellUpper.includes('COLORWAY')) {
-                    extracted.colorway = nextCell || cell.split(':')[1]?.trim() || extracted.colorway;
-                } else if (cellUpper.includes('SEASON:')) {
-                    extracted.season = nextCell || cell.split(':')[1]?.trim() || extracted.season;
-                } else if (cellUpper.includes('P.O.')) {
-                    extracted.po = nextCell || cell.split(':')[1]?.trim() || extracted.po;
-                } else if (cellUpper.includes('SAMPLE TYPE')) {
-                    extracted.sample = nextCell || cell.split(':')[1]?.trim() || extracted.sample;
-                }
-            }
-        }
-    }
-
-    function matchesField(cellUpper, fieldNames) {
-        return fieldNames.some(field => {
-            const fieldUpper = field.toUpperCase();
-            return cellUpper === fieldUpper || 
-                   cellUpper === fieldUpper + ':' ||
-                   cellUpper.startsWith(fieldUpper + ' ');
-        });
-    }
-
-    function cleanValue(value) {
-        if (!value) return value;
-        return value.replace(/<br\s*\/?>/gi, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-    }
-
     // ============================================
-    // DETECCIÓN DE PLACEMENTS
+    // DETECCIÓN DE PLACEMENTS (VERSIÓN ROBUSTA)
     // ============================================
 
     function detectPlacements(data, customer = '') {
@@ -278,62 +197,69 @@ window.ExcelAutomation = (function() {
         let techniqueCol = -1;
         let descriptionCol = -1;
         let dataRowsFound = 0;
+        
+        console.log(`🔍 Buscando placements en ${data.length} filas...`);
 
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
             if (!row) continue;
 
             const rowText = (row || []).map(c => String(c || '').toUpperCase()).join(' ');
-
+            
+            // Detectar inicio de sección EMBELLISHMENTS
             if (rowText.includes('EMBELLISHMENTS') && 
                 !rowText.includes('END') && 
-                !rowText.includes('COMMENTS')) {
+                !rowText.includes('COMMENTS') &&
+                !inEmbellishmentsSection) {
                 inEmbellishmentsSection = true;
-                console.log(`🎯 Sección EMBELLISHMENTS en fila ${i}`);
+                console.log(`🎯 Sección EMBELLISHMENTS detectada en fila ${i}`);
                 
-                const headerRowData = data[i + 1] || row;
-                headerRowData.forEach((cell, idx) => {
-                    const cellUpper = String(cell || '').toUpperCase();
-                    if ((cellUpper.includes('AREA') || 
-                         cellUpper.includes('TECHNIQUE') || 
-                         cellUpper.includes('PROCESS')) &&
-                        !cellUpper.includes('TYPE OF')) {
-                        techniqueCol = idx;
+                // Buscar encabezado de tabla en las siguientes filas
+                for (let h = i + 1; h < Math.min(i + 5, data.length); h++) {
+                    const headerRow = data[h];
+                    if (!headerRow) continue;
+                    
+                    const headerText = headerRow.map(c => String(c || '').toUpperCase()).join(' ');
+                    if (headerText.includes('AREA') || headerText.includes('TECHNIQUE') || headerText.includes('PROCESS')) {
+                        // Encontrar columnas
+                        headerRow.forEach((cell, idx) => {
+                            const cellUpper = String(cell || '').toUpperCase();
+                            if (cellUpper.includes('AREA') || cellUpper.includes('TECHNIQUE') || cellUpper.includes('PROCESS')) {
+                                techniqueCol = idx;
+                            }
+                            if (cellUpper.includes('APPLICATION') || cellUpper.includes('DESCRIPTION')) {
+                                descriptionCol = idx;
+                            }
+                        });
+                        
+                        console.log(`   📋 Tabla detectada en fila ${h}, técnica col=${techniqueCol}, desc col=${descriptionCol}`);
+                        i = h; // Continuar desde el encabezado
+                        break;
                     }
-                    if (cellUpper.includes('APPLICATION') || 
-                        cellUpper.includes('DESCRIPTION')) {
-                        descriptionCol = idx;
-                    }
-                });
-                
-                if (techniqueCol === -1) techniqueCol = 0;
-                if (descriptionCol === -1) descriptionCol = 1;
-                
-                if (data[i + 1] && data[i + 1].some(c => {
-                    const val = String(c || '').toUpperCase();
-                    return val.includes('AREA') || val.includes('TECHNIQUE');
-                })) {
-                    i++;
                 }
                 continue;
             }
 
+            // Detectar fin de sección
             if (inEmbellishmentsSection && 
                 (rowText.includes('SHIPPING') || 
                  rowText.includes('TOTAL UNITS') || 
                  rowText.includes('SUPPLIES') || 
                  rowText.includes('FABRICS') ||
                  rowText.includes('TRIMS') ||
-                 rowText.includes('PACKAGING'))) {
+                 rowText.includes('PACKAGING') ||
+                 rowText.includes('LABELS & PACKAGING'))) {
                 inEmbellishmentsSection = false;
-                console.log(`🏁 Fin EMBELLISHMENTS en fila ${i} (${dataRowsFound} filas)`);
+                console.log(`🏁 Fin EMBELLISHMENTS en fila ${i} (${dataRowsFound} filas de datos)`);
                 break;
             }
 
+            // Procesar filas de datos
             if (inEmbellishmentsSection && techniqueCol >= 0) {
                 const technique = String(row[techniqueCol] || '').trim();
                 const description = descriptionCol >= 0 ? String(row[descriptionCol] || '').trim() : '';
-
+                
+                // Ignorar encabezados y filas vacías
                 if (technique && 
                     technique.toUpperCase() !== 'AREA' && 
                     technique.toUpperCase() !== 'TECHNIQUE' &&
@@ -350,7 +276,7 @@ window.ExcelAutomation = (function() {
             }
         }
 
-        console.log(`📦 Total placements: ${placements.length}`);
+        console.log(`📦 Total placements detectados: ${placements.length}`);
         return placements;
     }
 
@@ -359,45 +285,35 @@ window.ExcelAutomation = (function() {
         
         const techUpper = technique.toUpperCase().trim();
         const descUpper = (description || '').toUpperCase();
-
-        const hasForceKeyword = CONFIG.FORCE_PROCESS_KEYWORDS.some(keyword => 
-            descUpper.includes(keyword) || techUpper.includes(keyword)
+        
+        // Verificar si es una técnica que procesamos
+        const isProcessable = CONFIG.TECHNIQUES_TO_PROCESS.some(processTech => 
+            techUpper.includes(processTech) || 
+            descUpper.includes(processTech)
         );
-
-        const isIgnoredTechnique = CONFIG.TECHNIQUES_TO_IGNORE.some(ignoreTech => 
-            techUpper.includes(ignoreTech)
-        );
-
-        const isProcessTechnique = CONFIG.TECHNIQUES_TO_PROCESS.some(processTech => 
-            techUpper.includes(processTech)
-        );
-
-        if (!hasForceKeyword && isIgnoredTechnique) {
-            console.log(`   ⏭️ Ignorado: ${technique}`);
+        
+        if (!isProcessable) {
             return null;
         }
-
-        if (!hasForceKeyword && !isProcessTechnique) {
-            console.log(`   ⏭️ No soportado: ${technique}`);
-            return null;
-        }
-
+        
+        // Determinar tipo de tinta
         const inkType = determineInkType(techUpper, descUpper, customer);
+        
+        // Extraer ubicaciones
         let locations = extractLocations(description, descUpper);
-
         if (locations.length === 0) {
             locations = inferLocationsFromDescription(descUpper);
         }
-
+        
+        // Si no hay ubicaciones, usar genérica
         if (locations.length === 0) {
-            console.log(`   ⚠️ Sin ubicación: "${description.substring(0, 40)}", usando FRONT`);
             locations = ['FRONT'];
         }
-
+        
         const isPaired = CONFIG.PAIRED_PATTERNS.some(pattern => 
             pattern.test(description)
         ) || (descUpper.includes('BOTH') && (descUpper.includes('SLEEVE') || descUpper.includes('SHOULDER')));
-
+        
         return {
             technique: technique,
             description: description,
@@ -413,20 +329,25 @@ window.ExcelAutomation = (function() {
     }
 
     function determineInkType(technique, description, customer) {
-        for (const [keyword, ink] of Object.entries(CONFIG.INK_KEYWORDS)) {
-            if (description.includes(keyword)) return ink;
-        }
-
+        // Buscar en descripción primero (más específico)
+        if (description.includes('SILICONE')) return 'SILICONE';
+        if (description.includes('SHINY SILICONE')) return 'SILICONE';
+        if (description.includes('PLASTISOL')) return 'PLASTISOL';
+        if (description.includes('WATERBASE') || description.includes('WATER BASE')) return 'WATER';
+        if (description.includes('DISCHARGE')) return 'DISCHARGE';
+        
+        // Luego en técnica
         if (technique.includes('SILICONE')) return 'SILICONE';
         if (technique.includes('PLASTISOL')) return 'PLASTISOL';
         if (technique.includes('WATER')) return 'WATER';
-
+        
+        // Por cliente
         const customerUpper = (customer || '').toUpperCase();
-        for (const [client, defaultInk] of Object.entries(CONFIG.CLIENT_INK_DEFAULTS)) {
-            if (customerUpper.includes(client)) return defaultInk;
-        }
-
-        return 'WATER';
+        if (customerUpper.includes('GEAR') || customerUpper.includes('GFS')) return 'PLASTISOL';
+        if (customerUpper.includes('FANATICS')) return 'WATER';
+        if (customerUpper.includes('NIKE')) return 'WATER';
+        
+        return 'WATER'; // Default
     }
 
     function extractLocations(description, descUpper) {
@@ -441,7 +362,7 @@ window.ExcelAutomation = (function() {
                 }
             }
         });
-
+        
         return locations;
     }
 
@@ -456,7 +377,8 @@ window.ExcelAutomation = (function() {
         if (descUpper.includes('WORDMARK')) locations.push('WORDMARK');
         if (descUpper.includes('SWOOSH')) locations.push('SWOOSH');
         if (descUpper.includes('STRIPE')) locations.push('STRIPES');
-
+        if (descUpper.includes('JOCKTAG') || descUpper.includes('JOCK TAG')) locations.push('JOCKTAG');
+        
         return locations.map(loc => CONFIG.LOCATION_MAPPING[loc] || loc);
     }
 
@@ -578,6 +500,9 @@ window.ExcelAutomation = (function() {
             'CHEST': 'CHEST',
             'YOKE': 'YOKE',
             'PANEL': 'PANEL',
+            'LEG': 'LEG',
+            'SIDE': 'SIDE',
+            'JOCKTAG': 'JOCKTAG',
             'NAMEPLATE': 'BACK',
             'NUMBERS': 'TV. NUMBERS',
             'TV. NUMBERS': 'TV. NUMBERS',
@@ -601,6 +526,8 @@ window.ExcelAutomation = (function() {
         if (location.includes('SHOULDER')) details.push('Shoulder');
         if (location.includes('SLEEVE')) details.push('Sleeve');
         if (location.includes('COLLAR')) details.push('Collar');
+        if (location.includes('LEG')) details.push('Leg');
+        if (location.includes('SIDE')) details.push('Side Panel');
         
         if (descUpper.includes('NUMBER')) details.push('Player Numbers');
         if (descUpper.includes('NAME')) details.push('Player Name');
@@ -644,107 +571,121 @@ window.ExcelAutomation = (function() {
     }
 
     // ============================================
-    // FUNCIÓN PRINCIPAL PÚBLICA
+    // EVALUACIÓN DE HOJAS
     // ============================================
 
-    /**
-     * Procesa el Excel y extrae datos + placements
-     * @param {Object} worksheet - Hoja de trabajo actual
-     * @param {string} sheetName - Nombre de la hoja
-     * @param {Object} workbook - Workbook completo (opcional, para auto-detección)
-     */
-    function processExcelWithAutomation(worksheet, sheetName = '', workbook = null) {
-        console.log('🤖 ExcelAutomation v5.2: Iniciando...');
-        console.log('   📄 Hoja proporcionada:', sheetName);
-        console.log('   📚 Workbook recibido:', workbook ? 'SÍ' : 'NO');
+    function evaluateSheet(sheetName, data) {
+        let score = 0;
+        let hasCustomer = false;
+        let hasEmbellishments = false;
+        let embellishmentsRow = -1;
         
-        try {
-            let targetData;
-            let finalSheetName = sheetName;
+        // Bonus por nombre
+        const upperName = sheetName.toUpperCase();
+        if (upperName.includes('SWO')) score += 30;
+        if (upperName.includes('PPS')) score += 30;
+        if (upperName.includes('SAMPLE')) score += 20;
+        if (upperName.includes('PROTO')) score += 20;
+        
+        // Analizar contenido
+        for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            if (!row) continue;
             
-            // CASO 1: Tenemos workbook completo - buscar mejor hoja
-            if (workbook && typeof workbook === 'object' && workbook.SheetNames && workbook.SheetNames.length > 0) {
-                console.log(`📚 Analizando ${workbook.SheetNames.length} hojas...`);
-                
-                let bestSheet = null;
-                let bestScore = -1;
-                
-                for (const name of workbook.SheetNames) {
-                    const upperName = name.toUpperCase();
+            const rowText = row.map(c => String(c || '').toUpperCase()).join(' ');
+            
+            // CUSTOMER con valor real
+            if (!hasCustomer) {
+                for (let j = 0; j < row.length - 1; j++) {
+                    const cell = String(row[j] || '').toUpperCase().trim();
+                    const nextCell = String(row[j + 1] || '').trim();
                     
-                    // Ignorar hojas de referencia
-                    if (CONFIG.IGNORE_SHEET_NAMES.some(ignore => upperName.includes(ignore))) {
-                        console.log(`   ⏭️ Ignorando: ${name}`);
-                        continue;
-                    }
-                    
-                    try {
-                        const sheet = workbook.Sheets[name];
-                        const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                        
-                        // Calcular score
-                        let score = 0;
-                        const sampleText = data.slice(0, 25).map(r => r.join(' ')).join(' ').toUpperCase();
-                        
-                        // Bonus por nombre
-                        if (upperName.includes('SWO')) score += 40;
-                        if (upperName.includes('PPS')) score += 40;
-                        if (upperName.includes('SAMPLE')) score += 20;
-                        
-                        // Bonus por contenido
-                        if (sampleText.includes('SAMPLE WORK ORDER')) score += 30;
-                        
-                        // Bonus por CUSTOMER con valor real
-                        for (let i = 0; i < Math.min(20, data.length); i++) {
-                            const row = data[i];
-                            if (!row) continue;
-                            for (let j = 0; j < row.length; j++) {
-                                const cell = String(row[j] || '').toUpperCase();
-                                const nextCell = String(row[j + 1] || '').trim();
-                                if ((cell.includes('CUSTOMER') || cell === 'CUSTOMER:') && 
-                                    nextCell && 
-                                    nextCell.length > 2 &&
-                                    !nextCell.toUpperCase().includes('CUSTOMER')) {
-                                    score += 35; // Customer real encontrado!
-                                }
-                            }
-                        }
-                        
-                        console.log(`   📊 ${name}: score ${score}`);
-                        
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestSheet = { name, data, score };
-                        }
-                    } catch (e) {
-                        console.warn(`   ⚠️ Error leyendo hoja ${name}:`, e.message);
+                    if ((cell === 'CUSTOMER' || cell === 'CUSTOMER:') && 
+                        nextCell && nextCell.length > 2) {
+                        hasCustomer = true;
+                        score += 50;
+                        embellishmentsRow = i;
+                        break;
                     }
                 }
-                
-                // Usar la mejor hoja si tiene score decente
-                if (bestSheet && bestScore >= 30) {
-                    console.log(`🏆 MEJOR HOJA: "${bestSheet.name}" (score: ${bestSheet.score})`);
-                    targetData = bestSheet.data;
-                    finalSheetName = bestSheet.name;
-                } else if (bestSheet) {
-                    console.log(`⚠️ Mejor hoja "${bestSheet.name}" tiene score bajo (${bestScore}), usando proporcionada`);
-                    targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-                } else {
-                    console.log('⚠️ No se encontró hoja válida, usando proporcionada');
-                    targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-                }
-            } 
-            // CASO 2: No tenemos workbook, usar hoja proporcionada
-            else {
-                console.log('📄 Usando hoja proporcionada (sin workbook)');
-                targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
             }
             
-            // Extraer datos básicos
-            const extracted = extractBasicData(targetData, finalSheetName);
+            // EMBELLISHMENTS con datos
+            if (!hasEmbellishments && rowText.includes('EMBELLISHMENTS')) {
+                // Verificar si hay filas de datos después
+                for (let j = i + 1; j < Math.min(i + 10, data.length); j++) {
+                    const nextRow = data[j];
+                    if (!nextRow) continue;
+                    const nextText = nextRow.map(c => String(c || '').toUpperCase()).join(' ');
+                    if (nextText.includes('AREA') || nextText.includes('APPLICATION') || 
+                        nextText.includes('SCREEN') || nextText.includes('PRINT')) {
+                        hasEmbellishments = true;
+                        embellishmentsRow = j;
+                        score += 40;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return { score, hasCustomer, hasEmbellishments, embellishmentsRow };
+    }
+
+    // ============================================
+    // FUNCIÓN PRINCIPAL
+    // ============================================
+
+    function processExcelWithAutomation(worksheet, sheetName = '', workbook = null) {
+        console.log('🤖 ExcelAutomation v6.2: Iniciando...');
+        
+        try {
+            // Validar workbook
+            if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+                throw new Error('Workbook no proporcionado o inválido');
+            }
+
+            // Buscar la mejor hoja
+            let bestSheet = null;
+            let bestScore = -1;
+            
+            for (const name of workbook.SheetNames) {
+                const upperName = name.toUpperCase();
+                
+                // Ignorar hojas de plantilla
+                if (CONFIG.IGNORE_SHEET_NAMES.some(ignore => upperName.includes(ignore))) {
+                    console.log(`   ⏭️ Ignorando plantilla: ${name}`);
+                    continue;
+                }
+                
+                try {
+                    const sheet = workbook.Sheets[name];
+                    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                    
+                    const { score, hasCustomer, hasEmbellishments, embellishmentsRow } = evaluateSheet(name, data);
+                    
+                    console.log(`   📊 ${name}: score=${score}, customer=${hasCustomer}, embellishments=${hasEmbellishments} (fila ${embellishmentsRow})`);
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestSheet = { name, data, score };
+                    }
+                    
+                } catch (e) {
+                    console.warn(`   ⚠️ Error leyendo hoja ${name}:`, e.message);
+                }
+            }
+            
+            if (!bestSheet) {
+                throw new Error('No se encontró ninguna hoja con datos');
+            }
+            
+            console.log(`🏆 MEJOR HOJA: "${bestSheet.name}" (score: ${bestSheet.score})`);
+            
+            // Extraer datos de la mejor hoja
+            const extracted = extractBasicData(bestSheet.data, bestSheet.name);
             
             // Detectar placements
-            const placements = detectPlacements(targetData, extracted.customer);
+            const placements = detectPlacements(bestSheet.data, extracted.customer);
             
             // Crear en UI
             if (placements.length > 0 && typeof window.placements !== 'undefined') {
@@ -756,7 +697,7 @@ window.ExcelAutomation = (function() {
             return { 
                 ...extracted, 
                 autoPlacements: placements,
-                sourceSheet: finalSheetName 
+                sourceSheet: bestSheet.name 
             };
             
         } catch (error) {
@@ -790,4 +731,4 @@ window.ExcelAutomation = (function() {
 
 })();
 
-console.log('✅ Excel Automation v5.2 (Detección robusta de hojas) cargado');
+console.log('✅ Excel Automation v6.2 (Totalmente Robusto) cargado');
