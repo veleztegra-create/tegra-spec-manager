@@ -7,168 +7,222 @@
 // =====================================================
 // VARIABLES GLOBALES
 // =====================================================
+// =====================================================
+// app.js - TEGRA TECHNICAL SPEC MANAGER
+// Versión: 3.1 - CORREGIDO: Inicialización de placements
+// =====================================================
+
+// =====================================================
+// VARIABLES GLOBALES
+// =====================================================
 const stateManager = new StateManager();
-// 'placements' is now linked to the Reactive Store to ensure single source of truth
+
+// ✅ CORREGIDO: Asegurar que placements siempre sea un array
 Object.defineProperty(window, 'placements', {
-    get: () => Store.state.placements,
-    set: (val) => { Store.state.placements = val; }
+    get: () => {
+        // Si Store.state.placements es undefined, devolver array vacío
+        return Store && Store.state && Array.isArray(Store.state.placements) 
+            ? Store.state.placements 
+            : [];
+    },
+    set: (val) => {
+        if (Store && Store.state) {
+            Store.state.placements = Array.isArray(val) ? val : [];
+        }
+    }
 });
+
 let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
 let placementColorDndManager = null;
 
 // =====================================================
-// FUNCIONES AUXILIARES BÁSICAS
+// FUNCIÓN CORREGIDA: applyCustomerInkDefaults
 // =====================================================
+function applyCustomerInkDefaults() {
+    const customerValue = (document.getElementById('customer')?.value || '').toUpperCase().trim();
+    const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S'].some(v => customerValue.includes(v));
+    const targetInk = isGFS ? 'PLASTISOL' : null;
+    
+    if (!targetInk) return;
 
-function stringToHash(str) {
-    if (!str) return 0;
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
+    // ✅ CORREGIDO: Verificar que placements existe y es array
+    if (!window.placements || !Array.isArray(window.placements)) {
+        console.log('⚠️ placements no disponible en applyCustomerInkDefaults');
+        return;
     }
-    return Math.abs(hash);
-}
 
-function normalizeTextValue(value, fallback = '') {
-    const normalized = String(value ?? '').trim();
-    if (!normalized || normalized.toLowerCase() === 'undefined' || normalized.toLowerCase() === 'null') {
-        return fallback;
-    }
-    return normalized;
-}
-
-function updateDateTime() {
-    const now = new Date();
-    const options = {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    };
-    const dateTimeEl = document.getElementById('current-datetime');
-    if (dateTimeEl) {
-        dateTimeEl.textContent = now.toLocaleDateString('es-ES', options);
-    }
-}
-
-function showStatus(msg, type = 'success') {
-    const el = document.getElementById('statusMessage');
-    if (!el) return;
-    el.textContent = msg;
-    el.className = `status-message status-${type}`;
-    el.style.display = 'block';
-    setTimeout(() => {
-        if (el) el.style.display = 'none';
-    }, 4000);
-}
-
-function getInkPresetSafe(inkType = 'WATER') {
-    const normalizedInkType = String(inkType || 'WATER').toUpperCase();
-    const defaultPreset = {
-        temp: '320 °F',
-        time: normalizedInkType === 'PLASTISOL' ? '1:00 min' : '1:40 min',
-        blocker: { name: 'BLOCKER CHT', mesh1: '122/55', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-        white: { name: 'AQUAFLEX V2 WHITE', mesh1: '198/40', mesh2: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: 'N/A' },
-        color: { mesh: '157/48', durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', additives: '3 % cross-linker 500 · 1.5 % antitack' }
-    };
-
-    const basePresetRaw = (window.Utils && typeof window.Utils.getInkPreset === 'function')
-        ? (window.Utils.getInkPreset(normalizedInkType) || {})
-        : {};
-
-    const basePreset = {
-        ...defaultPreset,
-        ...basePresetRaw,
-        blocker: {
-            ...defaultPreset.blocker,
-            ...(basePresetRaw.blocker || {})
-        },
-        white: {
-            ...defaultPreset.white,
-            ...(basePresetRaw.white || basePresetRaw.whiteBase || {})
-        },
-        color: {
-            ...defaultPreset.color,
-            ...(basePresetRaw.color || {})
+    window.placements.forEach((placement) => {
+        if (placement && placement.inkType !== targetInk) {
+            placement.inkType = targetInk;
         }
-    };
 
-    const customerValue = (document.getElementById('customer')?.value || '').toUpperCase();
-
-    if (normalizedInkType === 'PLASTISOL') {
-        if (customerValue.includes('FANATICS') || customerValue.includes('FANATIC')) {
-            return {
-                ...basePreset,
-                blocker: { ...basePreset.blocker, name: 'BARRIER CHT' },
-                white: { ...basePreset.white, name: 'POLY WHITE' },
-                temp: '320 °F',
-                time: '1:00 min'
-            };
+        const select = document.querySelector(`.placement-ink-type[data-placement-id="${placement.id}"]`);
+        if (select && select.value !== targetInk) {
+            select.value = targetInk;
         }
-        return {
-            ...basePreset,
-            blocker: { ...basePreset.blocker, name: 'BARRIER BASE' },
-            white: { ...basePreset.white, name: 'TXT POLY WHITE' },
-            temp: '320 °F',
-            time: '1:00 min'
-        };
-    }
 
-    if (normalizedInkType === 'SILICONE') {
-        return {
-            ...basePreset,
-            blocker: { ...basePreset.blocker, name: 'BLOCKER LIBRA' },
-            white: { ...basePreset.white, name: 'BASE WHITE LIBRA' },
-            temp: '320 °F',
-            time: '1:40 min'
-        };
-    }
-
-    return {
-        ...basePreset,
-        blocker: { ...basePreset.blocker, name: 'BLOCKER CHT' },
-        white: { ...basePreset.white, name: 'AQUAFLEX V2 WHITE' },
-        temp: '320 °F',
-        time: '1:40 min'
-    };
-}
-
-function bindSpecCreatorFormSafety() {
-    const form = document.getElementById('spec-creator-form');
-    if (!form || form.dataset.submitGuardBound === '1') return;
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();
+        updatePlacementInkType(placement.id, targetInk);
     });
-    form.dataset.submitGuardBound = '1';
 }
 
-async function loadTabTemplates() {
-    const templateSections = Array.from(document.querySelectorAll('[data-template]'));
-    await Promise.all(templateSections.map(async (section) => {
-        const templatePath = section.dataset.template;
-        if (!templatePath) return;
+// =====================================================
+// FUNCIÓN CORREGIDA: handleGearForSportLogic
+// =====================================================
+function handleGearForSportLogic() {
+    const customerInput = document.getElementById('customer');
+    const nameTeamInput = document.getElementById('name-team');
+    if (!customerInput || !nameTeamInput) return;
 
-        try {
-            const response = await fetch(templatePath);
-            if (!response.ok) {
-                throw new Error(`No se pudo cargar el template: ${templatePath}`);
-            }
-            section.innerHTML = await response.text();
-        } catch (error) {
-            console.error('Error cargando template:', templatePath, error);
-            section.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--text-secondary);">No se pudo cargar esta sección.</p></div></div>';
-            if (window.errorHandler) {
-                window.errorHandler.log('template_load', error);
-            }
+    const customerValue = customerInput.value.toUpperCase().trim();
+    const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.'].some(v => customerValue.includes(v));
+
+    if (!isGFS) return;
+
+    applyCustomerInkDefaults();
+
+    const styleInput = document.getElementById('style');
+    const poInput = document.getElementById('po');
+    const searchTerm = (styleInput?.value || '') || (poInput?.value || '');
+
+    if (window.SchoolsConfig) {
+        const schoolData = window.SchoolsConfig.detectSchoolFromStyle(searchTerm);
+        if (schoolData) {
+            nameTeamInput.value = schoolData.teamName;
+            showStatus(`🏫 Escuela detectada: ${schoolData.teamName}`, 'success');
+            return;
         }
-    }));
+    }
+
+    if (window.Config && window.Config.GEARFORSPORT_TEAM_MAP) {
+        const teamKey = Object.keys(window.Config.GEARFORSPORT_TEAM_MAP).find(key =>
+            searchTerm.toUpperCase().includes(key)
+        );
+        if (teamKey) nameTeamInput.value = window.Config.GEARFORSPORT_TEAM_MAP[teamKey];
+    }
 }
+
+// =====================================================
+// FUNCIÓN CORREGIDA: updatePlacementInkType
+// =====================================================
+function updatePlacementInkType(placementId, inkType) {
+    const placement = window.placements.find(p => p.id === placementId);
+    if (!placement) return;
+
+    placement.inkType = inkType;
+
+    const preset = getInkPresetSafe(inkType);
+
+    placement.temp = preset.temp;
+    placement.time = preset.time;
+
+    const tempField = document.getElementById(`temp-${placementId}`);
+    const timeField = document.getElementById(`time-${placementId}`);
+
+    if (tempField) {
+        tempField.value = preset.temp;
+        tempField.setAttribute('readonly', true);
+        tempField.title = `Temperatura para tinta ${inkType}`;
+    }
+
+    if (timeField) {
+        timeField.value = preset.time;
+        timeField.setAttribute('readonly', true);
+        timeField.title = `Tiempo de curado para tinta ${inkType}`;
+    }
+
+    updateDefaultParameters(placementId, inkType);
+    updatePlacementStations(placementId);
+    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
+}
+
+// =====================================================
+// FUNCIÓN DE INICIALIZACIÓN CORREGIDA
+// =====================================================
+document.addEventListener('DOMContentLoaded', () => {
+    loadTabTemplates()
+        .then(() => {
+            console.log('✅ Templates cargados, inicializando app...');
+
+            // --- INICIALIZAR REACTIVE STORE ---
+            if (window.Store && window.initBindings && window.enableAutosave && window.enableStateDebugger) {
+                const savedState = localStorage.getItem("spec-autosave");
+                if (savedState) {
+                    try {
+                        const parsedState = JSON.parse(savedState);
+                        console.log("📥 [Autosave] Cargando Spec guardado...");
+                        
+                        // ✅ CORREGIDO: Asegurar que placements sea array
+                        if (!parsedState.placements) {
+                            parsedState.placements = [];
+                        }
+                        
+                        Store.replaceState(parsedState);
+                    } catch (e) { 
+                        console.error("Error cargando autosave", e); 
+                    }
+                }
+
+                initBindings();
+                enableAutosave();
+                enableStateDebugger();
+            }
+
+            updateDateTime();
+            updateDashboard();
+            loadSavedSpecsList();
+            setupPasteHandler();
+            setupExcelImportHandler();
+            loadThemePreference();
+            bindSpecCreatorFormSafety();
+
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+            }
+
+            const customerInput = document.getElementById('customer');
+            if (customerInput) {
+                customerInput.addEventListener('change', () => {
+                    updateClientLogo();
+                    applyCustomerInkDefaults();
+                    handleGearForSportLogic();
+                });
+            }
+
+            setInterval(updateDateTime, 60000);
+
+            // ✅ CORREGIDO: Inicializar placements solo si es necesario
+            setTimeout(() => {
+                if (document.getElementById('placements-container')) {
+                    if (!window.placements || window.placements.length === 0) {
+                        console.log('🆕 Inicializando placements por primera vez...');
+                        initializePlacements();
+                    } else {
+                        console.log(`📦 Renderizando ${window.placements.length} placements existentes...`);
+                        window.placements.forEach(p => renderPlacementHTML(p));
+                        updatePlacementsTabs();
+                        showPlacement(window.placements[0]?.id);
+                    }
+                }
+            }, 100); // Pequeño delay para asegurar que el DOM esté listo
+
+            if (stateManager) {
+                stateManager.loadFromLocalStorage();
+            }
+
+            console.log('✅ Tegra Spec Manager v3.1 iniciado');
+        })
+        .catch((error) => {
+            console.error('Error al cargar templates:', error);
+            showStatus('❌ Error al cargar los templates', 'error');
+
+            if (errorHandler) {
+                errorHandler.log('template_load', error);
+            }
+        });
+});
 
 // =====================================================
 // FUNCIONES DE TEMA
