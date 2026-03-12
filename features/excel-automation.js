@@ -655,148 +655,438 @@ window.ExcelAutomation = (function() {
      * @param {string} sheetName - Nombre de la hoja (se ignora si hay workbook)
      * @param {Object} workbook - Workbook completo (ahora es OBLIGATORIO para mejor detección)
      */
-    function processExcelWithAutomation(worksheet, sheetName = '', workbook = null) {
-        console.log('🤖 ExcelAutomation v5.3: Iniciando con scoring mejorado...');
+   /**
+ * Procesa el Excel y extrae datos + placements
+ * VERSIÓN ROBUSTA - Busca en todas las hojas y todo el contenido
+ */
+function processExcelWithAutomation(worksheet, sheetName = '', workbook = null) {
+    console.log('🤖 ExcelAutomation v6.0: Iniciando (Modo Robusto)...');
+    
+    try {
+        // Validar workbook
+        if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+            throw new Error('Workbook no proporcionado o inválido');
+        }
+
+        // ✅ ESTRATEGIA: Buscar la mejor hoja con datos reales
+        let bestSheet = null;
+        let bestScore = -1;
         
-        try {
-            let targetData;
-            let finalSheetName = sheetName;
+        for (const name of workbook.SheetNames) {
+            const upperName = name.toUpperCase();
             
-            // ============================================
-            // PASO 1: Buscar la mejor hoja (si tenemos workbook)
-            // ============================================
-            if (workbook && typeof workbook === 'object' && workbook.SheetNames && workbook.SheetNames.length > 0) {
-                console.log(`📚 Analizando ${workbook.SheetNames.length} hojas para encontrar la mejor...`);
+            // Ignorar hojas obvias de plantilla/instrucciones
+            if (['HOW TO', 'LISTS', 'LIST', 'INSTRUCTION', 'HOJA TÉCNICA', 'TEMPLATE', 'SHEET1'].includes(upperName)) {
+                console.log(`   ⏭️ Ignorando plantilla: ${name}`);
+                continue;
+            }
+            
+            try {
+                const sheet = workbook.Sheets[name];
+                const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
                 
-                let bestSheet = null;
-                let bestScore = -1;
-                let bestSheetIndex = -1;
+                // Calcular score basado en contenido real
+                let score = 0;
+                let hasCustomer = false;
+                let hasEmbellishments = false;
+                let embellishmentsRow = -1;
                 
-                for (let idx = 0; idx < workbook.SheetNames.length; idx++) {
-                    const name = workbook.SheetNames[idx];
-                    const upperName = name.toUpperCase();
+                // Buscar en TODAS las filas (sin límite de 35)
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i];
+                    if (!row) continue;
                     
-                    // Ignorar hojas de referencia (ya sin PROTO)
-                    if (CONFIG.IGNORE_SHEET_NAMES.some(ignore => upperName.includes(ignore))) {
-                        console.log(`   ⏭️ Ignorando hoja de referencia: ${name}`);
-                        continue;
+                    const rowText = row.map(c => String(c || '')).join(' ').toUpperCase();
+                    
+                    // CUSTOMER con valor real (no vacío)
+                    if (rowText.includes('CUSTOMER:') && 
+                        !rowText.match(/CUSTOMER:\s*$/) &&
+                        !rowText.match(/CUSTOMER:\s*ADD IMAGE/i)) {
+                        hasCustomer = true;
+                        score += 50;
                     }
                     
-                    try {
-                        const sheet = workbook.Sheets[name];
-                        const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                        
-                        // Calcular score para esta hoja
-                        let score = 0;
-                        
-                        // Bonus por nombre de hoja
-                        if (upperName.includes('SWO')) score += 40;
-                        if (upperName.includes('PPS')) score += 40;
-                        if (upperName.includes('SAMPLE')) score += 30;
-                        if (upperName.includes('PROTO')) score += 35; // Importante: Proto ahora suma puntos
-                        
-                        // Bonus por contenido (primeras 30 filas)
-                        const sampleText = data.slice(0, 30).map(r => r.join(' ')).join(' ').toUpperCase();
-                        
-                        if (sampleText.includes('SAMPLE WORK ORDER')) score += 30;
-                        if (sampleText.includes('EMBELLISHMENTS')) score += 25; // Tiene sección de placements
-                        
-                        // Buscar CUSTOMER con valor real (puntaje alto)
-                        for (let i = 0; i < Math.min(20, data.length); i++) {
-                            const row = data[i];
-                            if (!row) continue;
-                            for (let j = 0; j < row.length - 1; j++) {
-                                const cell = String(row[j] || '').toUpperCase().trim();
-                                const nextCell = String(row[j + 1] || '').trim();
-                                if ((cell === 'CUSTOMER' || cell === 'CUSTOMER:') && 
-                                    nextCell && 
-                                    nextCell.length > 2 &&
-                                    !nextCell.toUpperCase().includes('CUSTOMER')) {
-                                    score += 50; // ¡Puntaje máximo! Encontramos un cliente real
-                                    console.log(`   🎯 Cliente encontrado en ${name}: "${nextCell}"`);
-                                }
+                    // EMBELLISHMENTS tabla con datos
+                    if (rowText.includes('EMBELLISHMENTS')) {
+                        // Buscar si hay filas de datos después
+                        for (let j = i + 1; j < Math.min(i + 10, data.length); j++) {
+                            const nextRow = data[j];
+                            if (!nextRow) continue;
+                            const nextText = nextRow.map(c => String(c || '')).join(' ').toUpperCase();
+                            if (nextText.includes('AREA') || nextText.includes('APPLICATION') || 
+                                nextText.includes('SCREEN') || nextText.includes('SUBLIMATION') ||
+                                nextText.includes('EMBROIDERY') || nextText.includes('TWILL')) {
+                                hasEmbellishments = true;
+                                embellishmentsRow = j;
+                                score += 40;
+                                break;
                             }
                         }
-                        
-                        console.log(`   📊 Hoja "${name}" (índice ${idx}): score ${score}`);
-                        
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestSheet = { name, data, score, index: idx };
-                        }
-                    } catch (e) {
-                        console.warn(`   ⚠️ Error leyendo hoja ${name}:`, e.message);
+                    }
+                    
+                    // Bonus por técnicas específicas
+                    const techniques = ['SCREEN PRINT', 'SUBLIMATION', 'EMBROIDERY', 'TWILL', 'HEAT TRANSFER', 'LASER'];
+                    for (const tech of techniques) {
+                        if (rowText.includes(tech)) score += 10;
                     }
                 }
                 
-                // Usar la mejor hoja si tiene un score mínimo
-                if (bestSheet && bestScore >= 30) {
-                    console.log(`🏆 MEJOR HOJA: "${bestSheet.name}" (índice ${bestSheet.index}, score: ${bestSheet.score})`);
-                    targetData = bestSheet.data;
-                    finalSheetName = bestSheet.name;
-                } else if (bestSheet) {
-                    // Si el score es bajo, pero es la única opción, la usamos de todas formas
-                    console.log(`⚠️ La mejor hoja "${bestSheet.name}" tiene score bajo (${bestScore}), pero se usará.`);
-                    targetData = bestSheet.data;
-                    finalSheetName = bestSheet.name;
-                } else {
-                    // Fallback: usar la primera hoja si no se encontró ninguna con score
-                    console.log('⚠️ No se encontró hoja con score mínimo. Usando primera hoja como fallback.');
-                    const firstName = workbook.SheetNames[0];
-                    targetData = XLSX.utils.sheet_to_json(workbook.Sheets[firstName], { header: 1, defval: '' });
-                    finalSheetName = firstName;
+                // Bonus por nombre de hoja
+                if (upperName.includes('SWO')) score += 30;
+                if (upperName.includes('PPS')) score += 30;
+                if (upperName.includes('PROTO')) score += 20; // Ya no ignoramos PROTO
+                
+                console.log(`   📊 ${name}: score=${score}, customer=${hasCustomer}, embellishments=${hasEmbellishments} (fila ${embellishmentsRow})`);
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestSheet = { name, data, score, hasCustomer, hasEmbellishments };
                 }
-            } 
-            // ============================================
-            // PASO 2: No tenemos workbook, usar hoja proporcionada
-            // ============================================
-            else {
-                console.log('📄 Usando hoja proporcionada directamente (sin workbook completo)');
-                if (!worksheet) {
-                    throw new Error('No se proporcionó worksheet ni workbook válido');
-                }
-                targetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-                // No cambiamos finalSheetName, usamos el sheetName proporcionado
+            } catch (e) {
+                console.warn(`   ⚠️ Error leyendo hoja ${name}:`, e.message);
             }
+        }
+        
+        if (!bestSheet || bestScore < 30) {
+            throw new Error('No se encontró ninguna hoja con datos válidos');
+        }
+        
+        console.log(`🏆 MEJOR HOJA: "${bestSheet.name}" (score: ${bestSheet.score})`);
+        
+        // Extraer datos de la mejor hoja
+        const targetData = bestSheet.data;
+        const finalSheetName = bestSheet.name;
+        
+        // Extraer datos básicos (ahora con todas las filas disponibles)
+        const extracted = extractBasicDataRobust(targetData, finalSheetName);
+        
+        // Detectar placements (con búsqueda completa, no limitada a 35 filas)
+        const placements = detectPlacementsRobust(targetData, extracted.customer);
+        
+        // Crear en UI
+        if (placements.length > 0 && typeof window.placements !== 'undefined') {
+            autoCreatePlacements(placements);
+        } else {
+            console.log('📭 No se encontraron placements para crear');
+        }
+        
+        return { 
+            ...extracted, 
+            autoPlacements: placements,
+            sourceSheet: finalSheetName 
+        };
+        
+    } catch (error) {
+        console.error('❌ Error en ExcelAutomation:', error);
+        return {
+            customer: '',
+            style: '',
+            colorway: '',
+            season: '',
+            po: '',
+            sample: '',
+            team: '',
+            autoPlacements: [],
+            sourceSheet: sheetName,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Versión robusta de extractBasicData - busca en TODAS las filas
+ */
+function extractBasicDataRobust(data, sheetName = '') {
+    const extracted = {};
+    
+    console.log(`🔍 Extrayendo datos de ${data.length} filas...`);
+    
+    // Buscar en todas las filas, no solo las primeras 35
+    for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        if (!row || row.length === 0) continue;
+
+        for (let j = 0; j < row.length - 1; j++) {
+            const cell = String(row[j] || '').trim();
+            const nextCell = String(row[j + 1] || '').trim();
+            const cellUpper = cell.toUpperCase();
             
-            // ============================================
-            // PASO 3: Extraer datos y placements
-            // ============================================
-            console.log(`📊 Procesando hoja "${finalSheetName}" con ${targetData.length} filas`);
-            
-            const extracted = extractBasicData(targetData, finalSheetName);
-            const placements = detectPlacements(targetData, extracted.customer);
-            
-            // Crear en UI
-            if (placements.length > 0 && typeof window.placements !== 'undefined') {
-                autoCreatePlacements(placements);
-            } else {
-                console.log('📭 No se encontraron placements para crear');
+            if (!cell) continue;
+
+            // Mapeo de campos (más flexible)
+            if (cellUpper.includes('CUSTOMER') && !cellUpper.includes('VENDOR') && nextCell) {
+                extracted.customer = extracted.customer || nextCell;
             }
-            
-            return { 
-                ...extracted, 
-                autoPlacements: placements,
-                sourceSheet: finalSheetName 
-            };
-            
-        } catch (error) {
-            console.error('❌ Error en ExcelAutomation:', error);
-            // Devolver un objeto vacío pero con el error para no romper la cadena
-            return {
-                customer: '',
-                style: '',
-                colorway: '',
-                season: '',
-                po: '',
-                sample: '',
-                team: '',
-                autoPlacements: [],
-                sourceSheet: sheetName,
-                error: error.message
-            };
+            else if (cellUpper.includes('STYLE') && !cellUpper.includes('TYPE') && nextCell) {
+                extracted.style = extracted.style || nextCell.replace(/\\n/g, ' ');
+            }
+            else if (cellUpper.includes('COLORWAY') && !cellUpper.includes('NAME') && nextCell) {
+                extracted.colorway = extracted.colorway || nextCell;
+            }
+            else if (cellUpper.includes('SEASON') && nextCell) {
+                extracted.season = extracted.season || nextCell;
+            }
+            else if ((cellUpper.includes('P.O.') || cellUpper.includes('PO #')) && nextCell) {
+                extracted.po = extracted.po || nextCell;
+            }
+            else if (cellUpper.includes('SAMPLE TYPE') && nextCell) {
+                extracted.sample = extracted.sample || nextCell;
+            }
+            else if (cellUpper.includes('PATTERN') && nextCell) {
+                extracted.pattern = extracted.pattern || nextCell;
+            }
+            else if (cellUpper.includes('REQUESTED BY') && nextCell) {
+                extracted.requestedBy = extracted.requestedBy || nextCell;
+            }
         }
     }
+    
+    // Inferir team desde style si es GFS
+    if (!extracted.team && window.detectTeamFromStyle) {
+        extracted.team = window.detectTeamFromStyle(extracted.style, extracted.colorway, extracted.customer);
+    }
+    
+    console.log('✅ Datos extraídos:', extracted);
+    return extracted;
+}
+
+/**
+ * Versión robusta de detectPlacements - busca EMBELLISHMENTS en cualquier fila
+ */
+function detectPlacementsRobust(data, customer = '') {
+    const placements = [];
+    let inEmbellishmentsSection = false;
+    let techniqueCol = -1;
+    let descriptionCol = -1;
+    let dataRowsFound = 0;
+    
+    console.log(`🔍 Buscando placements en ${data.length} filas...`);
+
+    for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        if (!row) continue;
+
+        const rowText = (row || []).map(c => String(c || '').toUpperCase()).join(' ');
+        
+        // Detectar inicio de sección EMBELLISHMENTS
+        if (rowText.includes('EMBELLISHMENTS') && 
+            !rowText.includes('END') && 
+            !rowText.includes('COMMENTS') &&
+            !inEmbellishmentsSection) {
+            inEmbellishmentsSection = true;
+            console.log(`🎯 Sección EMBELLISHMENTS detectada en fila ${i}`);
+            
+            // Buscar encabezado de tabla en las siguientes filas
+            for (let h = i + 1; h < Math.min(i + 5, data.length); h++) {
+                const headerRow = data[h];
+                if (!headerRow) continue;
+                
+                const headerText = headerRow.map(c => String(c || '').toUpperCase()).join(' ');
+                if (headerText.includes('AREA') || headerText.includes('TECHNIQUE') || headerText.includes('PROCESS')) {
+                    // Encontrar columnas
+                    headerRow.forEach((cell, idx) => {
+                        const cellUpper = String(cell || '').toUpperCase();
+                        if (cellUpper.includes('AREA') || cellUpper.includes('TECHNIQUE') || cellUpper.includes('PROCESS')) {
+                            techniqueCol = idx;
+                        }
+                        if (cellUpper.includes('APPLICATION') || cellUpper.includes('DESCRIPTION')) {
+                            descriptionCol = idx;
+                        }
+                    });
+                    
+                    console.log(`   📋 Tabla detectada en fila ${h}, técnica col=${techniqueCol}, desc col=${descriptionCol}`);
+                    i = h; // Continuar desde el encabezado
+                    break;
+                }
+            }
+            continue;
+        }
+
+        // Detectar fin de sección
+        if (inEmbellishmentsSection && 
+            (rowText.includes('SHIPPING') || 
+             rowText.includes('TOTAL UNITS') || 
+             rowText.includes('SUPPLIES') || 
+             rowText.includes('FABRICS') ||
+             rowText.includes('TRIMS') ||
+             rowText.includes('PACKAGING') ||
+             rowText.includes('LABELS & PACKAGING'))) {
+            inEmbellishmentsSection = false;
+            console.log(`🏁 Fin EMBELLISHMENTS en fila ${i} (${dataRowsFound} filas de datos)`);
+            break;
+        }
+
+        // Procesar filas de datos
+        if (inEmbellishmentsSection && techniqueCol >= 0) {
+            const technique = String(row[techniqueCol] || '').trim();
+            const description = descriptionCol >= 0 ? String(row[descriptionCol] || '').trim() : '';
+            
+            // Ignorar encabezados y filas vacías
+            if (technique && 
+                technique.toUpperCase() !== 'AREA' && 
+                technique.toUpperCase() !== 'TECHNIQUE' &&
+                technique.toUpperCase() !== 'PROCESS' &&
+                technique.length > 1 &&
+                !technique.toUpperCase().includes('TYPE OF')) {
+                
+                const placement = parsePlacementRowRobust(technique, description, customer);
+                if (placement) {
+                    placements.push(placement);
+                    dataRowsFound++;
+                }
+            }
+        }
+    }
+
+    console.log(`📦 Total placements detectados: ${placements.length}`);
+    return placements;
+}
+
+/**
+ * Versión robusta de parsePlacementRow - acepta más variaciones
+ */
+function parsePlacementRowRobust(technique, description, customer) {
+    if (!technique) return null;
+    
+    const techUpper = technique.toUpperCase().trim();
+    const descUpper = (description || '').toUpperCase();
+    
+    // ✅ CORRECCIÓN: Más flexible con typos y variaciones
+    const TECHNIQUES_TO_PROCESS = [
+        'SCREENPRINT', 'SCREEN PRINT', 'SCREEN', 'SCREENPRINTG', 'SCREEN PRINTG', // typo: Printg
+        'SILICONE', 'SHINY SILICONE', 
+        'WATERBASE', 'WATER BASE', 
+        'PLASTISOL',
+        'SUBLIMATION', 'SUB',
+        'EMBROIDERY', 'EMB',
+        'TWILL',
+        'HEAT TRANSFER', 'HT',
+        'LASER', 'LASER CUT'
+    ];
+    
+    const TECHNIQUES_TO_IGNORE = [
+        'Puff', 'PUFF', 'LASER PERFORATION' // Solo ignorar si no es el main technique
+    ];
+    
+    // Verificar si es una técnica que procesamos
+    const isProcessable = TECHNIQUES_TO_PROCESS.some(processTech => 
+        techUpper.includes(processTech) || 
+        descUpper.includes(processTech)
+    );
+    
+    if (!isProcessable) {
+        console.log(`   ⏭️ Ignorado: ${technique}`);
+        return null;
+    }
+    
+    // Determinar tipo de tinta
+    const inkType = determineInkTypeRobust(techUpper, descUpper, customer);
+    
+    // Extraer ubicaciones
+    let locations = extractLocationsRobust(description, descUpper);
+    if (locations.length === 0) {
+        locations = inferLocationsFromDescriptionRobust(descUpper);
+    }
+    
+    // Si no hay ubicaciones, usar genérica
+    if (locations.length === 0) {
+        console.log(`   ⚠️ Sin ubicación para: "${technique}", usando FRONT`);
+        locations = ['FRONT'];
+    }
+    
+    return {
+        technique: technique,
+        description: description,
+        inkType: inkType,
+        locations: locations,
+        isPaired: descUpper.includes('BOTH') || descUpper.includes('LEFT AND RIGHT'),
+        fullText: `${technique} - ${description}`,
+        isTeamLogo: descUpper.includes('TEAM LOGO'),
+        isNumbers: descUpper.includes('NUMBER'),
+        isWordmark: descUpper.includes('WORDMARK'),
+        isSwoosh: descUpper.includes('SWOOSH')
+    };
+}
+
+/**
+ * Determinar tipo de tinta (robusto)
+ */
+function determineInkTypeRobust(technique, description, customer) {
+    // Buscar en descripción primero (más específico)
+    if (description.includes('SILICONE')) return 'SILICONE';
+    if (description.includes('SHINY SILICONE')) return 'SILICONE';
+    if (description.includes('PLASTISOL')) return 'PLASTISOL';
+    if (description.includes('WATERBASE') || description.includes('WATER BASE')) return 'WATER';
+    if (description.includes('DISCHARGE')) return 'DISCHARGE';
+    
+    // Luego en técnica
+    if (technique.includes('SILICONE')) return 'SILICONE';
+    if (technique.includes('PLASTISOL')) return 'PLASTISOL';
+    if (technique.includes('WATER')) return 'WATER';
+    
+    // Por cliente
+    const customerUpper = (customer || '').toUpperCase();
+    if (customerUpper.includes('GEAR') || customerUpper.includes('GFS')) return 'PLASTISOL';
+    if (customerUpper.includes('FANATICS')) return 'WATER';
+    if (customerUpper.includes('NIKE')) return 'WATER';
+    
+    return 'WATER'; // Default
+}
+
+/**
+ * Extraer ubicaciones (robusto)
+ */
+function extractLocationsRobust(description, descUpper) {
+    const locations = [];
+    if (!description) return locations;
+    
+    const LOCATION_PATTERNS = [
+        { regex: /front/i, location: 'FRONT' },
+        { regex: /back/i, location: 'BACK' },
+        { regex: /shoulder/i, location: 'SHOULDER' },
+        { regex: /sleeve/i, location: 'SLEEVE' },
+        { regex: /collar/i, location: 'COLLAR' },
+        { regex: /neck/i, location: 'COLLAR' },
+        { regex: /chest/i, location: 'CHEST' },
+        { regex: /nameplate/i, location: 'NAMEPLATE' },
+        { regex: /yoke/i, location: 'YOKE' },
+        { regex: /panel/i, location: 'PANEL' },
+        { regex: /tv\.?\s*numbers?/i, location: 'TV. NUMBERS' },
+        { regex: /numbers?/i, location: 'NUMBERS' },
+        { regex: /wordmark/i, location: 'WORDMARK' },
+        { regex: /logo/i, location: 'LOGO' },
+        { regex: /swoosh/i, location: 'SWOOSH' },
+        { regex: /stripes?/i, location: 'STRIPES' },
+        { regex: /leg/i, location: 'LEG' }, // Nuevo: para pantalones
+        { regex: /side/i, location: 'SIDE' } // Nuevo: para paneles laterales
+    ];
+    
+    LOCATION_PATTERNS.forEach(pattern => {
+        if (pattern.regex.test(descUpper)) {
+            if (!locations.includes(pattern.location)) {
+                locations.push(pattern.location);
+            }
+        }
+    });
+    
+    return locations;
+}
+
+function inferLocationsFromDescriptionRobust(descUpper) {
+    const locations = [];
+    
+    if (descUpper.includes('NUMBER')) {
+        locations.push(descUpper.includes('TV') ? 'TV. NUMBERS' : 'NUMBERS');
+    }
+    if (descUpper.includes('NAME')) locations.push('NAMEPLATE');
+    if (descUpper.includes('LOGO')) locations.push('LOGO');
+    if (descUpper.includes('WORDMARK')) locations.push('WORDMARK');
+    if (descUpper.includes('SWOOSH')) locations.push('SWOOSH');
+    if (descUpper.includes('STRIPE')) locations.push('STRIPES');
+    if (descUpper.includes('JOCKTAG') || descUpper.includes('JOCK TAG')) locations.push('JOCKTAG');
+    
+    return locations;
+}
 
     // ============================================
     // API PÚBLICA
