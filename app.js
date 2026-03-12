@@ -2983,13 +2983,20 @@ function collectData() {
 
 function clearForm() {
     if (confirm('⚠️ ¿Estás seguro de que quieres limpiar todo el formulario?\n\nSe perderán todos los datos no guardados.\n\n¿Continuar?')) {
-        document.querySelectorAll('input:not(#folder-num), textarea, select').forEach(i => {
-            if (i.type !== 'button' && i.type !== 'submit') {
+        // 1) Limpiar inputs generales a través de setInputValue para mantener Store sincronizado
+        document.querySelectorAll('[data-bind-general]').forEach((input) => {
+            if (!input?.id) return;
+            setInputValue(input.id, '');
+        });
+
+        // 2) Limpiar el resto de campos no ligados a data-bind-general
+        document.querySelectorAll('input:not(#folder-num):not([data-bind-general]), textarea:not([data-bind-general]), select:not([data-bind-general])').forEach(i => {
+            if (i.type !== 'button' && i.type !== 'submit' && i.type !== 'file') {
                 i.value = '';
             }
         });
-        setInputValue('designer', '');
 
+        // 3) Reiniciar placements en memoria/UI
         placements = [];
         const placementsContainer = document.getElementById('placements-container');
         const placementsTabs = document.getElementById('placements-tabs');
@@ -2997,6 +3004,24 @@ function clearForm() {
         if (placementsTabs) placementsTabs.innerHTML = '';
 
         initializePlacements();
+
+        // 4) Limpiar Store explícitamente para evitar que el binding restaure datos viejos
+        if (window.Store && typeof Store.getState === 'function' && typeof Store.replaceState === 'function') {
+            const current = Store.getState();
+            const clearedGeneralData = {};
+            Object.keys(current.generalData || {}).forEach((key) => {
+                clearedGeneralData[key] = '';
+            });
+
+            Store.replaceState({
+                ...current,
+                generalData: clearedGeneralData,
+                placements: []
+            });
+        }
+
+        // 5) Eliminar autosave para que un reload no repueble datos limpios
+        localStorage.removeItem('spec-autosave');
 
         const logoElement = document.getElementById('logoCliente');
         if (logoElement) {
