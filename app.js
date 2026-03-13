@@ -2439,8 +2439,25 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     const extracted = {};
 
     const normalizedSheetName = String(sheetName || '').toUpperCase();
-    const isSWOSheet = normalizedSheetName.includes('SWO') || normalizedSheetName.includes('PPS') || normalizedSheetName.includes('PROTO');
-    console.log('🔍 isSWOSheet:', isSWOSheet);
+    const hasStructuredLabels = data.slice(0, 30).some((row) => {
+        if (!Array.isArray(row)) return false;
+        return row.some((cell) => {
+            const label = String(cell || '').toUpperCase();
+            return label.includes('CUSTOMER') ||
+                   label.includes('STYLE') ||
+                   label.includes('COLORWAY') ||
+                   label.includes('SEASON') ||
+                   label.includes('SAMPLE TYPE') ||
+                   label.includes('P.O.') ||
+                   label === 'PO';
+        });
+    });
+
+    const isSWOSheet = normalizedSheetName.includes('SWO') ||
+                       normalizedSheetName.includes('PPS') ||
+                       normalizedSheetName.includes('PROTO') ||
+                       hasStructuredLabels;
+    console.log('🔍 isSWOSheet:', isSWOSheet, '| hasStructuredLabels:', hasStructuredLabels);
 
     // --- 1. EXTRACCIÓN DE DATOS BÁSICOS ---
     const assignByLabel = (labelRaw, valueRaw) => {

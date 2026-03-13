@@ -101,12 +101,27 @@ window.ExcelAutomation = (function() {
     function extractBasicData(data, sheetName = '') {
         const extracted = {};
         const sheetUpper = (sheetName || '').toUpperCase();
-        
-        const isStructuredFormat = sheetUpper.includes('SWO') || 
-                                   sheetUpper.includes('PPS') || 
-                                   sheetUpper.includes('SAMPLE');
 
-        console.log(`📄 Procesando hoja: ${sheetName} (Formato: ${isStructuredFormat ? 'SWO/PPS' : 'Genérico'})`);
+        const hasStructuredLabels = Array.isArray(data) && data.slice(0, 35).some((row) => {
+            if (!Array.isArray(row)) return false;
+            return row.some((cell) => {
+                const label = String(cell || '').toUpperCase();
+                return label.includes('CUSTOMER') ||
+                       label.includes('STYLE') ||
+                       label.includes('COLORWAY') ||
+                       label.includes('SEASON') ||
+                       label.includes('SAMPLE TYPE') ||
+                       label.includes('P.O.') ||
+                       label === 'PO';
+            });
+        });
+
+        const isStructuredFormat = sheetUpper.includes('SWO') ||
+                                   sheetUpper.includes('PPS') ||
+                                   sheetUpper.includes('SAMPLE') ||
+                                   hasStructuredLabels;
+
+        console.log(`📄 Procesando hoja: ${sheetName} (Formato: ${isStructuredFormat ? 'SWO/PPS' : 'Genérico'}) | Labels: ${hasStructuredLabels ? 'sí' : 'no'}`);
 
         if (isStructuredFormat) {
             extractFromStructuredFormat(data, extracted);
@@ -693,6 +708,13 @@ window.ExcelAutomation = (function() {
                         
                         // Bonus por contenido
                         if (sampleText.includes('SAMPLE WORK ORDER')) score += 30;
+
+                        // Bonus por etiquetas típicas aunque el título sea distinto
+                        if (sampleText.includes('CUSTOMER')) score += 12;
+                        if (sampleText.includes('STYLE')) score += 12;
+                        if (sampleText.includes('COLORWAY')) score += 12;
+                        if (sampleText.includes('SEASON')) score += 8;
+                        if (sampleText.includes('SAMPLE TYPE')) score += 8;
                         
                         // Bonus por CUSTOMER con valor real
                         for (let i = 0; i < Math.min(20, data.length); i++) {
