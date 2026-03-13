@@ -3,53 +3,97 @@
 (function() {
     'use strict';
 
-    // --- FUNCIÓN PARA TRADUCIR DESCRIPCIÓN DE PLACEMENT (INGLÉS -> ESPAÑOL) ---
-    function traducirDescripcion(descripcionIngles) {
-        if (!descripcionIngles) return '';
+    // Diccionario técnico EN -> ES para Tech Packs (phrases first)
+    const TECHPACK_DICTIONARY = {
+        // Encabezados / secciones
+        'Graphic Placement': 'Ubicación Gráfica',
+        'Bill of Material': 'Lista de Materiales',
+        'Measurement': 'Medición',
+        'Base Size': 'Talla Base',
+        'Size Scale': 'Escala de Tallas',
 
-        // Diccionario de términos comunes en tech packs
-        const traducciones = {
-            // Ubicaciones
-            'Center Front': 'Centro Frente',
-            'Center Back': 'Centro Espalda',
-            'Left Sleeve': 'Manga Izquierda',
-            'Right Sleeve': 'Manga Derecha',
-            'Left Shoulder': 'Hombro Izquierdo',
-            'Right Shoulder': 'Hombro Derecho',
-            'Collar': 'Cuello',
-            'Neck': 'Cuello',
-            'Chest': 'Pecho',
-            'Nameplate': 'Placa Nombre',
-            'TV Numbers': 'Números TV',
-            'Jocktag': 'Jocktag',
-            'Swoosh': 'Swoosh',
-            'Wordmark': 'Wordmark',
-            'Stripes': 'Rayas',
-            'Yoke': 'Canesú',
+        // Ubicaciones y partes
+        'Center Front': 'Centro Frente',
+        'Center Back': 'Centro Espalda',
+        'Left Sleeve': 'Manga Izquierda',
+        'Right Sleeve': 'Manga Derecha',
+        'Left Shoulder': 'Hombro Izquierdo',
+        'Right Shoulder': 'Hombro Derecho',
+        'TV Numbers': 'Números TV',
+        'Player Number': 'Número de Jugador',
+        'Player Name': 'Nombre de Jugador',
+        'Team Logo': 'Logo del Equipo',
+        'Brand Logo': 'Logo de Marca',
+        'Primary Logo': 'Logo Principal',
+        'Nameplate': 'Placa de Nombre',
+        'Wordmark': 'Wordmark',
+        'Jocktag': 'Jocktag',
+        'Swoosh': 'Swoosh',
+        'Collar': 'Cuello',
+        'Neck': 'Cuello',
+        'Chest': 'Pecho',
+        'Yoke': 'Canesú',
+        'Stripes': 'Rayas',
 
-            // Elementos
-            'Player Number': 'Número de Jugador',
-            'Player Name': 'Nombre de Jugador',
-            'Team Logo': 'Logo del Equipo',
-            'Brand Logo': 'Logo de Marca',
-            'Primary Logo': 'Logo Principal',
+        // Materiales
+        'Recycled Polyester': 'Poliéster Reciclado',
+        'Polyester': 'Poliéster',
+        'Cotton': 'Algodón',
+        'Nylon': 'Nylon',
+        'Spandex': 'Spandex',
+        'Elastane': 'Elastano',
+        'Flat Knit Rib': 'Rib Tejido Plano',
+        'Tricot': 'Tricot',
+        'Mesh': 'Malla',
 
-            // Direcciones
-            'Left': 'Izquierdo',
-            'Right': 'Derecho',
-            'Top': 'Superior',
-            'Bottom': 'Inferior',
-            'Front': 'Frente',
-            'Back': 'Espalda',
-            'Side': 'Lateral'
-        };
+        // Tintas / procesos
+        'High Solids Water Base Print': 'Impresión Water-base de Alta Solidez',
+        'Water Base Print': 'Impresión Water-base',
+        'Water Base': 'Base Acuosa',
+        'Waterbase': 'Base Acuosa',
+        'Plastisol Print': 'Impresión Plastisol',
+        'Silicone Print': 'Impresión de Silicona',
+        'Heat Transfer': 'Transferencia por Calor',
+        'Screen Print': 'Serigrafía',
 
-        let traducido = descripcionIngles;
-        for (let [en, es] of Object.entries(traducciones)) {
-            const regex = new RegExp(`\\b${en}\\b`, 'gi');
+        // Direcciones / utilidades
+        'Left': 'Izquierdo',
+        'Right': 'Derecho',
+        'Top': 'Superior',
+        'Bottom': 'Inferior',
+        'Front': 'Frente',
+        'Back': 'Espalda',
+        'Side': 'Lateral',
+        'Home': 'Local',
+        'Away': 'Visitante',
+        'Road': 'Ruta',
+        'Alternate': 'Alternativo',
+        'Yes': 'Sí',
+        'No': 'No'
+    };
+
+    function escapeRegex(value) {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function traducirTextoTecnico(texto) {
+        if (!texto) return '';
+
+        let traducido = String(texto);
+        const entries = Object.entries(TECHPACK_DICTIONARY)
+            .sort((a, b) => b[0].length - a[0].length);
+
+        for (const [en, es] of entries) {
+            const regex = new RegExp(`\\b${escapeRegex(en)}\\b`, 'gi');
             traducido = traducido.replace(regex, es);
         }
+
         return traducido;
+    }
+
+    // --- FUNCIÓN PARA TRADUCIR DESCRIPCIÓN DE PLACEMENT (INGLÉS -> ESPAÑOL) ---
+    function traducirDescripcion(descripcionIngles) {
+        return traducirTextoTecnico(descripcionIngles);
     }
 
     // --- FUNCIÓN PARA POBLAR EL FORMULARIO CON DATOS DEL PDF ---
@@ -61,10 +105,10 @@
         // 1. Información General
         if (datosPDF.informacionGeneral) {
             const info = datosPDF.informacionGeneral;
-            if (info.equipo) setInputValue('customer', info.equipo);
+            if (info.equipo) setInputValue('customer', traducirTextoTecnico(info.equipo));
             if (info.styleNumber) setInputValue('style', info.styleNumber);
             if (info.season) setInputValue('season', info.season);
-            if (info.nombreMarketing) setInputValue('name-team', info.nombreMarketing);
+            if (info.nombreMarketing) setInputValue('name-team', traducirTextoTecnico(info.nombreMarketing));
         }
 
         // 2. Talla Base
@@ -76,7 +120,9 @@
         if (datosPDF.telas && datosPDF.telas.length > 0) {
             const telaPrincipal = datosPDF.telas.find(t => t.tipo.includes('Principal') || t.tipo.includes('Tricot')) || datosPDF.telas[0];
             if (telaPrincipal) {
-                setInputValue('fabric', `${telaPrincipal.nombre || ''} - ${telaPrincipal.composicion || ''}`);
+                const telaNombre = traducirTextoTecnico(telaPrincipal.nombre || '');
+                const telaComposicion = traducirTextoTecnico(telaPrincipal.composicion || '');
+                setInputValue('fabric', `${telaNombre} - ${telaComposicion}`);
             }
         }
 
@@ -99,7 +145,7 @@
                     temp: inkType === 'PLASTISOL' ? '320 °F' : (inkType === 'SILICONE' ? '320 °F' : '320 °F'),
                     time: inkType === 'PLASTISOL' ? '1:00 min' : (inkType === 'SILICONE' ? '1:40 min' : '1:40 min'),
                     specialties: '',
-                    specialInstructions: placement.descripcion,
+                    specialInstructions: traducirTextoTecnico(placement.descripcion || ''),
                     inkType: inkType,
                     isPaired: (placement.ubicacion === 'SLEEVE' || placement.ubicacion === 'SHOULDER')
                 };
@@ -207,7 +253,9 @@
     window.tegraAdapter = {
         poblarFormularioConPDF: poblarFormularioConPDF,
         crearBotonCargaPDF: crearBotonCargaPDF,
-        traducirDescripcion: traducirDescripcion
+        traducirDescripcion: traducirDescripcion,
+        traducirTextoTecnico: traducirTextoTecnico,
+        TECHPACK_DICTIONARY: TECHPACK_DICTIONARY
     };
 
     // Inicializar el botón cuando el DOM esté listo
