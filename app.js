@@ -2460,9 +2460,23 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('🔍 isSWOSheet:', isSWOSheet, '| hasStructuredLabels:', hasStructuredLabels);
 
     // --- 1. EXTRACCIÓN DE DATOS BÁSICOS ---
+    const sanitizeExtractedValue = (valueRaw, currentLabel = '') => {
+        const value = String(valueRaw || '').trim();
+        if (!value) return '';
+
+        const upper = value.toUpperCase();
+        const labelLike = /^(CUSTOMER|STYLE|COLORWAY|SEASON|PATTERN\s*#?|P\.O\.|PO|SAMPLE TYPE|SAMPLE|DATE|REQUESTED BY|SIZES|TEAM|GENDER)\s*[:#-]*\s*$/i;
+        if (labelLike.test(value)) return '';
+
+        const labelBase = String(currentLabel || '').replace(/[:#\s]+$/g, '').toUpperCase();
+        if (labelBase && (upper === labelBase || upper === `${labelBase}:`)) return '';
+
+        return value;
+    };
+
     const assignByLabel = (labelRaw, valueRaw) => {
         const label = String(labelRaw || '').trim().toUpperCase();
-        const value = String(valueRaw || '').trim();
+        const value = sanitizeExtractedValue(valueRaw, label);
         if (!label || !value) return;
 
         if (label.includes('CUSTOMER')) extracted.customer = value;

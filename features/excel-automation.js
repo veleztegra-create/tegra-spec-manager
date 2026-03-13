@@ -91,7 +91,7 @@ window.ExcelAutomation = (function() {
             'UA': 'WATER'
         },
         
-        IGNORE_SHEET_NAMES: ['HOW TO', 'LISTS', 'LIST', 'INSTRUCTION', 'PROTO', 'HOJA TÉCNICA', 'TEMPLATE']
+        IGNORE_SHEET_NAMES: ['HOW TO', 'LISTS', 'LIST', 'INSTRUCTION', 'HOJA TÉCNICA', 'TEMPLATE']
     };
 
     // ============================================
@@ -179,7 +179,7 @@ window.ExcelAutomation = (function() {
                 if (col + 1 < row.length) {
                     const nextVal = row[col + 1];
                     if (nextVal !== undefined && nextVal !== null && nextVal !== '') {
-                        value = String(nextVal).trim();
+                        value = sanitizeExtractedValue(String(nextVal).trim(), cellUpper);
                     }
                 }
                 
@@ -187,13 +187,13 @@ window.ExcelAutomation = (function() {
                 if (!value && i + 1 < data.length && data[i + 1]) {
                     const belowVal = data[i + 1][col];
                     if (belowVal !== undefined && belowVal !== null && belowVal !== '') {
-                        value = String(belowVal).trim();
+                        value = sanitizeExtractedValue(String(belowVal).trim(), cellUpper);
                     }
                 }
                 
                 // Opción 3: Valor después del ":" en la misma celda
                 if (!value && cell.includes(':')) {
-                    value = cell.split(':').slice(1).join(':').trim();
+                    value = sanitizeExtractedValue(cell.split(':').slice(1).join(':').trim(), cellUpper);
                 }
 
                 // Mapeo de campos
@@ -248,7 +248,7 @@ window.ExcelAutomation = (function() {
                 if (!cell) continue;
                 
                 const cellUpper = cell.toUpperCase();
-                const nextCell = String(row[j + 1] || '').trim();
+                const nextCell = sanitizeExtractedValue(String(row[j + 1] || '').trim(), cellUpper);
 
                 if (cellUpper.includes('CUSTOMER:') || cellUpper === 'CUSTOMER') {
                     extracted.customer = nextCell || cell.split(':')[1]?.trim() || extracted.customer;
@@ -281,6 +281,20 @@ window.ExcelAutomation = (function() {
         return value.replace(/<br\s*\/?>/gi, ' ')
                     .replace(/\s+/g, ' ')
                     .trim();
+    }
+
+    function sanitizeExtractedValue(valueRaw, currentLabel = '') {
+        const value = cleanValue(valueRaw);
+        if (!value) return '';
+
+        const upper = value.toUpperCase();
+        const labelLike = /^(CUSTOMER|STYLE|COLORWAY|SEASON|PATTERN\s*#?|P\.O\.|PO|SAMPLE TYPE|SAMPLE|DATE|REQUESTED BY|SIZES|TEAM|GENDER)\s*[:#-]*\s*$/i;
+        if (labelLike.test(value)) return '';
+
+        const labelBase = String(currentLabel || '').replace(/[:#\s]+$/g, '').toUpperCase();
+        if (labelBase && (upper === labelBase || upper === `${labelBase}:`)) return '';
+
+        return value;
     }
 
     // ============================================
