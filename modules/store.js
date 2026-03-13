@@ -18,6 +18,35 @@
         placements: []
     };
 
+    function deepCloneFallback(value, seen = new WeakMap()) {
+        if (value === null || typeof value !== 'object') return value;
+        if (seen.has(value)) return seen.get(value);
+
+        if (Array.isArray(value)) {
+            const arr = [];
+            seen.set(value, arr);
+            value.forEach((item, idx) => {
+                arr[idx] = deepCloneFallback(item, seen);
+            });
+            return arr;
+        }
+
+        const out = {};
+        seen.set(value, out);
+        Object.keys(value).forEach((key) => {
+            out[key] = deepCloneFallback(value[key], seen);
+        });
+        return out;
+    }
+
+    function safeClone(value) {
+        try {
+            return structuredClone(value);
+        } catch (error) {
+            return deepCloneFallback(value);
+        }
+    }
+
     function notify() {
         // Pass a clean snapshot to listeners
         const snapshot = Store.getState();
@@ -25,7 +54,7 @@
     }
 
     function saveHistory() {
-        history.push(structuredClone(rawState));
+        history.push(safeClone(rawState));
         future = []; // Clear future when a new action is performed
     }
 
@@ -43,7 +72,7 @@
                 // Prevent loops: only update if value actually changed
                 if (target[prop] !== value) {
                     saveHistory();
-                    target[prop] = value;
+                    target[prop] = safeClone(value);
                     notify();
                 }
                 return true;
@@ -65,12 +94,12 @@
 
         getState() {
             // Returns a deep clone of the raw state losing the Proxy wrapper (safe for JSON/Backend)
-            return structuredClone(rawState);
+            return safeClone(rawState);
         },
 
         replaceState(newState) {
             // Used for initial load from autosave or completely overriding state without polluting history
-            rawState = structuredClone(newState);
+            rawState = safeClone(newState);
             stateProxy = createReactive(rawState);
             notify();
         },
@@ -78,7 +107,7 @@
         undo() {
             if (history.length === 0) return;
             // Save current state into future for redo
-            future.push(structuredClone(rawState));
+            future.push(safeClone(rawState));
             // Pop last state from history
             rawState = history.pop();
             stateProxy = createReactive(rawState);
@@ -88,7 +117,7 @@
         redo() {
             if (future.length === 0) return;
             // Save current state into history for undo
-            history.push(structuredClone(rawState));
+            history.push(safeClone(rawState));
             // Pop first future state 
             rawState = future.pop();
             stateProxy = createReactive(rawState);
