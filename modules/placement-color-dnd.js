@@ -39,7 +39,7 @@
         return;
       }
 
-      const fromPlacementId = Number(target.dataset.placementId);
+      const fromPlacementId = String(target.dataset.placementId || "");
       const fromColorId = target.dataset.colorId;
       if (!fromPlacementId || !fromColorId) return;
 
@@ -58,7 +58,7 @@
     function onDragOver(event) {
       const target = event.target.closest('.color-item');
       if (!target || !draggedColorContext) return;
-      if (Number(target.dataset.placementId) !== draggedColorContext.placementId) return;
+      if (String(target.dataset.placementId || "") !== String(draggedColorContext.placementId)) return;
 
       event.preventDefault();
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
@@ -68,8 +68,8 @@
       const target = event.target.closest('.color-item');
       if (!target || !draggedColorContext) return;
 
-      const placementId = Number(target.dataset.placementId);
-      if (placementId !== draggedColorContext.placementId) return;
+      const placementId = String(target.dataset.placementId || "");
+      if (String(placementId) !== String(draggedColorContext.placementId)) return;
 
       const placement = getPlacementById(placementId);
       if (!placement || !Array.isArray(placement.colors)) return;
