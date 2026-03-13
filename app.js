@@ -367,64 +367,20 @@ function detectTeamFromStyle(style, colorway = '', customer = '') {
     return '';
 }
 
-function extractGenderFromStyle(style) {
-    if (!style) return '';
-
-    try {
-        const styleStr = style.toString().toUpperCase().trim();
-
-        if (window.SchoolsConfig && window.SchoolsConfig.extractGenderFromStyle) {
-            const gender = window.SchoolsConfig.extractGenderFromStyle(styleStr);
-            if (gender) return gender;
-        }
-
-        const gearForSportMatch = styleStr.match(/U([MWYBGKTIAN])\d+/);
-        if (gearForSportMatch && gearForSportMatch[1]) {
-            const genderCode = gearForSportMatch[1];
-
-            if (window.Config && window.Config.GEARFORSPORT_GENDER_MAP) {
-                const fullCode = `U${genderCode}`;
-                if (window.Config.GEARFORSPORT_GENDER_MAP[fullCode]) {
-                    return window.Config.GEARFORSPORT_GENDER_MAP[fullCode];
-                }
-                if (window.Config.GEARFORSPORT_GENDER_MAP[genderCode]) {
-                    return window.Config.GEARFORSPORT_GENDER_MAP[genderCode];
-                }
-            }
-        }
-
-        const parts = styleStr.split(/[-_ ]/);
-
-        if (window.Config && window.Config.GENDER_MAP) {
-            for (const part of parts) {
-                if (window.Config.GENDER_MAP[part]) {
-                    return window.Config.GENDER_MAP[part];
-                }
-            }
-        }
-
-        if (styleStr.includes(' MEN') || styleStr.includes('_M') || styleStr.endsWith('M')) {
-            return 'Men';
-        }
-        if (styleStr.includes(' WOMEN') || styleStr.includes('_W') || styleStr.endsWith('W')) {
-            return 'Women';
-        }
-        if (styleStr.includes(' YOUTH') || styleStr.includes('_Y') || styleStr.endsWith('Y')) {
-            return 'Youth';
-        }
-        if (styleStr.includes(' KIDS') || styleStr.includes('_K') || styleStr.endsWith('K')) {
-            return 'Kids';
-        }
-        if (styleStr.includes(' UNISEX') || styleStr.includes('_U') || styleStr.endsWith('U')) {
-            return 'Unisex';
-        }
-
-    } catch (error) {
-        console.warn('Error en extractGenderFromStyle:', error);
+function extractGenderFromStyle(style, customer = '') {
+    if (window.GeneralInfoService && window.GeneralInfoService.extractGenderFromStyle) {
+        return window.GeneralInfoService.extractGenderFromStyle(style, customer);
     }
-
     return '';
 }
+
+function normalizeGenderValue(rawGender, style = '', customer = '') {
+    if (window.GeneralInfoService && window.GeneralInfoService.normalizeGenderValue) {
+        return window.GeneralInfoService.normalizeGenderValue(rawGender, style, customer);
+    }
+    return String(rawGender || '').trim();
+}
+
 
 // =====================================================
 // FUNCIÓN ACTUALIZADA updateClientLogo
@@ -465,8 +421,26 @@ function updateClientLogo() {
 
 function setInputValue(id, value) {
     const element = document.getElementById(id);
-    if (element) {
-        element.value = value;
+    if (!element) return;
+
+    const nextValue = value == null ? '' : String(value);
+    const changed = element.value !== nextValue;
+
+    if (changed) {
+        element.value = nextValue;
+    }
+
+    // Mantener Store.generalData sincronizado para que no se borre al actualizar placements/UI
+    const generalKey = element.getAttribute('data-bind-general');
+    if (generalKey && window.Store && Store.state && Store.state.generalData) {
+        if (Store.state.generalData[generalKey] !== nextValue) {
+            Store.state.generalData[generalKey] = nextValue;
+        }
+    }
+
+    // Disparar input para ejecutar lógica ligada al campo (logos, defaults, etc.)
+    if (changed) {
+        element.dispatchEvent(new Event('input', { bubbles: true }));
     }
 }
 
@@ -1897,7 +1871,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = placement.colors.find(c => String(c.id) === String(colorId));
     if (color) {
         color.val = value;
         updatePlacementColorPreview(placementId, colorId);
@@ -1913,7 +1887,7 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = placement.colors.find(c => String(c.id) === String(colorId));
     if (color) {
         color.screenLetter = value.toUpperCase();
         syncPlacementSequenceWithColors(placement, true);
@@ -1925,7 +1899,7 @@ function updatePlacementColorMesh(placementId, colorId, value) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = placement.colors.find(c => String(c.id) === String(colorId));
     if (!color) return;
 
     color.mesh = value;
@@ -1937,7 +1911,7 @@ function removePlacementColorItem(placementId, colorId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    placement.colors = placement.colors.filter(c => c.id !== colorId);
+    placement.colors = placement.colors.filter(c => String(c.id) !== String(colorId));
     syncPlacementSequenceWithColors(placement, true);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
@@ -1950,7 +1924,7 @@ function movePlacementColorItem(placementId, colorId, direction) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement || !Array.isArray(placement.colors)) return;
 
-    const currentIndex = placement.colors.findIndex(c => c.id === colorId);
+    const currentIndex = placement.colors.findIndex(c => String(c.id) === String(colorId));
     if (currentIndex < 0) return;
 
     const targetIndex = currentIndex + direction;
@@ -1964,7 +1938,7 @@ function updatePlacementColorPreview(placementId, colorId) {
     const placement = placements.find(p => p.id === placementId);
     if (!placement) return;
 
-    const color = placement.colors.find(c => c.id === colorId);
+    const color = placement.colors.find(c => String(c.id) === String(colorId));
     if (!color) return;
 
     const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
@@ -2509,27 +2483,54 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         }
     }
 
+    const extractBaseSizeFromGrid = (grid) => {
+        if (window.GeneralInfoService && window.GeneralInfoService.extractBaseSizeFromGrid) {
+            return window.GeneralInfoService.extractBaseSizeFromGrid(grid);
+        }
+        return '';
+    };
+
+    // Intentar inferir gender por estilo si no viene explícito en Excel
+    if (!extracted.gender && extracted.style) {
+        extracted.gender = normalizeGenderValue('', extracted.style, extracted.customer);
+    }
+
+    // Base size suele venir en fila 16 (C16:J16) en SWO/PPS
+    if (!extracted.baseSize) {
+        extracted.baseSize = extractBaseSizeFromGrid(data);
+    }
+
     console.log('📦 Datos extraídos:', extracted);
 
-    // --- 2. ASIGNAR VALORES A LOS INPUTS ---
-    if (extracted.customer) {
-        setInputValue('customer', extracted.customer);
-        console.log('✅ customer asignado:', extracted.customer);
-    }
-    if (extracted.style) {
-        setInputValue('style', extracted.style);
-        console.log('✅ style asignado:', extracted.style);
-    }
-    if (extracted.colorway) {
-        setInputValue('colorway', extracted.colorway);
-        console.log('✅ colorway asignado:', extracted.colorway);
-    }
-    if (extracted.season) setInputValue('season', extracted.season);
-    if (extracted.pattern) setInputValue('pattern', extracted.pattern);
-    if (extracted.po) setInputValue('po', extracted.po);
-    if (extracted.sample) setInputValue('sample-type', extracted.sample);
-    if (extracted.team) setInputValue('name-team', extracted.team);
-    if (extracted.gender) setInputValue('gender', extracted.gender);
+    const applyGeneralInfo = (info, source = 'manual') => {
+        if (!info || typeof info !== 'object') return;
+
+        if (info.customer) {
+            setInputValue('customer', info.customer);
+            console.log(`✅ customer asignado (${source}):`, info.customer);
+        }
+        if (info.style) {
+            setInputValue('style', info.style);
+            console.log(`✅ style asignado (${source}):`, info.style);
+        }
+        if (info.colorway) {
+            setInputValue('colorway', info.colorway);
+            console.log(`✅ colorway asignado (${source}):`, info.colorway);
+        }
+        if (info.season) setInputValue('season', info.season);
+        if (info.pattern) setInputValue('pattern', info.pattern);
+        if (info.po) setInputValue('po', info.po);
+        if (info.sample || info.sampleType) setInputValue('sample-type', info.sample || info.sampleType);
+        if (info.team || info.nameTeam) setInputValue('name-team', info.team || info.nameTeam);
+
+        const resolvedGender = normalizeGenderValue(info.gender, info.style, info.customer);
+        if (resolvedGender) setInputValue('gender', resolvedGender);
+
+        if (info.baseSize) setInputValue('base-size', info.baseSize);
+    };
+
+    // --- 2. ASIGNAR VALORES INICIALES A LOS INPUTS ---
+    applyGeneralInfo(extracted, 'extracción base');
 
     // --- 3. EJECUTAR AUTOMATIZACIÓN DE PLACEMENTS ---
     if (window.ExcelAutomation) {
@@ -2538,6 +2539,15 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
             // PASAR EL WORKBOOK A EXCELAUTOMATION
             const result = window.ExcelAutomation.processExcelWithAutomation(worksheet, sheetName, workbook);
             console.log('🤖 Resultado de ExcelAutomation:', result);
+
+            // Completar base size desde la hoja óptima detectada por automatización
+            if (!result.baseSize && workbook && result.sourceSheet && workbook.Sheets && workbook.Sheets[result.sourceSheet]) {
+                const sourceData = XLSX.utils.sheet_to_json(workbook.Sheets[result.sourceSheet], { header: 1, defval: '' });
+                result.baseSize = extractBaseSizeFromGrid(sourceData);
+            }
+
+            // Completar/actualizar información general con la mejor hoja detectada
+            applyGeneralInfo(result, 'ExcelAutomation');
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
                 console.log(`📦 Se detectaron ${result.autoPlacements.length} placements automáticos`);
@@ -2973,13 +2983,20 @@ function collectData() {
 
 function clearForm() {
     if (confirm('⚠️ ¿Estás seguro de que quieres limpiar todo el formulario?\n\nSe perderán todos los datos no guardados.\n\n¿Continuar?')) {
-        document.querySelectorAll('input:not(#folder-num), textarea, select').forEach(i => {
-            if (i.type !== 'button' && i.type !== 'submit') {
+        // 1) Limpiar inputs generales a través de setInputValue para mantener Store sincronizado
+        document.querySelectorAll('[data-bind-general]').forEach((input) => {
+            if (!input?.id) return;
+            setInputValue(input.id, '');
+        });
+
+        // 2) Limpiar el resto de campos no ligados a data-bind-general
+        document.querySelectorAll('input:not(#folder-num):not([data-bind-general]), textarea:not([data-bind-general]), select:not([data-bind-general])').forEach(i => {
+            if (i.type !== 'button' && i.type !== 'submit' && i.type !== 'file') {
                 i.value = '';
             }
         });
-        setInputValue('designer', '');
 
+        // 3) Reiniciar placements en memoria/UI
         placements = [];
         const placementsContainer = document.getElementById('placements-container');
         const placementsTabs = document.getElementById('placements-tabs');
@@ -2987,6 +3004,24 @@ function clearForm() {
         if (placementsTabs) placementsTabs.innerHTML = '';
 
         initializePlacements();
+
+        // 4) Limpiar Store explícitamente para evitar que el binding restaure datos viejos
+        if (window.Store && typeof Store.getState === 'function' && typeof Store.replaceState === 'function') {
+            const current = Store.getState();
+            const clearedGeneralData = {};
+            Object.keys(current.generalData || {}).forEach((key) => {
+                clearedGeneralData[key] = '';
+            });
+
+            Store.replaceState({
+                ...current,
+                generalData: clearedGeneralData,
+                placements: []
+            });
+        }
+
+        // 5) Eliminar autosave para que un reload no repueble datos limpios
+        localStorage.removeItem('spec-autosave');
 
         const logoElement = document.getElementById('logoCliente');
         if (logoElement) {
