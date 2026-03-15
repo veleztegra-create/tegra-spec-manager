@@ -10,8 +10,8 @@
 const stateManager = new StateManager();
 // 'placements' is now linked to the Reactive Store to ensure single source of truth
 Object.defineProperty(window, 'placements', {
-    get: () => Store.state.placements,
-    set: (val) => { Store.state.placements = val; }
+    get: () => Array.isArray(Store.state.placements) ? Store.state.placements : [],
+    set: (val) => { Store.state.placements = Array.isArray(val) ? val : []; }
 });
 let currentPlacementId = 1;
 let clientLogoCache = {};
