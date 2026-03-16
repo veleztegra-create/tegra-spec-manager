@@ -3066,6 +3066,19 @@ function downloadPaletteJsonFromDashboard() {
     showStatus('💾 JSON de paleta descargado', 'success');
 }
 
+function editPaletteExtractedName(index) {
+    if (!Array.isArray(dashboardPaletteExtractedColors) || !dashboardPaletteExtractedColors[index]) return;
+
+    const currentLabel = dashboardPaletteExtractedColors[index].labelText || '';
+    const nextLabel = prompt('Editar nombre detectado para este color:', currentLabel);
+    if (nextLabel === null) return;
+
+    const cleaned = sanitizePaletteLabel(nextLabel);
+    dashboardPaletteExtractedColors[index].labelText = cleaned || null;
+    renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+    updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+}
+
 function renderDashboardPaletteResults(colors) {
     const resultsEl = document.getElementById('palette-results');
     if (!resultsEl) return;
@@ -3086,7 +3099,7 @@ function renderDashboardPaletteResults(colors) {
                 <div class="palette-color-chip" style="background:${hex};"></div>
                 <div class="palette-color-meta">
                     <strong>${hex}</strong>
-                    ${colorName ? `<div>${colorName}</div>` : '<div style="opacity:.7;">SIN TEXTO OCR</div>'}
+                    ${colorName ? `<div class="palette-editable-name" onclick="editPaletteExtractedName(${index})" title="Click para editar">${colorName} <i class="fas fa-pen" style="font-size:.65rem;"></i></div>` : `<div class="palette-editable-name" onclick="editPaletteExtractedName(${index})" style="opacity:.7;" title="Click para escribir nombre">SIN TEXTO OCR <i class="fas fa-pen" style="font-size:.65rem;"></i></div>`}
                     ${suggestedName ? `<div style="font-size:.72rem; opacity:.65;">Sugerido: ${suggestedName}</div>` : ''}
                     RGB(${rgb})
                     <div style="margin-top:6px; font-size:0.74rem;">Color ${index + 1}</div>
@@ -3206,6 +3219,7 @@ window.runPaletteExtractorFromDashboard = runPaletteExtractorFromDashboard;
 window.copyPaletteJsonFromDashboard = copyPaletteJsonFromDashboard;
 window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
 window.focusPasteForPaletteFromDashboard = focusPasteForPaletteFromDashboard;
+window.editPaletteExtractedName = editPaletteExtractedName;
 function updateDashboard() {
     try {
         const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));

@@ -16,6 +16,47 @@
         console.log(`[${type}] ${message}`);
     }
 
+    const LOCATION_TRANSLATIONS = {
+        'FRONT': 'FRENTE',
+        'BACK': 'ESPALDA',
+        'COLLAR': 'CUELLO',
+        'SLEEVE': 'MANGA',
+        'TV. NUMBERS': 'NÚMEROS TV',
+        'SHOULDER': 'HOMBRO',
+        'CUSTOM': 'PERSONALIZADO'
+    };
+
+    const TEXT_TRANSLATIONS = [
+        [/\bfront\b/gi, 'frente'],
+        [/\bback\b/gi, 'espalda'],
+        [/\bcollar\b/gi, 'cuello'],
+        [/\bsleeve\b/gi, 'manga'],
+        [/\bshoulder\b/gi, 'hombro'],
+        [/\bnameplate\b/gi, 'placa de nombre'],
+        [/\bnumbers?\b/gi, 'números'],
+        [/\bdistance between\b/gi, 'distancia entre'],
+        [/\bcenter front\b/gi, 'centro frente'],
+        [/\bcenter back\b/gi, 'centro espalda'],
+        [/\bleft\b/gi, 'izquierdo'],
+        [/\bright\b/gi, 'derecho'],
+        [/\bstripe\b/gi, 'franja'],
+        [/\bswoosh\b/gi, 'swoosh'],
+        [/\bjocktag\b/gi, 'jocktag']
+    ];
+
+    function translatePlacementLocation(location) {
+        const key = String(location || '').trim().toUpperCase();
+        return LOCATION_TRANSLATIONS[key] || key || 'PERSONALIZADO';
+    }
+
+    function translatePlacementText(text) {
+        let translated = String(text || '');
+        TEXT_TRANSLATIONS.forEach(([regex, replacement]) => {
+            translated = translated.replace(regex, replacement);
+        });
+        return translated;
+    }
+
     function limpiarDescripcion(texto) {
         if (!texto) return '';
         
@@ -25,6 +66,9 @@
         // Eliminar Yes/No
         limpio = limpio.replace(/\b(Yes|No)\b/gi, '');
         
+        // Traducir términos comunes de placement al español
+        limpio = translatePlacementText(limpio);
+
         // Eliminar espacios múltiples
         limpio = limpio.replace(/\s+/g, ' ').trim();
         
@@ -39,7 +83,7 @@
         
         // Ubicación
         if (placement.ubicacion) {
-            partes.push(placement.ubicacion + ':');
+            partes.push(translatePlacementLocation(placement.ubicacion) + ':');
         }
         
         // Descripción limpia
@@ -122,8 +166,8 @@
                 
                 const newPlacement = {
                     id: placementId,
-                    type: placement.ubicacion || 'CUSTOM',
-                    name: placement.ubicacion || 'CUSTOM',
+                    type: translatePlacementLocation(placement.ubicacion),
+                    name: translatePlacementLocation(placement.ubicacion),
                     imageData: null,
                     colors: [],
                     sequence: [],
@@ -132,9 +176,9 @@
                     temp: '320 °F',
                     time: '1:40 min',
                     specialties: '',
-                    specialInstructions: limpiarDescripcion(placement.descripcionIngles || ''),
+                    specialInstructions: limpiarDescripcion(placement.descripcionIngles || placement.descripcion || ''),
                     inkType: datosPDF.tinta?.tipo || 'WATER',
-                    isPaired: (placement.ubicacion === 'SLEEVE' || placement.ubicacion === 'SHOULDER'),
+                    isPaired: (String(placement.ubicacion || '').toUpperCase() === 'SLEEVE' || String(placement.ubicacion || '').toUpperCase() === 'SHOULDER'),
                     baseSize: placement.talla || 'L'
                 };
 
