@@ -23,3 +23,8 @@ Sistema web para gestión de especificaciones técnicas de serigrafía.
 Se agregó un backend inicial en `backend/` para desarrollo en Render durante la fase de consolidación.
 
 Revisa `backend/README.md` para instalación, migraciones y endpoints disponibles.
+
+
+### Deploy rápido en Render
+
+El repo incluye `render.yaml` en la raíz para aprovisionar el backend con `rootDir: backend` y evitar errores de build por `package.json` no encontrado.

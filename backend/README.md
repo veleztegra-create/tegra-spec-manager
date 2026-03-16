@@ -32,7 +32,8 @@ npm run dev
 - `POST /api/palette-extractions`
 
 ## Notas de despliegue (Render)
-1. Crear servicio web apuntando a `/backend`.
+1. Crear servicio web y configurar **Root Directory = `backend`** (si no, fallará con `ENOENT /opt/render/project/src/package.json`).
 2. Build command: `npm install && npm run prisma:generate && npm run prisma:deploy`
 3. Start command: `npm start`
 4. Configurar `DATABASE_URL` desde Render PostgreSQL.
+5. Opcional recomendado: usar el `render.yaml` de la raíz para crear el servicio con estos valores automáticamente.
