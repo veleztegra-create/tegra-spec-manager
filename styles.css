@@ -1259,3 +1259,23 @@ textarea.form-control:focus {
         grid-template-columns: 1fr;
     }
 }
+
+
+.palette-json-tools {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.palette-json-output {
+    margin-top: 10px;
+    background: var(--gray-dark);
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    max-height: 260px;
+    overflow: auto;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+}

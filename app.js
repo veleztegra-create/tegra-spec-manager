@@ -2762,23 +2762,96 @@ function extractPaletteFromImageData(imageData, maxColors = 6) {
     return deduped.slice(0, k);
 }
 
+function findColorNameByHex(hexValue) {
+    const target = String(hexValue || '').trim().toUpperCase();
+    if (!target) return null;
+
+    const all = window.ColorConfig?.db?.all || {};
+    const found = Object.values(all).find((entry) => {
+        return String(entry?.hex || '').trim().toUpperCase() === target;
+    });
+
+    return found?.key || null;
+}
+
+function buildDashboardPaletteJsonPayload(colors) {
+    const normalizedColors = Array.isArray(colors) ? colors : [];
+    return {
+        extractedAt: new Date().toISOString(),
+        source: 'dashboard-techpack-palette-extractor',
+        totalColors: normalizedColors.length,
+        colors: normalizedColors.map((color, index) => {
+            const hex = color.hex || rgbToHex(color.r, color.g, color.b);
+            return {
+                index: index + 1,
+                name: findColorNameByHex(hex),
+                hex,
+                rgb: {
+                    r: Number(color.r) || 0,
+                    g: Number(color.g) || 0,
+                    b: Number(color.b) || 0
+                }
+            };
+        })
+    };
+}
+
+function updatePaletteJsonOutput(colors) {
+    const outputEl = document.getElementById('palette-json-output');
+    if (!outputEl) return;
+
+    const payload = buildDashboardPaletteJsonPayload(colors);
+    outputEl.textContent = JSON.stringify(payload, null, 2);
+}
+
+function copyPaletteJsonFromDashboard() {
+    const outputEl = document.getElementById('palette-json-output');
+    const payload = outputEl?.textContent || JSON.stringify(buildDashboardPaletteJsonPayload(dashboardPaletteExtractedColors), null, 2);
+
+    navigator.clipboard.writeText(payload).then(() => {
+        showStatus('📋 JSON de paleta copiado al portapapeles', 'success');
+    }).catch(() => {
+        showStatus('❌ No se pudo copiar el JSON', 'error');
+    });
+}
+
+function downloadPaletteJsonFromDashboard() {
+    const payload = buildDashboardPaletteJsonPayload(dashboardPaletteExtractedColors);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchorEl = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+    anchorEl.href = url;
+    anchorEl.download = `palette-techpack-${stamp}.json`;
+    document.body.appendChild(anchorEl);
+    anchorEl.click();
+    anchorEl.remove();
+    URL.revokeObjectURL(url);
+
+    showStatus('💾 JSON de paleta descargado', 'success');
+}
+
 function renderDashboardPaletteResults(colors) {
     const resultsEl = document.getElementById('palette-results');
     if (!resultsEl) return;
 
     if (!Array.isArray(colors) || colors.length === 0) {
         resultsEl.innerHTML = '<p style="color:var(--text-secondary); margin:0;">No se detectaron colores suficientes. Intenta con otra captura.</p>';
+        updatePaletteJsonOutput([]);
         return;
     }
 
     resultsEl.innerHTML = colors.map((color, index) => {
         const hex = color.hex || rgbToHex(color.r, color.g, color.b);
         const rgb = `${color.r}, ${color.g}, ${color.b}`;
+        const colorName = findColorNameByHex(hex);
         return `
             <div class="palette-color-card">
                 <div class="palette-color-chip" style="background:${hex};"></div>
                 <div class="palette-color-meta">
                     <strong>${hex}</strong>
+                    ${colorName ? `<div>${colorName}</div>` : ''}
                     RGB(${rgb})
                     <div style="margin-top:6px; font-size:0.74rem;">Color ${index + 1}</div>
                 </div>
@@ -2808,6 +2881,7 @@ function initDashboardPaletteExtractor() {
     });
 
     imageInput.dataset.bound = '1';
+    updatePaletteJsonOutput(dashboardPaletteExtractedColors);
 }
 
 function runPaletteExtractorFromDashboard() {
@@ -2841,6 +2915,7 @@ function runPaletteExtractorFromDashboard() {
         dashboardPaletteExtractedColors = extractPaletteFromImageData(imageData, maxColors);
 
         renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+        updatePaletteJsonOutput(dashboardPaletteExtractedColors);
 
         const extractedColorsCountEl = document.getElementById('extracted-colors-count');
         if (extractedColorsCountEl) {
@@ -2858,6 +2933,8 @@ function runPaletteExtractorFromDashboard() {
 }
 
 window.runPaletteExtractorFromDashboard = runPaletteExtractorFromDashboard;
+window.copyPaletteJsonFromDashboard = copyPaletteJsonFromDashboard;
+window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
 function updateDashboard() {
     try {
         const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));

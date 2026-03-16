@@ -46,6 +46,16 @@
         </div>
 
         <div id="palette-results" class="palette-results"></div>
+
+        <div class="palette-json-tools">
+            <button class="btn btn-outline" onclick="copyPaletteJsonFromDashboard()">
+                <i class="fas fa-copy"></i> Copiar JSON
+            </button>
+            <button class="btn btn-success" onclick="downloadPaletteJsonFromDashboard()">
+                <i class="fas fa-download"></i> Descargar JSON
+            </button>
+        </div>
+        <pre id="palette-json-output" class="palette-json-output">[]</pre>
     </div>
 </div>
 
