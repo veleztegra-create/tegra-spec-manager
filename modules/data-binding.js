@@ -15,14 +15,23 @@
 
             input.addEventListener("input", (e) => {
                 // Updating the Proxy triggers notify()
+                if (!Store.state.generalData || typeof Store.state.generalData !== "object") {
+                    Store.state.generalData = {};
+                }
                 Store.state.generalData[key] = e.target.value;
             });
 
             // Handle checkboxes or selects if needed
             input.addEventListener("change", (e) => {
                 if (input.type === 'checkbox') {
+                    if (!Store.state.generalData || typeof Store.state.generalData !== 'object') {
+                        Store.state.generalData = {};
+                    }
                     Store.state.generalData[key] = e.target.checked;
                 } else {
+                    if (!Store.state.generalData || typeof Store.state.generalData !== "object") {
+                        Store.state.generalData = {};
+                    }
                     Store.state.generalData[key] = e.target.value;
                 }
             });
@@ -32,7 +41,8 @@
         Store.subscribe((state) => {
             generalInputs.forEach(input => {
                 const key = input.getAttribute("data-bind-general");
-                const stateValue = state.generalData[key] || "";
+                const stateGeneralData = (state && state.generalData && typeof state.generalData === "object") ? state.generalData : {};
+                const stateValue = stateGeneralData[key] || "";
 
                 // Prevent infinite loop (Input -> State -> Input -> State)
                 if (input.type === 'checkbox') {
@@ -53,10 +63,14 @@
         const currentState = Store.getState();
         generalInputs.forEach(input => {
             const key = input.getAttribute("data-bind-general");
-            if (currentState.generalData[key]) {
-                input.value = currentState.generalData[key];
+            const currentGeneralData = (currentState && currentState.generalData && typeof currentState.generalData === "object") ? currentState.generalData : {};
+            if (currentGeneralData[key]) {
+                input.value = currentGeneralData[key];
             } else {
                 // If store is empty, grab the HTML value to initialize the store
+                if (!Store.state.generalData || typeof Store.state.generalData !== "object") {
+                    Store.state.generalData = {};
+                }
                 Store.state.generalData[key] = input.value;
             }
         });

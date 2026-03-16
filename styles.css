@@ -1198,3 +1198,64 @@ textarea.form-control:focus {
         page-break-before: always;
     }
 }
+
+.palette-extractor-controls {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 120px auto;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.palette-extractor-preview {
+    border: 1px dashed var(--border-dark);
+    border-radius: var(--radius);
+    padding: 12px;
+    background: var(--bg-tertiary);
+    min-height: 120px;
+}
+
+#palette-source-image {
+    display: block;
+    max-width: 100%;
+    max-height: 260px;
+    margin: 0 auto;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+.palette-results {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.palette-color-card {
+    border: 1px solid var(--border-dark);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.palette-color-chip {
+    height: 56px;
+}
+
+.palette-color-meta {
+    padding: 8px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.palette-color-meta strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .palette-extractor-controls {
+        grid-template-columns: 1fr;
+    }
+}

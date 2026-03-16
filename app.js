@@ -10,8 +10,8 @@
 const stateManager = new StateManager();
 // 'placements' is now linked to the Reactive Store to ensure single source of truth
 Object.defineProperty(window, 'placements', {
-    get: () => Store.state.placements,
-    set: (val) => { Store.state.placements = val; }
+    get: () => Array.isArray(Store.state.placements) ? Store.state.placements : [],
+    set: (val) => { Store.state.placements = Array.isArray(val) ? val : []; }
 });
 let currentPlacementId = 1;
 let clientLogoCache = {};
@@ -2670,6 +2670,194 @@ function setupExcelImportHandler() {
 // FUNCIONES DE DASHBOARD
 // =====================================================
 
+
+let dashboardPaletteExtractedColors = [];
+let dashboardPaletteImageDataUrl = "";
+
+function rgbToHex(r, g, b) {
+    const clamp = (value) => Math.max(0, Math.min(255, Number(value) || 0));
+    return `#${[clamp(r), clamp(g), clamp(b)].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
+function colorDistance(a, b) {
+    return Math.sqrt(
+        Math.pow((a.r || 0) - (b.r || 0), 2) +
+        Math.pow((a.g || 0) - (b.g || 0), 2) +
+        Math.pow((a.b || 0) - (b.b || 0), 2)
+    );
+}
+
+function extractPaletteFromImageData(imageData, maxColors = 6) {
+    const pixels = imageData?.data;
+    if (!pixels || pixels.length < 4) return [];
+
+    const sampleStep = 16;
+    const samples = [];
+    for (let i = 0; i < pixels.length; i += 4 * sampleStep) {
+        const alpha = pixels[i + 3];
+        if (alpha < 25) continue;
+
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+
+        const brightness = (r * 0.299) + (g * 0.587) + (b * 0.114);
+        if (brightness < 15 || brightness > 245) continue;
+
+        samples.push({ r, g, b });
+    }
+
+    if (samples.length === 0) return [];
+
+    const k = Math.max(2, Math.min(Number(maxColors) || 6, 12, samples.length));
+    const centroids = [];
+    const stride = Math.max(1, Math.floor(samples.length / k));
+
+    for (let i = 0; i < k; i++) {
+        const sample = samples[i * stride] || samples[i] || samples[0];
+        centroids.push({ ...sample });
+    }
+
+    for (let iteration = 0; iteration < 8; iteration++) {
+        const clusters = Array.from({ length: k }, () => ({ r: 0, g: 0, b: 0, count: 0 }));
+
+        samples.forEach((sample) => {
+            let bestIdx = 0;
+            let bestDistance = Number.POSITIVE_INFINITY;
+
+            centroids.forEach((centroid, idx) => {
+                const dist = colorDistance(sample, centroid);
+                if (dist < bestDistance) {
+                    bestDistance = dist;
+                    bestIdx = idx;
+                }
+            });
+
+            clusters[bestIdx].r += sample.r;
+            clusters[bestIdx].g += sample.g;
+            clusters[bestIdx].b += sample.b;
+            clusters[bestIdx].count += 1;
+        });
+
+        clusters.forEach((cluster, idx) => {
+            if (cluster.count === 0) return;
+            centroids[idx] = {
+                r: Math.round(cluster.r / cluster.count),
+                g: Math.round(cluster.g / cluster.count),
+                b: Math.round(cluster.b / cluster.count)
+            };
+        });
+    }
+
+    const grouped = centroids
+        .map((centroid) => ({ ...centroid, hex: rgbToHex(centroid.r, centroid.g, centroid.b) }))
+        .filter((color) => Number.isFinite(color.r) && Number.isFinite(color.g) && Number.isFinite(color.b));
+
+    const deduped = [];
+    grouped.forEach((color) => {
+        const exists = deduped.some(existing => colorDistance(existing, color) < 22);
+        if (!exists) deduped.push(color);
+    });
+
+    return deduped.slice(0, k);
+}
+
+function renderDashboardPaletteResults(colors) {
+    const resultsEl = document.getElementById('palette-results');
+    if (!resultsEl) return;
+
+    if (!Array.isArray(colors) || colors.length === 0) {
+        resultsEl.innerHTML = '<p style="color:var(--text-secondary); margin:0;">No se detectaron colores suficientes. Intenta con otra captura.</p>';
+        return;
+    }
+
+    resultsEl.innerHTML = colors.map((color, index) => {
+        const hex = color.hex || rgbToHex(color.r, color.g, color.b);
+        const rgb = `${color.r}, ${color.g}, ${color.b}`;
+        return `
+            <div class="palette-color-card">
+                <div class="palette-color-chip" style="background:${hex};"></div>
+                <div class="palette-color-meta">
+                    <strong>${hex}</strong>
+                    RGB(${rgb})
+                    <div style="margin-top:6px; font-size:0.74rem;">Color ${index + 1}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function initDashboardPaletteExtractor() {
+    const imageInput = document.getElementById('palette-image-input');
+    const imagePreview = document.getElementById('palette-source-image');
+    const emptyState = document.getElementById('palette-empty-state');
+    if (!imageInput || !imagePreview || imageInput.dataset.bound === '1') return;
+
+    imageInput.addEventListener('change', (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            dashboardPaletteImageDataUrl = String(reader.result || '');
+            imagePreview.src = dashboardPaletteImageDataUrl;
+            imagePreview.style.display = 'block';
+            if (emptyState) emptyState.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    imageInput.dataset.bound = '1';
+}
+
+function runPaletteExtractorFromDashboard() {
+    const imagePreview = document.getElementById('palette-source-image');
+    const hiddenCanvas = document.getElementById('palette-extractor-canvas');
+    const colorCountInput = document.getElementById('palette-color-count');
+
+    if (!imagePreview || !hiddenCanvas) return;
+    if (!dashboardPaletteImageDataUrl && !imagePreview.src) {
+        showStatus('⚠️ Carga primero una imagen del techpack', 'warning');
+        return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+        const ctx = hiddenCanvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+
+        const maxDimension = 300;
+        const ratio = Math.min(maxDimension / img.width, maxDimension / img.height, 1);
+        const width = Math.max(1, Math.round(img.width * ratio));
+        const height = Math.max(1, Math.round(img.height * ratio));
+
+        hiddenCanvas.width = width;
+        hiddenCanvas.height = height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const maxColors = Number(colorCountInput?.value || 6);
+        dashboardPaletteExtractedColors = extractPaletteFromImageData(imageData, maxColors);
+
+        renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+
+        const extractedColorsCountEl = document.getElementById('extracted-colors-count');
+        if (extractedColorsCountEl) {
+            extractedColorsCountEl.textContent = dashboardPaletteExtractedColors.length;
+        }
+
+        if (dashboardPaletteExtractedColors.length > 0) {
+            showStatus(`🎨 ${dashboardPaletteExtractedColors.length} colores extraídos del techpack`, 'success');
+        } else {
+            showStatus('⚠️ No se pudieron extraer colores de la captura', 'warning');
+        }
+    };
+
+    img.src = dashboardPaletteImageDataUrl || imagePreview.src;
+}
+
+window.runPaletteExtractorFromDashboard = runPaletteExtractorFromDashboard;
 function updateDashboard() {
     try {
         const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
@@ -2713,18 +2901,6 @@ function updateDashboard() {
             `;
         }
 
-        let activeCount = 0;
-        specs.forEach(key => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                if (data.placements && data.placements.length > 0) {
-                    activeCount++;
-                }
-            } catch (e) { }
-        });
-        const activeProjectsEl = document.getElementById('active-projects');
-        if (activeProjectsEl) activeProjectsEl.textContent = activeCount;
-
         const totalPlacements = specs.reduce((total, key) => {
             try {
                 const data = JSON.parse(localStorage.getItem(key));
@@ -2733,6 +2909,9 @@ function updateDashboard() {
                 return total;
             }
         }, 0);
+
+        const extractedColorsCountEl = document.getElementById('extracted-colors-count');
+        if (extractedColorsCountEl) extractedColorsCountEl.textContent = dashboardPaletteExtractedColors.length;
 
         const completionRateEl = document.getElementById('completion-rate');
         if (completionRateEl) {
@@ -3444,6 +3623,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setupExcelImportHandler();
             loadThemePreference();
             bindSpecCreatorFormSafety();
+            initDashboardPaletteExtractor();
 
             const themeToggle = document.getElementById('themeToggle');
             if (themeToggle) {
