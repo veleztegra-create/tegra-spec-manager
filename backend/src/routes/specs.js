@@ -2,12 +2,29 @@ import { prisma } from '../db.js';
 
 function normalizeSpecPayload(payload = {}) {
   const generalData = payload.generalData || {};
-  const placements = Array.isArray(payload.placements) ? payload.placements : [];
+  const placements = Array.isArray(payload.placements)
+    ? payload.placements.filter((placement) => placement && typeof placement === 'object')
+    : [];
 
   return {
     generalData,
     placements,
     meta: payload.meta || {}
+  };
+}
+
+function mapPlacementForDb(placement = {}, index = 0) {
+  return {
+    orderIndex: index,
+    type: placement.type || null,
+    name: placement.name || null,
+    placementDetails: placement.placementDetails || null,
+    specialInstructions: placement.specialInstructions || null,
+    dimensions: placement.dimensions || null,
+    baseSize: placement.baseSize || null,
+    inkType: placement.inkType || null,
+    colorsJson: placement.colors || null,
+    sequenceJson: placement.sequence || null
   };
 }
 
@@ -57,18 +74,7 @@ export default async function specsRoutes(fastify) {
         specDate: generalData.specDate || null,
         payloadJson: payload,
         placements: {
-          create: payload.placements.map((placement, index) => ({
-            orderIndex: index,
-            type: placement.type || null,
-            name: placement.name || null,
-            placementDetails: placement.placementDetails || null,
-            specialInstructions: placement.specialInstructions || null,
-            dimensions: placement.dimensions || null,
-            baseSize: placement.baseSize || null,
-            inkType: placement.inkType || null,
-            colorsJson: placement.colors || null,
-            sequenceJson: placement.sequence || null
-          }))
+          create: payload.placements.map((placement, index) => mapPlacementForDb(placement, index))
         }
       },
       include: { placements: true }
@@ -100,18 +106,7 @@ export default async function specsRoutes(fastify) {
           specDate: generalData.specDate || null,
           payloadJson: payload,
           placements: {
-            create: payload.placements.map((placement, index) => ({
-              orderIndex: index,
-              type: placement.type || null,
-              name: placement.name || null,
-              placementDetails: placement.placementDetails || null,
-              specialInstructions: placement.specialInstructions || null,
-              dimensions: placement.dimensions || null,
-              baseSize: placement.baseSize || null,
-              inkType: placement.inkType || null,
-              colorsJson: placement.colors || null,
-              sequenceJson: placement.sequence || null
-            }))
+            create: payload.placements.map((placement, index) => mapPlacementForDb(placement, index))
           }
         },
         include: { placements: true }
