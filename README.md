@@ -16,3 +16,10 @@ Sistema web para gestión de especificaciones técnicas de serigrafía.
 
 ## Estructura de Carpetas
  https://veleztegra-create.github.io/tegra-spec-manager/
+
+
+## Backend (MVP Node)
+
+Se agregó un backend inicial en `backend/` para desarrollo en Render durante la fase de consolidación.
+
+Revisa `backend/README.md` para instalación, migraciones y endpoints disponibles.
