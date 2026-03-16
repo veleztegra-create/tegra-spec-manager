@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extractor de Paletas - Texto debajo de barras</title>
+    <script src='https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js'></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e3c72;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .upload-zone {
+            border: 3px dashed #2a5298;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f5f7fa;
+            cursor: pointer;
+            margin-bottom: 25px;
+        }
+
+        .upload-zone:hover {
+            background: #e3f2fd;
+        }
+
+        .paste-hint {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .paste-hint kbd {
+            background: #2a5298;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .workspace {
+            display: none;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .image-wrapper {
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+        }
+
+        #sourceImage {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .detection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .color-box {
+            position: absolute;
+            border: 2px solid #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+            box-shadow: 0 0 10px rgba(0,255,0,0.5);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .color-swatch {
+            width: 45px;
+            height: 45px;
+            border-radius: 6px;
+            margin-right: 12px;
+            border: 2px solid #ddd;
+        }
+
+        .color-details {
+            flex: 1;
+        }
+
+        .color-name {
+            font-weight: bold;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .color-name:hover {
+            background: #e3f2fd;
+        }
+
+        .color-code {
+            font-family: monospace;
+            color: #666;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .color-hex {
+            font-family: monospace;
+            color: #2a5298;
+            font-size: 0.8em;
+            background: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            transition: width 0.3s;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .json-panel {
+            display: none;
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .json-header {
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .json-content {
+            padding: 20px;
+            color: #d4d4d4;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow: auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .keyboard-shortcut {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-size: 0.8em;
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="keyboard-shortcut">
+        <kbd>Ctrl</kbd> + <kbd>V</kbd> para pegar imagen
+    </div>
+
+    <div class="container">
+        <h1>🎨 Extractor de Paletas</h1>
+        <p class="subtitle">Texto debajo de las barras de color</p>
+
+        <div class="upload-zone" id="uploadZone">
+            <div style="font-size: 4em; margin-bottom: 15px;">📸</div>
+            <div style="font-weight: 600; margin-bottom: 8px;">
+                Arrastra tu imagen o haz click para seleccionar
+            </div>
+            <div class="paste-hint">
+                💡 También puedes presionar <kbd>Ctrl</kbd> + <kbd>V</kbd> para pegar una imagen
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+        </div>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="workspace" id="workspace">
+            <div class="panel">
+                <h3>🖼️ Imagen</h3>
+                <div class="image-wrapper">
+                    <img id="sourceImage" alt="Imagen cargada">
+                    <div class="detection-overlay" id="detectionOverlay"></div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="analyzeImage()" id="analyzeBtn">
+                        🔍 Analizar Colores
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadNewImage()">
+                        📁 Nueva Imagen
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>🎨 Colores Extraídos</h3>
+                
+                <div class="stats" id="statsPanel" style="display: none;">
+                    <div class="stat-item">
+                        <span>Encontrados: </span>
+                        <strong id="colorCount">0</strong>
+                    </div>
+                </div>
+
+                <div id="colorsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎯</div>
+                        <div>Los colores aparecerán aquí después del análisis</div>
+                    </div>
+                </div>
+
+                <div class="controls" style="margin-top: 15px;">
+                    <button class="btn btn-success" onclick="exportJSON()" id="exportBtn" disabled>
+                        💾 Exportar JSON
+                    </button>
+                    <button class="btn btn-primary" onclick="copyJSON()" id="copyBtn" disabled>
+                        📋 Copiar JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="json-panel" id="jsonPanel">
+            <div class="json-header">
+                <span>📄 JSON Generado</span>
+                <button class="btn btn-success" onclick="copyJSON()" style="padding: 6px 12px;">
+                    Copiar al portapapeles
+                </button>
+            </div>
+            <div class="json-content" id="jsonContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- Variables de estado ---
+        let currentImage = null;
+        let canvas = null;
+        let ctx = null;
+        let extractedColors = [];
+
+        // --- Inicialización ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupUpload();
+            setupPasteListener();
+        });
+
+        // --- Configuración de UI ---
+        function setupUpload() {
+            const zone = document.getElementById('uploadZone');
+            const input = document.getElementById('fileInput');
+
+            zone.addEventListener('click', () => input.click());
+            
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+            
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('dragover');
+            });
+            
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function setupPasteListener() {
+            document.addEventListener('paste', (e) => {
+                // Prevenir pegado solo si no estamos en un input
+                if (document.activeElement.tagName !== 'INPUT' && 
+                    document.activeElement.tagName !== 'TEXTAREA') {
+                    
+                    const items = e.clipboardData.items;
+                    for (let i = 0; i < items.length; i++) {
+                        if (items[i].type.indexOf('image') !== -1) {
+                            e.preventDefault();
+                            const blob = items[i].getAsFile();
+                            handlePastedImage(blob);
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            showStatus('✅ Listo! Puedes pegar imágenes con Ctrl+V', 'success');
+        }
+
+        // --- Manejo de imágenes ---
+        function handlePastedImage(blob) {
+            if (!blob) {
+                showStatus('No hay imagen en el portapapeles', 'error');
+                return;
+            }
+            
+            showStatus('Procesando imagen pegada...', 'info');
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                loadImageFromDataURL(e.target.result);
+                showStatus('✅ Imagen pegada correctamente', 'success');
+            };
+            reader.readAsDataURL(blob);
+        }
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showStatus('Por favor selecciona una imagen válida', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => loadImageFromDataURL(e.target.result);
+            reader.readAsDataURL(file);
+        }
+
+        function loadImageFromDataURL(dataURL) {
+            const img = new Image();
+            img.onload = () => {
+                currentImage = img;
+                document.getElementById('sourceImage').src = dataURL;
+                document.getElementById('workspace').style.display = 'grid';
+                document.getElementById('uploadZone').style.display = 'none';
+                
+                canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                
+                showStatus('Imagen lista para analizar', 'info');
+            };
+            img.src = dataURL;
+        }
+
+        // --- Análisis principal ---
+        async function analyzeImage() {
+            if (!currentImage) return;
+            
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            showProgress(true);
+            
+            // Limpiar overlay
+            document.getElementById('detectionOverlay').innerHTML = '';
+            
+            try {
+                // Detectar barras de color horizontales
+                const colorBars = detectColorBars();
+                
+                if (colorBars.length === 0) {
+                    showStatus('No se detectaron barras de color', 'error');
+                    return;
+                }
+                
+                updateProgress(30, `Encontradas ${colorBars.length} barras. Extrayendo colores...`);
+                
+                extractedColors = [];
+                
+                // Procesar cada barra de color
+                for (let i = 0; i < colorBars.length; i++) {
+                    const bar = colorBars[i];
+                    
+                    // Extraer color de la barra
+                    const colorData = ctx.getImageData(bar.x, bar.y, bar.width, bar.height);
+                    const hex = getAverageColor(colorData.data);
+                    
+                    // Buscar texto DEBAJO de la barra
+                    const textY = bar.y + bar.height + 5; // 5 píxeles de margen
+                    const textHeight = 40; // Altura aproximada del texto
+                    
+                    let name = 'COLOR';
+                    let code = '';
+                    
+                    if (textY + textHeight < canvas.height) {
+                        try {
+                            updateProgress(30 + ((i / colorBars.length) * 60), 
+                                `Leyendo texto de barra ${i+1}/${colorBars.length}...`);
+                            
+                            const text = await extractTextFromArea(bar.x, textY, bar.width, textHeight);
+                            const parsed = parseColorText(text);
+                            name = parsed.name || name;
+                            code = parsed.code || '';
+                        } catch (e) {
+                            console.warn('Error en OCR:', e);
+                        }
+                    }
+                    
+                    // Dibujar detección visual
+                    drawDetectionBox(bar.x, bar.y, bar.width, bar.height, hex);
+                    
+                    extractedColors.push({
+                        hex: hex,
+                        name: name.toUpperCase(),
+                        code: code.toUpperCase()
+                    });
+                }
+                
+                updateProgress(100, '¡Análisis completo!');
+                displayColors();
+                generateJSON();
+                
+                showStatus(`✅ ${extractedColors.length} colores encontrados`, 'success');
+                
+            } catch (error) {
+                console.error(error);
+                showStatus('Error en el análisis: ' + error.message, 'error');
+            } finally {
+                analyzeBtn.disabled = false;
+                showProgress(false);
+            }
+        }
+
+        // --- Detección de barras de color ---
+        function detectColorBars() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const bars = [];
+            
+            // Analizar la imagen en busca de líneas horizontales con color consistente
+            for (let y = 0; y < height; y += 5) {
+                const lineColors = getLineColors(y);
+                
+                // Si la línea tiene color (no es blanco/gris muy claro)
+                if (lineColors.hasColor && lineColors.consistency > 0.7) {
+                    // Buscar el final de esta barra
+                    let barHeight = 5;
+                    for (let y2 = y + 5; y2 < height; y2 += 5) {
+                        const nextLine = getLineColors(y2);
+                        if (!nextLine.hasColor || nextLine.consistency < 0.7) {
+                            break;
+                        }
+                        barHeight += 5;
+                    }
+                    
+                    // Solo considerar barras con altura suficiente
+                    if (barHeight >= 15) {
+                        // Detectar segmentos de color dentro de la barra (colores diferentes)
+                        const segments = detectColorSegments(y, barHeight);
+                        
+                        for (const segment of segments) {
+                            bars.push({
+                                x: segment.x,
+                                y: y,
+                                width: segment.width,
+                                height: barHeight
+                            });
+                        }
+                        
+                        y += barHeight;
+                    }
+                }
+            }
+            
+            return bars;
+        }
+
+        function getLineColors(y) {
+            const width = canvas.width;
+            const imageData = ctx.getImageData(0, y, width, 1);
+            const data = imageData.data;
+            
+            let colors = [];
+            let totalBrightness = 0;
+            
+            for (let x = 0; x < width; x += 10) {
+                const idx = x * 4;
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+                
+                const brightness = (r + g + b) / 3;
+                totalBrightness += brightness;
+                
+                colors.push([r, g, b]);
+            }
+            
+            const avgBrightness = totalBrightness / (width / 10);
+            
+            // Calcular consistencia de color (qué tan similares son los colores en la línea)
+            let colorVariance = 0;
+            if (colors.length > 1) {
+                for (let i = 1; i < colors.length; i++) {
+                    const dist = Math.sqrt(
+                        Math.pow(colors[i][0] - colors[i-1][0], 2) +
+                        Math.pow(colors[i][1] - colors[i-1][1], 2) +
+                        Math.pow(colors[i][2] - colors[i-1][2], 2)
+                    );
+                    colorVariance += dist;
+                }
+                colorVariance /= (colors.length - 1);
+            }
+            
+            return {
+                hasColor: avgBrightness < 230, // No es blanco
+                consistency: 1 - Math.min(1, colorVariance / 100) // Mayor valor = más consistente
+            };
+        }
+
+        function detectColorSegments(y, height) {
+            const width = canvas.width;
+            const segments = [];
+            let inSegment = false;
+            let segmentStart = 0;
+            let lastColor = null;
+            
+            // Muestrear cada 10 píxeles horizontalmente
+            for (let x = 0; x < width; x += 10) {
+                const pixel = ctx.getImageData(x, y + height/2, 1, 1).data;
+                const currentColor = [pixel[0], pixel[1], pixel[2]];
+                
+                if (!lastColor) {
+                    lastColor = currentColor;
+                    continue;
+                }
+                
+                const dist = Math.sqrt(
+                    Math.pow(currentColor[0] - lastColor[0], 2) +
+                    Math.pow(currentColor[1] - lastColor[1], 2) +
+                    Math.pow(currentColor[2] - lastColor[2], 2)
+                );
+                
+                // Cambio significativo de color
+                if (dist > 50) {
+                    if (inSegment) {
+                        if (x - segmentStart > 30) {
+                            segments.push({ x: segmentStart, width: x - segmentStart });
+                        }
+                        inSegment = false;
+                    }
+                } else if (!inSegment) {
+                    inSegment = true;
+                    segmentStart = x;
+                }
+                
+                lastColor = currentColor;
+            }
+            
+            // Último segmento
+            if (inSegment && width - segmentStart > 30) {
+                segments.push({ x: segmentStart, width: width - segmentStart });
+            }
+            
+            return segments;
+        }
+
+        // --- Extracción de texto con OCR ---
+        async function extractTextFromArea(x, y, width, height) {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Escalar para mejor OCR
+            const scale = 3;
+            tempCanvas.width = width * scale;
+            tempCanvas.height = height * scale;
+            
+            tempCtx.scale(scale, scale);
+            tempCtx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
+            
+            // Mejorar contraste para texto
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const brightness = (data[i] + data[i+1] + data[i+2]) / 3;
+                // Binarizar: texto oscuro sobre fondo claro
+                const value = brightness < 200 ? 0 : 255;
+                data[i] = data[i+1] = data[i+2] = value;
+            }
+            
+            tempCtx.putImageData(imageData, 0, 0);
+            
+            const result = await Tesseract.recognize(
+                tempCanvas,
+                'eng',
+                {
+                    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ',
+                    tessedit_pageseg_mode: '7' // Tratar como línea de texto
+                }
+            );
+            
+            return result.data.text.toUpperCase().trim();
+        }
+
+        // --- Parseo de texto de color ---
+        function parseColorText(text) {
+            // Patrones específicos para tu formato
+            const patterns = [
+                // OLD ROYAL 4DA
+                { regex: /(OLD\s+ROYAL).*?([A-Z0-9]{2,4})/i, nameIdx: 1, codeIdx: 2 },
+                // UNIVERSITY RED 65N / UNI RED 65N
+                { regex: /(UNIVERSITY\s+RED|UNI\s+RED).*?([A-Z0-9]{2,4})/i, nameIdx: 1, codeIdx: 2 },
+                // MARINE 41L
+                { regex: /(MARINE).*?([A-Z0-9]{2,4})/i, nameIdx: 1, codeIdx: 2 },
+                // CSI, TEAM, PMS, WHITE (solo nombre)
+                { regex: /(CSI|TEAM|PMS|WHITE|BLACK)/i, nameIdx: 1, codeIdx: null }
+            ];
+            
+            for (const pattern of patterns) {
+                const match = text.match(pattern.regex);
+                if (match) {
+                    const name = match[pattern.nameIdx]?.trim() || '';
+                    const code = pattern.codeIdx ? match[pattern.codeIdx]?.trim() || '' : '';
+                    
+                    // Normalizar nombres
+                    let normalizedName = name
+                        .replace(/UNI\s+RED/i, 'UNIVERSITY RED')
+                        .replace(/OLD\s+ROY/i, 'OLD ROYAL');
+                    
+                    return { name: normalizedName, code };
+                }
+            }
+            
+            // Si no hay patrón, tomar todo el texto como nombre
+            return { name: text, code: '' };
+        }
+
+        // --- Utilidades ---
+        function getAverageColor(data) {
+            let r = 0, g = 0, b = 0, count = 0;
+            
+            for (let i = 0; i < data.length; i += 16) {
+                r += data[i];
+                g += data[i + 1];
+                b += data[i + 2];
+                count++;
+            }
+            
+            r = Math.round(r / count);
+            g = Math.round(g / count);
+            b = Math.round(b / count);
+            
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+
+        function drawDetectionBox(x, y, width, height, color) {
+            const overlay = document.getElementById('detectionOverlay');
+            const img = document.getElementById('sourceImage');
+            
+            const scaleX = img.clientWidth / img.naturalWidth;
+            const scaleY = img.clientHeight / img.naturalHeight;
+            
+            const box = document.createElement('div');
+            box.className = 'color-box';
+            box.style.left = (x * scaleX) + 'px';
+            box.style.top = (y * scaleY) + 'px';
+            box.style.width = (width * scaleX) + 'px';
+            box.style.height = (height * scaleY) + 'px';
+            box.style.borderColor = color;
+            
+            overlay.appendChild(box);
+        }
+
+        // --- UI Functions ---
+        function displayColors() {
+            const list = document.getElementById('colorsList');
+            const count = document.getElementById('colorCount');
+            const stats = document.getElementById('statsPanel');
+            
+            count.textContent = extractedColors.length;
+            stats.style.display = 'flex';
+            
+            if (extractedColors.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">😕</div>
+                        <div>No se encontraron colores</div>
+                    </div>
+                `;
+                document.getElementById('exportBtn').disabled = true;
+                document.getElementById('copyBtn').disabled = true;
+                return;
+            }
+            
+            list.innerHTML = extractedColors.map((color, index) => `
+                <div class="color-item" style="border-left-color: ${color.hex}">
+                    <div class="color-swatch" style="background: ${color.hex}"></div>
+                    <div class="color-details">
+                        <div class="color-name" onclick="editField(${index}, 'name')">
+                            ${color.name}
+                        </div>
+                        <div class="color-code" onclick="editField(${index}, 'code')">
+                            ${color.code || '—'}
+                        </div>
+                        <div class="color-hex">${color.hex}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('exportBtn').disabled = false;
+            document.getElementById('copyBtn').disabled = false;
+        }
+
+        function editField(index, field) {
+            const color = extractedColors[index];
+            const newValue = prompt(`Editar ${field}:`, color[field]);
+            if (newValue !== null) {
+                color[field] = newValue.toUpperCase();
+                displayColors();
+                generateJSON();
+            }
+        }
+
+        function generateJSON() {
+            const db = {};
+            extractedColors.forEach(color => {
+                const key = color.name.replace(/\s+/g, '_').toUpperCase();
+                db[key] = {
+                    hex: color.hex,
+                    name: color.name
+                };
+                if (color.code) {
+                    db[key].code = color.code;
+                }
+            });
+            
+            document.getElementById('jsonContent').textContent = JSON.stringify(db, null, 4);
+            document.getElementById('jsonPanel').style.display = 'block';
+            return db;
+        }
+
+        function exportJSON() {
+            const db = generateJSON();
+            const blob = new Blob([JSON.stringify(db, null, 4)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `colores-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showStatus('Archivo descargado', 'success');
+        }
+
+        function copyJSON() {
+            const text = document.getElementById('jsonContent').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showStatus('JSON copiado al portapapeles', 'success');
+            });
+        }
+
+        function loadNewImage() {
+            currentImage = null;
+            canvas = null;
+            ctx = null;
+            extractedColors = [];
+            
+            document.getElementById('workspace').style.display = 'none';
+            document.getElementById('uploadZone').style.display = 'block';
+            document.getElementById('jsonPanel').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('sourceImage').src = '';
+            document.getElementById('detectionOverlay').innerHTML = '';
+            
+            showStatus('Carga una nueva imagen', 'info');
+        }
+
+        function showProgress(show) {
+            document.getElementById('progressContainer').style.display = show ? 'block' : 'none';
+        }
+
+        function updateProgress(percent, text) {
+            const fill = document.getElementById('progressFill');
+            fill.style.width = percent + '%';
+            fill.textContent = text || Math.round(percent) + '%';
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('statusMessage');
+            status.textContent = message;
+            status.className = 'status-message status-' + type;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
