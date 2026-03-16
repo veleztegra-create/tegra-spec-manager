@@ -2721,6 +2721,28 @@ function sanitizePaletteLabel(rawText) {
         .toUpperCase();
 }
 
+function parsePaletteLabelText(rawText) {
+    const textValue = sanitizePaletteLabel(rawText);
+    if (!textValue) return '';
+
+    const patterns = [
+        /(OLD\s+ROYAL)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(UNIVERSITY\s+RED|UNI\s+RED)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(MARINE)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(CSI|TEAM|PMS|WHITE|BLACK|NAVY|SILVER|GRAY|GREY)(?:\s+([A-Z0-9]{1,4}))?/i
+    ];
+
+    for (const regex of patterns) {
+        const match = textValue.match(regex);
+        if (!match) continue;
+        const name = String(match[1] || '').replace(/UNI\s+RED/i, 'UNIVERSITY RED').trim();
+        const code = String(match[2] || '').trim();
+        return [name, code].filter(Boolean).join(' ').trim();
+    }
+
+    return textValue;
+}
+
 async function extractPaletteTextLabels(imageData, colorCount, colors) {
     try {
         const Tesseract = await loadTesseractWorker();
@@ -2995,7 +3017,8 @@ function buildDashboardPaletteJsonPayload(colors) {
             const hex = color.hex || rgbToHex(color.r, color.g, color.b);
             return {
                 index: index + 1,
-                name: color.labelText || findColorNameByHex(hex),
+                name: color.labelText || null,
+                suggestedName: color.labelText ? null : findColorNameByHex(hex),
                 hex,
                 rgb: {
                     r: Number(color.r) || 0,
@@ -3056,13 +3079,15 @@ function renderDashboardPaletteResults(colors) {
     resultsEl.innerHTML = colors.map((color, index) => {
         const hex = color.hex || rgbToHex(color.r, color.g, color.b);
         const rgb = `${color.r}, ${color.g}, ${color.b}`;
-        const colorName = color.labelText || findColorNameByHex(hex);
+        const colorName = color.labelText || null;
+        const suggestedName = colorName ? null : findColorNameByHex(hex);
         return `
             <div class="palette-color-card">
                 <div class="palette-color-chip" style="background:${hex};"></div>
                 <div class="palette-color-meta">
                     <strong>${hex}</strong>
-                    ${colorName ? `<div>${colorName}</div>` : ''}
+                    ${colorName ? `<div>${colorName}</div>` : '<div style="opacity:.7;">SIN TEXTO OCR</div>'}
+                    ${suggestedName ? `<div style="font-size:.72rem; opacity:.65;">Sugerido: ${suggestedName}</div>` : ''}
                     RGB(${rgb})
                     <div style="margin-top:6px; font-size:0.74rem;">Color ${index + 1}</div>
                 </div>
