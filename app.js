@@ -2762,16 +2762,49 @@ function extractPaletteFromImageData(imageData, maxColors = 6) {
     return deduped.slice(0, k);
 }
 
+function hexToRgb(hexValue) {
+    const normalizedHex = String(hexValue || '').trim().replace('#', '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(normalizedHex)) return null;
+
+    return {
+        r: parseInt(normalizedHex.slice(0, 2), 16),
+        g: parseInt(normalizedHex.slice(2, 4), 16),
+        b: parseInt(normalizedHex.slice(4, 6), 16)
+    };
+}
+
 function findColorNameByHex(hexValue) {
     const target = String(hexValue || '').trim().toUpperCase();
     if (!target) return null;
 
     const all = window.ColorConfig?.db?.all || {};
-    const found = Object.values(all).find((entry) => {
-        return String(entry?.hex || '').trim().toUpperCase() === target;
+    const entries = Object.values(all)
+        .map((entry) => ({
+            key: entry?.key,
+            hex: String(entry?.hex || '').trim().toUpperCase()
+        }))
+        .filter((entry) => entry.key && /^#[0-9A-F]{6}$/.test(entry.hex));
+
+    if (entries.length === 0) return null;
+
+    const exactMatch = entries.find((entry) => entry.hex === target);
+    if (exactMatch) return exactMatch.key;
+
+    const targetRgb = hexToRgb(target);
+    if (!targetRgb) return null;
+
+    let best = null;
+    entries.forEach((entry) => {
+        const rgb = hexToRgb(entry.hex);
+        if (!rgb) return;
+        const dist = colorDistance(targetRgb, rgb);
+        if (!best || dist < best.distance) {
+            best = { key: entry.key, distance: dist };
+        }
     });
 
-    return found?.key || null;
+    // Umbral permisivo para aproximar colores de captura que no son exactos
+    return best && best.distance <= 52 ? best.key : null;
 }
 
 function buildDashboardPaletteJsonPayload(colors) {
@@ -2860,10 +2893,44 @@ function renderDashboardPaletteResults(colors) {
     }).join('');
 }
 
+function setDashboardPalettePreview(imageDataUrl) {
+    const imagePreview = document.getElementById('palette-source-image');
+    const emptyState = document.getElementById('palette-empty-state');
+    if (!imagePreview) return;
+
+    dashboardPaletteImageDataUrl = String(imageDataUrl || '');
+    imagePreview.src = dashboardPaletteImageDataUrl;
+    imagePreview.style.display = 'block';
+    if (emptyState) emptyState.style.display = 'none';
+}
+
+function handlePalettePasteEvent(event) {
+    const isDashboardVisible = document.getElementById('dashboard')?.classList?.contains('active');
+    if (!isDashboardVisible) return;
+
+    const items = event.clipboardData?.items || [];
+    const imageItem = Array.from(items).find((item) => item.type && item.type.startsWith('image/'));
+    if (!imageItem) return;
+
+    event.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        setDashboardPalettePreview(String(reader.result || ''));
+        showStatus('📋 Imagen pegada desde portapapeles', 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+function focusPasteForPaletteFromDashboard() {
+    showStatus('📋 Ahora pega la imagen con Ctrl/Cmd + V', 'warning');
+}
+
 function initDashboardPaletteExtractor() {
     const imageInput = document.getElementById('palette-image-input');
     const imagePreview = document.getElementById('palette-source-image');
-    const emptyState = document.getElementById('palette-empty-state');
     if (!imageInput || !imagePreview || imageInput.dataset.bound === '1') return;
 
     imageInput.addEventListener('change', (event) => {
@@ -2872,13 +2939,12 @@ function initDashboardPaletteExtractor() {
 
         const reader = new FileReader();
         reader.onload = () => {
-            dashboardPaletteImageDataUrl = String(reader.result || '');
-            imagePreview.src = dashboardPaletteImageDataUrl;
-            imagePreview.style.display = 'block';
-            if (emptyState) emptyState.style.display = 'none';
+            setDashboardPalettePreview(String(reader.result || ''));
         };
         reader.readAsDataURL(file);
     });
+
+    document.addEventListener('paste', handlePalettePasteEvent);
 
     imageInput.dataset.bound = '1';
     updatePaletteJsonOutput(dashboardPaletteExtractedColors);
@@ -2935,6 +3001,7 @@ function runPaletteExtractorFromDashboard() {
 window.runPaletteExtractorFromDashboard = runPaletteExtractorFromDashboard;
 window.copyPaletteJsonFromDashboard = copyPaletteJsonFromDashboard;
 window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
+window.focusPasteForPaletteFromDashboard = focusPasteForPaletteFromDashboard;
 function updateDashboard() {
     try {
         const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));

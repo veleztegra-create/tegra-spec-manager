@@ -29,33 +29,42 @@
         <h2 class="card-title"><i class="fas fa-palette"></i> Extractor de Paletas (Techpack)</h2>
     </div>
     <div class="card-body">
-        <div class="palette-extractor-controls">
-            <input type="file" id="palette-image-input" class="form-control" accept="image/*" />
-            <input type="number" id="palette-color-count" class="form-control" min="2" max="12" value="6" />
-            <button class="btn btn-primary" onclick="runPaletteExtractorFromDashboard()">
-                <i class="fas fa-magic"></i> Extraer
-            </button>
-        </div>
+        <div class="palette-layout-grid">
+            <div class="palette-layout-left">
+                <div class="palette-extractor-controls">
+                    <input type="file" id="palette-image-input" class="form-control" accept="image/*" />
+                    <input type="number" id="palette-color-count" class="form-control" min="2" max="12" value="6" />
+                    <button class="btn btn-outline" onclick="focusPasteForPaletteFromDashboard()">
+                        <i class="fas fa-paste"></i> Pegar Imagen
+                    </button>
+                    <button class="btn btn-primary" onclick="runPaletteExtractorFromDashboard()">
+                        <i class="fas fa-magic"></i> Extraer
+                    </button>
+                </div>
 
-        <div class="palette-extractor-preview" id="palette-extractor-preview">
-            <img id="palette-source-image" alt="Vista previa de captura Techpack" style="display:none;" />
-            <canvas id="palette-extractor-canvas" width="320" height="200" style="display:none;"></canvas>
-            <p id="palette-empty-state" style="color: var(--text-secondary); text-align:center; padding: 16px; margin:0;">
-                Carga una captura del techpack para detectar colores dominantes.
-            </p>
-        </div>
+                <div class="palette-extractor-preview" id="palette-extractor-preview">
+                    <img id="palette-source-image" alt="Vista previa de captura Techpack" style="display:none;" />
+                    <canvas id="palette-extractor-canvas" width="320" height="200" style="display:none;"></canvas>
+                    <p id="palette-empty-state" style="color: var(--text-secondary); text-align:center; padding: 16px; margin:0;">
+                        Carga una captura del techpack o pégala desde el portapapeles para detectar colores dominantes.
+                    </p>
+                </div>
 
-        <div id="palette-results" class="palette-results"></div>
+                <div id="palette-results" class="palette-results"></div>
+            </div>
 
-        <div class="palette-json-tools">
-            <button class="btn btn-outline" onclick="copyPaletteJsonFromDashboard()">
-                <i class="fas fa-copy"></i> Copiar JSON
-            </button>
-            <button class="btn btn-success" onclick="downloadPaletteJsonFromDashboard()">
-                <i class="fas fa-download"></i> Descargar JSON
-            </button>
+            <div class="palette-layout-right">
+                <div class="palette-json-tools">
+                    <button class="btn btn-outline" onclick="copyPaletteJsonFromDashboard()">
+                        <i class="fas fa-copy"></i> Copiar JSON
+                    </button>
+                    <button class="btn btn-success" onclick="downloadPaletteJsonFromDashboard()">
+                        <i class="fas fa-download"></i> Descargar JSON
+                    </button>
+                </div>
+                <pre id="palette-json-output" class="palette-json-output">[]</pre>
+            </div>
         </div>
-        <pre id="palette-json-output" class="palette-json-output">[]</pre>
     </div>
 </div>
 
