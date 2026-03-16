@@ -2724,68 +2724,62 @@ function sanitizePaletteLabel(rawText) {
 async function extractPaletteTextLabels(imageData, colorCount, colors) {
     try {
         const Tesseract = await loadTesseractWorker();
-        if (!Tesseract?.recognize || !imageData) return [];
+        if (!Tesseract?.recognize || !imageData || !Array.isArray(colors) || colors.length === 0) return [];
 
         const width = imageData.width;
         const height = imageData.height;
-        const columns = Math.max(2, Math.min(Number(colorCount) || 6, 12));
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return [];
+        const baseCanvas = document.createElement('canvas');
+        const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+        if (!baseCtx) return [];
 
-        canvas.width = width;
-        canvas.height = height;
-        ctx.putImageData(imageData, 0, 0);
+        baseCanvas.width = width;
+        baseCanvas.height = height;
+        baseCtx.putImageData(imageData, 0, 0);
 
-        const textStartY = Math.floor(height * 0.56);
-        const labelMatches = [];
+        const textStartY = Math.floor(height * 0.50);
+        const textHeight = Math.max(24, Math.floor(height * 0.48));
+        const labels = [];
 
-        for (let i = 0; i < columns; i++) {
-            const x0 = Math.floor((i * width) / columns);
-            const x1 = Math.floor(((i + 1) * width) / columns);
+        for (let i = 0; i < colors.length; i++) {
+            const fallbackX0 = Math.floor((i * width) / colors.length);
+            const fallbackX1 = Math.floor(((i + 1) * width) / colors.length);
+            const x0 = Math.max(0, Number.isFinite(colors[i].x) ? Math.floor(colors[i].x) : fallbackX0);
+            const x1 = Math.min(width, Number.isFinite(colors[i].width) ? Math.floor(colors[i].x + colors[i].width) : fallbackX1);
             const segmentW = Math.max(1, x1 - x0);
-            const segmentH = Math.max(1, height - textStartY);
 
             const segCanvas = document.createElement('canvas');
-            segCanvas.width = segmentW;
-            segCanvas.height = segmentH;
+            segCanvas.width = segmentW * 4;
+            segCanvas.height = textHeight * 4;
             const segCtx = segCanvas.getContext('2d', { willReadFrequently: true });
             if (!segCtx) continue;
 
-            segCtx.drawImage(canvas, x0, textStartY, segmentW, segmentH, 0, 0, segmentW, segmentH);
+            segCtx.scale(4, 4);
+            segCtx.drawImage(baseCanvas, x0, textStartY, segmentW, textHeight, 0, 0, segmentW, textHeight);
 
-            const sampleY = Math.max(2, Math.floor(height * 0.24));
-            const sampleX = Math.floor((x0 + x1) / 2);
-            const px = ctx.getImageData(Math.max(0, Math.min(width - 1, sampleX)), Math.max(0, Math.min(height - 1, sampleY)), 1, 1).data;
-            const sampleHex = rgbToHex(px[0], px[1], px[2]);
+            const enhanced = segCtx.getImageData(0, 0, segCanvas.width, segCanvas.height);
+            const data = enhanced.data;
+            for (let px = 0; px < data.length; px += 4) {
+                const brightness = (data[px] + data[px + 1] + data[px + 2]) / 3;
+                const value = brightness < 205 ? 0 : 255;
+                data[px] = value;
+                data[px + 1] = value;
+                data[px + 2] = value;
+            }
+            segCtx.putImageData(enhanced, 0, 0);
 
             const result = await Tesseract.recognize(segCanvas, 'eng', {
-                tessedit_pageseg_mode: '7'
+                tessedit_pageseg_mode: '6',
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -/'
             });
 
-            const label = sanitizePaletteLabel(result?.data?.text || '');
-            if (label.length < 2) continue;
-            labelMatches.push({ label, sampleHex });
+            const parsedLabel = parsePaletteLabelText(result?.data?.text || '');
+            if (!parsedLabel || parsedLabel.length < 2) continue;
+
+            colors[i].labelText = parsedLabel;
+            labels.push({ index: i, label: parsedLabel });
         }
 
-        labelMatches.forEach((item) => {
-            let bestIndex = -1;
-            let bestDistance = Number.POSITIVE_INFINITY;
-            colors.forEach((color, idx) => {
-                const colorHex = color.hex || rgbToHex(color.r, color.g, color.b);
-                const d = colorDistance(hexToRgb(colorHex) || { r: 0, g: 0, b: 0 }, hexToRgb(item.sampleHex) || { r: 0, g: 0, b: 0 });
-                if (d < bestDistance) {
-                    bestDistance = d;
-                    bestIndex = idx;
-                }
-            });
-
-            if (bestIndex >= 0 && colors[bestIndex]) {
-                colors[bestIndex].labelText = item.label;
-            }
-        });
-
-        return labelMatches;
+        return labels;
     } catch (error) {
         console.warn('No se pudieron extraer etiquetas OCR para la paleta:', error);
         return [];
@@ -2794,8 +2788,87 @@ async function extractPaletteTextLabels(imageData, colorCount, colors) {
 
 function extractPaletteFromImageData(imageData, maxColors = 6) {
     const pixels = imageData?.data;
-    if (!pixels || pixels.length < 4) return [];
+    const width = imageData?.width || 0;
+    const height = imageData?.height || 0;
+    if (!pixels || pixels.length < 4 || width < 2 || height < 2) return [];
 
+    const desiredColors = Math.max(2, Math.min(Number(maxColors) || 6, 12));
+
+    const getPixel = (x, y) => {
+        const idx = (y * width + x) * 4;
+        return { r: pixels[idx], g: pixels[idx + 1], b: pixels[idx + 2], a: pixels[idx + 3] };
+    };
+
+    // 1) Detección tipo "barras con texto debajo": leer una línea en la zona superior/media
+    const sampleY = Math.max(1, Math.min(height - 2, Math.floor(height * 0.32)));
+    const scanStep = Math.max(1, Math.floor(width / 500));
+    const bars = [];
+    let startX = -1;
+    let lastColor = null;
+
+    const isColorful = (px) => {
+        if ((px?.a || 0) < 20) return false;
+        const brightness = ((px.r || 0) + (px.g || 0) + (px.b || 0)) / 3;
+        return brightness > 18 && brightness < 245;
+    };
+
+    const pushBar = (x0, x1) => {
+        const barWidth = x1 - x0;
+        if (barWidth < Math.max(8, Math.floor(width * 0.02))) return;
+
+        const sampleX = Math.floor((x0 + x1) / 2);
+        const px = getPixel(Math.max(0, Math.min(width - 1, sampleX)), sampleY);
+        bars.push({
+            x: x0,
+            width: barWidth,
+            r: px.r,
+            g: px.g,
+            b: px.b,
+            hex: rgbToHex(px.r, px.g, px.b)
+        });
+    };
+
+    for (let x = 0; x < width; x += scanStep) {
+        const px = getPixel(x, sampleY);
+        const colorful = isColorful(px);
+
+        if (!colorful) {
+            if (startX >= 0) {
+                pushBar(startX, x);
+                startX = -1;
+                lastColor = null;
+            }
+            continue;
+        }
+
+        if (startX < 0) {
+            startX = x;
+            lastColor = px;
+            continue;
+        }
+
+        const d = colorDistance(px, lastColor || px);
+        if (d > 35) {
+            pushBar(startX, x);
+            startX = x;
+        }
+        lastColor = px;
+    }
+
+    if (startX >= 0) {
+        pushBar(startX, width - 1);
+    }
+
+    const normalizedBars = bars
+        .filter((bar) => bar.width >= Math.max(8, Math.floor(width * 0.02)))
+        .slice(0, desiredColors)
+        .map((bar) => ({ r: bar.r, g: bar.g, b: bar.b, hex: bar.hex, x: bar.x, width: bar.width }));
+
+    if (normalizedBars.length >= 2) {
+        return normalizedBars;
+    }
+
+    // 2) Fallback robusto por clustering (k-means simplificado)
     const sampleStep = 16;
     const samples = [];
     for (let i = 0; i < pixels.length; i += 4 * sampleStep) {
@@ -2814,7 +2887,7 @@ function extractPaletteFromImageData(imageData, maxColors = 6) {
 
     if (samples.length === 0) return [];
 
-    const k = Math.max(2, Math.min(Number(maxColors) || 6, 12, samples.length));
+    const k = Math.max(2, Math.min(desiredColors, samples.length));
     const centroids = [];
     const stride = Math.max(1, Math.floor(samples.length / k));
 
@@ -2867,7 +2940,7 @@ function extractPaletteFromImageData(imageData, maxColors = 6) {
     return deduped.slice(0, k);
 }
 
-function hexToRgb(hexValue) {
+function hexToRgbObject(hexValue) {
     const normalizedHex = String(hexValue || '').trim().replace('#', '');
     if (!/^[0-9A-Fa-f]{6}$/.test(normalizedHex)) return null;
 
@@ -2895,12 +2968,12 @@ function findColorNameByHex(hexValue) {
     const exactMatch = entries.find((entry) => entry.hex === target);
     if (exactMatch) return exactMatch.key;
 
-    const targetRgb = hexToRgb(target);
+    const targetRgb = hexToRgbObject(target);
     if (!targetRgb) return null;
 
     let best = null;
     entries.forEach((entry) => {
-        const rgb = hexToRgb(entry.hex);
+        const rgb = hexToRgbObject(entry.hex);
         if (!rgb) return;
         const dist = colorDistance(targetRgb, rgb);
         if (!best || dist < best.distance) {
