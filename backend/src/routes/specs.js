@@ -1,36 +1,9 @@
 import { prisma } from '../db.js';
-
-function normalizeSpecPayload(payload = {}) {
-  const generalData = payload.generalData || {};
-  const placements = Array.isArray(payload.placements)
-    ? payload.placements.filter((placement) => placement && typeof placement === 'object')
-    : [];
-
-  return {
-    generalData,
-    placements,
-    meta: payload.meta || {}
-  };
-}
-
-function mapPlacementForDb(placement = {}, index = 0) {
-  return {
-    orderIndex: index,
-    type: placement.type || null,
-    name: placement.name || null,
-    placementDetails: placement.placementDetails || null,
-    specialInstructions: placement.specialInstructions || null,
-    dimensions: placement.dimensions || null,
-    baseSize: placement.baseSize || null,
-    inkType: placement.inkType || null,
-    colorsJson: placement.colors || null,
-    sequenceJson: placement.sequence || null
-  };
-}
+import { clampLimit, mapPlacementForDb, normalizeSpecPayload, toOptionalString } from './normalizers.js';
 
 export default async function specsRoutes(fastify) {
   fastify.get('/specs', async (request) => {
-    const limit = Math.min(Number(request.query.limit) || 20, 100);
+    const limit = clampLimit(request.query.limit);
     const specs = await prisma.spec.findMany({
       orderBy: { updatedAt: 'desc' },
       take: limit,
@@ -64,14 +37,14 @@ export default async function specsRoutes(fastify) {
 
     const created = await prisma.spec.create({
       data: {
-        style: generalData.style || null,
-        customer: generalData.customer || null,
-        season: generalData.season || null,
-        colorway: generalData.colorway || null,
-        po: generalData.po || null,
-        nameTeam: generalData.nameTeam || null,
-        program: generalData.program || null,
-        specDate: generalData.specDate || null,
+        style: toOptionalString(generalData.style),
+        customer: toOptionalString(generalData.customer),
+        season: toOptionalString(generalData.season),
+        colorway: toOptionalString(generalData.colorway),
+        po: toOptionalString(generalData.po),
+        nameTeam: toOptionalString(generalData.nameTeam),
+        program: toOptionalString(generalData.program),
+        specDate: toOptionalString(generalData.specDate),
         payloadJson: payload,
         placements: {
           create: payload.placements.map((placement, index) => mapPlacementForDb(placement, index))
@@ -96,14 +69,14 @@ export default async function specsRoutes(fastify) {
       return tx.spec.update({
         where: { id: request.params.id },
         data: {
-          style: generalData.style || null,
-          customer: generalData.customer || null,
-          season: generalData.season || null,
-          colorway: generalData.colorway || null,
-          po: generalData.po || null,
-          nameTeam: generalData.nameTeam || null,
-          program: generalData.program || null,
-          specDate: generalData.specDate || null,
+          style: toOptionalString(generalData.style),
+          customer: toOptionalString(generalData.customer),
+          season: toOptionalString(generalData.season),
+          colorway: toOptionalString(generalData.colorway),
+          po: toOptionalString(generalData.po),
+          nameTeam: toOptionalString(generalData.nameTeam),
+          program: toOptionalString(generalData.program),
+          specDate: toOptionalString(generalData.specDate),
           payloadJson: payload,
           placements: {
             create: payload.placements.map((placement, index) => mapPlacementForDb(placement, index))
