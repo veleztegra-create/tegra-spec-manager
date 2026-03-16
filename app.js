@@ -2673,6 +2673,7 @@ function setupExcelImportHandler() {
 
 let dashboardPaletteExtractedColors = [];
 let dashboardPaletteImageDataUrl = "";
+let tesseractLoaderPromise = null;
 
 function rgbToHex(r, g, b) {
     const clamp = (value) => Math.max(0, Math.min(255, Number(value) || 0));
@@ -2685,6 +2686,110 @@ function colorDistance(a, b) {
         Math.pow((a.g || 0) - (b.g || 0), 2) +
         Math.pow((a.b || 0) - (b.b || 0), 2)
     );
+}
+
+async function loadTesseractWorker() {
+    if (window.Tesseract?.recognize) return window.Tesseract;
+    if (tesseractLoaderPromise) return tesseractLoaderPromise;
+
+    tesseractLoaderPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-tesseract-loader="1"]');
+        if (existing) {
+            existing.addEventListener('load', () => resolve(window.Tesseract));
+            existing.addEventListener('error', reject);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        script.async = true;
+        script.dataset.tesseractLoader = '1';
+        script.onload = () => resolve(window.Tesseract);
+        script.onerror = () => reject(new Error('No se pudo cargar Tesseract.js'));
+        document.head.appendChild(script);
+    });
+
+    return tesseractLoaderPromise;
+}
+
+function sanitizePaletteLabel(rawText) {
+    return String(rawText || '')
+        .replace(/[\n\r]+/g, ' ')
+        .replace(/[^A-Za-z0-9\-\s/]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toUpperCase();
+}
+
+async function extractPaletteTextLabels(imageData, colorCount, colors) {
+    try {
+        const Tesseract = await loadTesseractWorker();
+        if (!Tesseract?.recognize || !imageData) return [];
+
+        const width = imageData.width;
+        const height = imageData.height;
+        const columns = Math.max(2, Math.min(Number(colorCount) || 6, 12));
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return [];
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.putImageData(imageData, 0, 0);
+
+        const textStartY = Math.floor(height * 0.56);
+        const labelMatches = [];
+
+        for (let i = 0; i < columns; i++) {
+            const x0 = Math.floor((i * width) / columns);
+            const x1 = Math.floor(((i + 1) * width) / columns);
+            const segmentW = Math.max(1, x1 - x0);
+            const segmentH = Math.max(1, height - textStartY);
+
+            const segCanvas = document.createElement('canvas');
+            segCanvas.width = segmentW;
+            segCanvas.height = segmentH;
+            const segCtx = segCanvas.getContext('2d', { willReadFrequently: true });
+            if (!segCtx) continue;
+
+            segCtx.drawImage(canvas, x0, textStartY, segmentW, segmentH, 0, 0, segmentW, segmentH);
+
+            const sampleY = Math.max(2, Math.floor(height * 0.24));
+            const sampleX = Math.floor((x0 + x1) / 2);
+            const px = ctx.getImageData(Math.max(0, Math.min(width - 1, sampleX)), Math.max(0, Math.min(height - 1, sampleY)), 1, 1).data;
+            const sampleHex = rgbToHex(px[0], px[1], px[2]);
+
+            const result = await Tesseract.recognize(segCanvas, 'eng', {
+                tessedit_pageseg_mode: '7'
+            });
+
+            const label = sanitizePaletteLabel(result?.data?.text || '');
+            if (label.length < 2) continue;
+            labelMatches.push({ label, sampleHex });
+        }
+
+        labelMatches.forEach((item) => {
+            let bestIndex = -1;
+            let bestDistance = Number.POSITIVE_INFINITY;
+            colors.forEach((color, idx) => {
+                const colorHex = color.hex || rgbToHex(color.r, color.g, color.b);
+                const d = colorDistance(hexToRgb(colorHex) || { r: 0, g: 0, b: 0 }, hexToRgb(item.sampleHex) || { r: 0, g: 0, b: 0 });
+                if (d < bestDistance) {
+                    bestDistance = d;
+                    bestIndex = idx;
+                }
+            });
+
+            if (bestIndex >= 0 && colors[bestIndex]) {
+                colors[bestIndex].labelText = item.label;
+            }
+        });
+
+        return labelMatches;
+    } catch (error) {
+        console.warn('No se pudieron extraer etiquetas OCR para la paleta:', error);
+        return [];
+    }
 }
 
 function extractPaletteFromImageData(imageData, maxColors = 6) {
@@ -2817,7 +2922,7 @@ function buildDashboardPaletteJsonPayload(colors) {
             const hex = color.hex || rgbToHex(color.r, color.g, color.b);
             return {
                 index: index + 1,
-                name: findColorNameByHex(hex),
+                name: color.labelText || findColorNameByHex(hex),
                 hex,
                 rgb: {
                     r: Number(color.r) || 0,
@@ -2878,7 +2983,7 @@ function renderDashboardPaletteResults(colors) {
     resultsEl.innerHTML = colors.map((color, index) => {
         const hex = color.hex || rgbToHex(color.r, color.g, color.b);
         const rgb = `${color.r}, ${color.g}, ${color.b}`;
-        const colorName = findColorNameByHex(hex);
+        const colorName = color.labelText || findColorNameByHex(hex);
         return `
             <div class="palette-color-card">
                 <div class="palette-color-chip" style="background:${hex};"></div>
@@ -2950,7 +3055,7 @@ function initDashboardPaletteExtractor() {
     updatePaletteJsonOutput(dashboardPaletteExtractedColors);
 }
 
-function runPaletteExtractorFromDashboard() {
+async function runPaletteExtractorFromDashboard() {
     const imagePreview = document.getElementById('palette-source-image');
     const hiddenCanvas = document.getElementById('palette-extractor-canvas');
     const colorCountInput = document.getElementById('palette-color-count');
@@ -2962,7 +3067,7 @@ function runPaletteExtractorFromDashboard() {
     }
 
     const img = new Image();
-    img.onload = () => {
+    img.onload = async () => {
         const ctx = hiddenCanvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
 
@@ -2979,6 +3084,7 @@ function runPaletteExtractorFromDashboard() {
         const imageData = ctx.getImageData(0, 0, width, height);
         const maxColors = Number(colorCountInput?.value || 6);
         dashboardPaletteExtractedColors = extractPaletteFromImageData(imageData, maxColors);
+        await extractPaletteTextLabels(imageData, maxColors, dashboardPaletteExtractedColors);
 
         renderDashboardPaletteResults(dashboardPaletteExtractedColors);
         updatePaletteJsonOutput(dashboardPaletteExtractedColors);
