@@ -27,4 +27,8 @@ Revisa `backend/README.md` para instalación, migraciones y endpoints disponible
 
 ### Deploy rápido en Render
 
-El repo incluye `render.yaml` en la raíz para aprovisionar el backend con `rootDir: backend` y evitar errores de build por `package.json` no encontrado.
+El repo incluye `render.yaml` en la raíz y un `package.json` raíz para que Render pueda construir y arrancar el backend **sin depender de `rootDir`**.
+
+Comandos usados por Render:
+- Build: `npm run render:build`
+- Start: `npm run render:start`

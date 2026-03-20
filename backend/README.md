@@ -20,6 +20,12 @@ npm run prisma:migrate
 npm run dev
 ```
 
+## Arranque desde la raíz del repo
+```bash
+npm run render:build
+npm run render:start
+```
+
 ## Endpoints MVP
 - `GET /health`
 - `GET /health/db`
@@ -32,8 +38,9 @@ npm run dev
 - `POST /api/palette-extractions`
 
 ## Notas de despliegue (Render)
-1. Crear servicio web y configurar **Root Directory = `backend`** (si no, fallará con `ENOENT /opt/render/project/src/package.json`).
-2. Build command: `npm install && npm run prisma:generate && npm run prisma:deploy`
-3. Start command: `npm start`
-4. Configurar `DATABASE_URL` desde Render PostgreSQL.
-5. Opcional recomendado: usar el `render.yaml` de la raíz para crear el servicio con estos valores automáticamente.
+1. Crea el Web Service apuntando a la **raíz del repo**; ya no dependemos de `Root Directory = backend`.
+2. Build command: `npm run render:build`
+3. Start command: `npm run render:start`
+4. Configura `DATABASE_URL` con la **Internal Database URL** de Render PostgreSQL.
+5. Si ves un 404 con una ruta rara como `GET:/healthhttps://.../health/db`, significa que la URL se pegó concatenada; prueba `/health` y `/health/db` por separado.
+6. Opcional recomendado: usa el `render.yaml` de la raíz para crear el servicio automáticamente.

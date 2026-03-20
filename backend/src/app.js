@@ -24,5 +24,24 @@ export function buildApp() {
     });
   });
 
+  app.setNotFoundHandler((request, reply) => {
+    const requestedUrl = request.raw.url || request.url || '';
+    const looksConcatenated = requestedUrl.includes('http://') || requestedUrl.includes('https://');
+
+    return reply.code(404).send({
+      error: 'Not Found',
+      message: looksConcatenated
+        ? 'La URL parece concatenada. Prueba abrir /health y /health/db por separado.'
+        : `Ruta ${request.method} ${requestedUrl} no encontrada.`,
+      requestedUrl,
+      availableRoutes: [
+        '/health',
+        '/health/db',
+        '/api/specs',
+        '/api/palette-extractions'
+      ]
+    });
+  });
+
   return app;
 }
