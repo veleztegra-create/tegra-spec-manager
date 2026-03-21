@@ -1,12 +1,46 @@
+import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import healthRoutes from './routes/health.js';
 import specsRoutes from './routes/specs.js';
 import paletteRoutes from './routes/palette.js';
 
+
+function getAllowedOrigins() {
+  const configuredOrigins = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (configuredOrigins.length > 0) {
+    return configuredOrigins;
+  }
+
+  return [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:4173',
+    'http://127.0.0.1:4173',
+    'https://veleztegra-create.github.io'
+  ];
+}
+
 export function buildApp() {
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || 'info'
+    }
+  });
+
+  const allowedOrigins = getAllowedOrigins();
+
+  app.register(cors, {
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('Origen no permitido por CORS'), false);
     }
   });
 

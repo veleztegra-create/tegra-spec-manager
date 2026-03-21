@@ -11,6 +11,8 @@ Backend MVP para desarrollo en Render durante la fase de consolidación funciona
 ## Variables de entorno
 Copia `.env.example` a `.env` y completa `DATABASE_URL`.
 
+- `CORS_ORIGINS`: lista separada por comas de orígenes permitidos para consumir la API desde navegador.
+
 ## Desarrollo local
 ```bash
 cd backend
@@ -43,6 +45,7 @@ npm run render:start
 2. Build command: `npm run render:build`
 3. Start command: `npm run render:start`
 4. Configura `DATABASE_URL` con la **Internal Database URL** de Render PostgreSQL.
-5. La raíz `/` ahora devuelve un payload simple con las rutas disponibles para validar rápido que el servicio está arriba.
-6. Si ves un 404 con una ruta rara como `GET:/healthhttps://.../health/db`, significa que la URL se pegó concatenada; prueba `/health` y `/health/db` por separado.
-7. Opcional recomendado: usa el `render.yaml` de la raíz para crear el servicio automáticamente.
+5. Configura `CORS_ORIGINS` con la URL pública del frontend (por ejemplo GitHub Pages) y cualquier entorno local que quieras permitir.
+6. La raíz `/` ahora devuelve un payload simple con las rutas disponibles para validar rápido que el servicio está arriba.
+7. Si ves un 404 con una ruta rara como `GET:/healthhttps://.../health/db`, significa que la URL se pegó concatenada; prueba `/health` y `/health/db` por separado.
+8. Opcional recomendado: usa el `render.yaml` de la raíz para crear el servicio automáticamente.

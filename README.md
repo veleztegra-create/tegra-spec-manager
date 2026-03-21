@@ -33,3 +33,4 @@ Comandos usados por Render:
 - Build: `npm run render:build`
 - Start: `npm run render:start`
 - Verificación rápida: abre `/` o `/health` en la URL pública del servicio
+- Si el frontend vive en otro dominio, define `CORS_ORIGINS` en Render para permitir esa URL
