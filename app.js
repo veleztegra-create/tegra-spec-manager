@@ -3220,42 +3220,237 @@ window.copyPaletteJsonFromDashboard = copyPaletteJsonFromDashboard;
 window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
 window.focusPasteForPaletteFromDashboard = focusPasteForPaletteFromDashboard;
 window.editPaletteExtractedName = editPaletteExtractedName;
-function updateDashboard() {
-    try {
-        const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
-        const total = specs.length;
-        const totalEl = document.getElementById('total-specs');
-        if (totalEl) totalEl.textContent = total;
+const REMOTE_SPECS_API_BASE = String(window.TEGRA_BACKEND_URL || 'https://tegra-spec-manager.onrender.com').replace(/\/+$/, '');
+const REMOTE_SPECS_API_URL = REMOTE_SPECS_API_BASE ? `${REMOTE_SPECS_API_BASE}/api/specs` : '';
+let savedSpecsCache = null;
+let savedSpecsCacheMode = 'local';
 
-        let lastSpec = null;
-        let lastSpecDate = null;
-        let lastSpecKey = null;
+function getSpecGeneralData(source = {}) {
+    const data = source?.generalData && typeof source.generalData === 'object'
+        ? source.generalData
+        : source;
 
-        specs.forEach(key => {
+    return {
+        customer: data?.customer || '',
+        style: data?.style || '',
+        folder: data?.folder || '',
+        colorway: data?.colorway || '',
+        season: data?.season || '',
+        pattern: data?.pattern || '',
+        po: data?.po || '',
+        sampleType: data?.sampleType || '',
+        nameTeam: data?.nameTeam || '',
+        gender: data?.gender || '',
+        designer: data?.designer || '',
+        baseSize: data?.baseSize || '',
+        fabric: data?.fabric || '',
+        technicianName: data?.technicianName || '',
+        technicalComments: data?.technicalComments || '',
+        program: data?.program || '',
+        specDate: data?.specDate || ''
+    };
+}
+
+function normalizeSpecDataForUi(data = {}, meta = {}) {
+    const generalData = getSpecGeneralData(data);
+    const placementsData = Array.isArray(data.placements) ? data.placements : [];
+
+    return {
+        ...data,
+        ...generalData,
+        placements: placementsData.map((placement, index) => ({
+            ...placement,
+            id: placement?.id || index + 1,
+            colors: Array.isArray(placement?.colors) ? placement.colors : (Array.isArray(placement?.colorsJson) ? placement.colorsJson : []),
+            sequence: Array.isArray(placement?.sequence) ? placement.sequence : (Array.isArray(placement?.sequenceJson) ? placement.sequenceJson : [])
+        })),
+        savedAt: meta.savedAt || data.savedAt || new Date().toISOString(),
+        lastModified: meta.lastModified || data.lastModified || meta.savedAt || data.savedAt || new Date().toISOString(),
+        _storageKey: meta.storageKey || data._storageKey || null,
+        _source: meta.source || data._source || 'local'
+    };
+}
+
+function buildRemoteSpecPayload(data = {}) {
+    return {
+        generalData: getSpecGeneralData(data),
+        placements: Array.isArray(data.placements) ? data.placements : [],
+        meta: {
+            savedAt: data.savedAt || new Date().toISOString(),
+            lastModified: data.lastModified || data.savedAt || new Date().toISOString(),
+            source: 'tegra-spec-manager-web'
+        }
+    };
+}
+
+function mapLocalSpecRecord(key, rawData = {}) {
+    const data = normalizeSpecDataForUi(rawData, {
+        storageKey: key,
+        source: 'local'
+    });
+
+    return {
+        key,
+        data,
+        savedAt: data.savedAt,
+        lastModified: data.lastModified,
+        source: 'local'
+    };
+}
+
+function mapRemoteSpecRecord(record = {}) {
+    const payload = record?.payloadJson && typeof record.payloadJson === 'object' ? record.payloadJson : {};
+    const payloadPlacements = Array.isArray(payload.placements) ? payload.placements : [];
+    const apiPlacements = Array.isArray(record.placements) ? record.placements : [];
+    const data = normalizeSpecDataForUi({
+        ...payload,
+        placements: payloadPlacements.length > 0 ? payloadPlacements : apiPlacements
+    }, {
+        storageKey: `remote:${record.id}`,
+        source: 'remote',
+        savedAt: payload?.meta?.savedAt || payload?.savedAt || record.updatedAt || record.createdAt,
+        lastModified: payload?.meta?.lastModified || record.updatedAt || record.createdAt
+    });
+
+    return {
+        key: `remote:${record.id}`,
+        data: {
+            ...data,
+            remoteId: record.id,
+            backendRecord: record
+        },
+        savedAt: data.savedAt,
+        lastModified: data.lastModified,
+        source: 'remote'
+    };
+}
+
+function getSavedSpecSearchText(record) {
+    const data = record?.data || {};
+    return [
+        record?.key || '',
+        data.style || '',
+        data.customer || '',
+        data.po || '',
+        data.colorway || ''
+    ].join(' ').toUpperCase();
+}
+
+function sortSavedSpecs(records = []) {
+    return [...records].sort((a, b) => new Date(b.lastModified || b.savedAt || 0) - new Date(a.lastModified || a.savedAt || 0));
+}
+
+function invalidateSavedSpecsCache() {
+    savedSpecsCache = null;
+}
+
+function getLocalSavedSpecsRecords() {
+    const records = Object.keys(localStorage)
+        .filter((key) => key.startsWith('spec_'))
+        .map((key) => {
             try {
-                const data = JSON.parse(localStorage.getItem(key));
-                const specDate = new Date(data.savedAt || 0);
-
-                if (!lastSpecDate || specDate > lastSpecDate) {
-                    lastSpecDate = specDate;
-                    lastSpec = data;
-                    lastSpecKey = key;
-                }
-            } catch (e) {
-                console.warn('Error al parsear spec:', key, e);
+                return mapLocalSpecRecord(key, JSON.parse(localStorage.getItem(key)));
+            } catch (error) {
+                console.error('Error al parsear spec guardada:', key, error);
+                localStorage.removeItem(key);
+                return null;
             }
+        })
+        .filter(Boolean);
+
+    savedSpecsCacheMode = 'local';
+    return sortSavedSpecs(records);
+}
+
+async function fetchSavedSpecsRecords(options = {}) {
+    const { forceRefresh = false } = options;
+
+    if (!forceRefresh && Array.isArray(savedSpecsCache)) {
+        return savedSpecsCache;
+    }
+
+    if (REMOTE_SPECS_API_URL) {
+        try {
+            const response = await fetch(`${REMOTE_SPECS_API_URL}?limit=100`, {
+                headers: { Accept: 'application/json' }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const payload = await response.json();
+            savedSpecsCache = sortSavedSpecs(Array.isArray(payload?.items) ? payload.items.map(mapRemoteSpecRecord) : []);
+            savedSpecsCacheMode = 'remote';
+            return savedSpecsCache;
+        } catch (error) {
+            console.warn('[saved-specs] No se pudo cargar desde backend; usando almacenamiento local.', error);
+        }
+    }
+
+    savedSpecsCache = getLocalSavedSpecsRecords();
+    return savedSpecsCache;
+}
+
+async function getSavedSpecRecordByKey(storageKey) {
+    const key = String(storageKey || '');
+    if (!key) return null;
+
+    if (key.startsWith('remote:') && REMOTE_SPECS_API_URL) {
+        const response = await fetch(`${REMOTE_SPECS_API_URL}/${encodeURIComponent(key.slice('remote:'.length))}`, {
+            headers: { Accept: 'application/json' }
         });
 
+        if (!response.ok) {
+            if (response.status === 404) return null;
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const record = await response.json();
+        return mapRemoteSpecRecord(record);
+    }
+
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return mapLocalSpecRecord(key, JSON.parse(raw));
+}
+
+function renderSavedSpecListItem(record) {
+    const data = record.data || {};
+    const encodedKey = encodeURIComponent(record.key);
+    return `
+        <div style="padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition); gap: 10px;">
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'} | PO: ${data.po || 'N/A'}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(record.savedAt || 0).toLocaleDateString('es-ES')} · ${record.source === 'remote' ? 'Render' : 'Este navegador'}</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                <button class="btn btn-primary btn-sm" onclick="loadSpec(decodeURIComponent('${encodedKey}'))"><i class="fas fa-edit"></i> Cargar</button>
+                <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec(decodeURIComponent('${encodedKey}'))"><i class="fas fa-download"></i> JSON</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteSpec(decodeURIComponent('${encodedKey}'))"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `;
+}
+
+async function updateDashboard(options = {}) {
+    try {
+        const specs = await fetchSavedSpecsRecords(options);
+        const totalEl = document.getElementById('total-specs');
+        if (totalEl) totalEl.textContent = specs.length;
+
+        const lastRecord = specs[0] || null;
         const todaySpecsEl = document.getElementById('today-specs');
-        if (lastSpec && todaySpecsEl) {
-            const safeStyle = (lastSpec.style || 'Sin nombre').replace(/"/g, '&quot;');
+        if (lastRecord && todaySpecsEl) {
+            const safeStyle = (lastRecord.data?.style || 'Sin nombre').replace(/"/g, '&quot;');
             todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
-                <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastSpecKey)}'))" title="Abrir para seguir editando"
+                <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastRecord.key)}'))" title="Abrir para seguir editando"
                     style="font-size:1.05rem; font-weight:bold; color:var(--primary); background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; text-align:left;">
                     ${safeStyle}
                 </button>
-                <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">${new Date(lastRecord.savedAt || 0).toLocaleDateString('es-ES')}</div>
             `;
         } else if (todaySpecsEl) {
             todaySpecsEl.innerHTML = `
@@ -3263,14 +3458,7 @@ function updateDashboard() {
             `;
         }
 
-        const totalPlacements = specs.reduce((total, key) => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                return total + (data.placements?.length || 0);
-            } catch (e) {
-                return total;
-            }
-        }, 0);
+        const totalPlacements = specs.reduce((total, record) => total + (record.data?.placements?.length || 0), 0);
 
         const extractedColorsCountEl = document.getElementById('extracted-colors-count');
         if (extractedColorsCountEl) extractedColorsCountEl.textContent = dashboardPaletteExtractedColors.length;
@@ -3292,13 +3480,13 @@ function updateDashboard() {
 // FUNCIONES DE STORAGE
 // =====================================================
 
-function loadSavedSpecsList(options = {}) {
-    const { retryCount = 0, maxRetries = 6 } = options;
+async function loadSavedSpecsList(options = {}) {
+    const { retryCount = 0, maxRetries = 6, forceRefresh = false } = options;
     const list = document.getElementById('saved-specs-list');
 
     if (!list) {
         if (retryCount < maxRetries) {
-            setTimeout(() => loadSavedSpecsList({ retryCount: retryCount + 1, maxRetries }), 150);
+            setTimeout(() => loadSavedSpecsList({ retryCount: retryCount + 1, maxRetries, forceRefresh }), 150);
         } else {
             console.warn('[saved-specs] Contenedor no disponible; se omite render por ahora.');
         }
@@ -3307,13 +3495,13 @@ function loadSavedSpecsList(options = {}) {
 
     const searchInput = document.getElementById('saved-specs-search');
     const query = (searchInput?.value || '').toUpperCase().trim();
-    const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
+    const specs = await fetchSavedSpecsRecords({ forceRefresh });
 
     if (specs.length === 0) {
         list.innerHTML = `
             <p style="text-align: center; color: var(--text-secondary); padding: 30px;">
                 <i class="fas fa-database" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
-                No hay specs guardadas. Crea una nueva spec para verla aquí.
+                No hay specs guardadas en ${savedSpecsCacheMode === 'remote' ? 'Render' : 'este navegador'}. Crea una nueva spec para verla aquí.
             </p>
         `;
         return;
@@ -3322,42 +3510,18 @@ function loadSavedSpecsList(options = {}) {
     list.innerHTML = '';
     let visibleCount = 0;
 
-    specs.forEach(key => {
-        try {
-            const data = JSON.parse(localStorage.getItem(key));
+    specs.forEach(record => {
+        const searchableText = getSavedSpecSearchText(record);
 
-            const searchableText = [
-                key,
-                data.style || '',
-                data.customer || '',
-                data.po || '',
-                data.colorway || ''
-            ].join(' ').toUpperCase();
-
-            if (query && !searchableText.includes(query)) {
-                return;
-            }
-
-            visibleCount += 1;
-            const div = document.createElement('div');
-            div.style.cssText = "padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition);";
-            div.innerHTML = `
-                <div style="flex: 1;">
-                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'} | PO: ${data.po || 'N/A'}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'><i class="fas fa-edit"></i> Cargar</button>
-                    <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
-            list.appendChild(div);
-        } catch (e) {
-            console.error('Error al parsear spec guardada:', key, e);
-            localStorage.removeItem(key);
+        if (query && !searchableText.includes(query)) {
+            return;
         }
+
+        visibleCount += 1;
+        const div = document.createElement('div');
+        div.style.cssText = "padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition);";
+        div.innerHTML = renderSavedSpecListItem(record);
+        list.appendChild(div);
     });
 
     if (visibleCount === 0) {
@@ -3370,16 +3534,15 @@ function loadSavedSpecsList(options = {}) {
     }
 }
 
-function loadSpec(storageKey) {
+async function loadSpec(storageKey) {
     try {
         if (!storageKey) return;
-        const raw = localStorage.getItem(storageKey);
-        if (!raw) {
+        const record = await getSavedSpecRecordByKey(storageKey);
+        if (!record) {
             showStatus('⚠️ No se encontró la spec seleccionada', 'warning');
             return;
         }
-        const data = JSON.parse(raw);
-        loadSpecData(data);
+        loadSpecData(record.data);
         showTab('spec-creator');
         showStatus('✅ Spec cargada para edición', 'success');
     } catch (error) {
@@ -3456,9 +3619,14 @@ function loadSpecData(data) {
     showStatus('📂 Spec cargada correctamente');
 }
 
-function downloadSingleSpec(key) {
+async function downloadSingleSpec(key) {
     try {
-        const data = JSON.parse(localStorage.getItem(key));
+        const record = await getSavedSpecRecordByKey(key);
+        if (!record) {
+            showStatus('⚠️ No se encontró la spec seleccionada', 'warning');
+            return;
+        }
+        const data = record.data;
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -3472,25 +3640,57 @@ function downloadSingleSpec(key) {
     }
 }
 
-function deleteSpec(key) {
-    if (confirm('¿Estás seguro de que quieres eliminar esta spec?')) {
-        localStorage.removeItem(key);
-        loadSavedSpecsList();
-        updateDashboard();
-        showStatus('🗑️ Spec eliminada', 'success');
+async function deleteSpec(key) {
+    try {
+        if (confirm('¿Estás seguro de que quieres eliminar esta spec?')) {
+            if (String(key).startsWith('remote:') && REMOTE_SPECS_API_URL) {
+                const response = await fetch(`${REMOTE_SPECS_API_URL}/${encodeURIComponent(String(key).slice('remote:'.length))}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok && response.status !== 404) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } else {
+                localStorage.removeItem(key);
+            }
+
+            invalidateSavedSpecsCache();
+            await loadSavedSpecsList({ forceRefresh: true });
+            await updateDashboard({ forceRefresh: true });
+            showStatus('🗑️ Spec eliminada', 'success');
+        }
+    } catch (error) {
+        console.error('Error al eliminar spec:', error);
+        showStatus('❌ Error al eliminar la spec', 'error');
     }
 }
 
-function clearAllSpecs() {
-    if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?\n\nEsta acción no se puede deshacer y se perderán todos los datos.')) {
-        Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('spec_')) {
-                localStorage.removeItem(key);
+async function clearAllSpecs() {
+    try {
+        if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?\n\nEsta acción no se puede deshacer y se perderán todos los datos.')) {
+            const specs = await fetchSavedSpecsRecords({ forceRefresh: true });
+
+            if (savedSpecsCacheMode === 'remote' && REMOTE_SPECS_API_URL) {
+                await Promise.all(specs.map((record) => fetch(`${REMOTE_SPECS_API_URL}/${encodeURIComponent(String(record.key).slice('remote:'.length))}`, {
+                    method: 'DELETE'
+                })));
             }
-        });
-        loadSavedSpecsList();
-        updateDashboard();
-        showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
+
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('spec_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+
+            invalidateSavedSpecsCache();
+            await loadSavedSpecsList({ forceRefresh: true });
+            await updateDashboard({ forceRefresh: true });
+            showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
+        }
+    } catch (error) {
+        console.error('Error al limpiar specs:', error);
+        showStatus('❌ Error al limpiar las specs', 'error');
     }
 }
 
@@ -3498,7 +3698,7 @@ function clearAllSpecs() {
 // FUNCIONES DE GUARDADO
 // =====================================================
 
-function saveCurrentSpec() {
+async function saveCurrentSpec() {
     try {
         const data = collectData();
         const style = data.style || 'SinEstilo_' + Date.now();
@@ -3519,25 +3719,51 @@ function saveCurrentSpec() {
         data.savedAt = new Date().toISOString();
         data.lastModified = new Date().toISOString();
 
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(data));
-        } catch (storageError) {
-            if (storageError && storageError.name === 'QuotaExceededError') {
-                const lightData = {
-                    ...data,
-                    placements: (data.placements || []).map((p) => ({ ...p, imageData: null }))
-                };
-                localStorage.setItem(storageKey, JSON.stringify(lightData));
-                showStatus('⚠️ Guardado sin imágenes por límite de almacenamiento', 'warning');
-            } else {
-                throw storageError;
+        let savedRemotely = false;
+
+        if (REMOTE_SPECS_API_URL) {
+            try {
+                const remoteResponse = await fetch(REMOTE_SPECS_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json'
+                    },
+                    body: JSON.stringify(buildRemoteSpecPayload(data))
+                });
+
+                if (!remoteResponse.ok) {
+                    throw new Error(`HTTP ${remoteResponse.status}`);
+                }
+
+                savedRemotely = true;
+            } catch (remoteError) {
+                console.warn('[saved-specs] No se pudo guardar en backend; usando localStorage.', remoteError);
             }
         }
 
-        updateDashboard();
-        loadSavedSpecsList();
+        if (!savedRemotely) {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(data));
+            } catch (storageError) {
+                if (storageError && storageError.name === 'QuotaExceededError') {
+                    const lightData = {
+                        ...data,
+                        placements: (data.placements || []).map((p) => ({ ...p, imageData: null }))
+                    };
+                    localStorage.setItem(storageKey, JSON.stringify(lightData));
+                    showStatus('⚠️ Guardado sin imágenes por límite de almacenamiento', 'warning');
+                } else {
+                    throw storageError;
+                }
+            }
+        }
 
-        showStatus('✅ Spec guardada correctamente', 'success');
+        invalidateSavedSpecsCache();
+        await updateDashboard({ forceRefresh: true });
+        await loadSavedSpecsList({ forceRefresh: true });
+
+        showStatus(savedRemotely ? '✅ Spec guardada y sincronizada en Render' : '✅ Spec guardada en este navegador', 'success');
 
         setTimeout(() => {
             if (confirm('¿Deseas ver todas las specs guardadas?')) {
@@ -4120,13 +4346,13 @@ const debouncedSearchDashboardSpecs = (() => {
     };
 })();
 
-function searchDashboardSpecs() {
+async function searchDashboardSpecs() {
     const searchInput = document.getElementById('dashboard-spec-search');
     const resultsDiv = document.getElementById('dashboard-search-results');
     if (!searchInput || !resultsDiv) return;
 
     const query = searchInput.value.toUpperCase().trim();
-    const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
+    const specs = await fetchSavedSpecsRecords();
 
     if (query.length < 2) {
         resultsDiv.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 15px;">Escribe al menos 2 caracteres...</p>';
@@ -4141,37 +4367,27 @@ function searchDashboardSpecs() {
     let visibleCount = 0;
     let resultsHtml = '';
 
-    specs.forEach(key => {
-        try {
-            const data = JSON.parse(localStorage.getItem(key));
-            const searchableText = [
-                key,
-                data.style || '',
-                data.customer || '',
-                data.po || '',
-                data.colorway || ''
-            ].join(' ').toUpperCase();
+    specs.forEach(record => {
+        const data = record.data || {};
+        const searchableText = getSavedSpecSearchText(record);
 
-            if (query && !searchableText.includes(query)) {
-                return;
-            }
-
-            visibleCount += 1;
-            resultsHtml += `
-                <div style="padding:12px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; gap:10px;">
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | PO: ${data.po || 'N/A'}</div>
-                    </div>
-                    <div style="display: flex; gap: 5px; flex-shrink:0;">
-                        <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})' title="Abrir para editar"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-outline btn-sm" onclick='duplicateSpecFromData(${JSON.stringify(data).replace(/'/g, "\\'")})' title="Duplicar"><i class="fas fa-copy"></i></button>
-                    </div>
-                </div>
-            `;
-        } catch (e) {
-            console.error('Error al parsear spec guardada:', key, e);
+        if (query && !searchableText.includes(query)) {
+            return;
         }
+
+        visibleCount += 1;
+        resultsHtml += `
+            <div style="padding:12px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | PO: ${data.po || 'N/A'} | ${record.source === 'remote' ? 'Render' : 'Local'}</div>
+                </div>
+                <div style="display: flex; gap: 5px; flex-shrink:0;">
+                    <button class="btn btn-primary btn-sm" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(record.key)}'))" title="Abrir para editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-outline btn-sm" onclick='duplicateSpecFromData(${JSON.stringify(data).replace(/'/g, "\\'")})' title="Duplicar"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+        `;
     });
 
     if (visibleCount === 0) {

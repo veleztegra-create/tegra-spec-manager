@@ -75,3 +75,16 @@ test('normalizeSpecPayload and mapPlacementForDb sanitize entities', () => {
   assert.equal(mapped.inkType, null);
   assert.equal(mapped.orderIndex, 0);
 });
+
+test('normalizeSpecPayload accepts legacy flat general-data fields', () => {
+  const specPayload = normalizeSpecPayload({
+    style: 'FB-100',
+    customer: 'Nike',
+    po: 'PO-55',
+    placements: []
+  });
+
+  assert.equal(specPayload.generalData.style, 'FB-100');
+  assert.equal(specPayload.generalData.customer, 'Nike');
+  assert.equal(specPayload.generalData.po, 'PO-55');
+});

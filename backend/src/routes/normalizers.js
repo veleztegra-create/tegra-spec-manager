@@ -70,9 +70,31 @@ export function normalizePalettePayload(body = {}) {
 }
 
 export function normalizeSpecPayload(payload = {}) {
+  const fallbackGeneralData = {
+    customer: payload.customer,
+    style: payload.style,
+    folder: payload.folder,
+    colorway: payload.colorway,
+    season: payload.season,
+    pattern: payload.pattern,
+    po: payload.po,
+    sampleType: payload.sampleType,
+    nameTeam: payload.nameTeam,
+    gender: payload.gender,
+    designer: payload.designer,
+    baseSize: payload.baseSize,
+    fabric: payload.fabric,
+    technicianName: payload.technicianName,
+    technicalComments: payload.technicalComments,
+    program: payload.program,
+    specDate: payload.specDate
+  };
+
+  const hasFallbackGeneralData = Object.values(fallbackGeneralData).some((value) => value !== undefined);
+
   const generalData = payload.generalData && typeof payload.generalData === 'object'
     ? payload.generalData
-    : {};
+    : (hasFallbackGeneralData ? fallbackGeneralData : {});
 
   const placements = Array.isArray(payload.placements)
     ? payload.placements.filter((placement) => placement && typeof placement === 'object')
