@@ -3292,9 +3292,19 @@ function updateDashboard() {
 // FUNCIONES DE STORAGE
 // =====================================================
 
-function loadSavedSpecsList() {
+function loadSavedSpecsList(options = {}) {
+    const { retryCount = 0, maxRetries = 6 } = options;
     const list = document.getElementById('saved-specs-list');
-    if (!list) return;
+
+    if (!list) {
+        if (retryCount < maxRetries) {
+            setTimeout(() => loadSavedSpecsList({ retryCount: retryCount + 1, maxRetries }), 150);
+        } else {
+            console.warn('[saved-specs] Contenedor no disponible; se omite render por ahora.');
+        }
+        return;
+    }
+
     const searchInput = document.getElementById('saved-specs-search');
     const query = (searchInput?.value || '').toUpperCase().trim();
     const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
@@ -3980,7 +3990,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             updateDateTime();
             updateDashboard();
-            loadSavedSpecsList(); // Ahora el contenedor ya existe
+            loadSavedSpecsList({ maxRetries: 10 });
             setupPasteHandler();
             setupExcelImportHandler();
             loadThemePreference();
