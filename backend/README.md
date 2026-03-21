@@ -27,6 +27,7 @@ npm run render:start
 ```
 
 ## Endpoints MVP
+- `GET /`
 - `GET /health`
 - `GET /health/db`
 - `GET /api/specs?limit=20`
@@ -42,5 +43,6 @@ npm run render:start
 2. Build command: `npm run render:build`
 3. Start command: `npm run render:start`
 4. Configura `DATABASE_URL` con la **Internal Database URL** de Render PostgreSQL.
-5. Si ves un 404 con una ruta rara como `GET:/healthhttps://.../health/db`, significa que la URL se pegó concatenada; prueba `/health` y `/health/db` por separado.
-6. Opcional recomendado: usa el `render.yaml` de la raíz para crear el servicio automáticamente.
+5. La raíz `/` ahora devuelve un payload simple con las rutas disponibles para validar rápido que el servicio está arriba.
+6. Si ves un 404 con una ruta rara como `GET:/healthhttps://.../health/db`, significa que la URL se pegó concatenada; prueba `/health` y `/health/db` por separado.
+7. Opcional recomendado: usa el `render.yaml` de la raíz para crear el servicio automáticamente.

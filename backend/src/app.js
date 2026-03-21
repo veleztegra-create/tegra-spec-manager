@@ -10,6 +10,21 @@ export function buildApp() {
     }
   });
 
+  app.get('/', async () => {
+    return {
+      status: 'ok',
+      service: 'tegra-spec-manager-backend',
+      message: 'Backend activo. Usa /health o /health/db para verificar el estado.',
+      availableRoutes: [
+        '/',
+        '/health',
+        '/health/db',
+        '/api/specs',
+        '/api/palette-extractions'
+      ]
+    };
+  });
+
   app.register(async function apiScope(api) {
     api.register(healthRoutes);
     api.register(specsRoutes, { prefix: '/api' });

@@ -32,3 +32,4 @@ El repo incluye `render.yaml` en la raíz y un `package.json` raíz para que Ren
 Comandos usados por Render:
 - Build: `npm run render:build`
 - Start: `npm run render:start`
+- Verificación rápida: abre `/` o `/health` en la URL pública del servicio
