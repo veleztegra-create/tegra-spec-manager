@@ -16,3 +16,21 @@ Sistema web para gestión de especificaciones técnicas de serigrafía.
 
 ## Estructura de Carpetas
  https://veleztegra-create.github.io/tegra-spec-manager/
+
+
+## Backend (MVP Node)
+
+Se agregó un backend inicial en `backend/` para desarrollo en Render durante la fase de consolidación.
+
+Revisa `backend/README.md` para instalación, migraciones y endpoints disponibles.
+
+
+### Deploy rápido en Render
+
+El repo incluye `render.yaml` en la raíz y un `package.json` raíz para que Render pueda construir y arrancar el backend **sin depender de `rootDir`**.
+
+Comandos usados por Render:
+- Build: `npm run render:build`
+- Start: `npm run render:start`
+- Verificación rápida: abre `/` o `/health` en la URL pública del servicio
+- Si el frontend vive en otro dominio, define `CORS_ORIGINS` en Render para permitir esa URL
