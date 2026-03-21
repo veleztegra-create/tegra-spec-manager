@@ -26,6 +26,7 @@ export default async function paletteRoutes(fastify) {
         source: payload.source,
         extractedAt: payload.extractedAt,
         totalColors: payload.totalColors || payload.colors.length,
+        classificationThreshold: payload.classificationThreshold,
         payloadJson: payload.payloadJson,
         createdBy: request.headers['x-user'] ? String(request.headers['x-user']) : null,
         colors: {

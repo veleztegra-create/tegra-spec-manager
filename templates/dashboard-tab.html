@@ -34,6 +34,10 @@
                 <div class="palette-extractor-controls">
                     <input type="file" id="palette-image-input" class="form-control" accept="image/*" />
                     <input type="number" id="palette-color-count" class="form-control" min="2" max="12" value="6" />
+                    <label class="palette-threshold-control">
+                        <span>Umbral claro/oscuro</span>
+                        <input type="number" id="palette-light-threshold" class="form-control" min="0" max="255" value="155" />
+                    </label>
                     <button class="btn btn-outline" onclick="focusPasteForPaletteFromDashboard()">
                         <i class="fas fa-paste"></i> Pegar Imagen
                     </button>

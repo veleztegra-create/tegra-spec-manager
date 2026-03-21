@@ -41,21 +41,43 @@ export function normalizeRgb(rgb) {
   };
 }
 
-export function normalizeColor(color = {}, index = 0) {
+export function clampColorThreshold(value, defaultValue = 155) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return defaultValue;
+  return Math.max(0, Math.min(255, Math.trunc(parsed)));
+}
+
+export function calculateLuminance(rgb) {
+  const normalized = normalizeRgb(rgb);
+  return Number(((normalized.r * 0.299) + (normalized.g * 0.587) + (normalized.b * 0.114)).toFixed(2));
+}
+
+export function normalizeColor(color = {}, index = 0, classificationThreshold = 155) {
+  const rgbJson = normalizeRgb(color.rgb);
+  const luminance = Number.isFinite(Number(color.luminance))
+    ? Number(Number(color.luminance).toFixed(2))
+    : calculateLuminance(rgbJson);
+  const normalizedTone = String(color.toneCategory || '').trim().toLowerCase();
+
   return {
     orderIndex: index,
     name: toOptionalString(color.name),
     suggestedName: toOptionalString(color.suggestedName),
     hex: normalizeHex(color.hex),
-    rgbJson: normalizeRgb(color.rgb),
+    rgbJson,
+    toneCategory: normalizedTone === 'light' || normalizedTone === 'dark'
+      ? normalizedTone
+      : (luminance >= classificationThreshold ? 'light' : 'dark'),
+    luminance,
     ocrRawText: toOptionalString(color.ocrRawText),
     manuallyCorrected: Boolean(color.manuallyCorrected)
   };
 }
 
 export function normalizePalettePayload(body = {}) {
+  const classificationThreshold = clampColorThreshold(body.classificationThreshold);
   const colors = Array.isArray(body.colors)
-    ? body.colors.map((color, index) => normalizeColor(color, index))
+    ? body.colors.map((color, index) => normalizeColor(color, index, classificationThreshold))
     : [];
 
   const totalColors = Number(body.totalColors);
@@ -64,6 +86,7 @@ export function normalizePalettePayload(body = {}) {
     source: toOptionalString(body.source) || 'dashboard-techpack-palette-extractor',
     extractedAt: normalizeDateOrNow(body.extractedAt),
     totalColors: Number.isFinite(totalColors) && totalColors >= 0 ? Math.trunc(totalColors) : colors.length,
+    classificationThreshold,
     colors,
     payloadJson: body
   };

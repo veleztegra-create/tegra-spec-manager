@@ -46,14 +46,15 @@ model Placement {
 }
 
 model PaletteExtraction {
-  id          String   @id @default(cuid())
-  source      String?
-  extractedAt DateTime @default(now())
-  totalColors Int
-  payloadJson Json
-  createdBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  source                  String?
+  extractedAt             DateTime @default(now())
+  totalColors             Int
+  classificationThreshold Int      @default(155)
+  payloadJson             Json
+  createdBy               String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   colors PaletteColor[]
 }
@@ -66,6 +67,8 @@ model PaletteColor {
   suggestedName     String?
   hex               String
   rgbJson           Json
+  toneCategory      String?
+  luminance         Float?
   ocrRawText        String?
   manuallyCorrected Boolean  @default(false)
   createdAt         DateTime @default(now())

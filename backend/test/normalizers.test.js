@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  calculateLuminance,
+  clampColorThreshold,
   clampLimit,
   mapPlacementForDb,
   normalizeColor,
@@ -37,26 +39,43 @@ test('normalizeRgb coerces to 0..255 integers', () => {
   assert.deepEqual(normalizeRgb(null), { r: 0, g: 0, b: 0 });
 });
 
+test('clampColorThreshold keeps values in 0..255', () => {
+  assert.equal(clampColorThreshold(undefined), 155);
+  assert.equal(clampColorThreshold(-20), 0);
+  assert.equal(clampColorThreshold(400), 255);
+  assert.equal(clampColorThreshold('140.9'), 140);
+});
+
+test('calculateLuminance derives brightness from RGB', () => {
+  assert.equal(calculateLuminance({ r: 255, g: 255, b: 255 }), 255);
+  assert.equal(calculateLuminance({ r: 0, g: 0, b: 0 }), 0);
+});
+
 test('normalizeColor validates hex and rgb payload', () => {
-  const color = normalizeColor({ hex: 'bad', rgb: { r: 1, g: 2, b: 3 }, name: '  Navy ' }, 2);
+  const color = normalizeColor({ hex: 'bad', rgb: { r: 1, g: 2, b: 3 }, name: '  Navy ' }, 2, 155);
   assert.equal(color.hex, '#000000');
   assert.equal(color.orderIndex, 2);
   assert.equal(color.name, 'Navy');
   assert.deepEqual(color.rgbJson, { r: 1, g: 2, b: 3 });
+  assert.equal(color.toneCategory, 'dark');
+  assert.equal(color.luminance, 1.81);
 });
 
 test('normalizePalettePayload builds safe defaults', () => {
   const payload = normalizePalettePayload({
     totalColors: -2,
     extractedAt: 'invalid-date',
+    classificationThreshold: 170,
     colors: [{ hex: '#fff', rgb: { r: 255, g: 255, b: 255 } }]
   });
 
   assert.equal(payload.totalColors, 1);
   assert.equal(payload.source, 'dashboard-techpack-palette-extractor');
+  assert.equal(payload.classificationThreshold, 170);
   assert.equal(Number.isNaN(payload.extractedAt.getTime()), false);
   assert.equal(payload.colors.length, 1);
   assert.equal(payload.colors[0].hex, '#fff');
+  assert.equal(payload.colors[0].toneCategory, 'light');
 });
 
 test('normalizeSpecPayload and mapPlacementForDb sanitize entities', () => {

@@ -1208,10 +1208,19 @@ textarea.form-control:focus {
 
 .palette-extractor-controls {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) 110px auto auto;
+    grid-template-columns: minmax(220px, 1fr) 110px minmax(150px, 170px) auto auto;
     gap: 10px;
     align-items: center;
     margin-bottom: 14px;
+}
+
+.palette-threshold-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 600;
 }
 
 .palette-extractor-preview {
@@ -1264,6 +1273,31 @@ textarea.form-control:focus {
     display: block;
     color: var(--text-primary);
     font-size: 0.9rem;
+}
+
+.palette-tone-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.palette-tone-badge.is-light {
+    background: rgba(255, 255, 255, 0.18);
+    color: #FFE082;
+    border: 1px solid rgba(255, 224, 130, 0.35);
+}
+
+.palette-tone-badge.is-dark {
+    background: rgba(0, 0, 0, 0.18);
+    color: #B0BEC5;
+    border: 1px solid rgba(176, 190, 197, 0.35);
 }
 
 @media (max-width: 1100px) {

@@ -2973,6 +2973,40 @@ function hexToRgbObject(hexValue) {
     };
 }
 
+function getPaletteLightThreshold() {
+    const thresholdInput = document.getElementById('palette-light-threshold');
+    const parsedValue = Number(thresholdInput?.value);
+    const threshold = Number.isFinite(parsedValue) ? Math.max(0, Math.min(255, Math.trunc(parsedValue))) : 155;
+    if (thresholdInput) thresholdInput.value = String(threshold);
+    return threshold;
+}
+
+function classifyPaletteTone(color, threshold = getPaletteLightThreshold()) {
+    const rgb = hexToRgbObject(color?.hex) || {
+        r: Number(color?.r) || 0,
+        g: Number(color?.g) || 0,
+        b: Number(color?.b) || 0
+    };
+
+    const luminance = Number(((rgb.r * 0.299) + (rgb.g * 0.587) + (rgb.b * 0.114)).toFixed(2));
+    return {
+        luminance,
+        toneCategory: luminance >= threshold ? 'light' : 'dark'
+    };
+}
+
+function applyPaletteToneClassification(colors, threshold = getPaletteLightThreshold()) {
+    if (!Array.isArray(colors)) return [];
+
+    colors.forEach((color) => {
+        const toneData = classifyPaletteTone(color, threshold);
+        color.luminance = toneData.luminance;
+        color.toneCategory = toneData.toneCategory;
+    });
+
+    return colors;
+}
+
 function findColorNameByHex(hexValue) {
     const target = String(hexValue || '').trim().toUpperCase();
     if (!target) return null;
@@ -3009,9 +3043,12 @@ function findColorNameByHex(hexValue) {
 
 function buildDashboardPaletteJsonPayload(colors) {
     const normalizedColors = Array.isArray(colors) ? colors : [];
+    const classificationThreshold = getPaletteLightThreshold();
+    applyPaletteToneClassification(normalizedColors, classificationThreshold);
     return {
         extractedAt: new Date().toISOString(),
         source: 'dashboard-techpack-palette-extractor',
+        classificationThreshold,
         totalColors: normalizedColors.length,
         colors: normalizedColors.map((color, index) => {
             const hex = color.hex || rgbToHex(color.r, color.g, color.b);
@@ -3019,6 +3056,8 @@ function buildDashboardPaletteJsonPayload(colors) {
                 index: index + 1,
                 name: color.labelText || null,
                 suggestedName: color.labelText ? null : findColorNameByHex(hex),
+                toneCategory: color.toneCategory,
+                luminance: color.luminance,
                 hex,
                 rgb: {
                     r: Number(color.r) || 0,
@@ -3075,6 +3114,7 @@ function editPaletteExtractedName(index) {
 
     const cleaned = sanitizePaletteLabel(nextLabel);
     dashboardPaletteExtractedColors[index].labelText = cleaned || null;
+    applyPaletteToneClassification(dashboardPaletteExtractedColors);
     renderDashboardPaletteResults(dashboardPaletteExtractedColors);
     updatePaletteJsonOutput(dashboardPaletteExtractedColors);
 }
@@ -3094,6 +3134,8 @@ function renderDashboardPaletteResults(colors) {
         const rgb = `${color.r}, ${color.g}, ${color.b}`;
         const colorName = color.labelText || null;
         const suggestedName = colorName ? null : findColorNameByHex(hex);
+        const toneData = classifyPaletteTone({ ...color, hex });
+        const toneLabel = toneData.toneCategory === 'light' ? 'CLARO' : 'OSCURO';
         return `
             <div class="palette-color-card">
                 <div class="palette-color-chip" style="background:${hex};"></div>
@@ -3102,6 +3144,7 @@ function renderDashboardPaletteResults(colors) {
                     ${colorName ? `<div class="palette-editable-name" onclick="editPaletteExtractedName(${index})" title="Click para editar">${colorName} <i class="fas fa-pen" style="font-size:.65rem;"></i></div>` : `<div class="palette-editable-name" onclick="editPaletteExtractedName(${index})" style="opacity:.7;" title="Click para escribir nombre">SIN TEXTO OCR <i class="fas fa-pen" style="font-size:.65rem;"></i></div>`}
                     ${suggestedName ? `<div style="font-size:.72rem; opacity:.65;">Sugerido: ${suggestedName}</div>` : ''}
                     RGB(${rgb})
+                    <div class="palette-tone-badge ${toneData.toneCategory === 'light' ? 'is-light' : 'is-dark'}">${toneLabel} · umbral ${getPaletteLightThreshold()} · L ${toneData.luminance}</div>
                     <div style="margin-top:6px; font-size:0.74rem;">Color ${index + 1}</div>
                 </div>
             </div>
@@ -3147,6 +3190,7 @@ function focusPasteForPaletteFromDashboard() {
 function initDashboardPaletteExtractor() {
     const imageInput = document.getElementById('palette-image-input');
     const imagePreview = document.getElementById('palette-source-image');
+    const thresholdInput = document.getElementById('palette-light-threshold');
     if (!imageInput || !imagePreview || imageInput.dataset.bound === '1') return;
 
     imageInput.addEventListener('change', (event) => {
@@ -3161,6 +3205,12 @@ function initDashboardPaletteExtractor() {
     });
 
     document.addEventListener('paste', handlePalettePasteEvent);
+
+    thresholdInput?.addEventListener('input', () => {
+        applyPaletteToneClassification(dashboardPaletteExtractedColors);
+        renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+        updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+    });
 
     imageInput.dataset.bound = '1';
     updatePaletteJsonOutput(dashboardPaletteExtractedColors);
@@ -3196,6 +3246,7 @@ async function runPaletteExtractorFromDashboard() {
         const maxColors = Number(colorCountInput?.value || 6);
         dashboardPaletteExtractedColors = extractPaletteFromImageData(imageData, maxColors);
         await extractPaletteTextLabels(imageData, maxColors, dashboardPaletteExtractedColors);
+        applyPaletteToneClassification(dashboardPaletteExtractedColors);
 
         renderDashboardPaletteResults(dashboardPaletteExtractedColors);
         updatePaletteJsonOutput(dashboardPaletteExtractedColors);
