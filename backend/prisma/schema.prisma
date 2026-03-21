@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Spec {
+  id          String      @id @default(cuid())
+  style       String?
+  customer    String?
+  season      String?
+  colorway    String?
+  po          String?
+  nameTeam    String?
+  program     String?
+  specDate    String?
+  payloadJson Json
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  placements  Placement[]
+}
+
+model Placement {
+  id                  String   @id @default(cuid())
+  specId              String
+  orderIndex          Int
+  type                String?
+  name                String?
+  placementDetails    String?
+  specialInstructions String?
+  dimensions          String?
+  baseSize            String?
+  inkType             String?
+  colorsJson          Json?
+  sequenceJson        Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  spec Spec @relation(fields: [specId], references: [id], onDelete: Cascade)
+
+  @@index([specId])
+}
+
+model PaletteExtraction {
+  id          String   @id @default(cuid())
+  source      String?
+  extractedAt DateTime @default(now())
+  totalColors Int
+  payloadJson Json
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  colors PaletteColor[]
+}
+
+model PaletteColor {
+  id                String   @id @default(cuid())
+  extractionId      String
+  orderIndex        Int
+  name              String?
+  suggestedName     String?
+  hex               String
+  rgbJson           Json
+  ocrRawText        String?
+  manuallyCorrected Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  extraction PaletteExtraction @relation(fields: [extractionId], references: [id], onDelete: Cascade)
+
+  @@index([extractionId])
+}

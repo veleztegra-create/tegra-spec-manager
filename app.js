@@ -10,8 +10,8 @@
 const stateManager = new StateManager();
 // 'placements' is now linked to the Reactive Store to ensure single source of truth
 Object.defineProperty(window, 'placements', {
-    get: () => Store.state.placements,
-    set: (val) => { Store.state.placements = val; }
+    get: () => Array.isArray(Store.state.placements) ? Store.state.placements : [],
+    set: (val) => { Store.state.placements = Array.isArray(val) ? val : []; }
 });
 let currentPlacementId = 1;
 let clientLogoCache = {};
@@ -2670,6 +2670,556 @@ function setupExcelImportHandler() {
 // FUNCIONES DE DASHBOARD
 // =====================================================
 
+
+let dashboardPaletteExtractedColors = [];
+let dashboardPaletteImageDataUrl = "";
+let tesseractLoaderPromise = null;
+
+function rgbToHex(r, g, b) {
+    const clamp = (value) => Math.max(0, Math.min(255, Number(value) || 0));
+    return `#${[clamp(r), clamp(g), clamp(b)].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
+function colorDistance(a, b) {
+    return Math.sqrt(
+        Math.pow((a.r || 0) - (b.r || 0), 2) +
+        Math.pow((a.g || 0) - (b.g || 0), 2) +
+        Math.pow((a.b || 0) - (b.b || 0), 2)
+    );
+}
+
+async function loadTesseractWorker() {
+    if (window.Tesseract?.recognize) return window.Tesseract;
+    if (tesseractLoaderPromise) return tesseractLoaderPromise;
+
+    tesseractLoaderPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-tesseract-loader="1"]');
+        if (existing) {
+            existing.addEventListener('load', () => resolve(window.Tesseract));
+            existing.addEventListener('error', reject);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        script.async = true;
+        script.dataset.tesseractLoader = '1';
+        script.onload = () => resolve(window.Tesseract);
+        script.onerror = () => reject(new Error('No se pudo cargar Tesseract.js'));
+        document.head.appendChild(script);
+    });
+
+    return tesseractLoaderPromise;
+}
+
+function sanitizePaletteLabel(rawText) {
+    return String(rawText || '')
+        .replace(/[\n\r]+/g, ' ')
+        .replace(/[^A-Za-z0-9\-\s/]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toUpperCase();
+}
+
+function parsePaletteLabelText(rawText) {
+    const textValue = sanitizePaletteLabel(rawText);
+    if (!textValue) return '';
+
+    const patterns = [
+        /(OLD\s+ROYAL)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(UNIVERSITY\s+RED|UNI\s+RED)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(MARINE)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(CSI|TEAM|PMS|WHITE|BLACK|NAVY|SILVER|GRAY|GREY)(?:\s+([A-Z0-9]{1,4}))?/i
+    ];
+
+    for (const regex of patterns) {
+        const match = textValue.match(regex);
+        if (!match) continue;
+        const name = String(match[1] || '').replace(/UNI\s+RED/i, 'UNIVERSITY RED').trim();
+        const code = String(match[2] || '').trim();
+        return [name, code].filter(Boolean).join(' ').trim();
+    }
+
+    return textValue;
+}
+
+async function extractPaletteTextLabels(imageData, colorCount, colors) {
+    try {
+        const Tesseract = await loadTesseractWorker();
+        if (!Tesseract?.recognize || !imageData || !Array.isArray(colors) || colors.length === 0) return [];
+
+        const width = imageData.width;
+        const height = imageData.height;
+        const baseCanvas = document.createElement('canvas');
+        const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+        if (!baseCtx) return [];
+
+        baseCanvas.width = width;
+        baseCanvas.height = height;
+        baseCtx.putImageData(imageData, 0, 0);
+
+        const textStartY = Math.floor(height * 0.50);
+        const textHeight = Math.max(24, Math.floor(height * 0.48));
+        const labels = [];
+
+        for (let i = 0; i < colors.length; i++) {
+            const fallbackX0 = Math.floor((i * width) / colors.length);
+            const fallbackX1 = Math.floor(((i + 1) * width) / colors.length);
+            const x0 = Math.max(0, Number.isFinite(colors[i].x) ? Math.floor(colors[i].x) : fallbackX0);
+            const x1 = Math.min(width, Number.isFinite(colors[i].width) ? Math.floor(colors[i].x + colors[i].width) : fallbackX1);
+            const segmentW = Math.max(1, x1 - x0);
+
+            const segCanvas = document.createElement('canvas');
+            segCanvas.width = segmentW * 4;
+            segCanvas.height = textHeight * 4;
+            const segCtx = segCanvas.getContext('2d', { willReadFrequently: true });
+            if (!segCtx) continue;
+
+            segCtx.scale(4, 4);
+            segCtx.drawImage(baseCanvas, x0, textStartY, segmentW, textHeight, 0, 0, segmentW, textHeight);
+
+            const enhanced = segCtx.getImageData(0, 0, segCanvas.width, segCanvas.height);
+            const data = enhanced.data;
+            for (let px = 0; px < data.length; px += 4) {
+                const brightness = (data[px] + data[px + 1] + data[px + 2]) / 3;
+                const value = brightness < 205 ? 0 : 255;
+                data[px] = value;
+                data[px + 1] = value;
+                data[px + 2] = value;
+            }
+            segCtx.putImageData(enhanced, 0, 0);
+
+            const result = await Tesseract.recognize(segCanvas, 'eng', {
+                tessedit_pageseg_mode: '6',
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -/'
+            });
+
+            const parsedLabel = parsePaletteLabelText(result?.data?.text || '');
+            if (!parsedLabel || parsedLabel.length < 2) continue;
+
+            colors[i].labelText = parsedLabel;
+            labels.push({ index: i, label: parsedLabel });
+        }
+
+        return labels;
+    } catch (error) {
+        console.warn('No se pudieron extraer etiquetas OCR para la paleta:', error);
+        return [];
+    }
+}
+
+function extractPaletteFromImageData(imageData, maxColors = 6) {
+    const pixels = imageData?.data;
+    const width = imageData?.width || 0;
+    const height = imageData?.height || 0;
+    if (!pixels || pixels.length < 4 || width < 2 || height < 2) return [];
+
+    const desiredColors = Math.max(2, Math.min(Number(maxColors) || 6, 12));
+
+    const getPixel = (x, y) => {
+        const idx = (y * width + x) * 4;
+        return { r: pixels[idx], g: pixels[idx + 1], b: pixels[idx + 2], a: pixels[idx + 3] };
+    };
+
+    // 1) Detección tipo "barras con texto debajo": leer una línea en la zona superior/media
+    const sampleY = Math.max(1, Math.min(height - 2, Math.floor(height * 0.32)));
+    const scanStep = Math.max(1, Math.floor(width / 500));
+    const bars = [];
+    let startX = -1;
+    let lastColor = null;
+
+    const isColorful = (px) => {
+        if ((px?.a || 0) < 20) return false;
+        const brightness = ((px.r || 0) + (px.g || 0) + (px.b || 0)) / 3;
+        return brightness > 18 && brightness < 245;
+    };
+
+    const pushBar = (x0, x1) => {
+        const barWidth = x1 - x0;
+        if (barWidth < Math.max(8, Math.floor(width * 0.02))) return;
+
+        const sampleX = Math.floor((x0 + x1) / 2);
+        const px = getPixel(Math.max(0, Math.min(width - 1, sampleX)), sampleY);
+        bars.push({
+            x: x0,
+            width: barWidth,
+            r: px.r,
+            g: px.g,
+            b: px.b,
+            hex: rgbToHex(px.r, px.g, px.b)
+        });
+    };
+
+    for (let x = 0; x < width; x += scanStep) {
+        const px = getPixel(x, sampleY);
+        const colorful = isColorful(px);
+
+        if (!colorful) {
+            if (startX >= 0) {
+                pushBar(startX, x);
+                startX = -1;
+                lastColor = null;
+            }
+            continue;
+        }
+
+        if (startX < 0) {
+            startX = x;
+            lastColor = px;
+            continue;
+        }
+
+        const d = colorDistance(px, lastColor || px);
+        if (d > 35) {
+            pushBar(startX, x);
+            startX = x;
+        }
+        lastColor = px;
+    }
+
+    if (startX >= 0) {
+        pushBar(startX, width - 1);
+    }
+
+    const normalizedBars = bars
+        .filter((bar) => bar.width >= Math.max(8, Math.floor(width * 0.02)))
+        .slice(0, desiredColors)
+        .map((bar) => ({ r: bar.r, g: bar.g, b: bar.b, hex: bar.hex, x: bar.x, width: bar.width }));
+
+    if (normalizedBars.length >= 2) {
+        return normalizedBars;
+    }
+
+    // 2) Fallback robusto por clustering (k-means simplificado)
+    const sampleStep = 16;
+    const samples = [];
+    for (let i = 0; i < pixels.length; i += 4 * sampleStep) {
+        const alpha = pixels[i + 3];
+        if (alpha < 25) continue;
+
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+
+        const brightness = (r * 0.299) + (g * 0.587) + (b * 0.114);
+        if (brightness < 15 || brightness > 245) continue;
+
+        samples.push({ r, g, b });
+    }
+
+    if (samples.length === 0) return [];
+
+    const k = Math.max(2, Math.min(desiredColors, samples.length));
+    const centroids = [];
+    const stride = Math.max(1, Math.floor(samples.length / k));
+
+    for (let i = 0; i < k; i++) {
+        const sample = samples[i * stride] || samples[i] || samples[0];
+        centroids.push({ ...sample });
+    }
+
+    for (let iteration = 0; iteration < 8; iteration++) {
+        const clusters = Array.from({ length: k }, () => ({ r: 0, g: 0, b: 0, count: 0 }));
+
+        samples.forEach((sample) => {
+            let bestIdx = 0;
+            let bestDistance = Number.POSITIVE_INFINITY;
+
+            centroids.forEach((centroid, idx) => {
+                const dist = colorDistance(sample, centroid);
+                if (dist < bestDistance) {
+                    bestDistance = dist;
+                    bestIdx = idx;
+                }
+            });
+
+            clusters[bestIdx].r += sample.r;
+            clusters[bestIdx].g += sample.g;
+            clusters[bestIdx].b += sample.b;
+            clusters[bestIdx].count += 1;
+        });
+
+        clusters.forEach((cluster, idx) => {
+            if (cluster.count === 0) return;
+            centroids[idx] = {
+                r: Math.round(cluster.r / cluster.count),
+                g: Math.round(cluster.g / cluster.count),
+                b: Math.round(cluster.b / cluster.count)
+            };
+        });
+    }
+
+    const grouped = centroids
+        .map((centroid) => ({ ...centroid, hex: rgbToHex(centroid.r, centroid.g, centroid.b) }))
+        .filter((color) => Number.isFinite(color.r) && Number.isFinite(color.g) && Number.isFinite(color.b));
+
+    const deduped = [];
+    grouped.forEach((color) => {
+        const exists = deduped.some(existing => colorDistance(existing, color) < 22);
+        if (!exists) deduped.push(color);
+    });
+
+    return deduped.slice(0, k);
+}
+
+function hexToRgbObject(hexValue) {
+    const normalizedHex = String(hexValue || '').trim().replace('#', '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(normalizedHex)) return null;
+
+    return {
+        r: parseInt(normalizedHex.slice(0, 2), 16),
+        g: parseInt(normalizedHex.slice(2, 4), 16),
+        b: parseInt(normalizedHex.slice(4, 6), 16)
+    };
+}
+
+function findColorNameByHex(hexValue) {
+    const target = String(hexValue || '').trim().toUpperCase();
+    if (!target) return null;
+
+    const all = window.ColorConfig?.db?.all || {};
+    const entries = Object.values(all)
+        .map((entry) => ({
+            key: entry?.key,
+            hex: String(entry?.hex || '').trim().toUpperCase()
+        }))
+        .filter((entry) => entry.key && /^#[0-9A-F]{6}$/.test(entry.hex));
+
+    if (entries.length === 0) return null;
+
+    const exactMatch = entries.find((entry) => entry.hex === target);
+    if (exactMatch) return exactMatch.key;
+
+    const targetRgb = hexToRgbObject(target);
+    if (!targetRgb) return null;
+
+    let best = null;
+    entries.forEach((entry) => {
+        const rgb = hexToRgbObject(entry.hex);
+        if (!rgb) return;
+        const dist = colorDistance(targetRgb, rgb);
+        if (!best || dist < best.distance) {
+            best = { key: entry.key, distance: dist };
+        }
+    });
+
+    // Umbral permisivo para aproximar colores de captura que no son exactos
+    return best && best.distance <= 52 ? best.key : null;
+}
+
+function buildDashboardPaletteJsonPayload(colors) {
+    const normalizedColors = Array.isArray(colors) ? colors : [];
+    return {
+        extractedAt: new Date().toISOString(),
+        source: 'dashboard-techpack-palette-extractor',
+        totalColors: normalizedColors.length,
+        colors: normalizedColors.map((color, index) => {
+            const hex = color.hex || rgbToHex(color.r, color.g, color.b);
+            return {
+                index: index + 1,
+                name: color.labelText || null,
+                suggestedName: color.labelText ? null : findColorNameByHex(hex),
+                hex,
+                rgb: {
+                    r: Number(color.r) || 0,
+                    g: Number(color.g) || 0,
+                    b: Number(color.b) || 0
+                }
+            };
+        })
+    };
+}
+
+function updatePaletteJsonOutput(colors) {
+    const outputEl = document.getElementById('palette-json-output');
+    if (!outputEl) return;
+
+    const payload = buildDashboardPaletteJsonPayload(colors);
+    outputEl.textContent = JSON.stringify(payload, null, 2);
+}
+
+function copyPaletteJsonFromDashboard() {
+    const outputEl = document.getElementById('palette-json-output');
+    const payload = outputEl?.textContent || JSON.stringify(buildDashboardPaletteJsonPayload(dashboardPaletteExtractedColors), null, 2);
+
+    navigator.clipboard.writeText(payload).then(() => {
+        showStatus('📋 JSON de paleta copiado al portapapeles', 'success');
+    }).catch(() => {
+        showStatus('❌ No se pudo copiar el JSON', 'error');
+    });
+}
+
+function downloadPaletteJsonFromDashboard() {
+    const payload = buildDashboardPaletteJsonPayload(dashboardPaletteExtractedColors);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchorEl = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+    anchorEl.href = url;
+    anchorEl.download = `palette-techpack-${stamp}.json`;
+    document.body.appendChild(anchorEl);
+    anchorEl.click();
+    anchorEl.remove();
+    URL.revokeObjectURL(url);
+
+    showStatus('💾 JSON de paleta descargado', 'success');
+}
+
+function editPaletteExtractedName(index) {
+    if (!Array.isArray(dashboardPaletteExtractedColors) || !dashboardPaletteExtractedColors[index]) return;
+
+    const currentLabel = dashboardPaletteExtractedColors[index].labelText || '';
+    const nextLabel = prompt('Editar nombre detectado para este color:', currentLabel);
+    if (nextLabel === null) return;
+
+    const cleaned = sanitizePaletteLabel(nextLabel);
+    dashboardPaletteExtractedColors[index].labelText = cleaned || null;
+    renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+    updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+}
+
+function renderDashboardPaletteResults(colors) {
+    const resultsEl = document.getElementById('palette-results');
+    if (!resultsEl) return;
+
+    if (!Array.isArray(colors) || colors.length === 0) {
+        resultsEl.innerHTML = '<p style="color:var(--text-secondary); margin:0;">No se detectaron colores suficientes. Intenta con otra captura.</p>';
+        updatePaletteJsonOutput([]);
+        return;
+    }
+
+    resultsEl.innerHTML = colors.map((color, index) => {
+        const hex = color.hex || rgbToHex(color.r, color.g, color.b);
+        const rgb = `${color.r}, ${color.g}, ${color.b}`;
+        const colorName = color.labelText || null;
+        const suggestedName = colorName ? null : findColorNameByHex(hex);
+        return `
+            <div class="palette-color-card">
+                <div class="palette-color-chip" style="background:${hex};"></div>
+                <div class="palette-color-meta">
+                    <strong>${hex}</strong>
+                    ${colorName ? `<div class="palette-editable-name" onclick="editPaletteExtractedName(${index})" title="Click para editar">${colorName} <i class="fas fa-pen" style="font-size:.65rem;"></i></div>` : `<div class="palette-editable-name" onclick="editPaletteExtractedName(${index})" style="opacity:.7;" title="Click para escribir nombre">SIN TEXTO OCR <i class="fas fa-pen" style="font-size:.65rem;"></i></div>`}
+                    ${suggestedName ? `<div style="font-size:.72rem; opacity:.65;">Sugerido: ${suggestedName}</div>` : ''}
+                    RGB(${rgb})
+                    <div style="margin-top:6px; font-size:0.74rem;">Color ${index + 1}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function setDashboardPalettePreview(imageDataUrl) {
+    const imagePreview = document.getElementById('palette-source-image');
+    const emptyState = document.getElementById('palette-empty-state');
+    if (!imagePreview) return;
+
+    dashboardPaletteImageDataUrl = String(imageDataUrl || '');
+    imagePreview.src = dashboardPaletteImageDataUrl;
+    imagePreview.style.display = 'block';
+    if (emptyState) emptyState.style.display = 'none';
+}
+
+function handlePalettePasteEvent(event) {
+    const isDashboardVisible = document.getElementById('dashboard')?.classList?.contains('active');
+    if (!isDashboardVisible) return;
+
+    const items = event.clipboardData?.items || [];
+    const imageItem = Array.from(items).find((item) => item.type && item.type.startsWith('image/'));
+    if (!imageItem) return;
+
+    event.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        setDashboardPalettePreview(String(reader.result || ''));
+        showStatus('📋 Imagen pegada desde portapapeles', 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+function focusPasteForPaletteFromDashboard() {
+    showStatus('📋 Ahora pega la imagen con Ctrl/Cmd + V', 'warning');
+}
+
+function initDashboardPaletteExtractor() {
+    const imageInput = document.getElementById('palette-image-input');
+    const imagePreview = document.getElementById('palette-source-image');
+    if (!imageInput || !imagePreview || imageInput.dataset.bound === '1') return;
+
+    imageInput.addEventListener('change', (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setDashboardPalettePreview(String(reader.result || ''));
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document.addEventListener('paste', handlePalettePasteEvent);
+
+    imageInput.dataset.bound = '1';
+    updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+}
+
+async function runPaletteExtractorFromDashboard() {
+    const imagePreview = document.getElementById('palette-source-image');
+    const hiddenCanvas = document.getElementById('palette-extractor-canvas');
+    const colorCountInput = document.getElementById('palette-color-count');
+
+    if (!imagePreview || !hiddenCanvas) return;
+    if (!dashboardPaletteImageDataUrl && !imagePreview.src) {
+        showStatus('⚠️ Carga primero una imagen del techpack', 'warning');
+        return;
+    }
+
+    const img = new Image();
+    img.onload = async () => {
+        const ctx = hiddenCanvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+
+        const maxDimension = 300;
+        const ratio = Math.min(maxDimension / img.width, maxDimension / img.height, 1);
+        const width = Math.max(1, Math.round(img.width * ratio));
+        const height = Math.max(1, Math.round(img.height * ratio));
+
+        hiddenCanvas.width = width;
+        hiddenCanvas.height = height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const maxColors = Number(colorCountInput?.value || 6);
+        dashboardPaletteExtractedColors = extractPaletteFromImageData(imageData, maxColors);
+        await extractPaletteTextLabels(imageData, maxColors, dashboardPaletteExtractedColors);
+
+        renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+        updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+
+        const extractedColorsCountEl = document.getElementById('extracted-colors-count');
+        if (extractedColorsCountEl) {
+            extractedColorsCountEl.textContent = dashboardPaletteExtractedColors.length;
+        }
+
+        if (dashboardPaletteExtractedColors.length > 0) {
+            showStatus(`🎨 ${dashboardPaletteExtractedColors.length} colores extraídos del techpack`, 'success');
+        } else {
+            showStatus('⚠️ No se pudieron extraer colores de la captura', 'warning');
+        }
+    };
+
+    img.src = dashboardPaletteImageDataUrl || imagePreview.src;
+}
+
+window.runPaletteExtractorFromDashboard = runPaletteExtractorFromDashboard;
+window.copyPaletteJsonFromDashboard = copyPaletteJsonFromDashboard;
+window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
+window.focusPasteForPaletteFromDashboard = focusPasteForPaletteFromDashboard;
+window.editPaletteExtractedName = editPaletteExtractedName;
 function updateDashboard() {
     try {
         const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
@@ -2713,18 +3263,6 @@ function updateDashboard() {
             `;
         }
 
-        let activeCount = 0;
-        specs.forEach(key => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                if (data.placements && data.placements.length > 0) {
-                    activeCount++;
-                }
-            } catch (e) { }
-        });
-        const activeProjectsEl = document.getElementById('active-projects');
-        if (activeProjectsEl) activeProjectsEl.textContent = activeCount;
-
         const totalPlacements = specs.reduce((total, key) => {
             try {
                 const data = JSON.parse(localStorage.getItem(key));
@@ -2733,6 +3271,9 @@ function updateDashboard() {
                 return total;
             }
         }, 0);
+
+        const extractedColorsCountEl = document.getElementById('extracted-colors-count');
+        if (extractedColorsCountEl) extractedColorsCountEl.textContent = dashboardPaletteExtractedColors.length;
 
         const completionRateEl = document.getElementById('completion-rate');
         if (completionRateEl) {
@@ -3444,6 +3985,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setupExcelImportHandler();
             loadThemePreference();
             bindSpecCreatorFormSafety();
+            initDashboardPaletteExtractor();
 
             const themeToggle = document.getElementById('themeToggle');
             if (themeToggle) {
