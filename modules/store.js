@@ -4,7 +4,7 @@
     let history = [];
     let future = [];
 
-    let rawState = {
+    const DEFAULT_STATE = {
         generalData: {
             customer: "",
             style: "",
@@ -17,6 +17,26 @@
         },
         placements: []
     };
+
+    function normalizeState(candidateState) {
+        const safeCandidate = (candidateState && typeof candidateState === 'object') ? candidateState : {};
+        const legacyGeneralData = (safeCandidate.generalData && typeof safeCandidate.generalData === 'object')
+            ? safeCandidate.generalData
+            : safeCandidate;
+
+        return {
+            ...safeCandidate,
+            generalData: {
+                ...DEFAULT_STATE.generalData,
+                ...legacyGeneralData
+            },
+            placements: Array.isArray(safeCandidate.placements)
+                ? safeCandidate.placements
+                : []
+        };
+    }
+
+    let rawState = normalizeState(DEFAULT_STATE);
 
     function deepCloneFallback(value, seen = new WeakMap()) {
         if (value === null || typeof value !== 'object') return value;
@@ -99,7 +119,7 @@
 
         replaceState(newState) {
             // Used for initial load from autosave or completely overriding state without polluting history
-            rawState = safeClone(newState);
+            rawState = normalizeState(safeClone(newState));
             stateProxy = createReactive(rawState);
             notify();
         },

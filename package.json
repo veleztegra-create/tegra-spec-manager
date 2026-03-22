@@ -1,0 +1,14 @@
+{
+  "name": "tegra-spec-manager",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "render:build": "npm --prefix backend install && npm --prefix backend run prisma:generate && npm --prefix backend run prisma:deploy",
+    "render:start": "npm --prefix backend start",
+    "backend:check": "npm --prefix backend run check",
+    "backend:test": "npm --prefix backend test"
+  }
+}

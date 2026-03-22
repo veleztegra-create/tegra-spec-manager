@@ -10,8 +10,8 @@
 const stateManager = new StateManager();
 // 'placements' is now linked to the Reactive Store to ensure single source of truth
 Object.defineProperty(window, 'placements', {
-    get: () => Store.state.placements,
-    set: (val) => { Store.state.placements = val; }
+    get: () => Array.isArray(Store.state.placements) ? Store.state.placements : [],
+    set: (val) => { Store.state.placements = Array.isArray(val) ? val : []; }
 });
 let currentPlacementId = 1;
 let clientLogoCache = {};
@@ -2670,42 +2670,838 @@ function setupExcelImportHandler() {
 // FUNCIONES DE DASHBOARD
 // =====================================================
 
-function updateDashboard() {
+
+let dashboardPaletteExtractedColors = [];
+let dashboardPaletteImageDataUrl = "";
+let tesseractLoaderPromise = null;
+
+function rgbToHex(r, g, b) {
+    const clamp = (value) => Math.max(0, Math.min(255, Number(value) || 0));
+    return `#${[clamp(r), clamp(g), clamp(b)].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
+function colorDistance(a, b) {
+    return Math.sqrt(
+        Math.pow((a.r || 0) - (b.r || 0), 2) +
+        Math.pow((a.g || 0) - (b.g || 0), 2) +
+        Math.pow((a.b || 0) - (b.b || 0), 2)
+    );
+}
+
+async function loadTesseractWorker() {
+    if (window.Tesseract?.recognize) return window.Tesseract;
+    if (tesseractLoaderPromise) return tesseractLoaderPromise;
+
+    tesseractLoaderPromise = new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-tesseract-loader="1"]');
+        if (existing) {
+            existing.addEventListener('load', () => resolve(window.Tesseract));
+            existing.addEventListener('error', reject);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        script.async = true;
+        script.dataset.tesseractLoader = '1';
+        script.onload = () => resolve(window.Tesseract);
+        script.onerror = () => reject(new Error('No se pudo cargar Tesseract.js'));
+        document.head.appendChild(script);
+    });
+
+    return tesseractLoaderPromise;
+}
+
+function sanitizePaletteLabel(rawText) {
+    return String(rawText || '')
+        .replace(/[\n\r]+/g, ' ')
+        .replace(/[^A-Za-z0-9\-\s/]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toUpperCase();
+}
+
+function parsePaletteLabelText(rawText) {
+    const textValue = sanitizePaletteLabel(rawText);
+    if (!textValue) return '';
+
+    const patterns = [
+        /(OLD\s+ROYAL)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(UNIVERSITY\s+RED|UNI\s+RED)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(MARINE)(?:\s+([A-Z0-9]{1,4}))?/i,
+        /(CSI|TEAM|PMS|WHITE|BLACK|NAVY|SILVER|GRAY|GREY)(?:\s+([A-Z0-9]{1,4}))?/i
+    ];
+
+    for (const regex of patterns) {
+        const match = textValue.match(regex);
+        if (!match) continue;
+        const name = String(match[1] || '').replace(/UNI\s+RED/i, 'UNIVERSITY RED').trim();
+        const code = String(match[2] || '').trim();
+        return [name, code].filter(Boolean).join(' ').trim();
+    }
+
+    return textValue;
+}
+
+async function extractPaletteTextLabels(imageData, colorCount, colors) {
     try {
-        const specs = Object.keys(localStorage).filter(k => k.startsWith('spec_'));
-        const total = specs.length;
-        const totalEl = document.getElementById('total-specs');
-        if (totalEl) totalEl.textContent = total;
+        const Tesseract = await loadTesseractWorker();
+        if (!Tesseract?.recognize || !imageData || !Array.isArray(colors) || colors.length === 0) return [];
 
-        let lastSpec = null;
-        let lastSpecDate = null;
-        let lastSpecKey = null;
+        const width = imageData.width;
+        const height = imageData.height;
+        const baseCanvas = document.createElement('canvas');
+        const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+        if (!baseCtx) return [];
 
-        specs.forEach(key => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                const specDate = new Date(data.savedAt || 0);
+        baseCanvas.width = width;
+        baseCanvas.height = height;
+        baseCtx.putImageData(imageData, 0, 0);
 
-                if (!lastSpecDate || specDate > lastSpecDate) {
-                    lastSpecDate = specDate;
-                    lastSpec = data;
-                    lastSpecKey = key;
-                }
-            } catch (e) {
-                console.warn('Error al parsear spec:', key, e);
+        const textStartY = Math.floor(height * 0.50);
+        const textHeight = Math.max(24, Math.floor(height * 0.48));
+        const labels = [];
+
+        for (let i = 0; i < colors.length; i++) {
+            const fallbackX0 = Math.floor((i * width) / colors.length);
+            const fallbackX1 = Math.floor(((i + 1) * width) / colors.length);
+            const x0 = Math.max(0, Number.isFinite(colors[i].x) ? Math.floor(colors[i].x) : fallbackX0);
+            const x1 = Math.min(width, Number.isFinite(colors[i].width) ? Math.floor(colors[i].x + colors[i].width) : fallbackX1);
+            const segmentW = Math.max(1, x1 - x0);
+
+            const segCanvas = document.createElement('canvas');
+            segCanvas.width = segmentW * 4;
+            segCanvas.height = textHeight * 4;
+            const segCtx = segCanvas.getContext('2d', { willReadFrequently: true });
+            if (!segCtx) continue;
+
+            segCtx.scale(4, 4);
+            segCtx.drawImage(baseCanvas, x0, textStartY, segmentW, textHeight, 0, 0, segmentW, textHeight);
+
+            const enhanced = segCtx.getImageData(0, 0, segCanvas.width, segCanvas.height);
+            const data = enhanced.data;
+            for (let px = 0; px < data.length; px += 4) {
+                const brightness = (data[px] + data[px + 1] + data[px + 2]) / 3;
+                const value = brightness < 205 ? 0 : 255;
+                data[px] = value;
+                data[px + 1] = value;
+                data[px + 2] = value;
             }
+            segCtx.putImageData(enhanced, 0, 0);
+
+            const result = await Tesseract.recognize(segCanvas, 'eng', {
+                tessedit_pageseg_mode: '6',
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -/'
+            });
+
+            const parsedLabel = parsePaletteLabelText(result?.data?.text || '');
+            if (!parsedLabel || parsedLabel.length < 2) continue;
+
+            colors[i].labelText = parsedLabel;
+            labels.push({ index: i, label: parsedLabel });
+        }
+
+        return labels;
+    } catch (error) {
+        console.warn('No se pudieron extraer etiquetas OCR para la paleta:', error);
+        return [];
+    }
+}
+
+function extractPaletteFromImageData(imageData, maxColors = 6) {
+    const pixels = imageData?.data;
+    const width = imageData?.width || 0;
+    const height = imageData?.height || 0;
+    if (!pixels || pixels.length < 4 || width < 2 || height < 2) return [];
+
+    const desiredColors = Math.max(2, Math.min(Number(maxColors) || 6, 12));
+
+    const getPixel = (x, y) => {
+        const idx = (y * width + x) * 4;
+        return { r: pixels[idx], g: pixels[idx + 1], b: pixels[idx + 2], a: pixels[idx + 3] };
+    };
+
+    // 1) Detección tipo "barras con texto debajo": leer una línea en la zona superior/media
+    const sampleY = Math.max(1, Math.min(height - 2, Math.floor(height * 0.32)));
+    const scanStep = Math.max(1, Math.floor(width / 500));
+    const bars = [];
+    let startX = -1;
+    let lastColor = null;
+
+    const isColorful = (px) => {
+        if ((px?.a || 0) < 20) return false;
+        const brightness = ((px.r || 0) + (px.g || 0) + (px.b || 0)) / 3;
+        return brightness > 18 && brightness < 245;
+    };
+
+    const pushBar = (x0, x1) => {
+        const barWidth = x1 - x0;
+        if (barWidth < Math.max(8, Math.floor(width * 0.02))) return;
+
+        const sampleX = Math.floor((x0 + x1) / 2);
+        const px = getPixel(Math.max(0, Math.min(width - 1, sampleX)), sampleY);
+        bars.push({
+            x: x0,
+            width: barWidth,
+            r: px.r,
+            g: px.g,
+            b: px.b,
+            hex: rgbToHex(px.r, px.g, px.b)
+        });
+    };
+
+    for (let x = 0; x < width; x += scanStep) {
+        const px = getPixel(x, sampleY);
+        const colorful = isColorful(px);
+
+        if (!colorful) {
+            if (startX >= 0) {
+                pushBar(startX, x);
+                startX = -1;
+                lastColor = null;
+            }
+            continue;
+        }
+
+        if (startX < 0) {
+            startX = x;
+            lastColor = px;
+            continue;
+        }
+
+        const d = colorDistance(px, lastColor || px);
+        if (d > 35) {
+            pushBar(startX, x);
+            startX = x;
+        }
+        lastColor = px;
+    }
+
+    if (startX >= 0) {
+        pushBar(startX, width - 1);
+    }
+
+    const normalizedBars = bars
+        .filter((bar) => bar.width >= Math.max(8, Math.floor(width * 0.02)))
+        .slice(0, desiredColors)
+        .map((bar) => ({ r: bar.r, g: bar.g, b: bar.b, hex: bar.hex, x: bar.x, width: bar.width }));
+
+    if (normalizedBars.length >= 2) {
+        return normalizedBars;
+    }
+
+    // 2) Fallback robusto por clustering (k-means simplificado)
+    const sampleStep = 16;
+    const samples = [];
+    for (let i = 0; i < pixels.length; i += 4 * sampleStep) {
+        const alpha = pixels[i + 3];
+        if (alpha < 25) continue;
+
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+
+        const brightness = (r * 0.299) + (g * 0.587) + (b * 0.114);
+        if (brightness < 15 || brightness > 245) continue;
+
+        samples.push({ r, g, b });
+    }
+
+    if (samples.length === 0) return [];
+
+    const k = Math.max(2, Math.min(desiredColors, samples.length));
+    const centroids = [];
+    const stride = Math.max(1, Math.floor(samples.length / k));
+
+    for (let i = 0; i < k; i++) {
+        const sample = samples[i * stride] || samples[i] || samples[0];
+        centroids.push({ ...sample });
+    }
+
+    for (let iteration = 0; iteration < 8; iteration++) {
+        const clusters = Array.from({ length: k }, () => ({ r: 0, g: 0, b: 0, count: 0 }));
+
+        samples.forEach((sample) => {
+            let bestIdx = 0;
+            let bestDistance = Number.POSITIVE_INFINITY;
+
+            centroids.forEach((centroid, idx) => {
+                const dist = colorDistance(sample, centroid);
+                if (dist < bestDistance) {
+                    bestDistance = dist;
+                    bestIdx = idx;
+                }
+            });
+
+            clusters[bestIdx].r += sample.r;
+            clusters[bestIdx].g += sample.g;
+            clusters[bestIdx].b += sample.b;
+            clusters[bestIdx].count += 1;
         });
 
+        clusters.forEach((cluster, idx) => {
+            if (cluster.count === 0) return;
+            centroids[idx] = {
+                r: Math.round(cluster.r / cluster.count),
+                g: Math.round(cluster.g / cluster.count),
+                b: Math.round(cluster.b / cluster.count)
+            };
+        });
+    }
+
+    const grouped = centroids
+        .map((centroid) => ({ ...centroid, hex: rgbToHex(centroid.r, centroid.g, centroid.b) }))
+        .filter((color) => Number.isFinite(color.r) && Number.isFinite(color.g) && Number.isFinite(color.b));
+
+    const deduped = [];
+    grouped.forEach((color) => {
+        const exists = deduped.some(existing => colorDistance(existing, color) < 22);
+        if (!exists) deduped.push(color);
+    });
+
+    return deduped.slice(0, k);
+}
+
+function hexToRgbObject(hexValue) {
+    const normalizedHex = String(hexValue || '').trim().replace('#', '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(normalizedHex)) return null;
+
+    return {
+        r: parseInt(normalizedHex.slice(0, 2), 16),
+        g: parseInt(normalizedHex.slice(2, 4), 16),
+        b: parseInt(normalizedHex.slice(4, 6), 16)
+    };
+}
+
+function getPaletteLightThreshold() {
+    const thresholdInput = document.getElementById('palette-light-threshold');
+    const parsedValue = Number(thresholdInput?.value);
+    const threshold = Number.isFinite(parsedValue) ? Math.max(0, Math.min(255, Math.trunc(parsedValue))) : 155;
+    if (thresholdInput) thresholdInput.value = String(threshold);
+    return threshold;
+}
+
+function classifyPaletteTone(color, threshold = getPaletteLightThreshold()) {
+    const rgb = hexToRgbObject(color?.hex) || {
+        r: Number(color?.r) || 0,
+        g: Number(color?.g) || 0,
+        b: Number(color?.b) || 0
+    };
+
+    const luminance = Number(((rgb.r * 0.299) + (rgb.g * 0.587) + (rgb.b * 0.114)).toFixed(2));
+    return {
+        luminance,
+        toneCategory: luminance >= threshold ? 'light' : 'dark'
+    };
+}
+
+function applyPaletteToneClassification(colors, threshold = getPaletteLightThreshold()) {
+    if (!Array.isArray(colors)) return [];
+
+    colors.forEach((color) => {
+        const toneData = classifyPaletteTone(color, threshold);
+        color.luminance = toneData.luminance;
+        color.toneCategory = toneData.toneCategory;
+    });
+
+    return colors;
+}
+
+function findColorNameByHex(hexValue) {
+    const target = String(hexValue || '').trim().toUpperCase();
+    if (!target) return null;
+
+    const all = window.ColorConfig?.db?.all || {};
+    const entries = Object.values(all)
+        .map((entry) => ({
+            key: entry?.key,
+            hex: String(entry?.hex || '').trim().toUpperCase()
+        }))
+        .filter((entry) => entry.key && /^#[0-9A-F]{6}$/.test(entry.hex));
+
+    if (entries.length === 0) return null;
+
+    const exactMatch = entries.find((entry) => entry.hex === target);
+    if (exactMatch) return exactMatch.key;
+
+    const targetRgb = hexToRgbObject(target);
+    if (!targetRgb) return null;
+
+    let best = null;
+    entries.forEach((entry) => {
+        const rgb = hexToRgbObject(entry.hex);
+        if (!rgb) return;
+        const dist = colorDistance(targetRgb, rgb);
+        if (!best || dist < best.distance) {
+            best = { key: entry.key, distance: dist };
+        }
+    });
+
+    // Umbral permisivo para aproximar colores de captura que no son exactos
+    return best && best.distance <= 52 ? best.key : null;
+}
+
+function buildDashboardPaletteJsonPayload(colors) {
+    const normalizedColors = Array.isArray(colors) ? colors : [];
+    const classificationThreshold = getPaletteLightThreshold();
+    applyPaletteToneClassification(normalizedColors, classificationThreshold);
+    return {
+        extractedAt: new Date().toISOString(),
+        source: 'dashboard-techpack-palette-extractor',
+        classificationThreshold,
+        totalColors: normalizedColors.length,
+        colors: normalizedColors.map((color, index) => {
+            const hex = color.hex || rgbToHex(color.r, color.g, color.b);
+            return {
+                index: index + 1,
+                name: color.labelText || null,
+                suggestedName: color.labelText ? null : findColorNameByHex(hex),
+                toneCategory: color.toneCategory,
+                luminance: color.luminance,
+                hex,
+                rgb: {
+                    r: Number(color.r) || 0,
+                    g: Number(color.g) || 0,
+                    b: Number(color.b) || 0
+                }
+            };
+        })
+    };
+}
+
+function updatePaletteJsonOutput(colors) {
+    const outputEl = document.getElementById('palette-json-output');
+    if (!outputEl) return;
+
+    const payload = buildDashboardPaletteJsonPayload(colors);
+    outputEl.textContent = JSON.stringify(payload, null, 2);
+}
+
+function copyPaletteJsonFromDashboard() {
+    const outputEl = document.getElementById('palette-json-output');
+    const payload = outputEl?.textContent || JSON.stringify(buildDashboardPaletteJsonPayload(dashboardPaletteExtractedColors), null, 2);
+
+    navigator.clipboard.writeText(payload).then(() => {
+        showStatus('📋 JSON de paleta copiado al portapapeles', 'success');
+    }).catch(() => {
+        showStatus('❌ No se pudo copiar el JSON', 'error');
+    });
+}
+
+function downloadPaletteJsonFromDashboard() {
+    const payload = buildDashboardPaletteJsonPayload(dashboardPaletteExtractedColors);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchorEl = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+    anchorEl.href = url;
+    anchorEl.download = `palette-techpack-${stamp}.json`;
+    document.body.appendChild(anchorEl);
+    anchorEl.click();
+    anchorEl.remove();
+    URL.revokeObjectURL(url);
+
+    showStatus('💾 JSON de paleta descargado', 'success');
+}
+
+function editPaletteExtractedName(index) {
+    if (!Array.isArray(dashboardPaletteExtractedColors) || !dashboardPaletteExtractedColors[index]) return;
+
+    const currentLabel = dashboardPaletteExtractedColors[index].labelText || '';
+    const nextLabel = prompt('Editar nombre detectado para este color:', currentLabel);
+    if (nextLabel === null) return;
+
+    const cleaned = sanitizePaletteLabel(nextLabel);
+    dashboardPaletteExtractedColors[index].labelText = cleaned || null;
+    applyPaletteToneClassification(dashboardPaletteExtractedColors);
+    renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+    updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+}
+
+function renderDashboardPaletteResults(colors) {
+    const resultsEl = document.getElementById('palette-results');
+    if (!resultsEl) return;
+
+    if (!Array.isArray(colors) || colors.length === 0) {
+        resultsEl.innerHTML = '<p style="color:var(--text-secondary); margin:0;">No se detectaron colores suficientes. Intenta con otra captura.</p>';
+        updatePaletteJsonOutput([]);
+        return;
+    }
+
+    resultsEl.innerHTML = colors.map((color, index) => {
+        const hex = color.hex || rgbToHex(color.r, color.g, color.b);
+        const rgb = `${color.r}, ${color.g}, ${color.b}`;
+        const colorName = color.labelText || null;
+        const suggestedName = colorName ? null : findColorNameByHex(hex);
+        const toneData = classifyPaletteTone({ ...color, hex });
+        const toneLabel = toneData.toneCategory === 'light' ? 'CLARO' : 'OSCURO';
+        return `
+            <div class="palette-color-card">
+                <div class="palette-color-chip" style="background:${hex};"></div>
+                <div class="palette-color-meta">
+                    <strong>${hex}</strong>
+                    ${colorName ? `<div class="palette-editable-name" onclick="editPaletteExtractedName(${index})" title="Click para editar">${colorName} <i class="fas fa-pen" style="font-size:.65rem;"></i></div>` : `<div class="palette-editable-name" onclick="editPaletteExtractedName(${index})" style="opacity:.7;" title="Click para escribir nombre">SIN TEXTO OCR <i class="fas fa-pen" style="font-size:.65rem;"></i></div>`}
+                    ${suggestedName ? `<div style="font-size:.72rem; opacity:.65;">Sugerido: ${suggestedName}</div>` : ''}
+                    RGB(${rgb})
+                    <div class="palette-tone-badge ${toneData.toneCategory === 'light' ? 'is-light' : 'is-dark'}">${toneLabel} · umbral ${getPaletteLightThreshold()} · L ${toneData.luminance}</div>
+                    <div style="margin-top:6px; font-size:0.74rem;">Color ${index + 1}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function setDashboardPalettePreview(imageDataUrl) {
+    const imagePreview = document.getElementById('palette-source-image');
+    const emptyState = document.getElementById('palette-empty-state');
+    if (!imagePreview) return;
+
+    dashboardPaletteImageDataUrl = String(imageDataUrl || '');
+    imagePreview.src = dashboardPaletteImageDataUrl;
+    imagePreview.style.display = 'block';
+    if (emptyState) emptyState.style.display = 'none';
+}
+
+function handlePalettePasteEvent(event) {
+    const isDashboardVisible = document.getElementById('dashboard')?.classList?.contains('active');
+    if (!isDashboardVisible) return;
+
+    const items = event.clipboardData?.items || [];
+    const imageItem = Array.from(items).find((item) => item.type && item.type.startsWith('image/'));
+    if (!imageItem) return;
+
+    event.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        setDashboardPalettePreview(String(reader.result || ''));
+        showStatus('📋 Imagen pegada desde portapapeles', 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+function focusPasteForPaletteFromDashboard() {
+    showStatus('📋 Ahora pega la imagen con Ctrl/Cmd + V', 'warning');
+}
+
+function initDashboardPaletteExtractor() {
+    const imageInput = document.getElementById('palette-image-input');
+    const imagePreview = document.getElementById('palette-source-image');
+    const thresholdInput = document.getElementById('palette-light-threshold');
+    if (!imageInput || !imagePreview || imageInput.dataset.bound === '1') return;
+
+    imageInput.addEventListener('change', (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setDashboardPalettePreview(String(reader.result || ''));
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document.addEventListener('paste', handlePalettePasteEvent);
+
+    thresholdInput?.addEventListener('input', () => {
+        applyPaletteToneClassification(dashboardPaletteExtractedColors);
+        renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+        updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+    });
+
+    imageInput.dataset.bound = '1';
+    updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+}
+
+async function runPaletteExtractorFromDashboard() {
+    const imagePreview = document.getElementById('palette-source-image');
+    const hiddenCanvas = document.getElementById('palette-extractor-canvas');
+    const colorCountInput = document.getElementById('palette-color-count');
+
+    if (!imagePreview || !hiddenCanvas) return;
+    if (!dashboardPaletteImageDataUrl && !imagePreview.src) {
+        showStatus('⚠️ Carga primero una imagen del techpack', 'warning');
+        return;
+    }
+
+    const img = new Image();
+    img.onload = async () => {
+        const ctx = hiddenCanvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+
+        const maxDimension = 300;
+        const ratio = Math.min(maxDimension / img.width, maxDimension / img.height, 1);
+        const width = Math.max(1, Math.round(img.width * ratio));
+        const height = Math.max(1, Math.round(img.height * ratio));
+
+        hiddenCanvas.width = width;
+        hiddenCanvas.height = height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const maxColors = Number(colorCountInput?.value || 6);
+        dashboardPaletteExtractedColors = extractPaletteFromImageData(imageData, maxColors);
+        await extractPaletteTextLabels(imageData, maxColors, dashboardPaletteExtractedColors);
+        applyPaletteToneClassification(dashboardPaletteExtractedColors);
+
+        renderDashboardPaletteResults(dashboardPaletteExtractedColors);
+        updatePaletteJsonOutput(dashboardPaletteExtractedColors);
+
+        const extractedColorsCountEl = document.getElementById('extracted-colors-count');
+        if (extractedColorsCountEl) {
+            extractedColorsCountEl.textContent = dashboardPaletteExtractedColors.length;
+        }
+
+        if (dashboardPaletteExtractedColors.length > 0) {
+            showStatus(`🎨 ${dashboardPaletteExtractedColors.length} colores extraídos del techpack`, 'success');
+        } else {
+            showStatus('⚠️ No se pudieron extraer colores de la captura', 'warning');
+        }
+    };
+
+    img.src = dashboardPaletteImageDataUrl || imagePreview.src;
+}
+
+window.runPaletteExtractorFromDashboard = runPaletteExtractorFromDashboard;
+window.copyPaletteJsonFromDashboard = copyPaletteJsonFromDashboard;
+window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
+window.focusPasteForPaletteFromDashboard = focusPasteForPaletteFromDashboard;
+window.editPaletteExtractedName = editPaletteExtractedName;
+const REMOTE_SPECS_API_BASE = String(window.TEGRA_BACKEND_URL || 'https://tegra-spec-manager.onrender.com').replace(/\/+$/, '');
+const REMOTE_SPECS_API_URL = REMOTE_SPECS_API_BASE ? `${REMOTE_SPECS_API_BASE}/api/specs` : '';
+let savedSpecsCache = null;
+let savedSpecsCacheMode = 'local';
+
+function getSpecGeneralData(source = {}) {
+    const data = source?.generalData && typeof source.generalData === 'object'
+        ? source.generalData
+        : source;
+
+    return {
+        customer: data?.customer || '',
+        style: data?.style || '',
+        folder: data?.folder || '',
+        colorway: data?.colorway || '',
+        season: data?.season || '',
+        pattern: data?.pattern || '',
+        po: data?.po || '',
+        sampleType: data?.sampleType || '',
+        nameTeam: data?.nameTeam || '',
+        gender: data?.gender || '',
+        designer: data?.designer || '',
+        baseSize: data?.baseSize || '',
+        fabric: data?.fabric || '',
+        technicianName: data?.technicianName || '',
+        technicalComments: data?.technicalComments || '',
+        program: data?.program || '',
+        specDate: data?.specDate || ''
+    };
+}
+
+function normalizeSpecDataForUi(data = {}, meta = {}) {
+    const generalData = getSpecGeneralData(data);
+    const placementsData = Array.isArray(data.placements) ? data.placements : [];
+
+    return {
+        ...data,
+        ...generalData,
+        placements: placementsData.map((placement, index) => ({
+            ...placement,
+            id: placement?.id || index + 1,
+            colors: Array.isArray(placement?.colors) ? placement.colors : (Array.isArray(placement?.colorsJson) ? placement.colorsJson : []),
+            sequence: Array.isArray(placement?.sequence) ? placement.sequence : (Array.isArray(placement?.sequenceJson) ? placement.sequenceJson : [])
+        })),
+        savedAt: meta.savedAt || data.savedAt || new Date().toISOString(),
+        lastModified: meta.lastModified || data.lastModified || meta.savedAt || data.savedAt || new Date().toISOString(),
+        _storageKey: meta.storageKey || data._storageKey || null,
+        _source: meta.source || data._source || 'local'
+    };
+}
+
+function buildRemoteSpecPayload(data = {}) {
+    return {
+        generalData: getSpecGeneralData(data),
+        placements: Array.isArray(data.placements) ? data.placements : [],
+        meta: {
+            savedAt: data.savedAt || new Date().toISOString(),
+            lastModified: data.lastModified || data.savedAt || new Date().toISOString(),
+            source: 'tegra-spec-manager-web'
+        }
+    };
+}
+
+function mapLocalSpecRecord(key, rawData = {}) {
+    const data = normalizeSpecDataForUi(rawData, {
+        storageKey: key,
+        source: 'local'
+    });
+
+    return {
+        key,
+        data,
+        savedAt: data.savedAt,
+        lastModified: data.lastModified,
+        source: 'local'
+    };
+}
+
+function mapRemoteSpecRecord(record = {}) {
+    const payload = record?.payloadJson && typeof record.payloadJson === 'object' ? record.payloadJson : {};
+    const payloadPlacements = Array.isArray(payload.placements) ? payload.placements : [];
+    const apiPlacements = Array.isArray(record.placements) ? record.placements : [];
+    const data = normalizeSpecDataForUi({
+        ...payload,
+        placements: payloadPlacements.length > 0 ? payloadPlacements : apiPlacements
+    }, {
+        storageKey: `remote:${record.id}`,
+        source: 'remote',
+        savedAt: payload?.meta?.savedAt || payload?.savedAt || record.updatedAt || record.createdAt,
+        lastModified: payload?.meta?.lastModified || record.updatedAt || record.createdAt
+    });
+
+    return {
+        key: `remote:${record.id}`,
+        data: {
+            ...data,
+            remoteId: record.id,
+            backendRecord: record
+        },
+        savedAt: data.savedAt,
+        lastModified: data.lastModified,
+        source: 'remote'
+    };
+}
+
+function getSavedSpecSearchText(record) {
+    const data = record?.data || {};
+    return [
+        record?.key || '',
+        data.style || '',
+        data.customer || '',
+        data.po || '',
+        data.colorway || ''
+    ].join(' ').toUpperCase();
+}
+
+function sortSavedSpecs(records = []) {
+    return [...records].sort((a, b) => new Date(b.lastModified || b.savedAt || 0) - new Date(a.lastModified || a.savedAt || 0));
+}
+
+function invalidateSavedSpecsCache() {
+    savedSpecsCache = null;
+}
+
+function getLocalSavedSpecsRecords() {
+    const records = Object.keys(localStorage)
+        .filter((key) => key.startsWith('spec_'))
+        .map((key) => {
+            try {
+                return mapLocalSpecRecord(key, JSON.parse(localStorage.getItem(key)));
+            } catch (error) {
+                console.error('Error al parsear spec guardada:', key, error);
+                localStorage.removeItem(key);
+                return null;
+            }
+        })
+        .filter(Boolean);
+
+    savedSpecsCacheMode = 'local';
+    return sortSavedSpecs(records);
+}
+
+async function fetchSavedSpecsRecords(options = {}) {
+    const { forceRefresh = false } = options;
+
+    if (!forceRefresh && Array.isArray(savedSpecsCache)) {
+        return savedSpecsCache;
+    }
+
+    if (REMOTE_SPECS_API_URL) {
+        try {
+            const response = await fetch(`${REMOTE_SPECS_API_URL}?limit=100`, {
+                headers: { Accept: 'application/json' }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const payload = await response.json();
+            savedSpecsCache = sortSavedSpecs(Array.isArray(payload?.items) ? payload.items.map(mapRemoteSpecRecord) : []);
+            savedSpecsCacheMode = 'remote';
+            return savedSpecsCache;
+        } catch (error) {
+            console.warn('[saved-specs] No se pudo cargar desde backend; usando almacenamiento local.', error);
+        }
+    }
+
+    savedSpecsCache = getLocalSavedSpecsRecords();
+    return savedSpecsCache;
+}
+
+async function getSavedSpecRecordByKey(storageKey) {
+    const key = String(storageKey || '');
+    if (!key) return null;
+
+    if (key.startsWith('remote:') && REMOTE_SPECS_API_URL) {
+        const response = await fetch(`${REMOTE_SPECS_API_URL}/${encodeURIComponent(key.slice('remote:'.length))}`, {
+            headers: { Accept: 'application/json' }
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) return null;
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const record = await response.json();
+        return mapRemoteSpecRecord(record);
+    }
+
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return mapLocalSpecRecord(key, JSON.parse(raw));
+}
+
+function renderSavedSpecListItem(record) {
+    const data = record.data || {};
+    const encodedKey = encodeURIComponent(record.key);
+    return `
+        <div style="padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition); gap: 10px;">
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'} | PO: ${data.po || 'N/A'}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(record.savedAt || 0).toLocaleDateString('es-ES')} · ${record.source === 'remote' ? 'Render' : 'Este navegador'}</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                <button class="btn btn-primary btn-sm" onclick="loadSpec(decodeURIComponent('${encodedKey}'))"><i class="fas fa-edit"></i> Cargar</button>
+                <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec(decodeURIComponent('${encodedKey}'))"><i class="fas fa-download"></i> JSON</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteSpec(decodeURIComponent('${encodedKey}'))"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `;
+}
+
+async function updateDashboard(options = {}) {
+    try {
+        const specs = await fetchSavedSpecsRecords(options);
+        const totalEl = document.getElementById('total-specs');
+        if (totalEl) totalEl.textContent = specs.length;
+
+        const lastRecord = specs[0] || null;
         const todaySpecsEl = document.getElementById('today-specs');
-        if (lastSpec && todaySpecsEl) {
-            const safeStyle = (lastSpec.style || 'Sin nombre').replace(/"/g, '&quot;');
+        if (lastRecord && todaySpecsEl) {
+            const safeStyle = (lastRecord.data?.style || 'Sin nombre').replace(/"/g, '&quot;');
             todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
-                <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastSpecKey)}'))" title="Abrir para seguir editando"
+                <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastRecord.key)}'))" title="Abrir para seguir editando"
                     style="font-size:1.05rem; font-weight:bold; color:var(--primary); background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; text-align:left;">
                     ${safeStyle}
                 </button>
-                <div style="font-size:0.8rem; color:var(--text-secondary);">${lastSpecDate.toLocaleDateString('es-ES')}</div>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">${new Date(lastRecord.savedAt || 0).toLocaleDateString('es-ES')}</div>
             `;
         } else if (todaySpecsEl) {
             todaySpecsEl.innerHTML = `
@@ -2713,26 +3509,10 @@ function updateDashboard() {
             `;
         }
 
-        let activeCount = 0;
-        specs.forEach(key => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                if (data.placements && data.placements.length > 0) {
-                    activeCount++;
-                }
-            } catch (e) { }
-        });
-        const activeProjectsEl = document.getElementById('active-projects');
-        if (activeProjectsEl) activeProjectsEl.textContent = activeCount;
+        const totalPlacements = specs.reduce((total, record) => total + (record.data?.placements?.length || 0), 0);
 
-        const totalPlacements = specs.reduce((total, key) => {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                return total + (data.placements?.length || 0);
-            } catch (e) {
-                return total;
-            }
-        }, 0);
+        const extractedColorsCountEl = document.getElementById('extracted-colors-count');
+        if (extractedColorsCountEl) extractedColorsCountEl.textContent = dashboardPaletteExtractedColors.length;
 
         const completionRateEl = document.getElementById('completion-rate');
         if (completionRateEl) {
@@ -2751,18 +3531,28 @@ function updateDashboard() {
 // FUNCIONES DE STORAGE
 // =====================================================
 
-function loadSavedSpecsList() {
+async function loadSavedSpecsList(options = {}) {
+    const { retryCount = 0, maxRetries = 6, forceRefresh = false } = options;
     const list = document.getElementById('saved-specs-list');
-    if (!list) return;
+
+    if (!list) {
+        if (retryCount < maxRetries) {
+            setTimeout(() => loadSavedSpecsList({ retryCount: retryCount + 1, maxRetries, forceRefresh }), 150);
+        } else {
+            console.warn('[saved-specs] Contenedor no disponible; se omite render por ahora.');
+        }
+        return;
+    }
+
     const searchInput = document.getElementById('saved-specs-search');
     const query = (searchInput?.value || '').toUpperCase().trim();
-    const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
+    const specs = await fetchSavedSpecsRecords({ forceRefresh });
 
     if (specs.length === 0) {
         list.innerHTML = `
             <p style="text-align: center; color: var(--text-secondary); padding: 30px;">
                 <i class="fas fa-database" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
-                No hay specs guardadas. Crea una nueva spec para verla aquí.
+                No hay specs guardadas en ${savedSpecsCacheMode === 'remote' ? 'Render' : 'este navegador'}. Crea una nueva spec para verla aquí.
             </p>
         `;
         return;
@@ -2771,42 +3561,18 @@ function loadSavedSpecsList() {
     list.innerHTML = '';
     let visibleCount = 0;
 
-    specs.forEach(key => {
-        try {
-            const data = JSON.parse(localStorage.getItem(key));
+    specs.forEach(record => {
+        const searchableText = getSavedSpecSearchText(record);
 
-            const searchableText = [
-                key,
-                data.style || '',
-                data.customer || '',
-                data.po || '',
-                data.colorway || ''
-            ].join(' ').toUpperCase();
-
-            if (query && !searchableText.includes(query)) {
-                return;
-            }
-
-            visibleCount += 1;
-            const div = document.createElement('div');
-            div.style.cssText = "padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition);";
-            div.innerHTML = `
-                <div style="flex: 1;">
-                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'} | PO: ${data.po || 'N/A'}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(data.savedAt).toLocaleDateString('es-ES')}</div>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})'><i class="fas fa-edit"></i> Cargar</button>
-                    <button class="btn btn-outline btn-sm" onclick="downloadSingleSpec('${key}')"><i class="fas fa-download"></i> JSON</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteSpec('${key}')"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
-            list.appendChild(div);
-        } catch (e) {
-            console.error('Error al parsear spec guardada:', key, e);
-            localStorage.removeItem(key);
+        if (query && !searchableText.includes(query)) {
+            return;
         }
+
+        visibleCount += 1;
+        const div = document.createElement('div');
+        div.style.cssText = "padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition);";
+        div.innerHTML = renderSavedSpecListItem(record);
+        list.appendChild(div);
     });
 
     if (visibleCount === 0) {
@@ -2819,16 +3585,15 @@ function loadSavedSpecsList() {
     }
 }
 
-function loadSpec(storageKey) {
+async function loadSpec(storageKey) {
     try {
         if (!storageKey) return;
-        const raw = localStorage.getItem(storageKey);
-        if (!raw) {
+        const record = await getSavedSpecRecordByKey(storageKey);
+        if (!record) {
             showStatus('⚠️ No se encontró la spec seleccionada', 'warning');
             return;
         }
-        const data = JSON.parse(raw);
-        loadSpecData(data);
+        loadSpecData(record.data);
         showTab('spec-creator');
         showStatus('✅ Spec cargada para edición', 'success');
     } catch (error) {
@@ -2905,9 +3670,14 @@ function loadSpecData(data) {
     showStatus('📂 Spec cargada correctamente');
 }
 
-function downloadSingleSpec(key) {
+async function downloadSingleSpec(key) {
     try {
-        const data = JSON.parse(localStorage.getItem(key));
+        const record = await getSavedSpecRecordByKey(key);
+        if (!record) {
+            showStatus('⚠️ No se encontró la spec seleccionada', 'warning');
+            return;
+        }
+        const data = record.data;
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -2921,25 +3691,57 @@ function downloadSingleSpec(key) {
     }
 }
 
-function deleteSpec(key) {
-    if (confirm('¿Estás seguro de que quieres eliminar esta spec?')) {
-        localStorage.removeItem(key);
-        loadSavedSpecsList();
-        updateDashboard();
-        showStatus('🗑️ Spec eliminada', 'success');
+async function deleteSpec(key) {
+    try {
+        if (confirm('¿Estás seguro de que quieres eliminar esta spec?')) {
+            if (String(key).startsWith('remote:') && REMOTE_SPECS_API_URL) {
+                const response = await fetch(`${REMOTE_SPECS_API_URL}/${encodeURIComponent(String(key).slice('remote:'.length))}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok && response.status !== 404) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } else {
+                localStorage.removeItem(key);
+            }
+
+            invalidateSavedSpecsCache();
+            await loadSavedSpecsList({ forceRefresh: true });
+            await updateDashboard({ forceRefresh: true });
+            showStatus('🗑️ Spec eliminada', 'success');
+        }
+    } catch (error) {
+        console.error('Error al eliminar spec:', error);
+        showStatus('❌ Error al eliminar la spec', 'error');
     }
 }
 
-function clearAllSpecs() {
-    if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?\n\nEsta acción no se puede deshacer y se perderán todos los datos.')) {
-        Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('spec_')) {
-                localStorage.removeItem(key);
+async function clearAllSpecs() {
+    try {
+        if (confirm('⚠️ ¿Estás seguro de que quieres eliminar TODAS las specs guardadas?\n\nEsta acción no se puede deshacer y se perderán todos los datos.')) {
+            const specs = await fetchSavedSpecsRecords({ forceRefresh: true });
+
+            if (savedSpecsCacheMode === 'remote' && REMOTE_SPECS_API_URL) {
+                await Promise.all(specs.map((record) => fetch(`${REMOTE_SPECS_API_URL}/${encodeURIComponent(String(record.key).slice('remote:'.length))}`, {
+                    method: 'DELETE'
+                })));
             }
-        });
-        loadSavedSpecsList();
-        updateDashboard();
-        showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
+
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('spec_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+
+            invalidateSavedSpecsCache();
+            await loadSavedSpecsList({ forceRefresh: true });
+            await updateDashboard({ forceRefresh: true });
+            showStatus('🗑️ Todas las specs han sido eliminadas', 'success');
+        }
+    } catch (error) {
+        console.error('Error al limpiar specs:', error);
+        showStatus('❌ Error al limpiar las specs', 'error');
     }
 }
 
@@ -2947,7 +3749,7 @@ function clearAllSpecs() {
 // FUNCIONES DE GUARDADO
 // =====================================================
 
-function saveCurrentSpec() {
+async function saveCurrentSpec() {
     try {
         const data = collectData();
         const style = data.style || 'SinEstilo_' + Date.now();
@@ -2968,25 +3770,51 @@ function saveCurrentSpec() {
         data.savedAt = new Date().toISOString();
         data.lastModified = new Date().toISOString();
 
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(data));
-        } catch (storageError) {
-            if (storageError && storageError.name === 'QuotaExceededError') {
-                const lightData = {
-                    ...data,
-                    placements: (data.placements || []).map((p) => ({ ...p, imageData: null }))
-                };
-                localStorage.setItem(storageKey, JSON.stringify(lightData));
-                showStatus('⚠️ Guardado sin imágenes por límite de almacenamiento', 'warning');
-            } else {
-                throw storageError;
+        let savedRemotely = false;
+
+        if (REMOTE_SPECS_API_URL) {
+            try {
+                const remoteResponse = await fetch(REMOTE_SPECS_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json'
+                    },
+                    body: JSON.stringify(buildRemoteSpecPayload(data))
+                });
+
+                if (!remoteResponse.ok) {
+                    throw new Error(`HTTP ${remoteResponse.status}`);
+                }
+
+                savedRemotely = true;
+            } catch (remoteError) {
+                console.warn('[saved-specs] No se pudo guardar en backend; usando localStorage.', remoteError);
             }
         }
 
-        updateDashboard();
-        loadSavedSpecsList();
+        if (!savedRemotely) {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(data));
+            } catch (storageError) {
+                if (storageError && storageError.name === 'QuotaExceededError') {
+                    const lightData = {
+                        ...data,
+                        placements: (data.placements || []).map((p) => ({ ...p, imageData: null }))
+                    };
+                    localStorage.setItem(storageKey, JSON.stringify(lightData));
+                    showStatus('⚠️ Guardado sin imágenes por límite de almacenamiento', 'warning');
+                } else {
+                    throw storageError;
+                }
+            }
+        }
 
-        showStatus('✅ Spec guardada correctamente', 'success');
+        invalidateSavedSpecsCache();
+        await updateDashboard({ forceRefresh: true });
+        await loadSavedSpecsList({ forceRefresh: true });
+
+        showStatus(savedRemotely ? '✅ Spec guardada y sincronizada en Render' : '✅ Spec guardada en este navegador', 'success');
 
         setTimeout(() => {
             if (confirm('¿Deseas ver todas las specs guardadas?')) {
@@ -3439,11 +4267,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             updateDateTime();
             updateDashboard();
-            loadSavedSpecsList(); // Ahora el contenedor ya existe
+            loadSavedSpecsList({ maxRetries: 10 });
             setupPasteHandler();
             setupExcelImportHandler();
             loadThemePreference();
             bindSpecCreatorFormSafety();
+            initDashboardPaletteExtractor();
 
             const themeToggle = document.getElementById('themeToggle');
             if (themeToggle) {
@@ -3568,13 +4397,13 @@ const debouncedSearchDashboardSpecs = (() => {
     };
 })();
 
-function searchDashboardSpecs() {
+async function searchDashboardSpecs() {
     const searchInput = document.getElementById('dashboard-spec-search');
     const resultsDiv = document.getElementById('dashboard-search-results');
     if (!searchInput || !resultsDiv) return;
 
     const query = searchInput.value.toUpperCase().trim();
-    const specs = Object.keys(localStorage).filter(key => key.startsWith('spec_'));
+    const specs = await fetchSavedSpecsRecords();
 
     if (query.length < 2) {
         resultsDiv.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 15px;">Escribe al menos 2 caracteres...</p>';
@@ -3589,37 +4418,27 @@ function searchDashboardSpecs() {
     let visibleCount = 0;
     let resultsHtml = '';
 
-    specs.forEach(key => {
-        try {
-            const data = JSON.parse(localStorage.getItem(key));
-            const searchableText = [
-                key,
-                data.style || '',
-                data.customer || '',
-                data.po || '',
-                data.colorway || ''
-            ].join(' ').toUpperCase();
+    specs.forEach(record => {
+        const data = record.data || {};
+        const searchableText = getSavedSpecSearchText(record);
 
-            if (query && !searchableText.includes(query)) {
-                return;
-            }
-
-            visibleCount += 1;
-            resultsHtml += `
-                <div style="padding:12px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; gap:10px;">
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | PO: ${data.po || 'N/A'}</div>
-                    </div>
-                    <div style="display: flex; gap: 5px; flex-shrink:0;">
-                        <button class="btn btn-primary btn-sm" onclick='loadSpecData(${JSON.stringify(data).replace(/'/g, "\\'")})' title="Abrir para editar"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-outline btn-sm" onclick='duplicateSpecFromData(${JSON.stringify(data).replace(/'/g, "\\'")})' title="Duplicar"><i class="fas fa-copy"></i></button>
-                    </div>
-                </div>
-            `;
-        } catch (e) {
-            console.error('Error al parsear spec guardada:', key, e);
+        if (query && !searchableText.includes(query)) {
+            return;
         }
+
+        visibleCount += 1;
+        resultsHtml += `
+            <div style="padding:12px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | PO: ${data.po || 'N/A'} | ${record.source === 'remote' ? 'Render' : 'Local'}</div>
+                </div>
+                <div style="display: flex; gap: 5px; flex-shrink:0;">
+                    <button class="btn btn-primary btn-sm" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(record.key)}'))" title="Abrir para editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-outline btn-sm" onclick='duplicateSpecFromData(${JSON.stringify(data).replace(/'/g, "\\'")})' title="Duplicar"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+        `;
     });
 
     if (visibleCount === 0) {
