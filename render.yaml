@@ -1,14 +1,6 @@
-services:
+        services:
   - type: web
-    name: tegra-spec-manager-backend
-    env: node
+    name: tegra-spec-manager
+    runtime: node
     buildCommand: npm run render:build
-    startCommand: npm run render:start
-    healthCheckPath: /health
-    envVars:
-      - key: NODE_VERSION
-        value: 20
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        sync: false
+    startCommand: cd backend && npx prisma migrate deploy && npm start  # <-- Esto ejecuta migraciones
