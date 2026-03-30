@@ -60,6 +60,36 @@ window.RulesEngine = (function() {
     // FUNCIONES AUXILIARES
     // =====================================================
     
+
+
+    function hexToRgb(hex) {
+        const normalized = String(hex || '').trim().replace('#', '');
+        if (!/^[0-9A-Fa-f]{6}$/.test(normalized)) return null;
+        return {
+            r: parseInt(normalized.slice(0, 2), 16),
+            g: parseInt(normalized.slice(2, 4), 16),
+            b: parseInt(normalized.slice(4, 6), 16)
+        };
+    }
+
+    function getToneFromColorSystem(colorName) {
+        if (!colorName) return null;
+
+        const resolver = window.ColorEngine?.resolveColor;
+        if (typeof resolver !== 'function' || typeof window.ColorConfig?.findColorHex !== 'function') return null;
+
+        const hex = window.ColorConfig.findColorHex(colorName);
+        if (!hex) return null;
+
+        const rgb = hexToRgb(hex);
+        if (!rgb) return null;
+
+        const resolved = resolver({ hex, rgb });
+        if (!resolved?.toneCategory) return null;
+
+        return resolved.toneCategory;
+    }
+
     function detectCustomerVariant(customer) {
         if (!customer) return 'WATER';
         const upper = customer.toUpperCase();
@@ -83,7 +113,12 @@ window.RulesEngine = (function() {
 
     function esTelaOscura(colorTela) {
         if (!colorTela) return false;
-        const telaLower = colorTela.toLowerCase();
+
+        const resolvedTone = getToneFromColorSystem(colorTela);
+        if (resolvedTone === 'dark') return true;
+        if (resolvedTone === 'light') return false;
+
+        const telaLower = String(colorTela).toLowerCase();
         return DARK_FABRICS.some(o => telaLower.includes(o));
     }
 
@@ -113,7 +148,12 @@ window.RulesEngine = (function() {
 
     function esColorClaro(colorName) {
         if (!colorName) return false;
-        const upper = colorName.toUpperCase();
+
+        const resolvedTone = getToneFromColorSystem(colorName);
+        if (resolvedTone === 'light') return true;
+        if (resolvedTone === 'dark') return false;
+
+        const upper = String(colorName).toUpperCase();
         const claros = ['YELLOW', 'GOLD', 'ORANGE', 'PINK', 'AMARILLO', 'DORADO', 'NARANJA', 'ROSA', 'LIGHT', 'CLARO'];
         return claros.some(c => upper.includes(c));
     }
