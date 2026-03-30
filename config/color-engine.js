@@ -15,6 +15,17 @@ function getLuminance(r, g, b) {
   return Number((0.299 * r + 0.587 * g + 0.114 * b).toFixed(2));
 }
 
+function hexToRgb(hex = '') {
+  const normalized = normalizeHex(hex);
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return null;
+
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16)
+  };
+}
+
 export function validateColor(input = {}) {
   if (!input?.hex && !input?.rgb) {
     throw new Error('Color must include hex or rgb');
@@ -27,10 +38,11 @@ export function findExactColor(hex) {
 }
 
 export function classifyColor(rgb = {}) {
+  const source = rgb && typeof rgb === 'object' ? rgb : {};
   const normalized = {
-    r: Number.isFinite(Number(rgb.r)) ? Math.max(0, Math.min(255, Math.trunc(Number(rgb.r)))) : 0,
-    g: Number.isFinite(Number(rgb.g)) ? Math.max(0, Math.min(255, Math.trunc(Number(rgb.g)))) : 0,
-    b: Number.isFinite(Number(rgb.b)) ? Math.max(0, Math.min(255, Math.trunc(Number(rgb.b)))) : 0
+    r: Number.isFinite(Number(source.r)) ? Math.max(0, Math.min(255, Math.trunc(Number(source.r)))) : 0,
+    g: Number.isFinite(Number(source.g)) ? Math.max(0, Math.min(255, Math.trunc(Number(source.g)))) : 0,
+    b: Number.isFinite(Number(source.b)) ? Math.max(0, Math.min(255, Math.trunc(Number(source.b)))) : 0
   };
 
   const luminance = getLuminance(normalized.r, normalized.g, normalized.b);
@@ -64,7 +76,7 @@ export function resolveColor(input = {}) {
     : {
         source: 'computed',
         hex: normalizedHex || null,
-        ...classifyColor(input.rgb)
+        ...classifyColor(input.rgb || hexToRgb(normalizedHex))
       };
 
   cache.set(key, result);
