@@ -570,6 +570,26 @@ select.form-control option {
     font-size: 16px; 
 }
 
+
+.color-recognition-note {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+}
+
+.color-recognition-note.is-recognized {
+    border-color: rgba(79, 168, 122, 0.55);
+    color: #b8e6cb;
+}
+
+.color-recognition-note.is-unrecognized {
+    border-color: rgba(214, 168, 72, 0.55);
+    color: #f5d88b;
+}
+
 /* Sequences & Tables Modernos - Modo Oscuro */
 .sequence-table { 
     width: 100%; 

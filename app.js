@@ -238,6 +238,7 @@ function showTab(tabName) {
         if (window.tegraAdapter?.crearBotonCargaPDF) {
             window.tegraAdapter.crearBotonCargaPDF();
         }
+        updateGarmentColorRecognition();
     }
 }
 
@@ -447,6 +448,56 @@ function setInputValue(id, value) {
     }
 }
 
+
+
+function hexToRgbSafe(hexValue) {
+    const normalized = String(hexValue || '').trim().replace('#', '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(normalized)) return null;
+
+    return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16)
+    };
+}
+
+function updateGarmentColorRecognition() {
+    const statusEl = document.getElementById('garment-color-recognition');
+    if (!statusEl) return;
+
+    const colorway = document.getElementById('colorway')?.value || '';
+    const fabric = document.getElementById('fabric')?.value || '';
+    const sourceText = String(fabric || colorway || '').trim();
+
+    statusEl.classList.remove('is-recognized', 'is-unrecognized');
+
+    if (!sourceText) {
+        statusEl.textContent = 'Color de tela sin analizar.';
+        return;
+    }
+
+    const foundHex = window.ColorConfig?.findColorHex
+        ? window.ColorConfig.findColorHex(sourceText)
+        : null;
+
+    if (!foundHex) {
+        statusEl.classList.add('is-unrecognized');
+        statusEl.textContent = `No se reconoció "${sourceText}" en la base de colores. Se usará fallback por texto.`;
+        return;
+    }
+
+    const rgb = hexToRgbSafe(foundHex);
+    const resolved = window.ColorEngine?.resolveColor
+        ? window.ColorEngine.resolveColor({ hex: foundHex, rgb })
+        : null;
+
+    const tone = resolved?.toneCategory || 'unknown';
+    const toneLabel = tone === 'light' ? 'CLARO' : (tone === 'dark' ? 'OSCURO' : 'SIN CLASIFICAR');
+    const sourceLabel = resolved?.source === 'database' ? 'DB' : (resolved?.source === 'computed' ? 'COMPUTADO' : 'COLORCONFIG');
+
+    statusEl.classList.add('is-recognized');
+    statusEl.textContent = `Reconocido: ${sourceText} → ${foundHex.toUpperCase()} · ${toneLabel} · fuente ${sourceLabel}`;
+}
 
 function applyCustomerInkDefaults() {
     const customerValue = (document.getElementById('customer')?.value || '').toUpperCase().trim();
