@@ -120,7 +120,7 @@
     });
   }
 
-  function generateStationsData(placement) {
+  function generateStationsData(placement, data) {
     const stations = [];
     let st = 1;
     const preset = getInkPreset(placement.inkType || 'WATER');
@@ -133,22 +133,39 @@
     const pressure = placement.pressure || preset.color.pressure;
     const additives = placement.additives || preset.color.additives;
 
+    const resolveStationAdditives = (item, layerType) => {
+      const resolver = window.AdditivesRules?.resolveAdditives;
+      if (typeof resolver !== 'function') return additives;
+
+      const result = resolver({
+        inkType: placement.inkType || 'WATER',
+        layerType,
+        colorName: item?.val || item?.name || '',
+        customer: data?.customer || '',
+        fabric: placement.fabric || data?.fabric || '',
+        placement,
+        preset
+      });
+
+      return result?.additives || additives;
+    };
+
     (placement.colors || []).forEach((item, idx, arr) => {
       let mesh = meshColor;
-      let add = additives;
+      let add = resolveStationAdditives(item, item.type || 'COLOR');
       let strokesVal = strokes;
       let duro = durometer;
       if (item.type === 'BLOCKER') {
         mesh = meshBlocker;
-        add = preset.blocker.additives;
+        add = resolveStationAdditives(item, 'BLOCKER');
       } else if (item.type === 'WHITE_BASE') {
         mesh = meshWhite;
-        add = preset.white.additives;
+        add = resolveStationAdditives(item, 'WHITE_BASE');
       } else if (item.type === 'METALLIC') {
         mesh = '122/55';
         strokesVal = '1';
         duro = '70';
-        add = '3% cross linker 500 · 3% Binder Flex';
+        add = resolveStationAdditives(item, 'METALLIC');
       }
 
       stations.push({
@@ -212,7 +229,7 @@
       </div>`;
     }).join('') || '<div class="color-name">Sin colores registrados</div>';
 
-    const rows = generateStationsData(placement).map((r) => {
+    const rows = generateStationsData(placement, data).map((r) => {
       const stationUpper = String(r.screenCombined || '').toUpperCase();
       const isFlash = stationUpper === 'FLASH';
       const isCool = stationUpper === 'COOL';
