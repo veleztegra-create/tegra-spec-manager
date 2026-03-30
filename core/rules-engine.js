@@ -50,10 +50,15 @@ window.RulesEngine = (function() {
     // =====================================================
     // IDENTIFICADORES DE TELA OSCURA
     // =====================================================
+    const LIGHT_FABRICS = [
+        'white', 'blanco', 'natural', 'cream', 'ivory', 'bone', 'ecru',
+        'off white', 'off-white', 'heather grey', 'heather gray', 'light grey', 'light gray', 'ash'
+    ];
+
     const DARK_FABRICS = [
         'negro', 'black', 'navy', 'azul marino', 'charcoal', 'carbon',
         'maroon', 'granate', 'dark', 'oscuro', 'forest', 'verde oscuro',
-        'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal'
+        'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal', 'red', 'orange', 'green', 'blue', 'purple'
     ];
 
     // =====================================================
@@ -114,12 +119,20 @@ window.RulesEngine = (function() {
     function esTelaOscura(colorTela) {
         if (!colorTela) return false;
 
+        const telaLower = String(colorTela).toLowerCase();
+
+        // Regla de negocio textil: solo blancos/naturales se consideran telas claras por defecto.
+        if (LIGHT_FABRICS.some(term => telaLower.includes(term))) return false;
+
+        // Si coincide con catálogos oscuros conocidos, forzar oscura.
+        if (DARK_FABRICS.some(term => telaLower.includes(term))) return true;
+
+        // Si el color viene del motor como oscuro, mantener oscura.
         const resolvedTone = getToneFromColorSystem(colorTela);
         if (resolvedTone === 'dark') return true;
-        if (resolvedTone === 'light') return false;
 
-        const telaLower = String(colorTela).toLowerCase();
-        return DARK_FABRICS.some(o => telaLower.includes(o));
+        // Fallback conservador para secuencia: asumir oscura para proteger cobertura.
+        return true;
     }
 
     function extractPantoneNumber(colorName) {

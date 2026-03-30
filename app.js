@@ -494,9 +494,11 @@ function updateGarmentColorRecognition() {
     const tone = resolved?.toneCategory || 'unknown';
     const toneLabel = tone === 'light' ? 'CLARO' : (tone === 'dark' ? 'OSCURO' : 'SIN CLASIFICAR');
     const sourceLabel = resolved?.source === 'database' ? 'DB' : (resolved?.source === 'computed' ? 'COMPUTADO' : 'COLORCONFIG');
+    const fabricIsDark = window.RulesEngine?.esTelaOscura ? window.RulesEngine.esTelaOscura(sourceText) : null;
+    const fabricToneLabel = fabricIsDark === null ? 'N/A' : (fabricIsDark ? 'OSCURA' : 'CLARA');
 
     statusEl.classList.add('is-recognized');
-    statusEl.textContent = `Reconocido: ${sourceText} → ${foundHex.toUpperCase()} · ${toneLabel} · fuente ${sourceLabel}`;
+    statusEl.textContent = `Reconocido: ${sourceText} → ${foundHex.toUpperCase()} · Tinta ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
 }
 
 function applyCustomerInkDefaults() {
