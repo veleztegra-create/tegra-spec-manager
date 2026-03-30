@@ -92,6 +92,34 @@
     return notes;
   }
 
+
+  function enrichPlacementColors(placement) {
+    if (!Array.isArray(placement?.colors)) return [];
+
+    return placement.colors.map((color) => {
+      const resolver = window.ColorEngine?.resolveColor;
+      if (typeof resolver !== 'function') {
+        return {
+          ...color,
+          tone: color.tone || color.toneCategory || null,
+          ink: color.ink || null
+        };
+      }
+
+      const resolved = resolver({
+        hex: color.hex || resolveColorHex(color.val),
+        rgb: color.rgb || null
+      });
+
+      return {
+        ...color,
+        tone: resolved.toneCategory,
+        ink: resolved.recommendedInk || color.ink || null,
+        contrastText: resolved.contrastText || color.contrastText || null
+      };
+    });
+  }
+
   function generateStationsData(placement) {
     const stations = [];
     let st = 1;
@@ -158,9 +186,12 @@
       ? String(placement.imageData)
       : 'https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT';
 
+    const enrichedColors = enrichPlacementColors(placement);
+    placement.colors = enrichedColors;
+
     const uniqueDesignColors = [];
     const seenColorNames = new Set();
-    (placement.colors || []).forEach((c) => {
+    enrichedColors.forEach((c) => {
       if (c.type !== 'COLOR' && c.type !== 'METALLIC') return;
       const normalized = String(c.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
       if (!normalized || seenColorNames.has(normalized)) return;
@@ -168,11 +199,18 @@
       uniqueDesignColors.push(c);
     });
 
-    const colors = uniqueDesignColors.map((c, i) => `
+    const colors = uniqueDesignColors.map((c, i) => {
+      const inkLabel = c.ink
+        ? (String(c.ink).toLowerCase() === 'plastisol' ? 'PLASTISOL INK' : `${String(c.ink).toUpperCase()} INK`)
+        : null;
+      const colorDisplay = inkLabel ? `${c.val || '---'} (${inkLabel})` : (c.val || '---');
+
+      return `
       <div class="color-swatch">
         <div class="color-box" style="background:${esc(resolveColorHex(c.val))};"></div>
-        <div class="color-info"><span class="color-number">${esc(c.screenLetter || String(i + 1))}</span><span class="color-name">${esc(c.val || '---')}</span></div>
-      </div>`).join('') || '<div class="color-name">Sin colores registrados</div>';
+        <div class="color-info"><span class="color-number">${esc(c.screenLetter || String(i + 1))}</span><span class="color-name">${esc(colorDisplay)}</span></div>
+      </div>`;
+    }).join('') || '<div class="color-name">Sin colores registrados</div>';
 
     const rows = generateStationsData(placement).map((r) => {
       const stationUpper = String(r.screenCombined || '').toUpperCase();
