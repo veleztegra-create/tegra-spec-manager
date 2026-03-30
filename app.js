@@ -218,7 +218,7 @@ function showTab(tabName) {
 
     const tabs = document.querySelectorAll('.nav-tab');
     tabs.forEach(tab => {
-        if (tab.innerText.toLowerCase().includes(tabName.replace('-', ' '))) {
+        if ((tab.dataset.tab || '').trim() === tabName) {
             tab.classList.add('active');
         }
     });
@@ -234,6 +234,9 @@ function showTab(tabName) {
     if (tabName === 'spec-creator') {
         if (placements.length === 0 && document.getElementById('placements-container')) {
             initializePlacements();
+        }
+        if (window.tegraAdapter?.crearBotonCargaPDF) {
+            window.tegraAdapter.crearBotonCargaPDF();
         }
     }
 }

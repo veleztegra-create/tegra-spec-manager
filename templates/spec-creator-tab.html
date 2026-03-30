@@ -14,6 +14,10 @@
                     onclick="document.getElementById('excelFile').click()">
                     <i class="fas fa-file-excel"></i> Cargar SWO
                 </button>
+                <button type="button" id="tegra-pdf-uploader-btn" class="btn btn-outline btn-sm"
+                    title="Cargar Tech Pack Nike desde PDF">
+                    <i class="fas fa-file-pdf"></i> Cargar Tech Pack Nike
+                </button>
                 <button type="button" class="btn btn-danger btn-sm" onclick="clearForm()">
                     <i class="fas fa-trash"></i> Limpiar
                 </button>
@@ -141,15 +145,15 @@
             <div class="global-actions">
                 <button type="button" class="btn btn-primary" onclick="saveCurrentSpec()"><i class="fas fa-save"></i>
                     Guardar Spec</button>
-                <button type="button" class="btn btn-success" onclick="exportHTML()"><i class="fas fa-file-pdf"></i>
+                <button type="button" class="btn btn-outline" onclick="exportHTML()"><i class="fas fa-file-pdf"></i>
                     Descargar HTML Spec</button>
-                <button type="button" class="btn btn-warning" onclick="exportToExcel()"><i
+                <button type="button" class="btn btn-outline" onclick="exportToExcel()"><i
                         class="fas fa-calculator"></i> Calculadora (Excel)</button>
-                <button type="button" class="btn btn-info" onclick="exportJSON()"><i class="fas fa-file-code"></i>
+                <button type="button" class="btn btn-outline" onclick="exportJSON()"><i class="fas fa-file-code"></i>
                     Descargar JSON</button>
-                <button type="button" class="btn btn-danger" onclick="clearForm()"><i class="fas fa-trash"></i> Limpiar
+                <button type="button" class="btn btn-outline" onclick="clearForm()"><i class="fas fa-trash"></i> Limpiar
                     Formulario</button>
-                <button type="button" class="btn btn-primary" onclick="downloadProjectZip()"><i
+                <button type="button" class="btn btn-outline" onclick="downloadProjectZip()"><i
                         class="fas fa-file-archive"></i> Descargar Proyecto (.zip)</button>
             </div>
         </div>
