@@ -1,0 +1,1753 @@
+COLORES NFL FANATICS
+
+    {
+      "index": 4,
+      "name": "ANTHRACITE O6F",
+      "suggestedName": null,
+"toneCategory": "dark",
+      "luminance": 64.57,
+      "hex": "#404045",
+      "rgb": {
+        "r": 64,
+        "g": 64,
+        "b": 69
+      }
+    },
+    {
+      "index": 5,
+      "name": "872 C",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 113.4,
+      "hex": "#846F4D",
+      "rgb": {
+"r": 132,
+        "g": 111,
+        "b": 77
+      }
+    },
+    {
+      "index": 6,
+      "name": "OFF NOIR OAV",
+      "suggestedName": null,
+"toneCategory": "dark",
+      "luminance": 53,
+      "hex": "#353535",
+      "rgb": {
+        "r": 53,
+        "g": 53,
+        "b": 53
+      }
+    },
+    {
+      "index": 7,
+      "name": "PERFLEX NATURAL - JAG RIV 15A",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 228.43,
+      "hex": "#F3E7B1",
+      "rgb": {
+        "r": 243,
+        "g": 231,
+        "b": 177
+      }
+    },
+    {
+      "index": 8,
+      "name": "PEARFLEX PMS 7536 C",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 158.88,
+      "hex": "#A79F89",
+      "rgb": {
+        "r": 167,
+        "g": 159,
+        "b": 137
+      }
+    },
+    {
+      "index": 9,
+      "name": "PEARFLEX BLUSTERY 45W",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 73.33,
+      "hex": "#006676",
+      "rgb": {
+        "r": 0,
+        "g": 102,
+        "b": 118
+      }
+    }
+  ]
+}uggestedName": null,
+      "toneCategory": "light",
+      "luminance": 228.43,
+      "hex": "#F3E7B1",
+      "rgb": {
+        "r": 243,
+        "g": 231,
+        "b": 177
+      }
+    },
+    {
+      "index": 8,
+      "name": "PEARFLEX PMS 7536 C",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 158.88,
+      "hex": "#A79F89",
+      "rgb": {
+        "r": 167,
+        "g": 159,
+        "b": 137
+      }
+    },
+    {
+      "index": 9,
+      "name": "PEARFLEX BLUSTERY 45W",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 73.33,
+      "hex": "#006676",
+      "rgb": {
+        "r": 0,
+        "g": 102,
+        "b": 118
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T21:42:49.991Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 50,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+"name": "TEAM MAROON 69X",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 63.7,
+"hex": "#792438",
+      "rgb": {
+        "r": 121,
+"g": 36,
+        "b": 56
+      }
+    },
+    {
+      "index": 2,
+"name": "TEAM GOLD 79W",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 187.95,
+      "hex": "#CFBA94",
+      "rgb": {
+        "r": 207,
+        "g": 186,
+        "b": 148
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-24T22:11:27.639Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 50,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "NAVY 41S",
+      "suggestedName": null,
+"toneCategory": "dark",
+      "luminance": 46.96,
+      "hex": "#282F41",
+      "rgb": {
+        "r": 40,
+        "g": 47,
+        "b": 65
+      }
+    },
+    {
+      "index": 2,
+      "name": "TEAM ORANGE 89L",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 107.93,
+      "hex": "#E03E28",
+      "rgb": {
+        "r": 224,
+        "g": 62,
+        "b": 40
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T22:12:34.400Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 50,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "WHITE10A",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 174.3,
+      "hex": "#AFAEAE",
+      "rgb": {
+        "r": 175,
+        "g": 174,
+        "b": 174
+      }
+    },
+    {
+      "index": 2,
+      "name": "TEAM CRIMSON 69W",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 54.45,
+      "hex": "#61232B",
+      "rgb": {
+        "r": 97,
+        "g": 35,
+        "b": 43
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-24T22:17:22.310Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 50,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+"name": "TEAM RED 67P",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 59.2,
+      "hex": "#76202D",
+      "rgb": {
+        "r": 118,
+"g": 32,
+        "b": 45
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNI GOLD 761",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 176.1,
+      "hex": "#FAA818",
+      "rgb": {
+        "r": 250,
+        "g": 168,
+        "b": 24
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-24T22:19:41.847Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 50,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+"name": "GYM RED 6DL",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 69.24,
+      "hex": "#AC162B",
+      "rgb": {
+        "r": 172,
+        "g": 22,
+        "b": 43
+      }
+    },
+    {
+      "index": 2,
+      "name": "RUSH BLUE 4EW",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 59.44,
+      "hex": "#243C76",
+      "rgb": {
+        "r": 36,
+        "g": 60,
+        "b": 118
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T22:23:00.837Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 4,
+  "colors": [
+    {
+      "index": 1,
+      "name": "COLLEGE NAVY 41S",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 51.43,
+      "hex": "#2C3444",
+      "rgb": {
+        "r": 44,
+        "g": 52,
+        "b": 68
+      }
+    },
+    {
+      "index": 2,
+      "name": "ACTION GREEN 3HN",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 164.61,
+      "hex": "#8BC541",
+      "rgb": {
+        "r": 139,
+        "g": 197,
+        "b": 65
+      }
+    },
+    {
+      "index": 3,
+      "name": "WOLF GREY 01V",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 165.6,
+      "hex": "#A2A6AD",
+      "rgb": {
+        "r": 162,
+        "g": 166,
+        "b": 173
+      }
+    },
+    {
+      "index": 4,
+      "name": "PMS 430",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 132.68,
+      "hex": "#7B888D",
+      "rgb": {
+        "r": 123,
+        "g": 136,
+        "b": 141
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T22:27:12.268Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 4,
+  "colors": [
+    {
+      "index": 1,
+      "name": "HYPER ROYAL 4NP",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 53.15,
+      "hex": "#203182",
+      "rgb": {
+        "r": 32,
+        "g": 49,
+        "b": 130
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNIVERSITY GOLD 761",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 170.02,
+      "hex": "#EEA221",
+      "rgb": {
+        "r": 238,
+        "g": 162,
+        "b": 33
+      }
+    },
+    {
+      "index": 3,
+      "name": "MIDWEST GOLD 771",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 207.7,
+      "hex": "#F9E300",
+      "rgb": {
+        "r": 249,
+        "g": 227,
+        "b": 0
+      }
+    },
+    {
+      "index": 4,
+      "name": "LIGHT BONE 07G",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 229.46,
+      "hex": "#E8E6DC",
+      "rgb": {
+        "r": 232,
+        "g": 230,
+        "b": 220
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-24T22:29:11.419Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 4,
+  "colors": [
+    {
+      "index": 1,
+"name": "GYM BLUE 4LB",
+      "suggestedName": null,
+"toneCategory": "dark",
+      "luminance": 55.86,
+"hex": "#1D3C69",
+      "rgb": {
+        "r": 29,
+        "g": 60,
+        "b": 105
+      }
+    },
+    {
+      "index": 2,
+      "name": "COLLEGE NAVY 41S",
+      "suggestedName": null,
+"toneCategory": "dark",
+      "luminance": 46.81,
+"hex": "#2B2E3D",
+      "rgb": {
+        "r": 43,
+        "g": 46,
+        "b": 61
+      }
+    },
+    {
+      "index": 3,
+      "name": "DK STEEL GREY 01P",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 119.17,
+      "hex": "#767876",
+      "rgb": {
+        "r": 118,
+        "g": 120,
+        "b": 118
+      }
+    },
+    {
+      "index": 4,
+      "name": "877 C",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 142.32,
+      "hex": "#8A9091",
+      "rgb": {
+        "r": 138,
+        "g": 144,
+        "b": 145
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T22:30:46.236Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 5,
+  "colors": [
+    {
+      "index": 1,
+      "name": "BLACK 00A",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 31.9,
+      "hex": "#221F1F",
+      "rgb": {
+        "r": 34,
+        "g": 31,
+        "b": 31
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNIVERSITY GOLD 761",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 173.1,
+      "hex": "#F9A31A",
+      "rgb": {
+        "r": 249,
+        "g": 163,
+        "b": 26
+      }
+    },
+    {
+      "index": 3,
+      "name": "UNIVERSITY RED 65N",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 73.14,
+      "hex": "#A91D31",
+      "rgb": {
+        "r": 169,
+        "g": 29,
+        "b": 49
+      }
+    },
+    {
+      "index": 4,
+      "name": "OLD ROYAL 4DA",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 61.05,
+      "hex": "#243D7F",
+      "rgb": {
+        "r": 36,
+        "g": 61,
+        "b": 127
+      }
+    },
+    {
+      "index": 5,
+      "name": "PMS 429 C",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 167.36,
+      "hex": "#A2A9AD",
+      "rgb": {
+        "r": 162,
+        "g": 169,
+        "b": 173
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T22:32:54.244Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 4,
+  "colors": [
+    {
+      "index": 1,
+      "name": "SPORT TEAL 3JD",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 77.84,
+      "hex": "#385758",
+      "rgb": {
+        "r": 56,
+        "g": 87,
+        "b": 88
+      }
+    },
+    {
+      "index": 2,
+      "name": "BLACK 00A",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 31.72,
+      "hex": "#231E20",
+      "rgb": {
+        "r": 35,
+        "g": 30,
+        "b": 32
+      }
+    },
+    {
+      "index": 3,
+      "name": "MEDIUM SILVER 09D",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 164.65,
+      "hex": "#A3A6A2",
+      "rgb": {
+        "r": 163,
+        "g": 166,
+        "b": 162
+      }
+    },
+    {
+      "index": 4,
+      "name": "DK STEEL GREY 01P",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 115.22,
+      "hex": "#717475",
+      "rgb": {
+        "r": 113,
+        "g": 116,
+      }
+        "b": 117
+    }
+  ]
+}
+{
+}
+{
+"extractedAt": "2026-03-24T22:35:28.703Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "BLOQUER",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 193.11,
+      "hex": "#C1C1C2",
+      "rgb": {
+        "r": 193,
+        "g": 193,
+        "b": 194
+      }
+    },
+    {
+      "index": 2,
+"name": "SPORT GREEN 3PC",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 60.84,
+"hex": "#264A35",
+      "rgb": {
+"r": 38,
+        "g": 74,
+        "b": 53
+      }
+    }
+  ]
+"extractedAt": "2026-03-24T22:37:46.043Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "BLACK OOA",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 21.6,
+      "hex": "#1E130D",
+      "rgb": {
+        "r": 30,
+        "g": 19,
+        "b": 13
+      }
+    },
+    {
+      "index": 2,
+      "name": "TEAM GOLD 79W",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 182.9,
+      "hex": "#C4B794",
+      "rgb": {
+        "r": 196,
+        "g": 183,
+        "b": 148
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T22:39:02.632Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 3,
+  "colors": [
+    {
+      "index": 1,
+      "name": "COLEGE NAVY 41S",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 36.71,
+      "hex": "#172642",
+      "rgb": {
+        "r": 23,
+        "g": 38,
+        "b": 66
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNIVERSITY RED 65N",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 81.71,
+      "hex": "#D1182D",
+      "rgb": {
+        "r": 209,
+        "g": 24,
+        "b": 45
+      }
+    },
+    {
+      "index": 3,
+      "name": "WOLF GREY 01V",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 167.6,
+      "hex": "#A4A8AF",
+      "rgb": {
+        "r": 164,
+        "g": 168,
+        "b": 175
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-24T22:41:02.198Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 4,
+  "colors": [
+    {
+      "index": 1,
+      "name": "PURPLE DYNASTY 56W",
+      "suggestedName": null,
+"toneCategory": "dark",
+"luminance": 32.22,
+"hex": "#25183E",
+      "rgb": {
+"r": 37,
+        "g": 24,
+        "b": 62
+      }
+    },
+    {
+      "index": 2,
+      "name": "PALE IVORY 10L",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 248.03,
+      "hex": "#FDF9E6",
+      "rgb": {
+        "r": 253,
+        "g": 249,
+        "b": 230
+      }
+    },
+    {
+      "index": 3,
+      "name": "NATURAL 15A",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 237.11,
+      "hex": "#F5EDD9",
+      "rgb": {
+        "r": 245,
+        "g": 237,
+        "b": 217
+      }
+    },
+    {
+      "index": 4,
+      "name": "PMS 872C",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 112.99,
+      "hex": "#836F4C",
+      "rgb": {
+        "r": 131,
+        "g": 111,
+        "b": 76
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T22:43:06.150Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 3,
+  "colors": [
+    {
+      "index": 1,
+      "name": "TURBO GREEN 3GT",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 104.35,
+      "hex": "#00968F",
+      "rgb": {
+        "r": 0,
+        "g": 150,
+        "b": 143
+      }
+    },
+    {
+      "index": 2,
+      "name": "BRILLANT ORANGE 89N",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 122.01,
+      "hex": "#F04F22",
+      "rgb": {
+        "r": 240,
+        "g": 79,
+        "b": 34
+      }
+    },
+    {
+      "index": 3,
+      "name": "MARINE GREEN 46L",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 72.79,
+      "hex": "#23556D",
+      "rgb": {
+        "r": 35,
+        "g": 85,
+        "b": 109
+      }
+    }
+  ]
+}{
+  "extractedAt": "2026-03-24T22:43:53.081Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "GREY VARIO",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 222.3,
+      "hex": "#DFDEDE",
+      "rgb": {
+        "r": 223,
+        "g": 222,
+        "b": 222
+      }
+    },
+    {
+      "index": 2,
+      "name": "FIELD SILVER 07R",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 156.07,
+      "hex": "#989DA2",
+      "rgb": {
+        "r": 152,
+        "g": 157,
+        "b": 162
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-24T22:44:55.848Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "UNIVERSITY GOLD 761",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 191.68,
+      "hex": "#FCBF25",
+      "rgb": {
+        "r": 252,
+        "g": 191,
+"b": 37
+      }
+    },
+    {
+      "index": 2,
+      "name": "ITALY BLUE 48Y",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 91.17,
+      "hex": "#0077BB",
+      "rgb": {
+        "r": 0,
+        "g": 119,
+        "b": 187
+      }
+    }
+  ]
+}
+{
+}
+{
+"extractedAt": "2026-03-24T22:49:06.102Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "ITALY BLUE 48Y",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 109.73,
+"hex": "#3E78B6",
+      "rgb": {
+        "r": 62,
+        "g": 120,
+        "b": 182
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNIVERSITY GOLL 761",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 190.98,
+      "hex": "#FCBE24",
+      "rgb": {
+        "r": 252,
+        "g": 190,
+"b": 36
+      }
+    }
+  ]
+"extractedAt": "2026-03-24T23:06:20.083Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 8,
+  "colors": [
+    {
+      "index": 1,
+"name": "MEDIUM OLIVE 2DH GARMEN",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 143.9,
+      "hex": "#9B9268",
+      "rgb": {
+        "r": 155,
+        "g": 146,
+        "b": 104
+      }
+    },
+    {
+      "index": 2,
+"name": "MEDIUM OLIVE 2DH",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 97,
+      "hex": "#646254",
+      "rgb": {
+        "r": 100,
+        "g": 98,
+        "b": 84
+      }
+    },
+    {
+      "index": 3,
+      "name": "ELL AE HSN 3",
+      "suggestedName": null,
+"toneCategory": "light",
+"luminance": 202.33,
+      "hex": "#CDCAC5",
+      "rgb": {
+        "r": 205,
+        "g": 202,
+        "b": 197
+      }
+    },
+    {
+      "index": 4,
+      "name": "SPORT RED 62Q",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 86.63,
+      "hex": "#D61F27",
+      "rgb": {
+        "r": 214,
+        "g": 31,
+        "b": 39
+      }
+    },
+    {
+      "index": 5,
+      "name": "UNIVERSITY YELLOW 76I",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 173.8,
+      "hex": "#F9A41B",
+      "rgb": {
+        "r": 249,
+        "g": 164,
+        "b": 27
+      }
+    },
+    {
+      "index": 6,
+      "name": "OBSIDIAN 45B",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 30.57,
+      "hex": "#191F2B",
+      "rgb": {
+        "r": 25,
+        "g": 31,
+        "b": 43
+      }
+    },
+    {
+      "index": 7,
+      "name": "J MD R VEL",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 47.16,
+      "hex": "#003A73",
+      "rgb": {
+        "r": 0,
+        "g": 58,
+        "b": 115
+      }
+    },
+    {
+      "index": 8,
+      "name": "ALN CLE 0P",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 65.9,
+      "hex": "#444141",
+      "rgb": {
+        "r": 68,
+        "g": 65,
+        "b": 65
+      }
+    }
+  ]
+}{
+  "extractedAt": "2026-03-24T23:07:32.518Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "FIR 33E",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 56.86,
+      "hex": "#0B503A",
+      "rgb": {
+        "r": 11,
+        "g": 80,
+        "b": 58
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNI GOLD 76I",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 170.19,
+      "hex": "#EDA320",
+      "rgb": {
+        "r": 237,
+        "g": 163,
+        "b": 32
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-24T23:10:20.878Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 60,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "GYM BLUE 4LB",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 42.77,
+      "hex": "#023561",
+      "rgb": {
+        "r": 2,
+        "g": 53,
+        "b": 97
+      }
+    },
+    {
+      "index": 2,
+      "name": "PITCH BLUE 4FA",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 38.8,
+      "hex": "#26262D",
+      "rgb": {
+        "r": 38,
+        "g": 38,
+        "b": 45
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-25T13:12:00.089Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "UNIVERSITY RED 65N",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 95.35,
+      "hex": "#E22630",
+      "rgb": {
+        "r": 226,
+        "g": 38,
+        "b": 48
+      }
+    },
+    {
+      "index": 2,
+      "name": "ITALY BLUE 48Y",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 91.89,
+      "hex": "#0079B7",
+      "rgb": {
+        "r": 0,
+        "g": 121,
+        "b": 183
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-25T14:24:46.216Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "FIR 33E",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 57.27,
+      "hex": "#0C503B",
+      "rgb": {
+        "r": 12,
+        "g": 80,
+        "b": 59
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNI GOLD 76L",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 169.72,
+      "hex": "#EDA221",
+      "rgb": {
+"r": 237,
+        "g": 162,
+"b": 33
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-25T14:26:13.878Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 4,
+  "colors": [
+    {
+      "index": 1,
+      "name": "BLUE SPARK 45A",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 91.73,
+"hex": "#3063A9",
+      "rgb": {
+        "r": 48,
+        "g": 99,
+        "b": 169
+      }
+    },
+    {
+      "index": 2,
+      "name": null,
+"suggestedName": "LIME-GREEN",
+"toneCategory": "light",
+      "luminance": 162.73,
+      "hex": "#9FA4A6",
+      "rgb": {
+        "r": 159,
+        "g": 164,
+        "b": 166
+      }
+    },
+    {
+      "index": 3,
+      "name": "WOLF GREY O1V",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 167.6,
+      "hex": "#A4A8AF",
+      "rgb": {
+        "r": 164,
+        "g": 168,
+        "b": 175
+      }
+    },
+    {
+      "index": 4,
+      "name": "FIELD SILVER 07R",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 183.98,
+      "hex": "#AFBBC0",
+      "rgb": {
+        "r": 175,
+        "g": 187,
+        "b": 192
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-25T14:27:47.483Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 6,
+  "colors": [
+    {
+      "index": 1,
+      "name": "BLACK 00A",
+      "suggestedName": null,
+"toneCategory": "dark",
+"luminance": 33.79,
+      "hex": "#16262B",
+      "rgb": {
+        "r": 22,
+"g": 38,
+        "b": 43
+      }
+    },
+    {
+      "index": 2,
+      "name": "PANTONE 451",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 144.53,
+      "hex": "#9D945E",
+      "rgb": {
+        "r": 157,
+        "g": 148,
+        "b": 94
+      }
+    },
+    {
+      "index": 3,
+"name": "PANTONE 7532",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 90.48,
+      "hex": "#665849",
+      "rgb": {
+        "r": 102,
+        "g": 88,
+        "b": 73
+      }
+    },
+    {
+      "index": 4,
+"name": "PANTONE 7535",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 169.94,
+      "hex": "#AEAA9F",
+      "rgb": {
+        "r": 174,
+        "g": 170,
+        "b": 159
+      }
+    },
+    {
+      "index": 5,
+      "name": "PANTONE 7497",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 114.92,
+      "hex": "#787460",
+      "rgb": {
+        "r": 120,
+        "g": 116,
+        "b": 96
+      }
+    },
+    {
+      "index": 6,
+      "name": "MEDIUM OLIVE 2DH",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 94.7,
+      "hex": "#616052",
+      "rgb": {
+        "r": 97,
+        "g": 96,
+        "b": 82
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-25T18:20:49.992Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 3,
+  "colors": [
+    {
+      "index": 1,
+      "name": "SEAL BROWN 2DI",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 48.95,
+      "hex": "#392E2B",
+      "rgb": {
+        "r": 57,
+        "g": 46,
+        "b": 43
+      }
+    },
+    {
+      "index": 2,
+      "name": "TEAM ORANGE 89L",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 116.58,
+      "hex": "#E7482E",
+      "rgb": {
+        "r": 231,
+        "g": 72,
+        "b": 46
+      }
+    },
+    {
+      "index": 3,
+      "name": "BRILLANT ORANGE 89N",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 123.63,
+      "hex": "#EE5226",
+      "rgb": {
+        "r": 238,
+        "g": 82,
+        "b": 38
+      }
+    }
+  ]
+}{
+  "extractedAt": "2026-03-25T18:21:53.957Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "BLACK 00A",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 32.31,
+      "hex": "#231F20",
+      "rgb": {
+        "r": 35,
+        "g": 31,
+        "b": 32
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNI ORANGE 89M",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 110.64,
+      "hex": "#E04326",
+      "rgb": {
+        "r": 224,
+        "g": 67,
+        "b": 38
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-25T18:22:27.931Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "MARINE 41L",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 44.8,
+      "hex": "#272D3B",
+      "rgb": {
+        "r": 39,
+        "g": 45,
+        "b": 59
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNI ORANGE 89M",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 110.64,
+      "hex": "#E04326",
+      "rgb": {
+        "r": 224,
+        "g": 67,
+        "b": 38
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-25T18:23:25.349Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "NEPTUNE BLUE",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 100.71,
+      "hex": "#2178B3",
+      "rgb": {
+"r": 33,
+        "g": 120,
+        "b": 179
+      }
+    },
+    {
+      "index": 2,
+      "name": "PEWTER GREY 09T",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 159.08,
+      "hex": "#A29E9D",
+      "rgb": {
+        "r": 162,
+        "g": 158,
+        "b": 157
+      }
+    }
+  ]
+}
+{
+"extractedAt": "2026-03-25T18:24:19.854Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 3,
+  "colors": [
+    {
+      "index": 1,
+      "name": "OLD ROYAL 4DA",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 66.51,
+"hex": "#304080",
+      "rgb": {
+        "r": 48,
+        "g": 64,
+        "b": 128
+      }
+    },
+    {
+      "index": 2,
+      "name": "UNI RED 65N",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 87.52,
+      "hex": "#D2212F",
+      "rgb": {
+        "r": 210,
+        "g": 33,
+        "b": 47
+      }
+    },
+    {
+      "index": 3,
+      "name": "MARINE 41L",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 52.17,
+      "hex": "#303440",
+      "rgb": {
+        "r": 48,
+        "g": 52,
+        "b": 64
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-25T18:26:18.322Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 6,
+  "colors": [
+    {
+      "index": 1,
+      "name": "NEW ORCHID 52M",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 60.42,
+      "hex": "#3F3461",
+      "rgb": {
+        "r": 63,
+        "g": 52,
+        "b": 97
+      }
+    },
+    {
+      "index": 2,
+      "name": "BLACK 00A",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 20.7,
+      "hex": "#141515",
+      "rgb": {
+        "r": 20,
+        "g": 21,
+        "b": 21
+      }
+    },
+    {
+      "index": 3,
+"name": "NEW ORCHID CHAMELEON",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 121.71,
+"hex": "#7E7391",
+      "rgb": {
+        "r": 126,
+        "g": 115,
+        "b": 145
+      }
+    },
+    {
+      "index": 4,
+      "name": "YELLOW OOA",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 196.58,
+      "hex": "#FFCD00",
+      "rgb": {
+        "r": 255,
+        "g": 205,
+        "b": 0
+      }
+    },
+    {
+      "index": 5,
+      "name": "UNIVERSITY RED 65N",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 81.71,
+      "hex": "#D1182D",
+      "rgb": {
+        "r": 209,
+        "g": 24,
+        "b": 45
+      }
+    },
+    {
+      "index": 6,
+      "name": "OCHRE 33B",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 124.94,
+      "hex": "#A97728",
+      "rgb": {
+        "r": 169,
+        "g": 119,
+        "b": 40
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-26T16:09:40.253Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 2,
+  "colors": [
+    {
+      "index": 1,
+      "name": "TEAM MAROON 69X",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 63.7,
+      "hex": "#792438",
+      "rgb": {
+        "r": 121,
+        "g": 36,
+        "b": 56
+      }
+    },
+    {
+      "index": 2,
+      "name": "TEAM GOLD 79W",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 187.95,
+      "hex": "#CFBA94",
+      "rgb": {
+        "r": 207,
+        "g": 186,
+        "b": 148
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-26T16:11:35.541Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 5,
+  "colors": [
+    {
+      "index": 1,
+      "name": "DEEP PEWTER 2DV",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 62.27,
+      "hex": "#423D3B",
+      "rgb": {
+        "r": 66,
+        "g": 61,
+        "b": 59
+      }
+    },
+    {
+      "index": 2,
+      "name": "GYM RED 6DL",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 73.57,
+      "hex": "#AA1E2D",
+      "rgb": {
+        "r": 170,
+        "g": 30,
+        "b": 45
+      }
+    },
+    {
+      "index": 3,
+      "name": "BLACK 00A",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 32.31,
+      "hex": "#231F20",
+      "rgb": {
+        "r": 35,
+        "g": 31,
+        "b": 32
+      }
+    },
+    {
+      "index": 4,
+      "name": "UNIVERSITY ORANGE 89M",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 129.37,
+      "hex": "#EC5D25",
+      "rgb": {
+        "r": 236,
+        "g": 93,
+        "b": 37
+      }
+    },
+    {
+      "index": 5,
+      "name": "WOLF GREY 01V",
+      "suggestedName": null,
+      "toneCategory": "light",
+      "luminance": 165.6,
+      "hex": "#A2A6AD",
+      "rgb": {
+        "r": 162,
+        "g": 166,
+        "b": 173
+      }
+    }
+  ]
+}
+{
+  "extractedAt": "2026-03-26T16:13:02.400Z",
+  "source": "dashboard-techpack-palette-extractor",
+  "classificationThreshold": 65,
+  "totalColors": 3,
+  "colors": [
+    {
+      "index": 1,
+      "name": "SEAL BROWN 2DI",
+      "suggestedName": null,
+      "toneCategory": "dark",
+      "luminance": 48.95,
+      "hex": "#392E2B",
+      "rgb": {
+        "r": 57,
+        "g": 46,
+        "b": 43
+      }
+    },
+    {
+      "index": 2,
+"name": "TEAM ORANGE 89L",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 115.45,
+      "hex": "#E4482C",
+      "rgb": {
+        "r": 228,
+        "g": 72,
+        "b": 44
+      }
+    },
+    {
+      "index": 3,
+      "name": "BRILLANT PRANGE 89N",
+      "suggestedName": null,
+"toneCategory": "light",
+      "luminance": 126.47,
+"hex": "#DB5E33",
+      "rgb": {
+        "r": 219,
+        "g": 94,
+        "b": 51
+      }
+    }
+  ]
+}
