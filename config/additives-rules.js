@@ -11,12 +11,12 @@
     {
       id: 'water-blocker-default',
       when: { inkType: 'WATER', layerType: 'BLOCKER' },
-      additives: 'N/A'
+      additives: 'N/A (sin aditivo)'
     },
     {
       id: 'water-white-default',
       when: { inkType: 'WATER', layerType: 'WHITE_BASE' },
-      additives: 'N/A'
+      additives: 'N/A (sin aditivo)'
     },
     {
       id: 'plastisol-color-default',

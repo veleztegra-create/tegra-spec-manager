@@ -135,7 +135,9 @@
 
     const resolveStationAdditives = (item, layerType) => {
       const resolver = window.AdditivesRules?.resolveAdditives;
-      if (typeof resolver !== 'function') return additives;
+      if (typeof resolver !== 'function') {
+        return { additives, source: 'preset', ruleId: null };
+      }
 
       const result = resolver({
         inkType: placement.inkType || 'WATER',
@@ -147,25 +149,36 @@
         preset
       });
 
-      return result?.additives || additives;
+      return {
+        additives: result?.additives || additives,
+        source: result?.source || 'preset',
+        ruleId: result?.ruleId || null
+      };
+    };
+
+    const formatAdditivesLabel = ({ additives: baseAdditives, source, ruleId }) => {
+      const base = baseAdditives || 'N/A';
+      if (source === 'placement-override') return `${base} · MANUAL`;
+      if (source === 'rules') return `${base} · AUTO${ruleId ? ` (${ruleId})` : ''}`;
+      return `${base} · PRESET`;
     };
 
     (placement.colors || []).forEach((item, idx, arr) => {
       let mesh = meshColor;
-      let add = resolveStationAdditives(item, item.type || 'COLOR');
+      let add = formatAdditivesLabel(resolveStationAdditives(item, item.type || 'COLOR'));
       let strokesVal = strokes;
       let duro = durometer;
       if (item.type === 'BLOCKER') {
         mesh = meshBlocker;
-        add = resolveStationAdditives(item, 'BLOCKER');
+        add = formatAdditivesLabel(resolveStationAdditives(item, 'BLOCKER'));
       } else if (item.type === 'WHITE_BASE') {
         mesh = meshWhite;
-        add = resolveStationAdditives(item, 'WHITE_BASE');
+        add = formatAdditivesLabel(resolveStationAdditives(item, 'WHITE_BASE'));
       } else if (item.type === 'METALLIC') {
         mesh = '122/55';
         strokesVal = '1';
         duro = '70';
-        add = resolveStationAdditives(item, 'METALLIC');
+        add = formatAdditivesLabel(resolveStationAdditives(item, 'METALLIC'));
       }
 
       stations.push({
