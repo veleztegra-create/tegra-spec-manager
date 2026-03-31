@@ -1,5 +1,5 @@
 // =====================================================
-// EXPORTAR A EXCEL (CALCULADORA) - VERSIÓN CORREGIDA
+// EXPORTAR A EXCEL (CALCULADORA) - ESTRUCTURA EXACTA 22 COLUMNAS
 // =====================================================
 
 function getPlacementsForExcelExport(sourcePlacements = []) {
@@ -44,29 +44,35 @@ function exportToExcel() {
         // Obtener los datos centralizados
         const fullData = buildSpecData();
 
-        // Mapear los datos generales de la forma en que lo requiere Excel
-        const data = {
-            designer: fullData.designer,
-            customer: fullData.customer,
-            season: fullData.season,
-            folder: fullData.folder,
-            nameTeam: fullData.nameTeam,
-            colorway: fullData.colorway,
-            style: fullData.style
-        };
-
         const wb = XLSX.utils.book_new();
 
+        // EXACTAMENTE los 22 headers del formato maestro (incluyendo los que van vacíos)
         const headers = [
-            'Area', 'Designer', 'Customer', 'Division', 'SEASON',
-            '', '#Folder/SPEC', '', '', '', '', '', '', '', '', '', '', '', '', '',
-            'TEAM', '', '', 'COLORWAY', '', 'PLACEMENTS', '', 'SPEC #', '#SCREEEN',
-            'NO. COLORES', 'Stations', 'setup', 'size', 'W', 'H', 'TYPE OF ART', 'INK TYPE'
+            'Area',           // 0
+            'Designer',       // 1
+            'Customer',       // 2
+            'Division',       // 3
+            'SEASON',         // 4
+            '#Folder/SPEC',   // 5
+            'Abbreviations',  // 6 - Vacía en maestro
+            'Style1',         // 7
+            'TEAM',           // 8
+            'DESCRIPTION',    // 9 - Vacía en maestro
+            'COLORWAY',       // 10
+            'PLACEMENTS',     // 11
+            'SPEC #',         // 12
+            '#SCREEEN',       // 13
+            'NO. COLORES',    // 14
+            'Stations',       // 15
+            'setup',          // 16
+            'size',           // 17
+            'W',              // 18
+            'H',              // 19
+            'TYPE OF ART',    // 20
+            'INK TYPE'        // 21
         ];
 
         const rows = [];
-
-        // Usar los placements del objeto de datos centralizado
         const dataPlacements = fullData.placements || [];
 
         if (dataPlacements && Array.isArray(dataPlacements) && dataPlacements.length > 0) {
@@ -80,7 +86,6 @@ function exportToExcel() {
                 const screenCount = placement.sequence ? placement.sequence.length : 0;
                 const colorCount = placement.colors ? placement.colors.length : 0;
                 const stationCount = screenCount;
-                const artType = 'Vector';
 
                 let inkType = 'WB MAGNA';
                 if (placement.inkType === 'WATER') inkType = 'WB MAGNA';
@@ -90,61 +95,59 @@ function exportToExcel() {
                 const width = placement.width || (typeof extractDimensions === 'function' && placement.dimensions ? extractDimensions(placement.dimensions).width : '');
                 const height = placement.height || (typeof extractDimensions === 'function' && placement.dimensions ? extractDimensions(placement.dimensions).height : '');
 
+                // EXACTAMENTE 22 columnas en el mismo orden que el maestro
                 const row = [
-                    'Development',
-                    data.designer,
-                    data.customer,
-                    'NFL / jersey',
-                    data.season,
-                    '',
-                    data.folder,
-                    '', '', '', '', '', '', '', '', '', '', '', '', '',
-                    data.nameTeam,
-                    '', '',
-                    data.colorway,
-                    '',
-                    placementType,
-                    '',
-                    `SPEC ${index + 1}`,
-                    screenCount,
-                    colorCount,
-                    stationCount,
-                    1,
-                    'L',
-                    `${width}"`,
-                    `${height}"`,
-                    artType,
-                    inkType
+                    'Development',                    // 0: Area
+                    fullData.designer || '',          // 1: Designer
+                    fullData.customer || '',          // 2: Customer
+                    'NFL / jersey',                   // 3: Division
+                    fullData.season || '',            // 4: SEASON
+                    fullData.folder || '',            // 5: #Folder/SPEC
+                    '',                               // 6: Abbreviations (VACÍA - igual que maestro)
+                    fullData.style || '',             // 7: Style1
+                    fullData.nameTeam || '',          // 8: TEAM
+                    '',                               // 9: DESCRIPTION (VACÍA - igual que maestro)
+                    fullData.colorway || '',          // 10: COLORWAY
+                    placementType,                    // 11: PLACEMENTS
+                    `SPEC ${index + 1}`,              // 12: SPEC #
+                    screenCount,                      // 13: #SCREEEN
+                    colorCount,                       // 14: NO. COLORES
+                    stationCount,                     // 15: Stations
+                    1,                                // 16: setup
+                    'L',                              // 17: size
+                    width ? `${width}"` : '',         // 18: W
+                    height ? `${height}"` : '',       // 19: H
+                    'Vector',                         // 20: TYPE OF ART
+                    inkType                           // 21: INK TYPE
                 ];
 
                 rows.push(row);
             });
         } else {
+            // Fila por defecto con las 22 columnas exactas
             const defaultRow = [
-                'Development',
-                data.designer,
-                data.customer,
-                'NFL / jersey',
-                data.season,
-                '',
-                data.folder,
-                '', '', '', '', '', '', '', '', '', '', '', '', '',
-                data.nameTeam,
-                '', '',
-                data.colorway,
-                '',
-                'front',
-                '',
-                'SPEC 1',
-                0,
-                0,
-                0,
-                1,
-                'L',
-                '15.34"',
-                '12"',
-                'Vector',
-                'WB MAGNA'
+                'Development',           // 0
+                fullData.designer || '', // 1
+                fullData.customer || '', // 2
+                'NFL / jersey',          // 3
+                fullData.season || '',   // 4
+                fullData.folder || '',   // 5
+                '',                      // 6: Abbreviations (vacía)
+                fullData.style || '',    // 7
+                fullData.nameTeam || '', // 8
+                '',                      // 9: DESCRIPTION (vacía)
+                fullData.colorway || '', // 10
+                'front',                 // 11
+                'SPEC 1',                // 12
+                0,                       // 13
+                0,                       // 14
+                0,                       // 15
+                1,                       // 16
+                'L',                     // 17
+                '15.34"',                // 18
+                '12"',                   // 19
+                'Vector',                // 20
+                'WB MAGNA'               // 21
             ];
 
             rows.push(defaultRow);
@@ -152,44 +155,49 @@ function exportToExcel() {
 
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
 
-        const colWidths = [];
-        for (let i = 0; i < headers.length; i++) {
-            if (i === 0) colWidths.push({ wch: 12 });
-            else if (i === 1) colWidths.push({ wch: 12 });
-            else if (i === 2) colWidths.push({ wch: 15 });
-            else if (i === 3) colWidths.push({ wch: 15 });
-            else if (i === 4) colWidths.push({ wch: 8 });
-            else if (i === 6) colWidths.push({ wch: 12 });
-            else if (i === 20) colWidths.push({ wch: 25 });
-            else if (i === 23) colWidths.push({ wch: 15 });
-            else if (i === 25) colWidths.push({ wch: 12 });
-            else if (i === 27) colWidths.push({ wch: 8 });
-            else if (i === 28) colWidths.push({ wch: 10 });
-            else if (i === 29) colWidths.push({ wch: 12 });
-            else if (i === 30) colWidths.push({ wch: 10 });
-            else if (i === 34) colWidths.push({ wch: 10 });
-            else if (i === 35) colWidths.push({ wch: 12 });
-            else colWidths.push({ wch: 3 });
-        }
+        // Anchos optimizados para cada una de las 22 columnas
+        const colWidths = [
+            { wch: 12 },  // 0: Area
+            { wch: 12 },  // 1: Designer
+            { wch: 15 },  // 2: Customer
+            { wch: 15 },  // 3: Division
+            { wch: 35 },  // 4: SEASON (ancho aumentado para texto largo)
+            { wch: 15 },  // 5: #Folder/SPEC
+            { wch: 12 },  // 6: Abbreviations
+            { wch: 12 },  // 7: Style1
+            { wch: 25 },  // 8: TEAM
+            { wch: 20 },  // 9: DESCRIPTION
+            { wch: 15 },  // 10: COLORWAY
+            { wch: 12 },  // 11: PLACEMENTS
+            { wch: 10 },  // 12: SPEC #
+            { wch: 10 },  // 13: #SCREEEN
+            { wch: 12 },  // 14: NO. COLORES
+            { wch: 10 },  // 15: Stations
+            { wch: 8 },   // 16: setup
+            { wch: 8 },   // 17: size
+            { wch: 10 },  // 18: W
+            { wch: 10 },  // 19: H
+            { wch: 12 },  // 20: TYPE OF ART
+            { wch: 12 }   // 21: INK TYPE
+        ];
         ws['!cols'] = colWidths;
 
+        // Estilos para headers
         const headerRange = XLSX.utils.decode_range(ws['!ref']);
         for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
             const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
             if (!ws[cellAddress]) continue;
 
-            if (headers[C] && headers[C] !== '') {
-                ws[cellAddress].s = {
-                    font: { bold: true, color: { rgb: "FFFFFF" } },
-                    fill: { fgColor: { rgb: "4472C4" } },
-                    alignment: { horizontal: "center", vertical: "center" }
-                };
-            }
+            ws[cellAddress].s = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "4472C4" } },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
         }
 
         XLSX.utils.book_append_sheet(wb, ws, 'Hoja1');
 
-        const fileName = `Calculadora_${data.style || 'Spec'}_${data.folder || '00000'}.xlsx`;
+        const fileName = `Calculadora_${fullData.style || 'Spec'}_${fullData.folder || '00000'}.xlsx`;
         XLSX.writeFile(wb, fileName);
 
         if (typeof showStatus === 'function') showStatus('📊 Spec Excel generada correctamente', 'success');
