@@ -600,6 +600,8 @@ function addNewPlacement(type = null, isFirst = false) {
         durometer: '',
         strokes: '',
         additives: '',
+        additivesBlocker: '',
+        additivesWhiteBase: '',
         width: '',
         height: '',
         baseSize: '',
@@ -895,6 +897,8 @@ function renderPlacementHTML(placement) {
     const defaultPressure = preset.color.pressure || '40';
     const defaultSpeed = preset.color.speed || '35';
     const defaultAdditives = preset.color.additives || '3 % cross-linker 500 · 1.5 % antitack';
+    const defaultBlockerAdditives = preset.blocker.additives || 'N/A';
+    const defaultWhiteAdditives = preset.white.additives || 'N/A';
 
     const dimensions = extractDimensions(placement.dimensions);
 
@@ -1126,15 +1130,37 @@ function renderPlacementHTML(placement) {
                                            title="Velocidad de impresión">
                                 </div>
                                 
-                                <!-- Aditivos -->
+                                <!-- Aditivos color -->
                                 <div class="form-group">
-                                    <label class="form-label">ADITIVOS:</label>
+                                    <label class="form-label">ADITIVOS COLOR:</label>
                                     <input type="text" 
                                            id="additives-${placement.id}"
                                            class="form-control placement-additives"
                                            value="${placement.additives || defaultAdditives}"
                                            oninput="updatePlacementParam(${placement.id}, 'additives', this.value)"
-                                           title="Aditivos para la tinta">
+                                           title="Aditivos para colores normales">
+                                </div>
+
+                                <!-- Aditivos blocker -->
+                                <div class="form-group">
+                                    <label class="form-label">ADITIVOS BLOCKER:</label>
+                                    <input type="text" 
+                                           id="additives-blocker-${placement.id}"
+                                           class="form-control placement-additives-blocker"
+                                           value="${placement.additivesBlocker || defaultBlockerAdditives}"
+                                           oninput="updatePlacementParam(${placement.id}, 'additivesBlocker', this.value)"
+                                           title="Aditivos para blocker si se requieren">
+                                </div>
+
+                                <!-- Aditivos white base -->
+                                <div class="form-group">
+                                    <label class="form-label">ADITIVOS WHITE BASE:</label>
+                                    <input type="text" 
+                                           id="additives-white-${placement.id}"
+                                           class="form-control placement-additives-white"
+                                           value="${placement.additivesWhiteBase || defaultWhiteAdditives}"
+                                           oninput="updatePlacementParam(${placement.id}, 'additivesWhiteBase', this.value)"
+                                           title="Aditivos para white base si se requieren">
                                 </div>
                             </div>
                         </div>
@@ -1471,6 +1497,16 @@ function updateDefaultParameters(placementId, inkType) {
     if (!placement.additives) {
         const additivesField = document.getElementById(`additives-${placementId}`);
         if (additivesField) additivesField.value = preset.color.additives;
+    }
+
+    if (!placement.additivesBlocker) {
+        const additivesBlockerField = document.getElementById(`additives-blocker-${placementId}`);
+        if (additivesBlockerField) additivesBlockerField.value = preset.blocker.additives;
+    }
+
+    if (!placement.additivesWhiteBase) {
+        const additivesWhiteField = document.getElementById(`additives-white-${placementId}`);
+        if (additivesWhiteField) additivesWhiteField.value = preset.white.additives;
     }
 }
 
@@ -2287,14 +2323,14 @@ function updatePlacementStations(placementId, returnOnly = false) {
 
         if (item.type === 'BLOCKER') {
             mesh = item.mesh || placement.meshBlocker || preset.blocker.mesh1;
-            add = item.additives || placement.additives || preset.blocker.additives;
+            add = placement.additivesBlocker || item.additives || preset.blocker.additives;
         }
         // =========================================
         // CASO 3: Es WHITE_BASE
         // =========================================
         else if (item.type === 'WHITE_BASE') {
             mesh = item.mesh || placement.meshWhite || preset.white.mesh1;
-            add = item.additives || placement.additives || preset.white.additives;
+            add = placement.additivesWhiteBase || item.additives || preset.white.additives;
         }
         // =========================================
         // CASO 4: Es METALLIC

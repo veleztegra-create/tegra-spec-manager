@@ -66,7 +66,19 @@
       colorName: String(context.colorName || '').trim()
     };
 
-    const placementOverrides = context?.placement?.additivesOverrides;
+    const placement = context?.placement || {};
+    const layerFieldMap = {
+      BLOCKER: placement.additivesBlocker,
+      WHITE_BASE: placement.additivesWhiteBase,
+      METALLIC: placement.additivesMetallic,
+      COLOR: placement.additives
+    };
+    const directOverride = layerFieldMap[normalizedContext.layerType];
+    if (directOverride) {
+      return { additives: directOverride, source: 'placement-override', ruleId: `${normalizedContext.layerType.toLowerCase()}-field` };
+    }
+
+    const placementOverrides = placement.additivesOverrides;
     if (placementOverrides && typeof placementOverrides === 'object') {
       const override = placementOverrides[normalizedContext.layerType];
       if (override) return { additives: override, source: 'placement-override', ruleId: null };
