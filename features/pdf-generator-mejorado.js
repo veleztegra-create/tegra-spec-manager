@@ -92,7 +92,35 @@
     return notes;
   }
 
-  function generateStationsData(placement) {
+
+  function enrichPlacementColors(placement) {
+    if (!Array.isArray(placement?.colors)) return [];
+
+    return placement.colors.map((color) => {
+      const resolver = window.ColorEngine?.resolveColor;
+      if (typeof resolver !== 'function') {
+        return {
+          ...color,
+          tone: color.tone || color.toneCategory || null,
+          ink: color.ink || null
+        };
+      }
+
+      const resolved = resolver({
+        hex: color.hex || resolveColorHex(color.val),
+        rgb: color.rgb || null
+      });
+
+      return {
+        ...color,
+        tone: resolved.toneCategory,
+        ink: resolved.recommendedInk || color.ink || null,
+        contrastText: resolved.contrastText || color.contrastText || null
+      };
+    });
+  }
+
+  function generateStationsData(placement, data) {
     const stations = [];
     let st = 1;
     const preset = getInkPreset(placement.inkType || 'WATER');
@@ -105,22 +133,52 @@
     const pressure = placement.pressure || preset.color.pressure;
     const additives = placement.additives || preset.color.additives;
 
+    const resolveStationAdditives = (item, layerType) => {
+      const resolver = window.AdditivesRules?.resolveAdditives;
+      if (typeof resolver !== 'function') {
+        return { additives, source: 'preset', ruleId: null };
+      }
+
+      const result = resolver({
+        inkType: placement.inkType || 'WATER',
+        layerType,
+        colorName: item?.val || item?.name || '',
+        customer: data?.customer || '',
+        fabric: placement.fabric || data?.fabric || '',
+        placement,
+        preset
+      });
+
+      return {
+        additives: result?.additives || additives,
+        source: result?.source || 'preset',
+        ruleId: result?.ruleId || null
+      };
+    };
+
+    const formatAdditivesLabel = ({ additives: baseAdditives, source, ruleId }) => {
+      const base = baseAdditives || 'N/A';
+      if (source === 'placement-override') return `${base} · MANUAL`;
+      if (source === 'rules') return `${base} · AUTO${ruleId ? ` (${ruleId})` : ''}`;
+      return `${base} · PRESET`;
+    };
+
     (placement.colors || []).forEach((item, idx, arr) => {
       let mesh = meshColor;
-      let add = additives;
+      let add = formatAdditivesLabel(resolveStationAdditives(item, item.type || 'COLOR'));
       let strokesVal = strokes;
       let duro = durometer;
       if (item.type === 'BLOCKER') {
         mesh = meshBlocker;
-        add = preset.blocker.additives;
+        add = formatAdditivesLabel(resolveStationAdditives(item, 'BLOCKER'));
       } else if (item.type === 'WHITE_BASE') {
         mesh = meshWhite;
-        add = preset.white.additives;
+        add = formatAdditivesLabel(resolveStationAdditives(item, 'WHITE_BASE'));
       } else if (item.type === 'METALLIC') {
         mesh = '122/55';
         strokesVal = '1';
         duro = '70';
-        add = '3% cross linker 500 · 3% Binder Flex';
+        add = formatAdditivesLabel(resolveStationAdditives(item, 'METALLIC'));
       }
 
       stations.push({
@@ -158,9 +216,12 @@
       ? String(placement.imageData)
       : 'https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT';
 
+    const enrichedColors = enrichPlacementColors(placement);
+    placement.colors = enrichedColors;
+
     const uniqueDesignColors = [];
     const seenColorNames = new Set();
-    (placement.colors || []).forEach((c) => {
+    enrichedColors.forEach((c) => {
       if (c.type !== 'COLOR' && c.type !== 'METALLIC') return;
       const normalized = String(c.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
       if (!normalized || seenColorNames.has(normalized)) return;
@@ -168,13 +229,20 @@
       uniqueDesignColors.push(c);
     });
 
-    const colors = uniqueDesignColors.map((c, i) => `
+    const colors = uniqueDesignColors.map((c, i) => {
+      const inkLabel = c.ink
+        ? (String(c.ink).toLowerCase() === 'plastisol' ? 'PLASTISOL INK' : `${String(c.ink).toUpperCase()} INK`)
+        : null;
+      const colorDisplay = inkLabel ? `${c.val || '---'} (${inkLabel})` : (c.val || '---');
+
+      return `
       <div class="color-swatch">
         <div class="color-box" style="background:${esc(resolveColorHex(c.val))};"></div>
-        <div class="color-info"><span class="color-number">${esc(c.screenLetter || String(i + 1))}</span><span class="color-name">${esc(c.val || '---')}</span></div>
-      </div>`).join('') || '<div class="color-name">Sin colores registrados</div>';
+        <div class="color-info"><span class="color-number">${esc(c.screenLetter || String(i + 1))}</span><span class="color-name">${esc(colorDisplay)}</span></div>
+      </div>`;
+    }).join('') || '<div class="color-name">Sin colores registrados</div>';
 
-    const rows = generateStationsData(placement).map((r) => {
+    const rows = generateStationsData(placement, data).map((r) => {
       const stationUpper = String(r.screenCombined || '').toUpperCase();
       const isFlash = stationUpper === 'FLASH';
       const isCool = stationUpper === 'COOL';

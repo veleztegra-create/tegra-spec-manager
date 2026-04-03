@@ -96,7 +96,14 @@
         });
       });
 
-      // 2) TeamsConfig.colors (transición segura)
+      // 2) ColorDatabase global (motor central de colores)
+      const centralDb = Array.isArray(global.ColorDatabase) ? global.ColorDatabase : [];
+      centralDb.forEach((entry) => {
+        if (!entry || !entry.name || !entry.hex) return;
+        addEntry(entry.name, entry.hex, 'institutional');
+      });
+
+      // 3) TeamsConfig.colors (transición segura)
       ['NCAA', 'NBA', 'NFL'].forEach((league) => {
         const colors = global.TeamsConfig?.[league]?.colors;
         if (!colors) return;
