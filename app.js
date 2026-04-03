@@ -218,7 +218,7 @@ function showTab(tabName) {
 
     const tabs = document.querySelectorAll('.nav-tab');
     tabs.forEach(tab => {
-        if (tab.innerText.toLowerCase().includes(tabName.replace('-', ' '))) {
+        if ((tab.dataset.tab || '').trim() === tabName) {
             tab.classList.add('active');
         }
     });
@@ -235,6 +235,10 @@ function showTab(tabName) {
         if (placements.length === 0 && document.getElementById('placements-container')) {
             initializePlacements();
         }
+        if (window.tegraAdapter?.crearBotonCargaPDF) {
+            window.tegraAdapter.crearBotonCargaPDF();
+        }
+        updateGarmentColorRecognition();
     }
 }
 
@@ -445,6 +449,58 @@ function setInputValue(id, value) {
 }
 
 
+
+function hexToRgbSafe(hexValue) {
+    const normalized = String(hexValue || '').trim().replace('#', '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(normalized)) return null;
+
+    return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16)
+    };
+}
+
+function updateGarmentColorRecognition() {
+    const statusEl = document.getElementById('garment-color-recognition');
+    if (!statusEl) return;
+
+    const colorway = document.getElementById('colorway')?.value || '';
+    const fabric = document.getElementById('fabric')?.value || '';
+    const sourceText = String(fabric || colorway || '').trim();
+
+    statusEl.classList.remove('is-recognized', 'is-unrecognized');
+
+    if (!sourceText) {
+        statusEl.textContent = 'Color de tela sin analizar.';
+        return;
+    }
+
+    const foundHex = window.ColorConfig?.findColorHex
+        ? window.ColorConfig.findColorHex(sourceText)
+        : null;
+
+    if (!foundHex) {
+        statusEl.classList.add('is-unrecognized');
+        statusEl.textContent = `No se reconoció "${sourceText}" en la base de colores. Se usará fallback por texto.`;
+        return;
+    }
+
+    const rgb = hexToRgbSafe(foundHex);
+    const resolved = window.ColorEngine?.resolveColor
+        ? window.ColorEngine.resolveColor({ hex: foundHex, rgb })
+        : null;
+
+    const tone = resolved?.toneCategory || 'unknown';
+    const toneLabel = tone === 'light' ? 'CLARO' : (tone === 'dark' ? 'OSCURO' : 'SIN CLASIFICAR');
+    const sourceLabel = resolved?.source === 'database' ? 'DB' : (resolved?.source === 'computed' ? 'COMPUTADO' : 'COLORCONFIG');
+    const fabricIsDark = window.RulesEngine?.esTelaOscura ? window.RulesEngine.esTelaOscura(sourceText) : null;
+    const fabricToneLabel = fabricIsDark === null ? 'N/A' : (fabricIsDark ? 'OSCURA' : 'CLARA');
+
+    statusEl.classList.add('is-recognized');
+    statusEl.textContent = `Reconocido: ${sourceText} → ${foundHex.toUpperCase()} · Tinta ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
+}
+
 function applyCustomerInkDefaults() {
     const customerValue = (document.getElementById('customer')?.value || '').toUpperCase().trim();
     const isGFS = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S'].some(v => customerValue.includes(v));
@@ -544,6 +600,8 @@ function addNewPlacement(type = null, isFirst = false) {
         durometer: '',
         strokes: '',
         additives: '',
+        additivesBlocker: '',
+        additivesWhiteBase: '',
         width: '',
         height: '',
         baseSize: '',
@@ -839,6 +897,8 @@ function renderPlacementHTML(placement) {
     const defaultPressure = preset.color.pressure || '40';
     const defaultSpeed = preset.color.speed || '35';
     const defaultAdditives = preset.color.additives || '3 % cross-linker 500 · 1.5 % antitack';
+    const defaultBlockerAdditives = preset.blocker.additives || 'N/A';
+    const defaultWhiteAdditives = preset.white.additives || 'N/A';
 
     const dimensions = extractDimensions(placement.dimensions);
 
@@ -1070,15 +1130,37 @@ function renderPlacementHTML(placement) {
                                            title="Velocidad de impresión">
                                 </div>
                                 
-                                <!-- Aditivos -->
+                                <!-- Aditivos color -->
                                 <div class="form-group">
-                                    <label class="form-label">ADITIVOS:</label>
+                                    <label class="form-label">ADITIVOS COLOR:</label>
                                     <input type="text" 
                                            id="additives-${placement.id}"
                                            class="form-control placement-additives"
                                            value="${placement.additives || defaultAdditives}"
                                            oninput="updatePlacementParam(${placement.id}, 'additives', this.value)"
-                                           title="Aditivos para la tinta">
+                                           title="Aditivos para colores normales">
+                                </div>
+
+                                <!-- Aditivos blocker -->
+                                <div class="form-group">
+                                    <label class="form-label">ADITIVOS BLOCKER:</label>
+                                    <input type="text" 
+                                           id="additives-blocker-${placement.id}"
+                                           class="form-control placement-additives-blocker"
+                                           value="${placement.additivesBlocker || defaultBlockerAdditives}"
+                                           oninput="updatePlacementParam(${placement.id}, 'additivesBlocker', this.value)"
+                                           title="Aditivos para blocker si se requieren">
+                                </div>
+
+                                <!-- Aditivos white base -->
+                                <div class="form-group">
+                                    <label class="form-label">ADITIVOS WHITE BASE:</label>
+                                    <input type="text" 
+                                           id="additives-white-${placement.id}"
+                                           class="form-control placement-additives-white"
+                                           value="${placement.additivesWhiteBase || defaultWhiteAdditives}"
+                                           oninput="updatePlacementParam(${placement.id}, 'additivesWhiteBase', this.value)"
+                                           title="Aditivos para white base si se requieren">
                                 </div>
                             </div>
                         </div>
@@ -1415,6 +1497,16 @@ function updateDefaultParameters(placementId, inkType) {
     if (!placement.additives) {
         const additivesField = document.getElementById(`additives-${placementId}`);
         if (additivesField) additivesField.value = preset.color.additives;
+    }
+
+    if (!placement.additivesBlocker) {
+        const additivesBlockerField = document.getElementById(`additives-blocker-${placementId}`);
+        if (additivesBlockerField) additivesBlockerField.value = preset.blocker.additives;
+    }
+
+    if (!placement.additivesWhiteBase) {
+        const additivesWhiteField = document.getElementById(`additives-white-${placementId}`);
+        if (additivesWhiteField) additivesWhiteField.value = preset.white.additives;
     }
 }
 
@@ -2231,14 +2323,14 @@ function updatePlacementStations(placementId, returnOnly = false) {
 
         if (item.type === 'BLOCKER') {
             mesh = item.mesh || placement.meshBlocker || preset.blocker.mesh1;
-            add = item.additives || placement.additives || preset.blocker.additives;
+            add = placement.additivesBlocker || item.additives || preset.blocker.additives;
         }
         // =========================================
         // CASO 3: Es WHITE_BASE
         // =========================================
         else if (item.type === 'WHITE_BASE') {
             mesh = item.mesh || placement.meshWhite || preset.white.mesh1;
-            add = item.additives || placement.additives || preset.white.additives;
+            add = placement.additivesWhiteBase || item.additives || preset.white.additives;
         }
         // =========================================
         // CASO 4: Es METALLIC

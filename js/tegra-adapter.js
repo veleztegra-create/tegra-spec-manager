@@ -210,42 +210,36 @@
     }
 
     function crearBotonCargaPDF() {
-        const existingBtn = document.getElementById('tegra-pdf-uploader-btn');
-        if (existingBtn) existingBtn.remove();
+        let boton = document.getElementById('tegra-pdf-uploader-btn');
 
-        const boton = document.createElement('button');
-        boton.id = 'tegra-pdf-uploader-btn';
+        if (!boton) {
+            const actions = document.querySelector('#spec-creator .card .card-actions') || document.querySelector('.card-actions');
+            if (!actions) {
+                console.warn('⚠️ No se encontró contenedor para botón PDF');
+                return;
+            }
+
+            boton = document.createElement('button');
+            boton.id = 'tegra-pdf-uploader-btn';
+            boton.type = 'button';
+            boton.className = 'btn btn-outline btn-sm';
+            actions.appendChild(boton);
+        }
+
         boton.innerHTML = '<i class="fas fa-file-pdf"></i> Cargar Tech Pack Nike';
         boton.title = 'Cargar Tech Pack Nike desde PDF';
-        
-        boton.style.cssText = `
-            position: fixed !important;
-            bottom: 30px !important;
-            right: 30px !important;
-            z-index: 999999 !important;
-            padding: 14px 24px !important;
-            background: linear-gradient(135deg, #e31837 0%, #8B0000 100%) !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 50px !important;
-            box-shadow: 0 4px 20px rgba(227, 24, 55, 0.5) !important;
-            cursor: pointer !important;
-            font-weight: 600 !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 10px !important;
-            font-family: 'Segoe UI', sans-serif !important;
-            font-size: 14px !important;
-            border: 2px solid rgba(255,255,255,0.2) !important;
-        `;
 
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.id = 'tegra-pdf-uploader-input';
-        fileInput.accept = '.pdf';
-        fileInput.style.display = 'none';
+        let fileInput = document.getElementById('tegra-pdf-uploader-input');
+        if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'tegra-pdf-uploader-input';
+            fileInput.accept = '.pdf';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+        }
 
-        fileInput.addEventListener('change', async function(e) {
+        fileInput.onchange = async function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -268,14 +262,11 @@
             } finally {
                 fileInput.value = '';
             }
-        });
+        };
 
         boton.onclick = () => fileInput.click();
 
-        document.body.appendChild(boton);
-        document.body.appendChild(fileInput);
-
-        console.log('✅ Botón de carga de PDF añadido');
+        console.log('✅ Botón de carga de PDF vinculado');
     }
 
     // Inicializar
