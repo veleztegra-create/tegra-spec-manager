@@ -18,27 +18,30 @@ window.LayerNormalizer = (function () {
 
   function normalizeLayers(layers = [], options = {}) {
     const mergeTypes = new Set(options.mergeTypes || ['WHITE_BASE', 'BLOCKER']);
-    const normalized = [];
-    const grouped = new Map();
+    const ordered = [];
+    const groupedIndex = new Map();
 
     layers.forEach((layer) => {
       const current = { ...layer };
       const type = String(current.tipo || '').toUpperCase();
 
       if (!mergeTypes.has(type)) {
-        normalized.push({ ...current, count: 1 });
+        ordered.push({ ...current, count: 1 });
         return;
       }
 
       const key = getNormalizationKey(current);
-      if (!grouped.has(key)) {
-        grouped.set(key, { ...current, count: 0 });
+      if (groupedIndex.has(key)) {
+        const index = groupedIndex.get(key);
+        ordered[index].count += 1;
+        return;
       }
 
-      grouped.get(key).count += 1;
+      groupedIndex.set(key, ordered.length);
+      ordered.push({ ...current, count: 1 });
     });
 
-    return [...normalized, ...grouped.values()];
+    return ordered;
   }
 
   return {
