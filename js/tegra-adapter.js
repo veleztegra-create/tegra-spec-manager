@@ -158,28 +158,55 @@
                 }
             }
 
-            datosPDF.placements.forEach((placement, index) => {
+            const groupedPlacements = new Map();
+
+            datosPDF.placements.forEach((placement) => {
+                const translatedType = translatePlacementLocation(placement.ubicacion);
+                const groupKey = translatedType || 'PERSONALIZADO';
+                const detalleLinea = formatearDescripcionPlacement(placement);
+                const instruccion = limpiarDescripcion(placement.descripcionIngles || placement.descripcion || '');
+
+                if (!groupedPlacements.has(groupKey)) {
+                    groupedPlacements.set(groupKey, {
+                        type: groupKey,
+                        name: groupKey,
+                        detailLines: [],
+                        specialInstructionsLines: [],
+                        isPaired: (String(placement.ubicacion || '').toUpperCase() === 'SLEEVE' || String(placement.ubicacion || '').toUpperCase() === 'SHOULDER'),
+                        baseSize: placement.talla || 'L'
+                    });
+                }
+
+                const group = groupedPlacements.get(groupKey);
+                if (detalleLinea && !group.detailLines.includes(detalleLinea)) {
+                    group.detailLines.push(detalleLinea);
+                }
+                if (instruccion && !group.specialInstructionsLines.includes(instruccion)) {
+                    group.specialInstructionsLines.push(instruccion);
+                }
+            });
+
+            const mergedPlacements = Array.from(groupedPlacements.values());
+
+            mergedPlacements.forEach((placement, index) => {
                 const placementId = index === 0 ? 1 : Date.now() + index;
-                
-                // Formatear descripción limpia
-                const descripcionFormateada = formatearDescripcionPlacement(placement);
-                
+
                 const newPlacement = {
                     id: placementId,
-                    type: translatePlacementLocation(placement.ubicacion),
-                    name: translatePlacementLocation(placement.ubicacion),
+                    type: placement.type,
+                    name: placement.name,
                     imageData: null,
                     colors: [],
                     sequence: [],
-                    placementDetails: descripcionFormateada,
+                    placementDetails: placement.detailLines.join(' | '),
                     dimensions: '',
                     temp: '320 °F',
                     time: '1:40 min',
                     specialties: '',
-                    specialInstructions: limpiarDescripcion(placement.descripcionIngles || placement.descripcion || ''),
+                    specialInstructions: placement.specialInstructionsLines.join(' | '),
                     inkType: datosPDF.tinta?.tipo || 'WATER',
-                    isPaired: (String(placement.ubicacion || '').toUpperCase() === 'SLEEVE' || String(placement.ubicacion || '').toUpperCase() === 'SHOULDER'),
-                    baseSize: placement.talla || 'L'
+                    isPaired: placement.isPaired,
+                    baseSize: placement.baseSize
                 };
 
                 if (index === 0 && window.placements && window.placements.length === 0) {
