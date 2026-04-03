@@ -2,6 +2,20 @@
 window.LayerNormalizer = (function () {
   'use strict';
 
+  function getNormalizationKey(layer) {
+    const type = String(layer?.tipo || '').toUpperCase();
+    const mesh = layer?.mesh || '';
+    const additives = layer?.additives || '';
+
+    // Nunca mezclar colores de pantallas distintas aunque compartan malla/aditivos.
+    if (type === 'COLOR') {
+      const screenLetter = layer?.screenLetter || '';
+      return `${type}|${screenLetter}|${mesh}|${additives}`;
+    }
+
+    return `${type}|${mesh}|${additives}`;
+  }
+
   function normalizeLayers(layers = [], options = {}) {
     const mergeTypes = new Set(options.mergeTypes || ['WHITE_BASE', 'BLOCKER']);
     const normalized = [];
@@ -16,7 +30,7 @@ window.LayerNormalizer = (function () {
         return;
       }
 
-      const key = `${type}|${current.mesh || ''}|${current.additives || ''}`;
+      const key = getNormalizationKey(current);
       if (!grouped.has(key)) {
         grouped.set(key, { ...current, count: 0 });
       }
@@ -27,5 +41,8 @@ window.LayerNormalizer = (function () {
     return [...normalized, ...grouped.values()];
   }
 
-  return { normalizeLayers };
+  return {
+    normalizeLayers,
+    getNormalizationKey
+  };
 })();
