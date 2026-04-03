@@ -17,6 +17,7 @@ let currentPlacementId = 1;
 let clientLogoCache = {};
 let isDarkMode = true;
 let placementColorDndManager = null;
+let placementSequenceClipboard = null;
 
 // =====================================================
 // FUNCIONES AUXILIARES BÁSICAS
@@ -1206,9 +1207,15 @@ function renderPlacementHTML(placement) {
                         </div>
                     </div>
 
-                    <div class="no-print" style="margin: 10px 0 14px 0;">
+                    <div class="no-print" style="margin: 10px 0 14px 0; display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn btn-primary btn-sm" onclick="generarConAsistente(${placement.id})">
                             <i class="fas fa-magic"></i> Generar Secuencia
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="copyPlacementSequence(${placement.id})">
+                            <i class="fas fa-copy"></i> Copiar Secuencia
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="pastePlacementSequence(${placement.id})">
+                            <i class="fas fa-paste"></i> Pegar Secuencia
                         </button>
                     </div>
                     
@@ -1582,6 +1589,68 @@ function updatePlacementParam(placementId, param, value) {
         updatePlacementStations(placementId);
         showStatus(`✅ ${param} actualizado`);
     }
+}
+
+function copyPlacementSequence(placementId) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement || !Array.isArray(placement.sequence) || placement.sequence.length === 0) {
+        showStatus('⚠️ Este placement no tiene secuencia para copiar', 'warning');
+        return;
+    }
+
+    placementSequenceClipboard = {
+        sequence: JSON.parse(JSON.stringify(placement.sequence)),
+        printParams: {
+            meshColor: placement.meshColor || '',
+            meshWhite: placement.meshWhite || '',
+            meshBlocker: placement.meshBlocker || '',
+            durometer: placement.durometer || '',
+            strokes: placement.strokes || '',
+            angle: placement.angle || '',
+            pressure: placement.pressure || '',
+            speed: placement.speed || '',
+            additives: placement.additives || '',
+            additivesBlocker: placement.additivesBlocker || '',
+            additivesWhiteBase: placement.additivesWhiteBase || ''
+        }
+    };
+
+    showStatus('📋 Secuencia copiada. Ya puedes pegarla en otro placement.', 'success');
+}
+
+function pastePlacementSequence(placementId) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+
+    if (!placementSequenceClipboard || !Array.isArray(placementSequenceClipboard.sequence)) {
+        showStatus('⚠️ No hay secuencia copiada', 'warning');
+        return;
+    }
+
+    placement.sequence = JSON.parse(JSON.stringify(placementSequenceClipboard.sequence));
+
+    const params = placementSequenceClipboard.printParams || {};
+    Object.keys(params).forEach((key) => {
+        if (params[key]) placement[key] = params[key];
+    });
+
+    const realTypes = new Set(['WHITE_BASE', 'BLOCKER', 'COLOR', 'METALLIC']);
+    placement.colors = placement.sequence
+        .filter((step) => realTypes.has(String(step.type || step.tipo || '').toUpperCase()))
+        .map((step, index) => ({
+            id: Date.now() + Math.random() + index,
+            type: step.type || step.tipo,
+            screenLetter: step.screenLetter || '',
+            val: step.val || step.nombre || '---',
+            mesh: step.mesh || '',
+            additives: step.additives || ''
+        }));
+
+    renderPlacementColors(placementId);
+    syncPlacementSequenceWithColors(placement);
+    updatePlacementStations(placementId);
+
+    showStatus('✅ Secuencia pegada correctamente en este placement', 'success');
 }
 
 // =====================================================
