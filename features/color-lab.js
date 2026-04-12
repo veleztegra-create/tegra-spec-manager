@@ -1,5 +1,5 @@
 (function () {
-  const WARNING_LABEL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700"><rect width="1200" height="700" fill="#fff" stroke="#000" stroke-width="3"/><text x="600" y="62" text-anchor="middle" font-size="48" font-family="Arial" font-weight="700" fill="#b32222">TEGRA</text><text x="600" y="122" text-anchor="middle" font-size="72" font-family="Arial" font-weight="800" fill="#111">Etiqueta de Seguridad</text><g transform="translate(0,160)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><rect x="130" y="0" width="390" height="105" fill="#0459b3" stroke="#000" stroke-width="3"/><text x="65" y="70" text-anchor="middle" font-size="56" font-weight="700">1</text><text x="145" y="70" font-size="66" font-weight="800" fill="#fff">SALUD</text><text x="540" y="70" font-size="62" font-weight="700">0 - Material estable</text></g><g transform="translate(0,265)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><rect x="130" y="0" width="390" height="105" fill="#d61920" stroke="#000" stroke-width="3"/><text x="65" y="70" text-anchor="middle" font-size="56" font-weight="700">0</text><text x="145" y="70" font-size="62" font-weight="800" fill="#fff">INFLAMABILIDAD</text><text x="540" y="70" font-size="62" font-weight="700">1 - Ligeramente peligroso</text></g><g transform="translate(0,370)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><rect x="130" y="0" width="390" height="105" fill="#ffe100" stroke="#000" stroke-width="3"/><text x="65" y="70" text-anchor="middle" font-size="56" font-weight="700">0</text><text x="145" y="70" font-size="62" font-weight="800" fill="#111">REACTIVO</text><text x="540" y="70" font-size="62" font-weight="700">2 - Moderadamente peligroso</text></g><g transform="translate(0,475)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><rect x="130" y="0" width="390" height="105" fill="#fff" stroke="#000" stroke-width="3"/><text x="65" y="70" text-anchor="middle" font-size="56" font-weight="700">0</text><text x="145" y="70" font-size="62" font-weight="800" fill="#111">INF. ESPECIAL</text><text x="540" y="70" font-size="62" font-weight="700">3 - Muy peligroso</text></g><g transform="translate(0,580)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><text x="540" y="70" font-size="62" font-weight="700">4 - Extremadamente peligroso</text></g></svg>`;
+  const WARNING_LABEL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="320" viewBox="0 0 960 320"><rect width="960" height="320" fill="#fff" stroke="#111" stroke-width="4"/><text x="480" y="56" text-anchor="middle" font-family="Arial" font-size="52" font-weight="700" fill="#b2232a">Etiqueta de Seguridad</text><rect x="20" y="82" width="920" height="70" fill="#f7f7f7" stroke="#111" stroke-width="2"/><rect x="20" y="82" width="250" height="70" fill="#0b5ed7"/><text x="35" y="130" font-family="Arial" font-size="46" font-weight="700" fill="#fff">SALUD 1</text><text x="290" y="130" font-family="Arial" font-size="38" font-weight="700" fill="#111">Material estable</text><rect x="20" y="156" width="920" height="70" fill="#fff" stroke="#111" stroke-width="2"/><rect x="20" y="156" width="250" height="70" fill="#dc3545"/><text x="35" y="204" font-family="Arial" font-size="38" font-weight="700" fill="#fff">INFLAM. 0</text><text x="290" y="204" font-family="Arial" font-size="36" font-weight="700" fill="#111">Ligeramente peligroso</text><rect x="20" y="230" width="920" height="70" fill="#fff" stroke="#111" stroke-width="2"/><rect x="20" y="230" width="250" height="70" fill="#ffdd00"/><text x="35" y="278" font-family="Arial" font-size="40" font-weight="700" fill="#111">REACTIVO 0</text><text x="290" y="278" font-family="Arial" font-size="34" font-weight="700" fill="#111">Moderadamente peligroso</text></svg>`;
 
   const SYSTEMS = {
     silicone: { name: 'Silicone', file: 'data/color-lab/silicone.json' },
@@ -249,13 +249,28 @@
       pages.push(formulas.slice(i, i + 4));
     }
 
+    const getFormulaClient = (formula) => {
+      const firstIngredient = String(formula.ingredients?.[0]?.name || '').trim();
+      const firstAdditive = String(Object.values(formula.additives || {})[0]?.name || '').trim();
+      const source = firstIngredient || firstAdditive || 'LIBRA';
+      return source.split(/\s+/)[0].toUpperCase();
+    };
+
+    const getInkType = (formula) => String(formula.systemKey || 'SILICONE').toUpperCase();
+
     const cards = pages.map((page, pageIndex) => `
       <section class="page">
         <h2>Color Lab · Etiquetas manuales (${pageIndex + 1}/${pages.length})</h2>
         <div class="grid">
           ${page.map((formula) => `
             <article class="card">
-              <img class="warning" src="${state.warningLabelSrc}" alt="Etiqueta de seguridad">
+              <div class="top">
+                <div class="meta">
+                  <span>Cliente tinta: ${getFormulaClient(formula)}</span>
+                  <span>Tipo tinta: ${getInkType(formula)}</span>
+                </div>
+                <img class="warning" src="${state.warningLabelSrc}" alt="Etiqueta de seguridad">
+              </div>
               <div class="title">
                 <span class="swatch" style="background:${formula.hex || '#999'}"></span>
                 <div><strong>${formula.name}</strong><small>${formula.code} · ${String(formula.systemKey || '').toUpperCase()}</small></div>
@@ -278,9 +293,11 @@
       .page{page-break-after:always;margin-bottom:12px}.page:last-child{page-break-after:auto}
       h2{font-size:16px;margin:0 0 10px 0}
       .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-      .card{position:relative;background:#fff;border:1px solid #ddd;border-left:4px solid #c82037;padding:8px;min-height:180px}
-      .warning{position:absolute;top:8px;right:8px;width:50%;height:auto;max-height:50%;object-fit:contain}
-      .title{display:flex;gap:8px;align-items:center;padding-right:52%}
+      .card{background:#fff;border:1px solid #ddd;border-left:4px solid #c82037;padding:8px;min-height:220px}
+      .top{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+      .warning{width:100%;height:auto;max-height:95px;object-fit:contain;border:1px solid #ddd;border-radius:4px}
+      .meta{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:#444;text-transform:uppercase}
+      .title{display:flex;gap:8px;align-items:center;margin-top:8px}
       .swatch{width:28px;height:28px;border-radius:6px;border:1px solid #aaa}
       .title small{display:block;color:#666}
       ul{list-style:none;margin:8px 0 0 0;padding:0}
