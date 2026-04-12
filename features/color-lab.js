@@ -1,4 +1,6 @@
 (function () {
+  const WARNING_LABEL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700"><rect width="1200" height="700" fill="#fff" stroke="#000" stroke-width="3"/><text x="600" y="62" text-anchor="middle" font-size="48" font-family="Arial" font-weight="700" fill="#b32222">TEGRA</text><text x="600" y="122" text-anchor="middle" font-size="72" font-family="Arial" font-weight="800" fill="#111">Etiqueta de Seguridad</text><g transform="translate(0,160)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><rect x="130" y="0" width="390" height="105" fill="#0459b3" stroke="#000" stroke-width="3"/><text x="65" y="70" text-anchor="middle" font-size="56" font-weight="700">1</text><text x="145" y="70" font-size="66" font-weight="800" fill="#fff">SALUD</text><text x="540" y="70" font-size="62" font-weight="700">0 - Material estable</text></g><g transform="translate(0,265)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><rect x="130" y="0" width="390" height="105" fill="#d61920" stroke="#000" stroke-width="3"/><text x="65" y="70" text-anchor="middle" font-size="56" font-weight="700">0</text><text x="145" y="70" font-size="62" font-weight="800" fill="#fff">INFLAMABILIDAD</text><text x="540" y="70" font-size="62" font-weight="700">1 - Ligeramente peligroso</text></g><g transform="translate(0,370)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><rect x="130" y="0" width="390" height="105" fill="#ffe100" stroke="#000" stroke-width="3"/><text x="65" y="70" text-anchor="middle" font-size="56" font-weight="700">0</text><text x="145" y="70" font-size="62" font-weight="800" fill="#111">REACTIVO</text><text x="540" y="70" font-size="62" font-weight="700">2 - Moderadamente peligroso</text></g><g transform="translate(0,475)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><rect x="130" y="0" width="390" height="105" fill="#fff" stroke="#000" stroke-width="3"/><text x="65" y="70" text-anchor="middle" font-size="56" font-weight="700">0</text><text x="145" y="70" font-size="62" font-weight="800" fill="#111">INF. ESPECIAL</text><text x="540" y="70" font-size="62" font-weight="700">3 - Muy peligroso</text></g><g transform="translate(0,580)" font-family="Arial"><rect x="0" y="0" width="1200" height="105" fill="#fff" stroke="#000" stroke-width="3"/><text x="540" y="70" font-size="62" font-weight="700">4 - Extremadamente peligroso</text></g></svg>`;
+
   const SYSTEMS = {
     silicone: { name: 'Silicone', file: 'data/color-lab/silicone.json' },
     waterbase: { name: 'Waterbase', file: 'data/color-lab/waterbase.json' },
@@ -29,7 +31,8 @@
     loaded: {},
     currentSystem: 'silicone',
     currentFormulas: [],
-    bound: false
+    bound: false,
+    warningLabelSrc: `data:image/svg+xml;utf8,${encodeURIComponent(WARNING_LABEL_SVG)}`
   };
 
   function isNum(v) {
@@ -306,6 +309,14 @@
     searchFormula,
     findFormulaByColorName,
     collectFormulasForPlacements,
-    resolveColorHex
+    resolveColorHex,
+    get warningLabelSrc() {
+      return state.warningLabelSrc;
+    },
+    setWarningLabelSrc(src) {
+      const value = String(src || '').trim();
+      if (value) state.warningLabelSrc = value;
+      return state.warningLabelSrc;
+    }
   };
 })();
