@@ -322,6 +322,64 @@
       </section>`;
   }
 
+  function chunkList(list, chunkSize = 4) {
+    const chunks = [];
+    for (let i = 0; i < list.length; i += chunkSize) {
+      chunks.push(list.slice(i, i + chunkSize));
+    }
+    return chunks;
+  }
+
+  function buildColorLabLabelsSection(data) {
+    const labels = window.ColorLab?.collectFormulasForPlacements
+      ? window.ColorLab.collectFormulasForPlacements(data?.placements || [])
+      : [];
+
+    if (!Array.isArray(labels) || labels.length === 0) return '';
+
+    const pages = chunkList(labels, 4);
+    const pagesHtml = pages.map((page, pageIndex) => {
+      const labelsHtml = page.map((formula) => {
+        const additives = Object.values(formula.additives || {});
+        const additivesHtml = additives
+          .map((item) => `<span class="lab-mini-pill">${esc(item.label)} ${esc(item.display)}</span>`)
+          .join('');
+        const ingredientsHtml = (formula.ingredients || [])
+          .slice(0, 4)
+          .map((item) => `<li><span>${esc(item.name)}</span><strong>${esc(item.percent)}</strong></li>`)
+          .join('');
+
+        return `
+          <article class="lab-label-card">
+            <header>
+              <div class="lab-color-chip" style="background:${esc(formula.hex || '#999999')};"></div>
+              <div>
+                <h4>${esc(formula.name || 'N/A')}</h4>
+                <p>${esc(formula.code || 'N/A')} · ${esc((formula.systemKey || '').toUpperCase())}</p>
+              </div>
+            </header>
+            <ul class="lab-ingredients">${ingredientsHtml || '<li><span>Sin ingredientes</span><strong>—</strong></li>'}</ul>
+            <div class="lab-mini-pills">${additivesHtml || '<span class="lab-mini-pill">Sin aditivos</span>'}</div>
+          </article>
+        `;
+      }).join('');
+
+      return `
+        <section class="labels-page">
+          <div class="labels-page-head">Color Lab Labels · Página ${pageIndex + 1} de ${pages.length}</div>
+          <div class="labels-grid">${labelsHtml}</div>
+        </section>
+      `;
+    }).join('');
+
+    return `
+      <section class="color-lab-labels-section">
+        <h2 class="section-title">Color Lab · Fórmulas por color</h2>
+        ${pagesHtml}
+      </section>
+    `;
+  }
+
   function generateSpecHTMLDocument(data) {
     const placements = Array.isArray(data?.placements) && data.placements.length ? data.placements : [{}];
     const customerKey = getLogoKey(data.customer || '');
@@ -329,6 +387,7 @@
     const tegraLogo = window.LogoConfig?.TEGRA || '';
 
     const placementSections = placements.map((p, i) => buildPlacementHtml(p, i, placements.length, data)).join('');
+    const colorLabSection = buildColorLabLabelsSection(data);
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -348,6 +407,8 @@
     .sequence-section{margin-top:15px;} .sequence-header{background:var(--tegra-red);color:#fff;padding:8px 15px;font-family:var(--font-display);font-size:.85rem;text-transform:uppercase;} .sequence-table{width:100%;border-collapse:collapse;font-size:.75rem;} .sequence-table th{background:var(--tegra-gray-dark);color:#fff;padding:8px 6px;text-align:left;font-family:var(--font-condensed);font-size:.65rem;text-transform:uppercase;} .sequence-table td{padding:6px;border-bottom:1px solid var(--border-light);} .station-number{font-family:var(--font-display);font-size:.9rem;color:var(--tegra-red);text-align:center;} .screen-letter{font-weight:700;color:var(--tegra-red);} .ink-name{font-weight:600;} .additives{font-size:.7rem;color:var(--text-muted);font-style:italic;} .flash-row{background:#f5f5f5 !important;font-style:italic;color:var(--text-muted);} 
     .curing-section{margin-top:15px;background:linear-gradient(135deg,var(--tegra-gray-light) 0%,#e8e8e8 100%);border-radius:6px;padding:12px;border-left:3px solid var(--tegra-red);} .curing-title{font-family:var(--font-display);font-size:.85rem;color:var(--tegra-red);margin-bottom:10px;} .curing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;} .curing-item{text-align:center;} .curing-label{font-size:.7rem;text-transform:uppercase;color:var(--text-muted);} .curing-value{font-family:var(--font-display);font-size:1.2rem;font-weight:700;} .curing-value.small{font-size:1rem;}
     .spec-footer{background:var(--tegra-gray-dark);color:#fff;padding:10px 20px;display:flex;justify-content:space-between;font-size:.75rem;margin-top:20px;} .footer-center{font-family:var(--font-display);font-weight:700;letter-spacing:1px;}
+    .color-lab-labels-section{padding:18px 20px;border-top:3px solid var(--tegra-red);background:#fafafa;} .labels-page{margin-top:10px;padding:8px 0 4px 0;} .labels-page + .labels-page{border-top:1px dashed #bbb;padding-top:14px;} .labels-page-head{font-family:var(--font-condensed);font-size:.8rem;text-transform:uppercase;color:#333;letter-spacing:.06em;margin-bottom:8px;} .labels-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;} .lab-label-card{border:1px solid var(--border-light);border-left:4px solid var(--tegra-red);border-radius:6px;background:#fff;padding:8px;min-height:170px;} .lab-label-card header{display:flex;gap:8px;align-items:center;margin-bottom:8px;} .lab-color-chip{width:30px;height:30px;border-radius:6px;border:1px solid #bbb;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);} .lab-label-card h4{font-family:var(--font-display);font-size:1rem;line-height:1.1;} .lab-label-card p{font-size:.7rem;color:#555;text-transform:uppercase;letter-spacing:.05em;} .lab-ingredients{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;} .lab-ingredients li{display:flex;justify-content:space-between;font-size:.72rem;border-bottom:1px dashed #eee;padding-bottom:2px;} .lab-mini-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;} .lab-mini-pill{font-size:.62rem;border:1px solid #ddd;padding:2px 6px;border-radius:999px;background:#f8f8f8;}
+    @media print{body{padding:8px;background:#fff;} .mockup-container{width:auto;box-shadow:none;border-radius:0;} .placement-section{padding:14px;} .placement-header-bar{margin:-14px -14px 10px -14px;} .detail-row{padding:4px 0;} .labels-page{break-after:page;} .labels-page:last-child{break-after:auto;} .lab-label-card{page-break-inside:avoid;min-height:160px;}}
   </style>
 </head>
 <body>
@@ -377,6 +438,7 @@
     </section>
 
     ${placementSections}
+    ${colorLabSection}
   </div>
 </body>
 </html>`;

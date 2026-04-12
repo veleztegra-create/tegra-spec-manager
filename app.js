@@ -235,6 +235,9 @@ function showTab(tabName) {
     if (tabName === 'palette-extractor' && window.initManualPaletteExtractor) {
         window.initManualPaletteExtractor();
     }
+    if (tabName === 'color-lab' && window.initColorLab) {
+        window.initColorLab();
+    }
     if (tabName === 'spec-creator') {
         if (placements.length === 0 && document.getElementById('placements-container')) {
             initializePlacements();

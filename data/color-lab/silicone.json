@@ -1,0 +1,55 @@
+[
+  {
+    "SISTEMA DE SILICON": "76I",
+    "Column11": "UNIVERSITY GOLD",
+    "Column14": 0.80343716433942,
+    "Column15": 0.07160759040458288,
+    "Column17": 0.11915503043322592,
+    "Column18": 0.005728607232366631,
+    "Column19": 0.0000716075904045829,
+    "Column23": 0.03,
+    "Column24": 0.02,
+    "Column25": 0.003
+  },
+  {
+    "SISTEMA DE SILICON": "METALICO",
+    "Column11": "PMS 877 C",
+    "Column14": 0.6661115736885929,
+    "Column16": 0.33305578684429643,
+    "Column20": 0.0008326394671107411,
+    "Column23": 0.03,
+    "Column24": 0.02,
+    "Column25": 0.003
+  },
+  {
+    "SISTEMA DE SILICON": "01V",
+    "Column11": "WOLG GREY",
+    "Column14": 0.43478260869565216,
+    "Column15": 0.5434782608695652,
+    "Column20": 0.021739130434782608,
+    "Column23": 0.03,
+    "Column24": 0.02,
+    "Column25": 0.003,
+    "Column26": "BASE PARA FORMULAR METALICO"
+  },
+  {
+    "SISTEMA DE SILICON": "30D",
+    "Column11": "APPLE GREEN",
+    "Column14": 0.8905,
+    "Column15": 0.0067,
+    "Column17": 0.0391,
+    "Column19": 0.0175,
+    "Column20": 0.0002,
+    "Column23": 0.03,
+    "Column24": 0.02,
+    "Column25": 0.003
+  },
+  {
+    "SISTEMA DE SILICON": "10A",
+    "Column11": "WHITE",
+    "Column15": 1,
+    "Column23": 0.03,
+    "Column25": 0.003,
+    "Column26": "COLOR WHITE"
+  }
+]
