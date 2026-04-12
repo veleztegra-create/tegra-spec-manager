@@ -279,7 +279,8 @@
                 ${(formula.ingredients || []).slice(0, 4).map((item) => `<li><span>${item.name}</span><b>${item.percent}</b></li>`).join('')}
               </ul>
               <div class="pills">
-                ${Object.values(formula.additives || {}).map((item) => `<span>ADITIVOS: ${item.name} · ${item.display}</span>`).join('')}
+                <strong>ADITIVOS:</strong>
+                ${Object.values(formula.additives || {}).map((item) => `<div>${item.name} · ${item.display}</div>`).join('')}
               </div>
             </article>
           `).join('')}
@@ -302,8 +303,7 @@
       .title small{display:block;color:#666}
       ul{list-style:none;margin:8px 0 0 0;padding:0}
       li{display:flex;justify-content:space-between;border-bottom:1px dashed #eee;font-size:12px}
-      .pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-      .pills span{font-size:10px;border:1px solid #ddd;border-radius:999px;padding:2px 6px}
+      .pills{display:flex;flex-direction:column;gap:2px;margin-top:8px;font-size:10px}
     </style></head><body>${cards}</body></html>`;
   }
 
