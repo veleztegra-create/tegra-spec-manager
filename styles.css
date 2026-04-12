@@ -1369,3 +1369,20 @@ textarea.form-control:focus {
 .palette-editable-name:hover {
     background: rgba(255, 255, 255, 0.08);
 }
+
+/* Manual palette extractor */
+.manual-palette-tool { background:#f4f4f9; border-radius:10px; padding:12px; }
+.manual-palette-header { background:#fff; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; border:1px solid #ddd; border-radius:8px; margin-bottom:12px; }
+.manual-palette-main { display:flex; gap:12px; min-height:520px; }
+.manual-canvas-area { flex:2; background:#fff; border-radius:8px; display:flex; flex-direction:column; border:1px solid #ddd; overflow:hidden; }
+.manual-status { padding:12px; background:#2d3436; color:#00cec9; font-weight:700; }
+.manual-scroll-box { overflow:auto; flex:1; border-top:1px solid #eee; }
+.manual-editor-area { flex:1; background:#fff; border-radius:8px; padding:16px; display:flex; flex-direction:column; border:1px solid #ddd; }
+.row-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f0f0f0; }
+.badge { font-size:11px; padding:5px 10px; border-radius:4px; font-weight:bold; }
+.base-true { background:#ffeaa7; color:#d35400; }
+.base-false { background:#55efc4; color:#00b894; }
+.delete-btn { background:#fab1a0; color:#c0392b; border:none; border-radius:4px; padding:6px 10px; cursor:pointer; font-weight:bold; }
+.delete-btn:hover { background:#ff7675; color:white; }
+.download-btn { background:#0984e3; color:white; border:none; width:100%; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer; }
+.download-btn:hover { background:#074b83; }

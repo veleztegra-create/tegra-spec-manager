@@ -232,6 +232,9 @@ function showTab(tabName) {
     if (tabName === 'error-log' && document.getElementById('error-log-content')) {
         loadErrorLog();
     }
+    if (tabName === 'palette-extractor' && window.initManualPaletteExtractor) {
+        window.initManualPaletteExtractor();
+    }
     if (tabName === 'spec-creator') {
         if (placements.length === 0 && document.getElementById('placements-container')) {
             initializePlacements();
