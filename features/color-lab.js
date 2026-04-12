@@ -32,7 +32,9 @@
     currentSystem: 'silicone',
     currentFormulas: [],
     bound: false,
-    warningLabelSrc: `data:image/svg+xml;utf8,${encodeURIComponent(WARNING_LABEL_SVG)}`
+    warningLabelSrc: `data:image/svg+xml;utf8,${encodeURIComponent(WARNING_LABEL_SVG)}`,
+    manualSelection: [],
+    lastRenderedFormula: null
   };
 
   function isNum(v) {
@@ -159,6 +161,7 @@
   function renderFormula(formula) {
     const result = document.getElementById('color-lab-result');
     if (!result || !formula) return;
+    state.lastRenderedFormula = formula;
 
     document.getElementById('color-lab-code').textContent = formula.code === 'N/A' ? '—' : formula.code;
     document.getElementById('color-lab-name').textContent = formula.name;
@@ -193,6 +196,112 @@
     }
 
     result.style.display = 'block';
+  }
+
+  function getFormulaUniqueKey(formula) {
+    return `${formula.systemKey}:${normalizeKey(formula.code)}:${normalizeKey(formula.name)}`;
+  }
+
+  function renderManualSelection() {
+    const list = document.getElementById('color-lab-selected-list');
+    const printBtn = document.getElementById('color-lab-print-selected');
+    if (!list) return;
+
+    if (!state.manualSelection.length) {
+      list.innerHTML = '<p style="margin:0; color:var(--text-secondary);">No hay fórmulas agregadas.</p>';
+      if (printBtn) printBtn.disabled = true;
+      return;
+    }
+
+    list.innerHTML = state.manualSelection.map((formula) => `
+      <div class="color-lab-selected-item">
+        <div>
+          <strong>${formula.code !== 'N/A' ? `${formula.code} · ` : ''}${formula.name}</strong><br>
+          <small>${String(formula.systemKey || '').toUpperCase()}</small>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="removeColorLabManualFormula('${getFormulaUniqueKey(formula)}')">Quitar</button>
+      </div>
+    `).join('');
+
+    if (printBtn) printBtn.disabled = false;
+  }
+
+  function addManualFormula(formula) {
+    if (!formula) return;
+    const key = getFormulaUniqueKey(formula);
+    if (state.manualSelection.some((item) => getFormulaUniqueKey(item) === key)) return;
+
+    state.manualSelection.push({
+      ...formula,
+      hex: resolveColorHex(formula)
+    });
+    renderManualSelection();
+  }
+
+  function removeManualFormula(formulaKey) {
+    state.manualSelection = state.manualSelection.filter((formula) => getFormulaUniqueKey(formula) !== formulaKey);
+    renderManualSelection();
+  }
+
+  function buildManualLabelsHtml(formulas) {
+    const pages = [];
+    for (let i = 0; i < formulas.length; i += 4) {
+      pages.push(formulas.slice(i, i + 4));
+    }
+
+    const cards = pages.map((page, pageIndex) => `
+      <section class="page">
+        <h2>Color Lab · Etiquetas manuales (${pageIndex + 1}/${pages.length})</h2>
+        <div class="grid">
+          ${page.map((formula) => `
+            <article class="card">
+              <img class="warning" src="${state.warningLabelSrc}" alt="Etiqueta de seguridad">
+              <div class="title">
+                <span class="swatch" style="background:${formula.hex || '#999'}"></span>
+                <div><strong>${formula.name}</strong><small>${formula.code} · ${String(formula.systemKey || '').toUpperCase()}</small></div>
+              </div>
+              <ul>
+                ${(formula.ingredients || []).slice(0, 4).map((item) => `<li><span>${item.name}</span><b>${item.percent}</b></li>`).join('')}
+              </ul>
+              <div class="pills">
+                ${Object.values(formula.additives || {}).map((item) => `<span>${item.name} · ${item.display}</span>`).join('')}
+              </div>
+            </article>
+          `).join('')}
+        </div>
+      </section>
+    `).join('');
+
+    return `<!doctype html><html><head><meta charset="utf-8"><title>Color Lab Manual Labels</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;padding:14px;background:#f5f5f5}
+      .page{page-break-after:always;margin-bottom:12px}.page:last-child{page-break-after:auto}
+      h2{font-size:16px;margin:0 0 10px 0}
+      .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .card{position:relative;background:#fff;border:1px solid #ddd;border-left:4px solid #c82037;padding:8px;min-height:180px}
+      .warning{position:absolute;top:8px;right:8px;width:50%;height:auto;max-height:50%;object-fit:contain}
+      .title{display:flex;gap:8px;align-items:center;padding-right:52%}
+      .swatch{width:28px;height:28px;border-radius:6px;border:1px solid #aaa}
+      .title small{display:block;color:#666}
+      ul{list-style:none;margin:8px 0 0 0;padding:0}
+      li{display:flex;justify-content:space-between;border-bottom:1px dashed #eee;font-size:12px}
+      .pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+      .pills span{font-size:10px;border:1px solid #ddd;border-radius:999px;padding:2px 6px}
+    </style></head><body>${cards}</body></html>`;
+  }
+
+  function printManualSelection() {
+    if (!state.manualSelection.length) return;
+    const html = buildManualLabelsHtml(state.manualSelection);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `color_lab_manual_labels_${Date.now()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 500);
   }
 
   function searchFormula(query, systemKey = state.currentSystem) {
@@ -256,8 +365,11 @@
     const select = document.getElementById('color-lab-system-select');
     const input = document.getElementById('color-lab-query');
     const searchBtn = document.getElementById('color-lab-search-btn');
+    const addSelectedBtn = document.getElementById('color-lab-add-selected');
+    const printSelectedBtn = document.getElementById('color-lab-print-selected');
+    const clearSelectedBtn = document.getElementById('color-lab-clear-selected');
 
-    if (!select || !input || !searchBtn) return;
+    if (!select || !input || !searchBtn || !addSelectedBtn || !printSelectedBtn || !clearSelectedBtn) return;
 
     if (!state.bound) {
       select.addEventListener('change', async () => {
@@ -287,6 +399,21 @@
         if (event.key === 'Enter') searchBtn.click();
       });
 
+      addSelectedBtn.addEventListener('click', () => {
+        if (!state.lastRenderedFormula) return;
+        addManualFormula(state.lastRenderedFormula);
+        setStatus(`Fórmula agregada a impresión: ${state.lastRenderedFormula.code} · ${state.lastRenderedFormula.name}`);
+      });
+
+      printSelectedBtn.addEventListener('click', () => {
+        printManualSelection();
+      });
+
+      clearSelectedBtn.addEventListener('click', () => {
+        state.manualSelection = [];
+        renderManualSelection();
+      });
+
       state.bound = true;
     }
 
@@ -297,6 +424,7 @@
       await Promise.all(Object.keys(SYSTEMS).map((systemKey) => loadSystem(systemKey).catch(() => [])));
       state.currentFormulas = state.loaded[state.currentSystem] || [];
       buildChips();
+      renderManualSelection();
       setStatus(`Sistema listo: ${SYSTEMS[state.currentSystem].name} (${state.currentFormulas.length} fórmulas)`);
     } catch (error) {
       setStatus(`Error al cargar Color Lab: ${error.message}`);
@@ -317,6 +445,11 @@
       const value = String(src || '').trim();
       if (value) state.warningLabelSrc = value;
       return state.warningLabelSrc;
-    }
+    },
+    addManualFormula,
+    removeManualFormula,
+    printManualSelection
   };
+
+  window.removeColorLabManualFormula = removeManualFormula;
 })();

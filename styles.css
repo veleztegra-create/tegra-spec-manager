@@ -1412,8 +1412,16 @@ textarea.form-control:focus {
 .color-lab-additive-card strong { font-size:0.78rem; }
 .color-lab-additive-card span { color:var(--accent); font-weight:700; }
 .color-lab-comments { margin-top:12px; border-left:4px solid var(--primary); padding:10px; background:rgba(227,24,55,0.08); font-size:0.88rem; color:var(--text-secondary); }
+.color-lab-actions { margin-top:12px; display:flex; justify-content:flex-end; }
+.color-lab-manual-print { margin-top:14px; border-top:1px solid var(--border-dark); padding-top:12px; }
+.color-lab-manual-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:10px; }
+.color-lab-selected-list { display:flex; flex-direction:column; gap:8px; }
+.color-lab-selected-item { display:flex; justify-content:space-between; align-items:center; gap:10px; border:1px solid var(--border-dark); border-radius:6px; padding:8px 10px; background:var(--gray-dark); }
+.color-lab-selected-item strong { font-size:0.88rem; }
+.color-lab-selected-item small { color:var(--text-secondary); }
 
 @media (max-width: 860px) {
   .color-lab-grid { grid-template-columns:1fr; }
   .color-lab-additives { grid-template-columns:1fr; }
+  .color-lab-manual-head { flex-direction:column; align-items:flex-start; }
 }
