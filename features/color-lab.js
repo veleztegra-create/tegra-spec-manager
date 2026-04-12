@@ -279,7 +279,7 @@
                 ${(formula.ingredients || []).slice(0, 4).map((item) => `<li><span>${item.name}</span><b>${item.percent}</b></li>`).join('')}
               </ul>
               <div class="pills">
-                ${Object.values(formula.additives || {}).map((item) => `<span>${item.name} · ${item.display}</span>`).join('')}
+                ${Object.values(formula.additives || {}).map((item) => `<span>ADITIVOS: ${item.name} · ${item.display}</span>`).join('')}
               </div>
             </article>
           `).join('')}
