@@ -15,7 +15,7 @@
     const thresholdInput = document.getElementById('palette-light-threshold');
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     const maxColor = Math.max(r, g, b);
-    const manualThreshold = thresholdInput ? parseInt(thresholdInput.value, 10) : 155;
+    const manualThreshold = thresholdInput ? parseInt(thresholdInput.value, 10) : 55;
     return brightness > manualThreshold || maxColor > 200;
   }
 
@@ -168,6 +168,12 @@
   }
 
   window.initManualPaletteExtractor = function initManualPaletteExtractor() {
+    const thresholdInput = document.getElementById('palette-light-threshold');
+    if (thresholdInput) {
+      const current = parseInt(thresholdInput.value, 10);
+      if (!Number.isFinite(current)) thresholdInput.value = '55';
+    }
+
     bindEvents();
     renderDatabase();
   };
