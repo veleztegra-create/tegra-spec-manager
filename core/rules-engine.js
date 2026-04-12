@@ -425,8 +425,13 @@ window.RulesEngine = (function() {
             }
         } 
         else if (inkUpper === 'SILICONE') {
-            addStep('BLOCKER', baseConfig.blocker.nombre, '110/64', '');
-            addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '');
+            // Silicone: 2 bloqueadores + 2 bases antes de colores
+            ['110/64', '122/55'].forEach((malla) => {
+                addStep('BLOCKER', baseConfig.blocker.nombre, malla, '');
+            });
+            ['122/55', '157/48'].forEach((malla) => {
+                addStep('WHITE_BASE', baseConfig.whiteBase.nombre, malla, '');
+            });
         }
 
         // ===== PROCESAR CADA COLOR CON LA JERARQUÍA ESTABLECIDA =====

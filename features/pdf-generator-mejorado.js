@@ -342,7 +342,7 @@
       const labelsHtml = page.map((formula) => {
         const additives = Object.values(formula.additives || {});
         const additivesHtml = additives
-          .map((item) => `<span class="lab-mini-pill">${esc(item.label)} ${esc(item.display)}</span>`)
+          .map((item) => `<span class="lab-mini-pill">${esc(item.name || item.label)} · ${esc(item.display)}</span>`)
           .join('');
         const ingredientsHtml = (formula.ingredients || [])
           .slice(0, 4)
