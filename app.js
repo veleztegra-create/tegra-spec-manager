@@ -1,8 +1,6 @@
 // =====================================================
 // app.js - TEGRA TECHNICAL SPEC MANAGER
-// Versión: 3.0 - Con secuencias optimizadas y corrección de FLASH/COOL
-// 100% local - 0% dependencias externas de IA
-// =====================================================
+// Versión: 3.0 - Con secuencias optimizadas
 
 // =====================================================
 // VARIABLES GLOBALES
