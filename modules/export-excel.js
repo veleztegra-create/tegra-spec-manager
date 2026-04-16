@@ -1,5 +1,5 @@
 // =====================================================
-// EXPORTAR A EXCEL (CALCULADORA) - VERSIÓN CORREGIDA
+// EXPORTAR A EXCEL (CALCULADORA)
 // =====================================================
 
 function getPlacementsForExcelExport(sourcePlacements = []) {
@@ -8,18 +8,9 @@ function getPlacementsForExcelExport(sourcePlacements = []) {
     sourcePlacements.forEach((placement) => {
         const rawType = String(placement.type || '').replace('CUSTOM: ', '').trim().toUpperCase();
 
-        // Usar la bandera isPaired para decidir si expandir
         if (placement.isPaired || rawType === 'SLEEVE' || rawType === 'SHOULDER') {
-            expanded.push({
-                ...placement,
-                excelPlacementType: `LEFT ${rawType}`,
-                type: `LEFT ${rawType}`
-            });
-            expanded.push({
-                ...placement,
-                excelPlacementType: `RIGHT ${rawType}`,
-                type: `RIGHT ${rawType}`
-            });
+            expanded.push({ ...placement, excelPlacementType: `LEFT ${rawType}` });
+            expanded.push({ ...placement, excelPlacementType: `RIGHT ${rawType}` });
             return;
         }
 
@@ -27,6 +18,63 @@ function getPlacementsForExcelExport(sourcePlacements = []) {
     });
 
     return expanded;
+}
+
+function normalizeColorNameForCounting(name = '') {
+    return String(name || '')
+        .toUpperCase()
+        .replace(/\s*\(\d+\)\s*$/, '')
+        .trim();
+}
+
+function countScreensFromSequence(sequence = []) {
+    return sequence.filter((step) => {
+        const type = String(step?.type || step?.tipo || '').toUpperCase();
+        return type !== 'FLASH' && type !== 'COOL';
+    }).length;
+}
+
+function countStationsFromSequence(sequence = []) {
+    return Array.isArray(sequence) ? sequence.length : 0;
+}
+
+function countUniquePrintedColors(placement = {}) {
+    const sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+    const fromSequence = sequence
+        .filter((step) => {
+            const type = String(step?.type || step?.tipo || '').toUpperCase();
+            return type === 'COLOR' || type === 'METALLIC';
+        })
+        .map((step) => normalizeColorNameForCounting(step?.val || step?.nombre || ''))
+        .filter(Boolean);
+
+    const fallbackColors = Array.isArray(placement.colors)
+        ? placement.colors
+            .filter((item) => {
+                const type = String(item?.type || '').toUpperCase();
+                return type === 'COLOR' || type === 'METALLIC';
+            })
+            .map((item) => normalizeColorNameForCounting(item?.val || ''))
+            .filter(Boolean)
+        : [];
+
+    const allColors = fromSequence.length > 0 ? fromSequence : fallbackColors;
+    return new Set(allColors).size;
+}
+
+function getInkTypeLabel(inkType) {
+    const normalized = String(inkType || '').toUpperCase();
+    if (normalized === 'PLASTISOL') return 'PLASTISOL';
+    if (normalized === 'SILICONE') return 'SILICONE';
+    return 'WB MAGNA';
+}
+
+function getColorCode(colorway = '') {
+    const raw = String(colorway || '').trim();
+    if (!raw) return '';
+    if (raw.includes('-')) return raw.split('-')[0].trim();
+    const match = raw.match(/^([A-Z0-9]{2,6})/i);
+    return match ? match[1].toUpperCase() : raw.toUpperCase();
 }
 
 function exportToExcel() {
@@ -41,159 +89,83 @@ function exportToExcel() {
             return;
         }
 
-        // Obtener los datos centralizados
         const fullData = buildSpecData();
-
-        // Mapear los datos generales de la forma en que lo requiere Excel
-        const data = {
-            designer: fullData.designer,
-            customer: fullData.customer,
-            season: fullData.season,
-            folder: fullData.folder,
-            nameTeam: fullData.nameTeam,
-            colorway: fullData.colorway,
-            style: fullData.style
-        };
-
-        const wb = XLSX.utils.book_new();
+        const placements = getPlacementsForExcelExport(fullData.placements || []);
 
         const headers = [
-            'Area', 'Designer', 'Customer', 'Division', 'SEASON',
-            '', '#Folder/SPEC', '', '', '', '', '', '', '', '', '', '', '', '', '',
-            'TEAM', '', '', 'COLORWAY', '', 'PLACEMENTS', '', 'SPEC #', '#SCREEEN',
-            'NO. COLORES', 'Stations', 'setup', 'size', 'W', 'H', 'TYPE OF ART', 'INK TYPE'
+            'Area', 'Designer', 'Customer', 'Division', 'SEASON Style1', 'TEAM', 'DESCRIPTION', 'PLAYER= # & Name', 'COLORWAY', 'COLOR CODE',
+            'PLACEMENTS', 'CP / FG', '#  DE SPEC', '# SCREENS + Iron Plate', 'NUMBER OF COLORS', '# STATION', '# SET UP', 'SIZE RANGE', ' WIDTH', ' HEIGHT',
+            'TYPE OF ART', 'INK TYPE', 'SPECIAL EFFECT # 4', 'CATEGORY.', 'PREFERD PRESSES', 'ADDITIONAL PRESSES', 'CATAGORY PRESSES2', 'ADDITIONAL PRESSES3',
+            'UPDATED', 'SAMPLE TYPE', '# Arts Seps', 'Spec Qty', 'PL', 'Item', 'Time (Min)', 'Worked %', 'LAST TRACKING DATE', 'STATUS', 'COMMENTS',
+            'DESCRIPTION ISSUES', 'DATE OF ISSUE', 'QTY OF ISSUES', 'EXTERNAL/INTERNAL ISSUES', 'responsible Designer', 'TYPE OF ISSUE', '', '', '',
+            'SPECIAL EFFECT # 1', 'DIFFICULTY # 1', 'SPECIAL EFFECT # 2', 'DIFFICULTY # 2', 'Special Effect 1 + 2', 'DIFFICULTY SE 1 + 2',
+            'SPECIAL EFFECT # 3', 'DIFFICULTY # 3', '# SPECIAL EFFECT', 'DIFFICULTY CODE', 'FORMULA CODE ANEXO', 'DIFFICULTY CODE'
         ];
 
-        const rows = [];
+        const baseData = {
+            area: 'Development',
+            designer: fullData.designer || '',
+            customer: fullData.customer || '',
+            division: 'NFL / jersey',
+            seasonStyle: `${fullData.season || ''} ${fullData.style || ''}`.trim(),
+            team: fullData.nameTeam || '',
+            colorway: fullData.colorway || '',
+            colorCode: getColorCode(fullData.colorway || ''),
+            specNumber: fullData.folder || '',
+            sizeRange: fullData.baseSize || 'L',
+            sampleType: fullData.sampleType || ''
+        };
 
-        // Usar los placements del objeto de datos centralizado
-        const dataPlacements = fullData.placements || [];
+        const rows = (placements.length > 0 ? placements : [{}]).map((placement, index) => {
+            const sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+            const screens = countScreensFromSequence(sequence);
+            const stations = countStationsFromSequence(sequence);
+            const numberOfColors = countUniquePrintedColors(placement);
 
-        if (dataPlacements && Array.isArray(dataPlacements) && dataPlacements.length > 0) {
-            const exportPlacements = getPlacementsForExcelExport(dataPlacements);
+            const width = placement.width || (typeof extractDimensions === 'function' && placement.dimensions ? extractDimensions(placement.dimensions).width : '');
+            const height = placement.height || (typeof extractDimensions === 'function' && placement.dimensions ? extractDimensions(placement.dimensions).height : '');
 
-            exportPlacements.forEach((placement, index) => {
-                const placementType = (typeof normalizeTextValue === 'function' ? normalizeTextValue : (v => v || ''))(placement.excelPlacementType, placement.type)
-                    .replace('CUSTOM: ', '')
-                    .toLowerCase();
+            const rowMap = {
+                'Area': baseData.area,
+                'Designer': baseData.designer,
+                'Customer': baseData.customer,
+                'Division': baseData.division,
+                'SEASON Style1': baseData.seasonStyle,
+                'TEAM': baseData.team,
+                'DESCRIPTION': placement.placementDetails || placement.name || '',
+                'PLAYER= # & Name': '',
+                'COLORWAY': baseData.colorway,
+                'COLOR CODE': baseData.colorCode,
+                'PLACEMENTS': String(placement.excelPlacementType || placement.type || '').replace('CUSTOM: ', ''),
+                'CP / FG': '',
+                '#  DE SPEC': baseData.specNumber || `SPEC ${index + 1}`,
+                '# SCREENS + Iron Plate': screens,
+                'NUMBER OF COLORS': numberOfColors,
+                '# STATION': stations,
+                '# SET UP': 1,
+                'SIZE RANGE': placement.baseSize || baseData.sizeRange,
+                ' WIDTH': width ? `${width}"` : '',
+                ' HEIGHT': height ? `${height}"` : '',
+                'TYPE OF ART': 'Vector',
+                'INK TYPE': getInkTypeLabel(placement.inkType),
+                'SAMPLE TYPE': baseData.sampleType,
+                'STATUS': '',
+                'COMMENTS': ''
+            };
 
-                const screenCount = placement.sequence ? placement.sequence.length : 0;
-                const colorCount = placement.colors ? placement.colors.length : 0;
-                const stationCount = screenCount;
-                const artType = 'Vector';
+            return headers.map((header) => rowMap[header] ?? '');
+        });
 
-                let inkType = 'WB MAGNA';
-                if (placement.inkType === 'WATER') inkType = 'WB MAGNA';
-                if (placement.inkType === 'PLASTISOL') inkType = 'PLASTISOL';
-                if (placement.inkType === 'SILICONE') inkType = 'SILICONE';
-
-                const width = placement.width || (typeof extractDimensions === 'function' && placement.dimensions ? extractDimensions(placement.dimensions).width : '');
-                const height = placement.height || (typeof extractDimensions === 'function' && placement.dimensions ? extractDimensions(placement.dimensions).height : '');
-
-                const row = [
-                    'Development',
-                    data.designer,
-                    data.customer,
-                    'NFL / jersey',
-                    data.season,
-                    '',
-                    data.folder,
-                    '', '', '', '', '', '', '', '', '', '', '', '', '',
-                    data.nameTeam,
-                    '', '',
-                    data.colorway,
-                    '',
-                    placementType,
-                    '',
-                    `SPEC ${index + 1}`,
-                    screenCount,
-                    colorCount,
-                    stationCount,
-                    1,
-                    'L',
-                    `${width}"`,
-                    `${height}"`,
-                    artType,
-                    inkType
-                ];
-
-                rows.push(row);
-            });
-        } else {
-            const defaultRow = [
-                'Development',
-                data.designer,
-                data.customer,
-                'NFL / jersey',
-                data.season,
-                '',
-                data.folder,
-                '', '', '', '', '', '', '', '', '', '', '', '', '',
-                data.nameTeam,
-                '', '',
-                data.colorway,
-                '',
-                'front',
-                '',
-                'SPEC 1',
-                0,
-                0,
-                0,
-                1,
-                'L',
-                '15.34"',
-                '12"',
-                'Vector',
-                'WB MAGNA'
-            ];
-
-            rows.push(defaultRow);
-        }
-
+        const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-
-        const colWidths = [];
-        for (let i = 0; i < headers.length; i++) {
-            if (i === 0) colWidths.push({ wch: 12 });
-            else if (i === 1) colWidths.push({ wch: 12 });
-            else if (i === 2) colWidths.push({ wch: 15 });
-            else if (i === 3) colWidths.push({ wch: 15 });
-            else if (i === 4) colWidths.push({ wch: 8 });
-            else if (i === 6) colWidths.push({ wch: 12 });
-            else if (i === 20) colWidths.push({ wch: 25 });
-            else if (i === 23) colWidths.push({ wch: 15 });
-            else if (i === 25) colWidths.push({ wch: 12 });
-            else if (i === 27) colWidths.push({ wch: 8 });
-            else if (i === 28) colWidths.push({ wch: 10 });
-            else if (i === 29) colWidths.push({ wch: 12 });
-            else if (i === 30) colWidths.push({ wch: 10 });
-            else if (i === 34) colWidths.push({ wch: 10 });
-            else if (i === 35) colWidths.push({ wch: 12 });
-            else colWidths.push({ wch: 3 });
-        }
-        ws['!cols'] = colWidths;
-
-        const headerRange = XLSX.utils.decode_range(ws['!ref']);
-        for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
-            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
-            if (!ws[cellAddress]) continue;
-
-            if (headers[C] && headers[C] !== '') {
-                ws[cellAddress].s = {
-                    font: { bold: true, color: { rgb: "FFFFFF" } },
-                    fill: { fgColor: { rgb: "4472C4" } },
-                    alignment: { horizontal: "center", vertical: "center" }
-                };
-            }
-        }
+        ws['!cols'] = headers.map((header) => ({ wch: Math.max(10, String(header || '').length + 2) }));
 
         XLSX.utils.book_append_sheet(wb, ws, 'Hoja1');
 
-        const fileName = `Calculadora_${data.style || 'Spec'}_${data.folder || '00000'}.xlsx`;
+        const fileName = `Calculadora_${fullData.style || 'Spec'}_${fullData.folder || '00000'}.xlsx`;
         XLSX.writeFile(wb, fileName);
 
         if (typeof showStatus === 'function') showStatus('📊 Spec Excel generada correctamente', 'success');
-
     } catch (error) {
         console.error('Error al exportar Excel:', error);
         if (typeof showStatus === 'function') showStatus('❌ Error al generar Spec Excel: ' + error.message, 'error');

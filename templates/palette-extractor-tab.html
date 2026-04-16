@@ -1,0 +1,30 @@
+<div class="manual-palette-tool">
+    <div class="manual-palette-header">
+        <h2 style="margin:0; color:#2d3436;">GFSEXTR <span style="font-weight:normal; font-size:14px;">| Production Tool</span></h2>
+        <input type="file" id="imageUpload" accept="image/*" style="font-size:14px;">
+    </div>
+
+    <div class="manual-palette-main">
+        <div class="manual-canvas-area">
+            <div id="statusBar" class="manual-status">Sube una especificación para iniciar</div>
+            <div class="manual-scroll-box"><canvas id="imgCanvas"></canvas></div>
+        </div>
+
+        <div class="manual-editor-area">
+            <h3 style="margin:0 0 15px 0; color:#636e72;">Colores de la Orden</h3>
+            <div style="background:#f1f2f6; padding:10px; border-radius:6px; margin-bottom:15px; border-left:4px solid #0984e3;">
+                <label style="font-size:12px; font-weight:bold; color:#2d3436; display:block; margin-bottom:5px;">⚙️ UMBRAL DE BASE (0-255):</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="number" id="palette-light-threshold" min="0" max="255" value="55" style="width:70px; padding:5px; border:1px solid #ddd; border-radius:4px;">
+                    <span style="font-size:11px; color:#636e72;">↑ Claro (SÍ Base) | ↓ Oscuro (NO Base)</span>
+                </div>
+            </div>
+
+            <div id="dataRows" style="overflow:auto; flex:1; padding-right:5px;"></div>
+
+            <div id="dbControls" style="display:none; padding-top:15px;">
+                <button id="downloadDb" class="download-btn">📥 GUARDAR BASE DE DATOS (.JSON)</button>
+            </div>
+        </div>
+    </div>
+</div>

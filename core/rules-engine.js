@@ -50,16 +50,51 @@ window.RulesEngine = (function() {
     // =====================================================
     // IDENTIFICADORES DE TELA OSCURA
     // =====================================================
+    const LIGHT_FABRICS = [
+        'white', 'blanco', 'natural', 'cream', 'ivory', 'bone', 'ecru',
+        'off white', 'off-white', 'heather grey', 'heather gray', 'light grey', 'light gray', 'ash'
+    ];
+
     const DARK_FABRICS = [
         'negro', 'black', 'navy', 'azul marino', 'charcoal', 'carbon',
         'maroon', 'granate', 'dark', 'oscuro', 'forest', 'verde oscuro',
-        'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal'
+        'hunter', 'midnight', 'midnight navy', 'italy blue', 'royal', 'red', 'orange', 'green', 'blue', 'purple'
     ];
 
     // =====================================================
     // FUNCIONES AUXILIARES
     // =====================================================
     
+
+
+    function hexToRgb(hex) {
+        const normalized = String(hex || '').trim().replace('#', '');
+        if (!/^[0-9A-Fa-f]{6}$/.test(normalized)) return null;
+        return {
+            r: parseInt(normalized.slice(0, 2), 16),
+            g: parseInt(normalized.slice(2, 4), 16),
+            b: parseInt(normalized.slice(4, 6), 16)
+        };
+    }
+
+    function getToneFromColorSystem(colorName) {
+        if (!colorName) return null;
+
+        const resolver = window.ColorEngine?.resolveColor;
+        if (typeof resolver !== 'function' || typeof window.ColorConfig?.findColorHex !== 'function') return null;
+
+        const hex = window.ColorConfig.findColorHex(colorName);
+        if (!hex) return null;
+
+        const rgb = hexToRgb(hex);
+        if (!rgb) return null;
+
+        const resolved = resolver({ hex, rgb });
+        if (!resolved?.toneCategory) return null;
+
+        return resolved.toneCategory;
+    }
+
     function detectCustomerVariant(customer) {
         if (!customer) return 'WATER';
         const upper = customer.toUpperCase();
@@ -83,8 +118,21 @@ window.RulesEngine = (function() {
 
     function esTelaOscura(colorTela) {
         if (!colorTela) return false;
-        const telaLower = colorTela.toLowerCase();
-        return DARK_FABRICS.some(o => telaLower.includes(o));
+
+        const telaLower = String(colorTela).toLowerCase();
+
+        // Regla de negocio textil: solo blancos/naturales se consideran telas claras por defecto.
+        if (LIGHT_FABRICS.some(term => telaLower.includes(term))) return false;
+
+        // Si coincide con catálogos oscuros conocidos, forzar oscura.
+        if (DARK_FABRICS.some(term => telaLower.includes(term))) return true;
+
+        // Si el color viene del motor como oscuro, mantener oscura.
+        const resolvedTone = getToneFromColorSystem(colorTela);
+        if (resolvedTone === 'dark') return true;
+
+        // Fallback conservador para secuencia: asumir oscura para proteger cobertura.
+        return true;
     }
 
     function extractPantoneNumber(colorName) {
@@ -113,7 +161,12 @@ window.RulesEngine = (function() {
 
     function esColorClaro(colorName) {
         if (!colorName) return false;
-        const upper = colorName.toUpperCase();
+
+        const resolvedTone = getToneFromColorSystem(colorName);
+        if (resolvedTone === 'light') return true;
+        if (resolvedTone === 'dark') return false;
+
+        const upper = String(colorName).toUpperCase();
         const claros = ['YELLOW', 'GOLD', 'ORANGE', 'PINK', 'AMARILLO', 'DORADO', 'NARANJA', 'ROSA', 'LIGHT', 'CLARO'];
         return claros.some(c => upper.includes(c));
     }
@@ -372,8 +425,13 @@ window.RulesEngine = (function() {
             }
         } 
         else if (inkUpper === 'SILICONE') {
-            addStep('BLOCKER', baseConfig.blocker.nombre, '110/64', '');
-            addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '');
+            // Silicone: 2 bloqueadores + 2 bases antes de colores
+            ['110/64', '122/55'].forEach((malla) => {
+                addStep('BLOCKER', baseConfig.blocker.nombre, malla, '');
+            });
+            ['122/55', '157/48'].forEach((malla) => {
+                addStep('WHITE_BASE', baseConfig.whiteBase.nombre, malla, '');
+            });
         }
 
         // ===== PROCESAR CADA COLOR CON LA JERARQUÍA ESTABLECIDA =====
@@ -450,28 +508,16 @@ window.RulesEngine = (function() {
             });
         });
 
-        // ===== AÑADIR FLASH Y COOL ENTRE PASOS =====
-        const finalSequence = [];
-        steps.forEach((step, index) => {
-            finalSequence.push(step);
-            if (index < steps.length - 1) {
-                finalSequence.push({ 
-                    tipo: 'FLASH', 
-                    screenLetter: '', 
-                    nombre: 'FLASH', 
-                    mesh: '-', 
-                    additives: '' 
-                });
-                finalSequence.push({ 
-                    tipo: 'COOL', 
-                    screenLetter: '', 
-                    nombre: 'COOL', 
-                    mesh: '-', 
-                    additives: '' 
-                });
-            }
-        });
+        // ===== NORMALIZACIÓN Y CONSTRUCCIÓN DE SECUENCIA =====
+        const normalizedLayers = window.LayerNormalizer?.normalizeLayers
+            ? window.LayerNormalizer.normalizeLayers(steps, { mergeTypes: ['WHITE_BASE', 'BLOCKER'] })
+            : steps;
 
+        const finalSequence = window.SequenceBuilder?.buildSequence
+            ? window.SequenceBuilder.buildSequence(normalizedLayers)
+            : normalizedLayers;
+
+        console.log(`🧠 Capas crudas: ${steps.length} · Capas normalizadas: ${normalizedLayers.length}`);
         console.log(`✅ Secuencia generada con ${finalSequence.length} pasos`);
         console.log(`   🔢 Números de color usados: 1 - ${nextNumber-1}`);
 
