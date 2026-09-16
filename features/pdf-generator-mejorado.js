@@ -94,9 +94,9 @@
 
 
   function enrichPlacementColors(placement) {
-    if (!Array.isArray(placement?.colors)) return [];
+    if (!Array.isArray(placement?.printColors)) return [];
 
-    return placement.colors.map((color) => {
+    return placement.printColors.map((color) => {
       const resolver = window.ColorEngine?.resolveColor;
       if (typeof resolver !== 'function') {
         return {
@@ -122,89 +122,20 @@
 
   function generateStationsData(placement, data) {
     const stations = [];
-    let st = 1;
-    const preset = getInkPreset(placement.inkType || 'WATER');
-    const meshColor = placement.meshColor || preset.color.mesh;
-    const meshWhite = placement.meshWhite || preset.white.mesh1;
-    const meshBlocker = placement.meshBlocker || preset.blocker.mesh1;
-    const durometer = placement.durometer || preset.color.durometer;
-    const strokes = placement.strokes || preset.color.strokes;
-    const angle = placement.angle || preset.color.angle;
-    const pressure = placement.pressure || preset.color.pressure;
-    const additives = placement.additives || preset.color.additives;
-
-    const resolveStationAdditives = (item, layerType) => {
-      const resolver = window.AdditivesRules?.resolveAdditives;
-      if (typeof resolver !== 'function') {
-        return { additives, source: 'preset', ruleId: null };
-      }
-
-      const result = resolver({
-        inkType: placement.inkType || 'WATER',
-        layerType,
-        colorName: item?.val || item?.name || '',
-        customer: data?.customer || '',
-        fabric: placement.fabric || data?.fabric || '',
-        placement,
-        preset
-      });
-
-      return {
-        additives: result?.additives || additives,
-        source: result?.source || 'preset',
-        ruleId: result?.ruleId || null
-      };
-    };
-
-    const formatAdditivesLabel = ({ additives: baseAdditives, source, ruleId }) => {
-      const base = baseAdditives || 'N/A';
-      if (source === 'placement-override') return `${base} · MANUAL`;
-      if (source === 'rules') return `${base} · AUTO${ruleId ? ` (${ruleId})` : ''}`;
-      return `${base} · PRESET`;
-    };
-
-    (placement.colors || []).forEach((item, idx, arr) => {
-      let mesh = meshColor;
-      let add = formatAdditivesLabel(resolveStationAdditives(item, item.type || 'COLOR'));
-      let strokesVal = strokes;
-      let duro = durometer;
-      if (item.type === 'BLOCKER') {
-        mesh = meshBlocker;
-        add = formatAdditivesLabel(resolveStationAdditives(item, 'BLOCKER'));
-      } else if (item.type === 'WHITE_BASE') {
-        mesh = meshWhite;
-        add = formatAdditivesLabel(resolveStationAdditives(item, 'WHITE_BASE'));
-      } else if (item.type === 'METALLIC') {
-        mesh = '122/55';
-        strokesVal = '1';
-        duro = '70';
-        add = formatAdditivesLabel(resolveStationAdditives(item, 'METALLIC'));
-      }
-
+    const sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+    sequence.forEach((item, index) => {
+      const type = String(item.type || item.tipo || '').toUpperCase();
       stations.push({
-        st: st++,
+        st: index + 1,
         screenLetter: item.screenLetter || '',
-        screenCombined: item.val || '---',
-        add,
-        mesh,
-        strokes: strokesVal,
-        angle,
-        pressure,
-        duro
+        screenCombined: item.val || item.nombre || type || '---',
+        add: item.additives || '',
+        mesh: item.mesh || '-',
+        strokes: item.strokes || '-',
+        angle: item.angle || '-',
+        pressure: item.pressure || '-',
+        duro: item.durometer || '-'
       });
-
-      if (idx < arr.length - 1) {
-        stations.push({ st: st++, screenLetter: '', screenCombined: 'FLASH' });
-
-        // Add 'HEAT PLATE / ROLLER SQUEEGEE' ONLY to the first COOL station (idx === 0)
-        const isFirstCool = (idx === 0);
-        stations.push({
-          st: st++,
-          screenLetter: '',
-          screenCombined: 'COOL',
-          add: isFirstCool ? 'HEAT PLATE / ROLLER SQUEEGEE' : ''
-        });
-      }
     });
 
     return stations;
@@ -217,7 +148,6 @@
       : 'https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT';
 
     const enrichedColors = enrichPlacementColors(placement);
-    placement.colors = enrichedColors;
 
     const uniqueDesignColors = [];
     const seenColorNames = new Set();
@@ -260,8 +190,8 @@
       </tr>`;
     }).join('') || '<tr><td colspan="9">Sin secuencia</td></tr>';
 
-    const safeTemp = normalizeTextValue(placement.temp, '320°F');
-    const safeTime = normalizeTextValue(placement.time, '1:40 min');
+    const safeTemp = normalizeTextValue(placement.curing?.temperature ?? placement.temp, '320°F');
+    const safeTime = normalizeTextValue(placement.curing?.time ?? placement.time, '1:40 min');
     const safeSpecialInstructions = normalizeTextValue(placement.specialInstructions, '---');
     const sizeNotes = getSizeNotes(data, placement);
     const sizeNotesHtml = sizeNotes.length
@@ -457,4 +387,5 @@
   }
 
   window.generateSpecHTMLDocument = generateSpecHTMLDocument;
+  window.PdfSpecRenderer = { generateStationsData };
 })();
