@@ -39,17 +39,8 @@ function countStationsFromSequence(sequence = []) {
 }
 
 function countUniquePrintedColors(placement = {}) {
-    const sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
-    const fromSequence = sequence
-        .filter((step) => {
-            const type = String(step?.type || step?.tipo || '').toUpperCase();
-            return type === 'COLOR' || type === 'METALLIC';
-        })
-        .map((step) => normalizeColorNameForCounting(step?.val || step?.nombre || ''))
-        .filter(Boolean);
-
-    const fallbackColors = Array.isArray(placement.colors)
-        ? placement.colors
+    const printColors = Array.isArray(placement.printColors)
+        ? placement.printColors
             .filter((item) => {
                 const type = String(item?.type || '').toUpperCase();
                 return type === 'COLOR' || type === 'METALLIC';
@@ -57,9 +48,7 @@ function countUniquePrintedColors(placement = {}) {
             .map((item) => normalizeColorNameForCounting(item?.val || ''))
             .filter(Boolean)
         : [];
-
-    const allColors = fromSequence.length > 0 ? fromSequence : fallbackColors;
-    return new Set(allColors).size;
+    return new Set(printColors).size;
 }
 
 function getInkTypeLabel(inkType) {
