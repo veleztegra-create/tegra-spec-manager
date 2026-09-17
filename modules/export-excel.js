@@ -27,11 +27,20 @@ function normalizeColorNameForCounting(name = '') {
         .trim();
 }
 
+function isExplicitScreenStep(step = {}) {
+    const stationType = String(step?.stationType || step?.stepType || '').trim().toUpperCase();
+    if (stationType) return stationType === 'SCREEN';
+
+    // Compatibility with existing sequences generated before stationType existed.
+    // Only known screen-producing types qualify; unknown/future process steps do not.
+    const type = String(step?.type || step?.tipo || '').trim().toUpperCase();
+    return new Set(['SCREEN', 'BLOCKER', 'WHITE_BASE', 'COLOR', 'METALLIC']).has(type);
+}
+
 function countScreensFromSequence(sequence = []) {
-    return sequence.filter((step) => {
-        const type = String(step?.type || step?.tipo || '').toUpperCase();
-        return type !== 'FLASH' && type !== 'COOL';
-    }).length;
+    return Array.isArray(sequence)
+        ? sequence.filter(isExplicitScreenStep).length
+        : 0;
 }
 
 function countStationsFromSequence(sequence = []) {
@@ -159,4 +168,13 @@ function exportToExcel() {
         console.error('Error al exportar Excel:', error);
         if (typeof showStatus === 'function') showStatus('❌ Error al generar Spec Excel: ' + error.message, 'error');
     }
+}
+
+if (typeof window !== 'undefined') {
+    window.SpecExcelUtils = {
+        isExplicitScreenStep,
+        countScreensFromSequence,
+        countStationsFromSequence,
+        countUniquePrintedColors
+    };
 }
