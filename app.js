@@ -793,6 +793,7 @@ window.generarConAsistente = async function (placementId) {
             mesh: paso.mesh || '',
             additives: paso.additives || ''
         }));
+        placement.sequenceMode = 'AUTO';
 
         // =============================================
         // 4. ACTUALIZAR CONDICIONES DE CURADO
@@ -1911,7 +1912,21 @@ function addPlacementColorItem(placementId, type) {
         markPlacementSequenceManual(placement);
     } else {
         placement.printColors.push(item);
-        if (placement.sequenceMode !== 'MANUAL') {
+
+        if (placement.sequenceMode === 'MANUAL') {
+            // Manual mode: keep the existing production route intact and add
+            // the newly requested print color as one explicit production screen.
+            placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+            placement.sequence.push({
+                id: colorId,
+                type: type,
+                screenLetter: initialLetter,
+                val: initialVal || '---',
+                mesh: '',
+                additives: ''
+            });
+        } else {
+            // Automatic mode: recalculate the full route from the Rules Engine.
             generatePlacementSequenceFromRules(placementId, { silent: true })
                 .then(() => {
                     updatePlacementStations(placementId);
