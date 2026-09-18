@@ -588,7 +588,7 @@ function addNewPlacement(type = null, isFirst = false) {
         type: placementType,
         name: `Placement ${getNextPlacementNumber()}`,
         imageData: null,
-        colors: [], // Solo tintas reales (WHITE_BASE, BLOCKER, COLOR, METALLIC)
+        printColors: [],
         sequence: [], // Secuencia completa (incluye FLASH/COOL)
         placementDetails: '#.#" FROM COLLAR SEAM',
         dimensions: 'SIZE: (W) ## X (H) ##',
@@ -756,7 +756,7 @@ window.generarConAsistente = async function (placementId) {
         const inkType = placement.inkType || 'WATER';
 
         // Obtener SOLO los colores del diseño (los que el usuario agregó manualmente)
-        const designColors = placement.colors.filter(c =>
+        const designColors = placement.printColors.filter(c =>
             c.type === 'COLOR' || c.type === 'METALLIC'
         ).map(c => ({ id: c.id, val: c.val }));
 
@@ -784,19 +784,7 @@ window.generarConAsistente = async function (placementId) {
 
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
-        // =============================================
-        // 3. SEPARAR: COLORES REALES vs SECUENCIA COMPLETA
-        // =============================================
-
-        // 3.1 COLORES REALES (para la UI de colores) - SOLO tintas
-        const coloresReales = secuenciaCompleta.filter(paso =>
-            paso.tipo === 'WHITE_BASE' ||
-            paso.tipo === 'BLOCKER' ||
-            paso.tipo === 'COLOR' ||
-            paso.tipo === 'METALLIC'
-        );
-
-        // 3.2 SECUENCIA COMPLETA (para la tabla de estaciones)
+        // The Rules Engine owns production data; design printColors stay separate.
         placement.sequence = secuenciaCompleta.map((paso, index) => ({
             id: Date.now() + Math.random() + index,
             type: paso.tipo,
@@ -805,26 +793,21 @@ window.generarConAsistente = async function (placementId) {
             mesh: paso.mesh || '',
             additives: paso.additives || ''
         }));
-
-        // 3.3 ACTUALIZAR SOLO los colores reales en placement.colors
-        placement.colors = coloresReales.map((paso, index) => ({
-            id: Date.now() + Math.random() + index,
-            type: paso.tipo,
-            screenLetter: paso.screenLetter || '',
-            val: paso.nombre || '---',
-            mesh: paso.mesh || '',
-            additives: paso.additives || ''
-        }));
+        placement.sequenceMode = 'AUTO';
 
         // =============================================
         // 4. ACTUALIZAR CONDICIONES DE CURADO
         // =============================================
         const curing = window.RulesEngine.getCuringConditions
             ? window.RulesEngine.getCuringConditions(inkType, customer)
-            : { temp: '320 °F', time: '1:40 min' };
+            : { temperature: '320 °F', time: '1:40 min' };
 
-        placement.temp = curing.temp;
-        placement.time = curing.time;
+        placement.curing = {
+            temperature: curing.temperature ?? curing.temperatura ?? placement.temp ?? '',
+            time: curing.time ?? curing.tiempo ?? placement.time ?? ''
+        };
+        placement.temp = placement.curing.temperature;
+        placement.time = placement.curing.time;
 
         // Actualizar campos de temperatura en el HTML
         const tempField = document.getElementById(`temp-${placementId}`);
@@ -840,7 +823,7 @@ window.generarConAsistente = async function (placementId) {
         updatePlacementStations(placementId);
         updatePlacementColorsPreview(placementId);
 
-        showStatus(`✅ Secuencia generada (${placement.sequence.length} pasos totales, ${placement.colors.length} colores)`, 'success');
+        showStatus(`✅ Secuencia generada (${placement.sequence.length} pasos totales, ${placement.printColors.length} colores)`, 'success');
 
     } catch (error) {
         console.error('❌ Error generando secuencia:', error);
@@ -907,8 +890,8 @@ function renderPlacementHTML(placement) {
 
     const dimensions = extractDimensions(placement.dimensions);
 
-    const safeTemp = normalizeTextValue(placement.temp, preset.temp || '320 °F');
-    const safeTime = normalizeTextValue(placement.time, preset.time || '1:40 min');
+    const safeTemp = normalizeTextValue(placement.curing?.temperature ?? placement.temp, preset.temp || '320 °F');
+    const safeTime = normalizeTextValue(placement.curing?.time ?? placement.time, preset.time || '1:40 min');
     const safeSpecialInstructions = normalizeTextValue(placement.specialInstructions, '');
 
     const sectionHTML = `
@@ -1246,6 +1229,7 @@ function renderPlacementHTML(placement) {
         </div>
     `;
 
+    placement.curing = { temperature: safeTemp, time: safeTime };
     placement.temp = safeTemp;
     placement.time = safeTime;
     placement.specialInstructions = safeSpecialInstructions;
@@ -1254,9 +1238,11 @@ function renderPlacementHTML(placement) {
 
     renderPlacementColors(placement.id);
 
-    // Usar la secuencia guardada si existe, o generar una nueva
+    // Usar la secuencia guardada; si no existe, generar la ruta inicial automáticamente.
     if (placement.sequence && placement.sequence.length > 0) {
         updatePlacementStations(placement.id);
+    } else {
+        maybeGenerateInitialPlacementSequence(placement.id);
     }
 
     updatePlacementColorsPreview(placement.id);
@@ -1632,23 +1618,12 @@ function pastePlacementSequence(placementId) {
     }
 
     placement.sequence = JSON.parse(JSON.stringify(placementSequenceClipboard.sequence));
+    markPlacementSequenceManual(placement);
 
     const params = placementSequenceClipboard.printParams || {};
     Object.keys(params).forEach((key) => {
         if (params[key]) placement[key] = params[key];
     });
-
-    const realTypes = new Set(['WHITE_BASE', 'BLOCKER', 'COLOR', 'METALLIC']);
-    placement.colors = placement.sequence
-        .filter((step) => realTypes.has(String(step.type || step.tipo || '').toUpperCase()))
-        .map((step, index) => ({
-            id: Date.now() + Math.random() + index,
-            type: step.type || step.tipo,
-            screenLetter: step.screenLetter || '',
-            val: step.val || step.nombre || '---',
-            mesh: step.mesh || '',
-            additives: step.additives || ''
-        }));
 
     renderPlacementColors(placementId);
     syncPlacementSequenceWithColors(placement);
@@ -1815,49 +1790,81 @@ function updatePlacementDimension(placementId, type, value) {
     }
 }
 
+function markPlacementSequenceManual(placement) {
+    if (!placement) return;
+    placement.sequenceMode = 'MANUAL';
+}
+
+async function generatePlacementSequenceFromRules(placementId, options = {}) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement || !window.RulesEngine?.generarSecuencia) return false;
+
+    const designColors = (placement.printColors || [])
+        .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
+        .map(c => ({ id: c.id, val: c.val }))
+        .filter(c => String(c.val || '').trim());
+
+    if (designColors.length === 0) return false;
+
+    const customer = document.getElementById('customer')?.value || '';
+    const garmentColor = document.getElementById('colorway')?.value || '';
+    const inkType = placement.inkType || 'WATER';
+
+    const sequence = window.RulesEngine.generarSecuencia({
+        customer, garmentColor, inkType, designColors
+    });
+
+    placement.sequence = sequence.map((step, index) => ({
+        id: Date.now() + Math.random() + index,
+        type: step.tipo,
+        screenLetter: step.screenLetter || '',
+        val: step.nombre || '---',
+        mesh: step.mesh || '',
+        additives: step.additives || ''
+    }));
+    placement.sequenceMode = 'AUTO';
+
+    const curing = window.RulesEngine.getCuringConditions
+        ? window.RulesEngine.getCuringConditions(inkType, customer)
+        : {};
+    placement.curing = {
+        temperature: curing.temperature ?? curing.temperatura ?? placement.temp ?? '',
+        time: curing.time ?? curing.tiempo ?? placement.time ?? ''
+    };
+    placement.temp = placement.curing.temperature;
+    placement.time = placement.curing.time;
+
+    if (!options.silent) {
+        updatePlacementStations(placementId);
+        updatePlacementColorsPreview(placementId);
+    }
+    return true;
+}
+
+function maybeGenerateInitialPlacementSequence(placementId) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+    if (!Array.isArray(placement.sequence)) placement.sequence = [];
+    if (placement.sequence.length > 0 || placement.sequenceMode === 'MANUAL') return;
+
+    generatePlacementSequenceFromRules(placementId, { silent: true })
+        .then((generated) => {
+            if (generated) {
+                updatePlacementStations(placementId);
+                updatePlacementColorsPreview(placementId);
+            }
+        })
+        .catch((error) => console.warn('No se pudo generar la secuencia inicial automáticamente:', error));
+}
+
 // =====================================================
 // FUNCIONES PARA COLORES DE PLACEMENTS
 // =====================================================
 
 function syncPlacementSequenceWithColors(placement, force = false) {
     if (!placement) return;
-
-    const currentSequence = Array.isArray(placement.sequence) ? placement.sequence : [];
-    const baseItems = currentSequence.filter(item => item.type !== 'FLASH' && item.type !== 'COOL');
-    const hadProcessSteps = currentSequence.some(item => item.type === 'FLASH' || item.type === 'COOL');
-
-    const shouldResync = force || !currentSequence.length || baseItems.length !== placement.colors.length;
-    if (!shouldResync) return;
-
-    const existingById = new Map(baseItems.map(item => [String(item.id), item]));
-
-    const rebuiltBase = (placement.colors || []).map((color, index) => {
-        const existing = existingById.get(String(color.id)) || {};
-        return {
-            id: color.id || existing.id || Date.now() + Math.random() + index,
-            type: color.type || existing.type || 'COLOR',
-            screenLetter: color.screenLetter || existing.screenLetter || '',
-            val: color.val || existing.val || '---',
-            mesh: color.mesh || existing.mesh || '',
-            additives: color.additives || existing.additives || ''
-        };
-    });
-
-    if (!hadProcessSteps) {
-        placement.sequence = rebuiltBase;
-        return;
-    }
-
-    const withProcess = [];
-    rebuiltBase.forEach((item, index) => {
-        withProcess.push(item);
-        if (index < rebuiltBase.length - 1) {
-            withProcess.push({ type: 'FLASH', screenLetter: '', val: 'FLASH', mesh: '-', additives: '' });
-            withProcess.push({ type: 'COOL', screenLetter: '', val: 'COOL', mesh: '-', additives: '' });
-        }
-    });
-
-    placement.sequence = withProcess;
+    // Compatibility boundary only. Production sequence is authoritative.
+    if (!Array.isArray(placement.sequence)) placement.sequence = [];
 }
 
 function addPlacementColorItem(placementId, type) {
@@ -1881,25 +1888,55 @@ function addPlacementColorItem(placementId, type) {
         initialLetter = 'B';
         initialVal = preset.white?.name || 'AQUAFLEX V2 WHITE';
     } else if (type === 'METALLIC') {
-        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        const colorItems = placement.printColors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         initialLetter = String(colorItems.length + 1);
         initialVal = 'METALLIC GOLD';
     } else {
-        const colorItems = placement.colors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        const colorItems = placement.printColors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         initialLetter = String(colorItems.length + 1);
     }
 
     const colorId = Date.now() + Math.random();
-    placement.colors.push({
+    const item = {
         id: colorId,
         type: type,
         screenLetter: initialLetter,
         val: initialVal,
         mesh: null,
         additives: null
-    });
+    };
 
-    syncPlacementSequenceWithColors(placement, true);
+    if (type === 'WHITE_BASE' || type === 'BLOCKER' || type === 'FLASH' || type === 'COOL') {
+        placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+        placement.sequence.push(item);
+        markPlacementSequenceManual(placement);
+    } else {
+        placement.printColors.push(item);
+
+        if (placement.sequenceMode === 'MANUAL') {
+            // Manual mode: keep the existing production route intact and add
+            // the newly requested print color as one explicit production screen.
+            placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+            placement.sequence.push({
+                id: colorId,
+                type: type,
+                screenLetter: initialLetter,
+                val: initialVal || '---',
+                mesh: '',
+                additives: ''
+            });
+        } else {
+            // Automatic mode: recalculate the full route from the Rules Engine.
+            generatePlacementSequenceFromRules(placementId, { silent: true })
+                .then(() => {
+                    updatePlacementStations(placementId);
+                    updatePlacementColorsPreview(placementId);
+                })
+                .catch((error) => console.warn('No se pudo actualizar la secuencia automática:', error));
+        }
+    }
+
+    syncPlacementSequenceWithColors(placement);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
@@ -1914,7 +1951,7 @@ function renderPlacementColors(placementId) {
     const container = document.getElementById(`placement-colors-container-${placementId}`);
     if (!container) return;
 
-    if (placement.colors.length === 0) {
+    if (placement.printColors.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
                 <i class="fas fa-palette" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i>
@@ -1926,7 +1963,7 @@ function renderPlacementColors(placementId) {
 
     container.innerHTML = '';
 
-    placement.colors.forEach(color => {
+    placement.printColors.forEach(color => {
         let badgeClass = 'badge-color';
         let label = 'COLOR';
 
@@ -2018,11 +2055,11 @@ function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
     }
 
     const placement = placements.find(p => String(p.id) === String(placementId));
-    if (!placement || !Array.isArray(placement.colors)) return;
-    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= placement.colors.length || toIndex >= placement.colors.length) return;
+    if (!placement || !Array.isArray(placement.printColors)) return;
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= placement.printColors.length || toIndex >= placement.printColors.length) return;
 
-    const [moved] = placement.colors.splice(fromIndex, 1);
-    placement.colors.splice(toIndex, 0, moved);
+    const [moved] = placement.printColors.splice(fromIndex, 1);
+    placement.printColors.splice(toIndex, 0, moved);
 
     syncPlacementSequenceWithColors(placement, true);
     renderPlacementColors(placementId);
@@ -2036,7 +2073,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
-    const color = placement.colors.find(c => String(c.id) === String(colorId));
+    const color = placement.printColors.find(c => String(c.id) === String(colorId));
     if (color) {
         color.val = value;
         updatePlacementColorPreview(placementId, colorId);
@@ -2052,7 +2089,7 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
-    const color = placement.colors.find(c => String(c.id) === String(colorId));
+    const color = placement.printColors.find(c => String(c.id) === String(colorId));
     if (color) {
         color.screenLetter = value.toUpperCase();
         syncPlacementSequenceWithColors(placement, true);
@@ -2064,7 +2101,7 @@ function updatePlacementColorMesh(placementId, colorId, value) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
-    const color = placement.colors.find(c => String(c.id) === String(colorId));
+    const color = placement.printColors.find(c => String(c.id) === String(colorId));
     if (!color) return;
 
     color.mesh = value;
@@ -2076,7 +2113,7 @@ function removePlacementColorItem(placementId, colorId) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
-    placement.colors = placement.colors.filter(c => String(c.id) !== String(colorId));
+    placement.printColors = placement.printColors.filter(c => String(c.id) !== String(colorId));
     syncPlacementSequenceWithColors(placement, true);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
@@ -2087,13 +2124,13 @@ function removePlacementColorItem(placementId, colorId) {
 
 function movePlacementColorItem(placementId, colorId, direction) {
     const placement = placements.find(p => String(p.id) === String(placementId));
-    if (!placement || !Array.isArray(placement.colors)) return;
+    if (!placement || !Array.isArray(placement.printColors)) return;
 
-    const currentIndex = placement.colors.findIndex(c => String(c.id) === String(colorId));
+    const currentIndex = placement.printColors.findIndex(c => String(c.id) === String(colorId));
     if (currentIndex < 0) return;
 
     const targetIndex = currentIndex + direction;
-    if (targetIndex < 0 || targetIndex >= placement.colors.length) return;
+    if (targetIndex < 0 || targetIndex >= placement.printColors.length) return;
 
     movePlacementColorByIndex(placementId, currentIndex, targetIndex);
     showStatus('↕️ Secuencia de colores actualizada');
@@ -2103,7 +2140,7 @@ function updatePlacementColorPreview(placementId, colorId) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
-    const color = placement.colors.find(c => String(c.id) === String(colorId));
+    const color = placement.printColors.find(c => String(c.id) === String(colorId));
     if (!color) return;
 
     const preview = document.getElementById(`placement-color-preview-${placementId}-${colorId}`);
@@ -2235,7 +2272,7 @@ function checkForSpecialtiesInColors(placementId) {
 
     let specialties = [];
 
-    placement.colors.forEach(color => {
+    placement.printColors.forEach(color => {
         if (color.val) {
             const colorVal = (color.val || '').toUpperCase();
 
@@ -2308,7 +2345,7 @@ function updatePlacementColorsPreview(placementId) {
     const uniqueColors = [];
     const seenColors = new Set();
 
-    placement.colors.forEach(color => {
+    placement.printColors.forEach(color => {
         if (color.type === 'COLOR' || color.type === 'METALLIC') {
             const colorVal = (color.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
             if (colorVal && !seenColors.has(colorVal)) {
@@ -3475,7 +3512,9 @@ function normalizeSpecDataForUi(data = {}, meta = {}) {
         ...data,
         ...generalData,
         placements: placementsData.map((placement, index) => ({
-            ...placement,
+            ...(window.SpecNormalizer?.normalizePlacement
+                ? window.SpecNormalizer.normalizePlacement(placement)
+                : placement),
             id: placement?.id || index + 1,
             colors: Array.isArray(placement?.colors) ? placement.colors : (Array.isArray(placement?.colorsJson) ? placement.colorsJson : []),
             sequence: Array.isArray(placement?.sequence) ? placement.sequence : (Array.isArray(placement?.sequenceJson) ? placement.sequenceJson : [])
@@ -3797,8 +3836,9 @@ function loadSpecData(data) {
             };
 
             // ✅ Restaurar colores y secuencia
-            placement.colors = placementData.colors || [];
+            placement.printColors = placementData.printColors || placementData.colors || [];
             placement.sequence = placementData.sequence || [];
+            placement.sequenceMode = placementData.sequenceMode || (placement.sequence.length > 0 ? 'MANUAL' : 'AUTO');
 
             if (index === 0) {
                 placements = [placement];
@@ -4089,7 +4129,7 @@ async function exportHTML() {
         data.placements = placements.map(p => ({
             ...p,
             // Asegurar que los colores sean los actuales
-            colors: p.colors,
+            printColors: p.printColors,
             sequence: p.sequence
         }));
 
