@@ -1237,9 +1237,11 @@ function renderPlacementHTML(placement) {
 
     renderPlacementColors(placement.id);
 
-    // Usar la secuencia guardada si existe, o generar una nueva
+    // Usar la secuencia guardada; si no existe, generar la ruta inicial automáticamente.
     if (placement.sequence && placement.sequence.length > 0) {
         updatePlacementStations(placement.id);
+    } else {
+        maybeGenerateInitialPlacementSequence(placement.id);
     }
 
     updatePlacementColorsPreview(placement.id);
@@ -1615,6 +1617,7 @@ function pastePlacementSequence(placementId) {
     }
 
     placement.sequence = JSON.parse(JSON.stringify(placementSequenceClipboard.sequence));
+    markPlacementSequenceManual(placement);
 
     const params = placementSequenceClipboard.printParams || {};
     Object.keys(params).forEach((key) => {
@@ -1786,26 +1789,81 @@ function updatePlacementDimension(placementId, type, value) {
     }
 }
 
+function markPlacementSequenceManual(placement) {
+    if (!placement) return;
+    placement.sequenceMode = 'MANUAL';
+}
+
+async function generatePlacementSequenceFromRules(placementId, options = {}) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement || !window.RulesEngine?.generarSecuencia) return false;
+
+    const designColors = (placement.printColors || [])
+        .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
+        .map(c => ({ id: c.id, val: c.val }))
+        .filter(c => String(c.val || '').trim());
+
+    if (designColors.length === 0) return false;
+
+    const customer = document.getElementById('customer')?.value || '';
+    const garmentColor = document.getElementById('colorway')?.value || '';
+    const inkType = placement.inkType || 'WATER';
+
+    const sequence = window.RulesEngine.generarSecuencia({
+        customer, garmentColor, inkType, designColors
+    });
+
+    placement.sequence = sequence.map((step, index) => ({
+        id: Date.now() + Math.random() + index,
+        type: step.tipo,
+        screenLetter: step.screenLetter || '',
+        val: step.nombre || '---',
+        mesh: step.mesh || '',
+        additives: step.additives || ''
+    }));
+    placement.sequenceMode = 'AUTO';
+
+    const curing = window.RulesEngine.getCuringConditions
+        ? window.RulesEngine.getCuringConditions(inkType, customer)
+        : {};
+    placement.curing = {
+        temperature: curing.temperature ?? curing.temperatura ?? placement.temp ?? '',
+        time: curing.time ?? curing.tiempo ?? placement.time ?? ''
+    };
+    placement.temp = placement.curing.temperature;
+    placement.time = placement.curing.time;
+
+    if (!options.silent) {
+        updatePlacementStations(placementId);
+        updatePlacementColorsPreview(placementId);
+    }
+    return true;
+}
+
+function maybeGenerateInitialPlacementSequence(placementId) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+    if (!Array.isArray(placement.sequence)) placement.sequence = [];
+    if (placement.sequence.length > 0 || placement.sequenceMode === 'MANUAL') return;
+
+    generatePlacementSequenceFromRules(placementId, { silent: true })
+        .then((generated) => {
+            if (generated) {
+                updatePlacementStations(placementId);
+                updatePlacementColorsPreview(placementId);
+            }
+        })
+        .catch((error) => console.warn('No se pudo generar la secuencia inicial automáticamente:', error));
+}
+
 // =====================================================
 // FUNCIONES PARA COLORES DE PLACEMENTS
 // =====================================================
 
 function syncPlacementSequenceWithColors(placement, force = false) {
     if (!placement) return;
-
-    const currentSequence = Array.isArray(placement.sequence) ? placement.sequence : [];
-    if (currentSequence.length > 0) return;
-
-    // Compatibility fallback only: create initial color entries when no production
-    // sequence exists. It never adds process steps or replaces an existing sequence.
-    placement.sequence = (placement.printColors || []).map((color, index) => ({
-        id: color.id || Date.now() + Math.random() + index,
-        type: color.type || 'COLOR',
-        screenLetter: color.screenLetter || '',
-        val: color.val || '---',
-        mesh: color.mesh || '',
-        additives: color.additives || ''
-    }));
+    // Compatibility boundary only. Production sequence is authoritative.
+    if (!Array.isArray(placement.sequence)) placement.sequence = [];
 }
 
 function addPlacementColorItem(placementId, type) {
@@ -1850,11 +1908,20 @@ function addPlacementColorItem(placementId, type) {
     if (type === 'WHITE_BASE' || type === 'BLOCKER' || type === 'FLASH' || type === 'COOL') {
         placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
         placement.sequence.push(item);
+        markPlacementSequenceManual(placement);
     } else {
         placement.printColors.push(item);
+        if (placement.sequenceMode !== 'MANUAL') {
+            generatePlacementSequenceFromRules(placementId, { silent: true })
+                .then(() => {
+                    updatePlacementStations(placementId);
+                    updatePlacementColorsPreview(placementId);
+                })
+                .catch((error) => console.warn('No se pudo actualizar la secuencia automática:', error));
+        }
     }
 
-    syncPlacementSequenceWithColors(placement, true);
+    syncPlacementSequenceWithColors(placement);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
@@ -3756,6 +3823,7 @@ function loadSpecData(data) {
             // ✅ Restaurar colores y secuencia
             placement.printColors = placementData.printColors || placementData.colors || [];
             placement.sequence = placementData.sequence || [];
+            placement.sequenceMode = placementData.sequenceMode || (placement.sequence.length > 0 ? 'MANUAL' : 'AUTO');
 
             if (index === 0) {
                 placements = [placement];
