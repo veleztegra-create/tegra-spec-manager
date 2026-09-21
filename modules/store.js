@@ -15,7 +15,17 @@
             program: "",
             specDate: ""
         },
-        placements: []
+        placements: [],
+        specLifecycle: {
+            status: 'DRAFT',
+            source: 'RULE_ENGINE',
+            version: 1,
+            approvedBy: null,
+            approvedAt: null,
+            lockedAt: null,
+            parentVersion: null
+        },
+        auditTrail: []
     };
 
     function normalizeState(candidateState) {
@@ -32,7 +42,13 @@
             },
             placements: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
                 ? window.SpecNormalizer.normalizeSpecData(safeCandidate).placements
-                : (Array.isArray(safeCandidate.placements) ? safeCandidate.placements : [])
+                : (Array.isArray(safeCandidate.placements) ? safeCandidate.placements : []),
+            specLifecycle: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).specLifecycle
+                : (safeCandidate.specLifecycle || DEFAULT_STATE.specLifecycle),
+            auditTrail: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).auditTrail
+                : (Array.isArray(safeCandidate.auditTrail) ? safeCandidate.auditTrail : [])
         };
     }
 
