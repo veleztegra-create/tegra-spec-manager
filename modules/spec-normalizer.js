@@ -7,18 +7,37 @@
         return String(item?.type || item?.tipo || '').trim().toUpperCase();
     }
 
+    function normalizeLifecycle(value = {}) {
+        if (global.SpecLifecycle?.normalizeLifecycle) {
+            return global.SpecLifecycle.normalizeLifecycle(value);
+        }
+
+        return {
+            status: value.status || 'DRAFT',
+            source: value.source || 'RULE_ENGINE',
+            version: Math.max(1, Number(value.version) || 1),
+            approvedBy: value.approvedBy || null,
+            approvedAt: value.approvedAt || null,
+            lockedAt: value.lockedAt || null,
+            parentVersion: value.parentVersion ?? null
+        };
+    }
+
+    function normalizeAuditTrail(entries) {
+        if (global.SpecLifecycle?.normalizeAuditTrail) {
+            return global.SpecLifecycle.normalizeAuditTrail(entries);
+        }
+        return Array.isArray(entries) ? entries : [];
+    }
+
     function normalizePlacement(placement = {}) {
         const normalized = { ...placement };
         const legacyColors = Array.isArray(placement.colors) ? placement.colors : [];
 
-        // New documents own printColors. Legacy colors are only adapted when that
-        // canonical field is absent; colors remains untouched for round-trip safety.
         normalized.printColors = Array.isArray(placement.printColors)
             ? placement.printColors
             : legacyColors.filter((item) => PRINT_COLOR_TYPES.has(normalizedType(item)));
 
-        // Known production data embedded in legacy colors is deliberately retained
-        // in colors. It is never appended to or used to rebuild sequence here.
         normalized.unknownLegacyColors = legacyColors.filter((item) => {
             const type = normalizedType(item);
             return type && !PRINT_COLOR_TYPES.has(type) && !KNOWN_PRODUCTION_TYPES.has(type);
@@ -33,13 +52,21 @@
         };
 
         normalized.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+
+        // Sequence lifecycle is attached to the placement because the production
+        // sequence belongs to a placement and may be approved independently.
+        normalized.sequenceLifecycle = normalizeLifecycle(placement.sequenceLifecycle);
+
         return normalized;
     }
 
     function normalizeSpecData(spec = {}) {
         const placements = Array.isArray(spec.placements) ? spec.placements : [];
+
         return {
             ...spec,
+            specLifecycle: normalizeLifecycle(spec.specLifecycle),
+            auditTrail: normalizeAuditTrail(spec.auditTrail),
             placements: placements.map(normalizePlacement)
         };
     }
