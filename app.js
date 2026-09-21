@@ -2482,6 +2482,112 @@ function updatePlacementStations(placementId, returnOnly = false) {
     renderPlacementStationsTable(placementId, stationsData);
 }
 
+function escapeSequenceCellValue(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function updatePlacementSequenceItem(placementId, index, field, value) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement || !Array.isArray(placement.sequence)) return;
+
+    const item = placement.sequence[index];
+    if (!item) return;
+
+    item[field] = field === 'screenLetter'
+        ? String(value || '').toUpperCase()
+        : value;
+
+    markPlacementSequenceManual(placement);
+    updatePlacementStations(placementId);
+    showStatus('✏️ Secuencia marcada como ajustada manualmente', 'success');
+}
+
+function movePlacementSequenceItem(placementId, index, direction) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement || !Array.isArray(placement.sequence)) return;
+
+    const target = index + direction;
+    if (index < 0 || target < 0 || index >= placement.sequence.length || target >= placement.sequence.length) return;
+
+    const [moved] = placement.sequence.splice(index, 1);
+    placement.sequence.splice(target, 0, moved);
+
+    markPlacementSequenceManual(placement);
+    updatePlacementStations(placementId);
+    showStatus('↕️ Orden de producción ajustado manualmente', 'success');
+}
+
+function removePlacementSequenceItem(placementId, index) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement || !Array.isArray(placement.sequence)) return;
+
+    const item = placement.sequence[index];
+    if (!item) return;
+
+    placement.sequence.splice(index, 1);
+    markPlacementSequenceManual(placement);
+    updatePlacementStations(placementId);
+    showStatus(`🗑️ Paso ${item.type || item.tipo || 'de producción'} eliminado manualmente`, 'success');
+}
+
+function addPlacementSequenceScreen(placementId) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+
+    placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+
+    const numericLetters = placement.sequence
+        .map((item) => Number.parseInt(String(item.screenLetter || ''), 10))
+        .filter(Number.isFinite);
+
+    const nextScreen = numericLetters.length > 0 ? Math.max(...numericLetters) + 1 : 1;
+    const idBase = Date.now() + Math.random();
+
+    // Insert before trailing FLASH/COOL rows so the new screen becomes the
+    // final production screen and receives its own process rows.
+    let insertAt = placement.sequence.length;
+    while (insertAt > 0) {
+        const type = String(placement.sequence[insertAt - 1]?.type || '').toUpperCase();
+        if (type === 'FLASH' || type === 'COOL') insertAt -= 1;
+        else break;
+    }
+
+    placement.sequence.splice(insertAt, 0,
+        {
+            id: idBase,
+            type: 'COLOR',
+            screenLetter: String(nextScreen),
+            val: 'NEW SCREEN',
+            mesh: '',
+            additives: ''
+        },
+        {
+            id: idBase + 1,
+            type: 'FLASH',
+            screenLetter: '',
+            val: 'FLASH',
+            mesh: '-',
+            additives: ''
+        },
+        {
+            id: idBase + 2,
+            type: 'COOL',
+            screenLetter: '',
+            val: 'COOL',
+            mesh: '-',
+            additives: ''
+        }
+    );
+
+    markPlacementSequenceManual(placement);
+    updatePlacementStations(placementId);
+    showStatus('➕ Pantalla agregada manualmente a la secuencia', 'success');
+}
+
 function renderPlacementStationsTable(placementId, data) {
     const div = document.getElementById(`placement-sequence-table-${placementId}`);
     if (!div) return;
@@ -2491,7 +2597,24 @@ function renderPlacementStationsTable(placementId, data) {
         return;
     }
 
-    let html = `<table class="sequence-table">
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    const sequence = placement?.sequence || [];
+    const sequenceMode = placement?.sequenceMode || 'AUTO';
+    const statusLabel = sequenceMode === 'MANUAL'
+        ? 'Development / Ajuste manual'
+        : 'Propuesta automática';
+
+    let html = `
+        <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin:0 0 8px 0; flex-wrap:wrap;">
+            <div style="font-size:0.72rem; color:var(--text-secondary);">
+                <strong style="color:var(--primary);">${statusLabel}</strong>
+                <span> · La secuencia es la fuente de producción</span>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="addPlacementSequenceScreen(${placementId})">
+                <i class="fas fa-plus"></i> Añadir pantalla
+            </button>
+        </div>
+        <table class="sequence-table">
         <thead><tr>
             <th>Est</th>
             <th>Screen Letter</th>
@@ -2503,33 +2626,83 @@ function renderPlacementStationsTable(placementId, data) {
             <th>Pressure</th>
             <th>Speed</th>
             <th>Duro</th>
+            <th class="no-print">Editar</th>
         </tr></thead><tbody>`;
 
-    data.forEach((row, idx) => {
-        const isMetallic = row.screenCombined && (
-            row.screenCombined.includes('METALLIC') ||
-            row.screenCombined.includes('GOLD') ||
-            row.screenCombined.includes('SILVER') ||
-            row.screenCombined.match(/(8[7-9][0-9])\s*C?/i)
-        );
+    sequence.forEach((item, idx) => {
+        const type = String(item.type || item.tipo || '').toUpperCase();
+        const isProcess = type === 'FLASH' || type === 'COOL';
+        const rowClass = isProcess ? ' class="flash-row"' : '';
 
-        html += `<tr ${isMetallic ? 'style="background: linear-gradient(90deg, rgba(255,215,0,0.1) 0%, var(--bg-card) 100%);"' : ''}>
-            <td><strong>${row.st}</strong></td>
-            <td><b style="color: var(--primary);">${row.screenLetter}</b></td>
-            <td>${row.screenCombined}</td>
-            <td style="font-size:11px; color:var(--primary); font-weight:600;">${row.add}</td>
-            <td>${row.mesh}</td>
-            <td>${row.strokes}</td>
-            <td>${row.angle}</td>
-            <td>${row.pressure}</td>
-            <td>${row.speed}</td>
-            <td>${row.duro}</td>
-        </tr>`;
+        if (isProcess) {
+            html += `
+                <tr${rowClass}>
+                    <td><strong>${idx + 1}</strong></td>
+                    <td></td>
+                    <td><strong>${escapeSequenceCellValue(item.val || type)}</strong></td>
+                    <td>${escapeSequenceCellValue(item.additives || '')}</td>
+                    <td>-</td>
+                    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    <td class="no-print">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementSequenceItem(${placementId}, ${idx})" title="Eliminar paso">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        const screenLetter = escapeSequenceCellValue(item.screenLetter || '');
+        const val = escapeSequenceCellValue(item.val || '');
+        const additives = escapeSequenceCellValue(item.additives || '');
+        const mesh = escapeSequenceCellValue(item.mesh || '');
+
+        html += `
+            <tr>
+                <td><strong>${idx + 1}</strong></td>
+                <td>
+                    <input class="form-control no-print" style="width:58px; text-align:center; font-weight:bold;"
+                        value="${screenLetter}" onchange="updatePlacementSequenceItem(${placementId}, ${idx}, 'screenLetter', this.value)">
+                    <span class="print-only">${screenLetter}</span>
+                </td>
+                <td>
+                    <input class="form-control no-print" style="min-width:150px;"
+                        value="${val}" onchange="updatePlacementSequenceItem(${placementId}, ${idx}, 'val', this.value)">
+                    <span class="print-only">${val}</span>
+                </td>
+                <td>
+                    <input class="form-control no-print" style="min-width:140px;"
+                        value="${additives}" onchange="updatePlacementSequenceItem(${placementId}, ${idx}, 'additives', this.value)">
+                    <span class="print-only additives">${additives}</span>
+                </td>
+                <td>
+                    <input class="form-control no-print" style="width:82px; text-align:center;"
+                        value="${mesh}" placeholder="Malla"
+                        onchange="updatePlacementSequenceItem(${placementId}, ${idx}, 'mesh', this.value)">
+                    <span class="print-only">${mesh}</span>
+                </td>
+                <td>${placement?.strokes || '-'}</td>
+                <td>${placement?.angle || '-'}</td>
+                <td>${placement?.pressure || '-'}</td>
+                <td>${placement?.speed || '-'}</td>
+                <td>${placement?.durometer || '-'}</td>
+                <td class="no-print" style="white-space:nowrap;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementSequenceItem(${placementId}, ${idx}, -1)" title="Subir">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementSequenceItem(${placementId}, ${idx}, 1)" title="Bajar">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementSequenceItem(${placementId}, ${idx})" title="Eliminar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>`;
     });
+
     html += '</tbody></table>';
     div.innerHTML = html;
 }
-
 // =====================================================
 // FUNCIONES DE IMÁGENES
 // =====================================================
