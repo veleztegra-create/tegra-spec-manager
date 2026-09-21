@@ -115,3 +115,41 @@ test('audit entry records actor, authorization, reason and before/after values',
   assert.equal(audit[0].fromVersion, 4);
   assert.equal(audit[0].toVersion, 5);
 });
+
+
+test('Store preserves spec lifecycle and audit trail through serialization state', () => {
+  const window = {};
+  const context = vm.createContext({ window, globalThis: window, console });
+  for (const relativePath of ['../../modules/spec-lifecycle.js', '../../modules/spec-normalizer.js', '../../modules/store.js', '../../modules/spec-data-model.js']) {
+    vm.runInContext(fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8'), context);
+  }
+
+  window.Store.replaceState({
+    generalData: { style: '67NM' },
+    specLifecycle: {
+      status: 'DEVELOPMENT_APPROVED',
+      source: 'DEVELOPMENT',
+      version: 3,
+      approvedBy: 'development-user',
+      approvedAt: '2026-09-21T20:00:00.000Z'
+    },
+    auditTrail: [{
+      action: 'APPROVED',
+      actor: 'development-user',
+      at: '2026-09-21T20:00:00.000Z'
+    }],
+    placements: [{
+      id: 1,
+      sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED', source: 'DEVELOPMENT', version: 3 },
+      sequence: [{ type: 'COLOR', val: '872 C', mesh: '122/55' }]
+    }]
+  });
+
+  const data = window.buildSpecData();
+  assert.equal(data.specLifecycle.status, 'DEVELOPMENT_APPROVED');
+  assert.equal(data.specLifecycle.version, 3);
+  assert.equal(data.specLifecycle.approvedBy, 'development-user');
+  assert.equal(data.auditTrail.length, 1);
+  assert.equal(data.placements[0].sequenceLifecycle.status, 'DEVELOPMENT_APPROVED');
+  assert.deepEqual(data.placements[0].sequence, [{ type: 'COLOR', val: '872 C', mesh: '122/55' }]);
+});
