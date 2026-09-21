@@ -2069,20 +2069,37 @@ function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
 }
 
 function updatePlacementColorValue(placementId, colorId, value) {
-
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
     const color = placement.printColors.find(c => String(c.id) === String(colorId));
-    if (color) {
-        color.val = value;
-        updatePlacementColorPreview(placementId, colorId);
-        syncPlacementSequenceWithColors(placement, true);
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
+    if (!color) return;
 
-        checkForSpecialtiesInColors(placementId);
+    const previousValue = color.val;
+    color.val = value;
+
+    if (placement.sequenceMode === 'MANUAL') {
+        // Manual production sequence remains authoritative. Update only the
+        // screen(s) associated with this print color when a clear match exists.
+        (placement.sequence || []).forEach((step) => {
+            const type = String(step.type || step.tipo || '').toUpperCase();
+            if ((type === 'COLOR' || type === 'METALLIC') &&
+                String(step.screenLetter || '') === String(color.screenLetter || '')) {
+                step.val = value;
+            }
+        });
+        markPlacementSequenceManual(placement);
+        updatePlacementStations(placementId);
+    } else {
+        // In AUTO mode the Rules Engine remains responsible for rebuilding the proposal.
+        generatePlacementSequenceFromRules(placementId, { silent: true })
+            .then(() => updatePlacementStations(placementId))
+            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
     }
+
+    updatePlacementColorPreview(placementId, colorId);
+    updatePlacementColorsPreview(placementId);
+    checkForSpecialtiesInColors(placementId);
 }
 
 function updatePlacementScreenLetter(placementId, colorId, value) {
@@ -2090,10 +2107,24 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
     if (!placement) return;
 
     const color = placement.printColors.find(c => String(c.id) === String(colorId));
-    if (color) {
-        color.screenLetter = value.toUpperCase();
-        syncPlacementSequenceWithColors(placement, true);
+    if (!color) return;
+
+    color.screenLetter = String(value || '').toUpperCase();
+
+    if (placement.sequenceMode === 'MANUAL') {
+        (placement.sequence || []).forEach((step) => {
+            const type = String(step.type || step.tipo || '').toUpperCase();
+            if ((type === 'COLOR' || type === 'METALLIC') &&
+                String(step.val || '') === String(color.val || '')) {
+                step.screenLetter = color.screenLetter;
+            }
+        });
+        markPlacementSequenceManual(placement);
         updatePlacementStations(placementId);
+    } else {
+        generatePlacementSequenceFromRules(placementId, { silent: true })
+            .then(() => updatePlacementStations(placementId))
+            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
     }
 }
 
@@ -2105,8 +2136,22 @@ function updatePlacementColorMesh(placementId, colorId, value) {
     if (!color) return;
 
     color.mesh = value;
-    syncPlacementSequenceWithColors(placement, true);
-    updatePlacementStations(placementId);
+
+    if (placement.sequenceMode === 'MANUAL') {
+        (placement.sequence || []).forEach((step) => {
+            const type = String(step.type || step.tipo || '').toUpperCase();
+            if ((type === 'COLOR' || type === 'METALLIC') &&
+                String(step.screenLetter || '') === String(color.screenLetter || '')) {
+                step.mesh = value;
+            }
+        });
+        markPlacementSequenceManual(placement);
+        updatePlacementStations(placementId);
+    } else {
+        generatePlacementSequenceFromRules(placementId, { silent: true })
+            .then(() => updatePlacementStations(placementId))
+            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
+    }
 }
 
 function removePlacementColorItem(placementId, colorId) {
