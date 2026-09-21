@@ -184,7 +184,7 @@ window.RulesEngine = (function() {
     function esColorWhiteRefuerzo(colorName) {
         if (!colorName) return false;
         const upper = String(colorName).toUpperCase().trim();
-        return upper === 'WHITE' || upper === 'BLANCO' || upper === 'WHITE 1' || upper === 'BLANCO 1';
+        return upper === 'WHITE' || upper === 'BLANCO' || upper === 'WHITE 1' || upper === 'BLANCO 1' || upper === 'WHITE 10A' || upper === 'BLANCO 10A';
     }
 
     const meshSuffixMap = {
@@ -393,8 +393,11 @@ window.RulesEngine = (function() {
                     addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', baseConfig.baseAdditives);
                 }
 
-                // Refuerzo blanco (solo una vez) cuando ya se aplicaron dos bases B iniciales
-                if (numBases >= 2 && baseConfig.whiteBaseRefuerzo?.nombre) {
+                // Si WHITE/WHITE 10A ya viene como color explícito, ese color
+                // será convertido a un pase numerado de refuerzo más abajo.
+                // En ese caso NO agregamos además un refuerzo B automático.
+                const hasExplicitWhiteReinforcement = coloresInfo.some((color) => esColorWhiteRefuerzo(color.val));
+                if (numBases >= 2 && baseConfig.whiteBaseRefuerzo?.nombre && !hasExplicitWhiteReinforcement) {
                     addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
                 }
             } else {

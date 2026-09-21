@@ -30,9 +30,9 @@
                 ...DEFAULT_STATE.generalData,
                 ...legacyGeneralData
             },
-            placements: Array.isArray(safeCandidate.placements)
-                ? safeCandidate.placements
-                : []
+            placements: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).placements
+                : (Array.isArray(safeCandidate.placements) ? safeCandidate.placements : [])
         };
     }
 
