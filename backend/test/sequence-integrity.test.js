@@ -101,3 +101,43 @@ test('Existing sequence remains authoritative over printColors', () => {
   assert.deepEqual(placement.sequence, sequence);
   assert.deepEqual(placement.printColors, [{ type: 'COLOR', val: 'DIFFERENT COLOR' }]);
 });
+
+
+test('RulesEngine treats WHITE 10A as explicit reinforcement and does not duplicate an automatic B reinforcement', () => {
+  const window = {
+    ColorConfig: {
+      findColorHex: (name) => String(name).toUpperCase().includes('WHITE') ? '#FFFFFF' : '#111111'
+    },
+    ColorEngine: {
+      resolveColor: ({ hex }) => ({ toneCategory: hex === '#FFFFFF' ? 'light' : 'dark' })
+    }
+  };
+  const context = vm.createContext({ window, globalThis: window, console });
+
+  for (const relativePath of ['../../core/layer-normalizer.js', '../../core/sequence-builder.js', '../../core/rules-engine.js']) {
+    vm.runInContext(fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8'), context);
+  }
+
+  const sequence = window.RulesEngine.generarSecuencia({
+    customer: 'Fanatics',
+    garmentColor: 'Black00A',
+    inkType: 'WATER',
+    designColors: [{ id: 'white-10a', val: 'WHITE 10A' }, { id: 'red', val: '7555 C' }]
+  });
+
+  const screens = sequence.filter((step) => step.tipo !== 'FLASH' && step.tipo !== 'COOL');
+  const whiteBaseScreens = screens.filter((step) => step.tipo === 'WHITE_BASE');
+
+  assert.deepEqual(
+    whiteBaseScreens.map((step) => step.nombre),
+    ['BLOCKER CHT', 'BLOCKER CHT', 'BLOCKER CHT', 'AQUAFLEX V2', 'AQUAFLEX V2']
+  );
+  assert.equal(
+    screens.filter((step) => step.tipo === 'COLOR' && step.screenLetter === '1' && step.nombre === 'REF. AQUAFLEX MAGNA').length,
+    1
+  );
+  assert.equal(
+    screens.filter((step) => step.nombre === 'REF. AQUAFLEX MAGNA' && step.tipo === 'WHITE_BASE').length,
+    0
+  );
+});
