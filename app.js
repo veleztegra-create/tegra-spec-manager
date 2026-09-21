@@ -1847,14 +1847,15 @@ function maybeGenerateInitialPlacementSequence(placementId) {
     if (!Array.isArray(placement.sequence)) placement.sequence = [];
     if (placement.sequence.length > 0 || placement.sequenceMode === 'MANUAL') return;
 
-    generatePlacementSequenceFromRules(placementId, { silent: true })
-        .then((generated) => {
-            if (generated) {
-                updatePlacementStations(placementId);
-                updatePlacementColorsPreview(placementId);
-            }
-        })
-        .catch((error) => console.warn('No se pudo generar la secuencia inicial automáticamente:', error));
+    try {
+        const generated = generatePlacementSequenceFromRules(placementId, { silent: true });
+        if (generated) {
+            updatePlacementStations(placementId);
+            updatePlacementColorsPreview(placementId);
+        }
+    } catch (error) {
+        console.warn('No se pudo generar la secuencia inicial automáticamente:', error);
+    }
 }
 
 // =====================================================
@@ -1927,12 +1928,15 @@ function addPlacementColorItem(placementId, type) {
             });
         } else {
             // Automatic mode: recalculate the full route from the Rules Engine.
-            generatePlacementSequenceFromRules(placementId, { silent: true })
-                .then(() => {
+            try {
+                const generated = generatePlacementSequenceFromRules(placementId, { silent: true });
+                if (generated) {
                     updatePlacementStations(placementId);
                     updatePlacementColorsPreview(placementId);
-                })
-                .catch((error) => console.warn('No se pudo actualizar la secuencia automática:', error));
+                }
+            } catch (error) {
+                console.warn('No se pudo actualizar la secuencia automática:', error);
+            }
         }
     }
 
