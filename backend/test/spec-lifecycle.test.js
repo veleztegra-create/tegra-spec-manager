@@ -34,6 +34,44 @@ test('legacy specs normalize with a DRAFT lifecycle without losing sequence', ()
   assert.equal(spec.placements[0].sequenceLifecycle.status, 'DRAFT');
 });
 
+test('overall lifecycle status is derived conservatively from placement lifecycles', () => {
+  const { SpecLifecycle } = loadBrowserModules(['../../modules/spec-lifecycle.js']);
+
+  assert.equal(SpecLifecycle.deriveOverallStatus([]), 'DRAFT');
+
+  assert.equal(
+    SpecLifecycle.deriveOverallStatus([
+      { sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED' } },
+      { sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED' } }
+    ]),
+    'DEVELOPMENT_APPROVED'
+  );
+
+  assert.equal(
+    SpecLifecycle.deriveOverallStatus([
+      { sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED' } },
+      { sequenceLifecycle: { status: 'DRAFT' } }
+    ]),
+    'DRAFT'
+  );
+
+  assert.equal(
+    SpecLifecycle.deriveOverallStatus([
+      { sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED' } },
+      { sequenceLifecycle: { status: 'DEVELOPMENT' } }
+    ]),
+    'DEVELOPMENT'
+  );
+
+  assert.equal(
+    SpecLifecycle.deriveOverallStatus([
+      { sequenceLifecycle: { status: 'PRODUCTION_LOCKED' } },
+      { sequenceLifecycle: { status: 'PRODUCTION_LOCKED' } }
+    ]),
+    'PRODUCTION_LOCKED'
+  );
+});
+
 test('locked sequence is not editable without explicit permission', () => {
   const { SpecLifecycle } = loadBrowserModules(['../../modules/spec-lifecycle.js']);
 
