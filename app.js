@@ -1795,7 +1795,7 @@ function markPlacementSequenceManual(placement) {
     placement.sequenceMode = 'MANUAL';
 }
 
-async function generatePlacementSequenceFromRules(placementId, options = {}) {
+function generatePlacementSequenceFromRules(placementId, options = {}) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !window.RulesEngine?.generarSecuencia) return false;
 
