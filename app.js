@@ -2096,9 +2096,13 @@ function updatePlacementColorValue(placementId, colorId, value) {
         updatePlacementStations(placementId);
     } else {
         // In AUTO mode the Rules Engine remains responsible for rebuilding the proposal.
-        generatePlacementSequenceFromRules(placementId, { silent: true })
-            .then(() => updatePlacementStations(placementId))
-            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
     }
 
     updatePlacementColorPreview(placementId, colorId);
@@ -2126,9 +2130,13 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
         markPlacementSequenceManual(placement);
         updatePlacementStations(placementId);
     } else {
-        generatePlacementSequenceFromRules(placementId, { silent: true })
-            .then(() => updatePlacementStations(placementId))
-            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
     }
 }
 
@@ -2152,9 +2160,13 @@ function updatePlacementColorMesh(placementId, colorId, value) {
         markPlacementSequenceManual(placement);
         updatePlacementStations(placementId);
     } else {
-        generatePlacementSequenceFromRules(placementId, { silent: true })
-            .then(() => updatePlacementStations(placementId))
-            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
     }
 }
 
@@ -2162,12 +2174,37 @@ function removePlacementColorItem(placementId, colorId) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
-    placement.printColors = placement.printColors.filter(c => String(c.id) !== String(colorId));
-    syncPlacementSequenceWithColors(placement, true);
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
+    const color = placement.printColors.find(c => String(c.id) === String(colorId));
+    if (!color) return;
 
+    placement.printColors = placement.printColors.filter(c => String(c.id) !== String(colorId));
+
+    if (placement.sequenceMode === 'MANUAL') {
+        // Manual mode: remove only production screen(s) tied to this color.
+        const letter = String(color.screenLetter || '');
+        placement.sequence = (placement.sequence || []).filter((step) => {
+            const type = String(step.type || step.tipo || '').toUpperCase();
+            if (type !== 'COLOR' && type !== 'METALLIC') return true;
+            return String(step.screenLetter || '') !== letter;
+        });
+        markPlacementSequenceManual(placement);
+        updatePlacementStations(placementId);
+    } else {
+        // AUTO mode: printColors are Rules Engine inputs, so regenerate.
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            } else {
+                placement.sequence = [];
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
+    }
+
+    renderPlacementColors(placementId);
+    updatePlacementColorsPreview(placementId);
     checkForSpecialtiesInColors(placementId);
 }
 
@@ -2182,7 +2219,17 @@ function movePlacementColorItem(placementId, colorId, direction) {
     if (targetIndex < 0 || targetIndex >= placement.printColors.length) return;
 
     movePlacementColorByIndex(placementId, currentIndex, targetIndex);
-    showStatus('↕️ Secuencia de colores actualizada');
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (placement?.sequenceMode !== 'MANUAL') {
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
+    }
+    showStatus('↕️ Orden de colores actualizado');
 }
 
 function updatePlacementColorPreview(placementId, colorId) {
@@ -4047,7 +4094,19 @@ function loadSpecData(data) {
 
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
-    placements = [];
+
+    // Restore top-level lifecycle metadata before rebuilding placements.
+    // Placement sequence lifecycle remains inside each loaded placement object.
+    if (window.Store && typeof Store.replaceState === 'function') {
+        Store.replaceState({
+            ...Store.getState(),
+            specLifecycle: data.specLifecycle,
+            auditTrail: data.auditTrail,
+            placements: []
+        });
+    } else {
+        placements = [];
+    }
 
     if (data.placements && Array.isArray(data.placements)) {
         data.placements.forEach((placementData, index) => {
@@ -4306,7 +4365,26 @@ function clearForm() {
             });
         }
 
-        // 5) Eliminar autosave para que un reload no repueble datos limpios
+        // 5) Resetear lifecycle: una nueva spec no debe heredar
+        // aprobación, versión o bloqueo de la spec anterior.
+        if (window.Store && typeof Store.replaceState === 'function') {
+            const current = Store.getState();
+            Store.replaceState({
+                ...current,
+                specLifecycle: {
+                    status: 'DRAFT',
+                    source: 'RULE_ENGINE',
+                    version: 1,
+                    approvedBy: null,
+                    approvedAt: null,
+                    lockedAt: null,
+                    parentVersion: null
+                },
+                auditTrail: []
+            });
+        }
+
+        // 6) Eliminar autosave para que un reload no repueble datos limpios
         localStorage.removeItem('spec-autosave');
 
         const logoElement = document.getElementById('logoCliente');
