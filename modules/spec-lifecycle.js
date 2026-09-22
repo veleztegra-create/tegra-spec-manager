@@ -54,6 +54,28 @@
         return Boolean(permission.canEditLockedSequence);
     }
 
+    function deriveOverallStatus(placements = []) {
+        const statuses = Array.isArray(placements)
+            ? placements.map((placement) => normalizeLifecycle(placement?.sequenceLifecycle).status)
+            : [];
+
+        if (statuses.length === 0) return STATUS.DRAFT;
+
+        const allLocked = statuses.every((status) => status === STATUS.PRODUCTION_LOCKED);
+        if (allLocked) return STATUS.PRODUCTION_LOCKED;
+
+        const allApprovedOrLocked = statuses.every((status) =>
+            status === STATUS.DEVELOPMENT_APPROVED || status === STATUS.PRODUCTION_LOCKED
+        );
+        if (allApprovedOrLocked) return STATUS.DEVELOPMENT_APPROVED;
+
+        if (statuses.includes(STATUS.DEVELOPMENT)) return STATUS.DEVELOPMENT;
+
+        // A placement still in DRAFT means the complete spec is not ready
+        // for Development approval, even if another placement is already approved.
+        return STATUS.DRAFT;
+    }
+
     function nextVersion(lifecycle = {}) {
         return normalizeLifecycle(lifecycle).version + 1;
     }
@@ -93,6 +115,7 @@
         normalizeAuditTrail,
         canEditSequence,
         nextVersion,
+        deriveOverallStatus,
         createDerivedVersion,
         appendAuditEntry
     };
