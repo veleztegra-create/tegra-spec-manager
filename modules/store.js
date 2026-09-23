@@ -19,11 +19,20 @@
         specLifecycle: {
             status: 'DRAFT',
             source: 'RULE_ENGINE',
-            version: 1,
             approvedBy: null,
             approvedAt: null,
-            lockedAt: null,
-            parentVersion: null
+            lockedAt: null
+        },
+        styleVersion: {
+            number: 1,
+            label: '',
+            parentVersion: null,
+            stage: {
+                sampleType: '',
+                isPPF: false
+            },
+            swoSnapshot: {},
+            createdAt: null
         },
         auditTrail: []
     };
@@ -46,6 +55,9 @@
             specLifecycle: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
                 ? window.SpecNormalizer.normalizeSpecData(safeCandidate).specLifecycle
                 : (safeCandidate.specLifecycle || DEFAULT_STATE.specLifecycle),
+            styleVersion: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).styleVersion
+                : (safeCandidate.styleVersion || DEFAULT_STATE.styleVersion),
             auditTrail: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
                 ? window.SpecNormalizer.normalizeSpecData(safeCandidate).auditTrail
                 : (Array.isArray(safeCandidate.auditTrail) ? safeCandidate.auditTrail : [])
