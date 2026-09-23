@@ -23,6 +23,13 @@
         };
     }
 
+    function normalizeStyleVersion(value = {}, generalData = {}) {
+        if (global.StyleVersion?.normalizeStyleVersion) {
+            return global.StyleVersion.normalizeStyleVersion(value, generalData);
+        }
+        return value || {};
+    }
+
     function normalizeAuditTrail(entries) {
         if (global.SpecLifecycle?.normalizeAuditTrail) {
             return global.SpecLifecycle.normalizeAuditTrail(entries);
@@ -66,6 +73,10 @@
         return {
             ...spec,
             specLifecycle: normalizeLifecycle(spec.specLifecycle),
+            styleVersion: normalizeStyleVersion(
+                spec.styleVersion,
+                spec.generalData && typeof spec.generalData === 'object' ? spec.generalData : spec
+            ),
             auditTrail: normalizeAuditTrail(spec.auditTrail),
             placements: placements.map(normalizePlacement)
         };
