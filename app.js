@@ -4101,6 +4101,7 @@ function loadSpecData(data) {
         Store.replaceState({
             ...Store.getState(),
             specLifecycle: data.specLifecycle,
+            styleVersion: data.styleVersion,
             auditTrail: data.auditTrail,
             placements: []
         });
@@ -4374,12 +4375,20 @@ function clearForm() {
                 specLifecycle: {
                     status: 'DRAFT',
                     source: 'RULE_ENGINE',
-                    version: 1,
                     approvedBy: null,
                     approvedAt: null,
-                    lockedAt: null,
-                    parentVersion: null
+                    lockedAt: null
                 },
+                styleVersion: window.StyleVersion?.createStyleVersion
+                    ? window.StyleVersion.createStyleVersion({})
+                    : {
+                        number: 1,
+                        label: '',
+                        parentVersion: null,
+                        stage: { sampleType: '', isPPF: false },
+                        swoSnapshot: {},
+                        createdAt: null
+                    },
                 auditTrail: []
             });
         }
