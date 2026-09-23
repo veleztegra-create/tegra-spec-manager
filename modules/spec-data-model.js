@@ -15,6 +15,7 @@ function buildSpecData() {
     return {
         ...state.generalData,
         placements: state.placements,
+        styleVersion: state.styleVersion,
         specLifecycle: state.specLifecycle,
         auditTrail: state.auditTrail,
         savedAt: new Date().toISOString()
