@@ -18,8 +18,7 @@
             version: Math.max(1, Number(value.version) || 1),
             approvedBy: value.approvedBy || null,
             approvedAt: value.approvedAt || null,
-            lockedAt: value.lockedAt || null,
-            parentVersion: value.parentVersion ?? null
+            lockedAt: value.lockedAt || null
         };
     }
 
