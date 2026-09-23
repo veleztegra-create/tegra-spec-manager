@@ -20,11 +20,9 @@
         return {
             status: Object.values(STATUS).includes(value.status) ? value.status : STATUS.DRAFT,
             source: Object.values(SOURCE).includes(value.source) ? value.source : SOURCE.RULE_ENGINE,
-            version: Math.max(1, Number(value.version) || 1),
             approvedBy: value.approvedBy || null,
             approvedAt: value.approvedAt || null,
             lockedAt: value.lockedAt || null,
-            parentVersion: value.parentVersion ?? null
         };
     }
 
@@ -76,29 +74,14 @@
         return STATUS.DRAFT;
     }
 
-    function nextVersion(lifecycle = {}) {
-        return normalizeLifecycle(lifecycle).version + 1;
-    }
-
-    function createDerivedVersion(lifecycle = {}, options = {}) {
-        const current = normalizeLifecycle(lifecycle);
-        const authorized = Boolean(options.authorized);
-        const override = Boolean(options.override);
-
-        if (LOCKED_STATUSES.has(current.status) && !(authorized && override)) {
-            throw new Error('No se puede crear una nueva versión desde un estado bloqueado sin autorización explícita.');
-        }
-
-        const version = nextVersion(current);
-        return {
-            status: options.status || STATUS.DEVELOPMENT,
-            source: options.source || SOURCE.DEVELOPMENT,
-            version,
-            parentVersion: current.version,
-            approvedBy: null,
-            approvedAt: null,
-            lockedAt: null
-        };
+    function createLifecycle(options = {}) {
+        return normalizeLifecycle({
+            status: options.status || STATUS.DRAFT,
+            source: options.source || SOURCE.RULE_ENGINE,
+            approvedBy: options.approvedBy || null,
+            approvedAt: options.approvedAt || null,
+            lockedAt: options.lockedAt || null
+        });
     }
 
     function appendAuditEntry(auditTrail, entry) {
@@ -114,9 +97,7 @@
         normalizeAuditEntry,
         normalizeAuditTrail,
         canEditSequence,
-        nextVersion,
         deriveOverallStatus,
-        createDerivedVersion,
         appendAuditEntry
     };
 })(typeof window !== 'undefined' ? window : globalThis);
