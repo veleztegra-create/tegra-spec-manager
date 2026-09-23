@@ -62,6 +62,29 @@
         };
     }
 
+    function nextVersion(value = {}) {
+        return normalizeNumber(value.number ?? value.version) + 1;
+    }
+
+    function createDerivedVersion(current = {}, options = {}) {
+        const source = normalizeStyleVersion(current, current.swoSnapshot || {});
+        const authorized = Boolean(options.authorized);
+        const override = Boolean(options.override);
+
+        if (['DEVELOPMENT_APPROVED', 'PRODUCTION_LOCKED'].includes(options.currentStatus) && !(authorized && override)) {
+            throw new Error('No se puede crear una nueva versión desde un estado bloqueado sin autorización explícita.');
+        }
+
+        return normalizeStyleVersion({
+            number: nextVersion(source),
+            label: options.label ?? '',
+            parentVersion: source.number,
+            stage: options.stage || source.stage,
+            swoSnapshot: options.swoSnapshot || source.swoSnapshot,
+            createdAt: options.createdAt || null
+        }, options.swoSnapshot || source.swoSnapshot);
+    }
+
     function createStyleVersion(generalData = {}, options = {}) {
         const normalized = normalizeStyleVersion({
             number: options.number ?? DEFAULT_VERSION,
@@ -79,6 +102,8 @@
         DEFAULT_VERSION,
         normalizeStyleVersion,
         createStyleVersion,
+        createDerivedVersion,
+        nextVersion,
         normalizeStage,
         normalizeSwoSnapshot,
         isPPF
