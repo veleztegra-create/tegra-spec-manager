@@ -3799,6 +3799,9 @@ function buildRemoteSpecPayload(data = {}) {
     return {
         generalData: getSpecGeneralData(data),
         placements: Array.isArray(data.placements) ? data.placements : [],
+        styleVersion: data.styleVersion || null,
+        specLifecycle: data.specLifecycle || null,
+        auditTrail: Array.isArray(data.auditTrail) ? data.auditTrail : [],
         meta: {
             savedAt: data.savedAt || new Date().toISOString(),
             lastModified: data.lastModified || data.savedAt || new Date().toISOString(),
