@@ -74,7 +74,10 @@
             ...spec,
             specLifecycle: normalizeLifecycle(spec.specLifecycle),
             styleVersion: normalizeStyleVersion(
-                spec.styleVersion,
+                spec.styleVersion || {
+                    number: spec.specLifecycle?.version,
+                    parentVersion: spec.specLifecycle?.parentVersion
+                },
                 spec.generalData && typeof spec.generalData === 'object' ? spec.generalData : spec
             ),
             auditTrail: normalizeAuditTrail(spec.auditTrail),
