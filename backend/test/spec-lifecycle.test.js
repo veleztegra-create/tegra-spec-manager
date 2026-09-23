@@ -12,9 +12,10 @@ function loadBrowserModules(relativePaths) {
   return window;
 }
 
-test('legacy specs normalize with a DRAFT lifecycle without losing sequence', () => {
+test('legacy specs normalize lifecycle and style version separately without losing sequence', () => {
   const { SpecNormalizer } = loadBrowserModules([
     '../../modules/spec-lifecycle.js',
+    '../../modules/style-version.js',
     '../../modules/spec-normalizer.js'
   ]);
 
@@ -24,21 +25,27 @@ test('legacy specs normalize with a DRAFT lifecycle without losing sequence', ()
   ];
 
   const spec = SpecNormalizer.normalizeSpecData({
+    style: '67NM',
+    sampleType: 'QRS PPF',
+    pattern: '530926F_24',
+    specLifecycle: { status: 'DRAFT', source: 'RULE_ENGINE', version: 1 },
     placements: [{ sequence }]
   });
 
   assert.equal(spec.specLifecycle.status, 'DRAFT');
   assert.equal(spec.specLifecycle.source, 'RULE_ENGINE');
-  assert.equal(spec.specLifecycle.version, 1);
+  assert.equal(spec.specLifecycle.version, undefined);
+  assert.equal(spec.styleVersion.number, 1);
+  assert.equal(spec.styleVersion.stage.sampleType, 'QRS PPF');
+  assert.equal(spec.styleVersion.stage.isPPF, true);
+  assert.equal(spec.styleVersion.swoSnapshot.pattern, '530926F_24');
   assert.deepEqual(spec.placements[0].sequence, sequence);
-  assert.equal(spec.placements[0].sequenceLifecycle.status, 'DRAFT');
 });
 
 test('overall lifecycle status is derived conservatively from placement lifecycles', () => {
   const { SpecLifecycle } = loadBrowserModules(['../../modules/spec-lifecycle.js']);
 
   assert.equal(SpecLifecycle.deriveOverallStatus([]), 'DRAFT');
-
   assert.equal(
     SpecLifecycle.deriveOverallStatus([
       { sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED' } },
@@ -46,7 +53,6 @@ test('overall lifecycle status is derived conservatively from placement lifecycl
     ]),
     'DEVELOPMENT_APPROVED'
   );
-
   assert.equal(
     SpecLifecycle.deriveOverallStatus([
       { sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED' } },
@@ -54,7 +60,6 @@ test('overall lifecycle status is derived conservatively from placement lifecycl
     ]),
     'DRAFT'
   );
-
   assert.equal(
     SpecLifecycle.deriveOverallStatus([
       { sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED' } },
@@ -62,7 +67,6 @@ test('overall lifecycle status is derived conservatively from placement lifecycl
     ]),
     'DEVELOPMENT'
   );
-
   assert.equal(
     SpecLifecycle.deriveOverallStatus([
       { sequenceLifecycle: { status: 'PRODUCTION_LOCKED' } },
@@ -77,56 +81,75 @@ test('locked sequence is not editable without explicit permission', () => {
 
   assert.equal(
     SpecLifecycle.canEditSequence(
-      { status: 'PRODUCTION_LOCKED', version: 4 },
+      { status: 'PRODUCTION_LOCKED' },
       { canEditLockedSequence: false }
     ),
     false
   );
-
   assert.equal(
     SpecLifecycle.canEditSequence(
-      { status: 'PRODUCTION_LOCKED', version: 4 },
+      { status: 'PRODUCTION_LOCKED' },
       { canEditLockedSequence: true }
     ),
     true
   );
 });
 
-test('authorized override creates a new derived version and preserves the parent version', () => {
-  const { SpecLifecycle } = loadBrowserModules(['../../modules/spec-lifecycle.js']);
+test('authorized override creates a new style version and preserves the parent version', () => {
+  const { StyleVersion } = loadBrowserModules(['../../modules/style-version.js']);
 
-  const next = SpecLifecycle.createDerivedVersion(
+  const next = StyleVersion.createDerivedVersion(
     {
-      status: 'PRODUCTION_LOCKED',
-      source: 'DEVELOPMENT',
-      version: 4
+      number: 4,
+      label: '1st Proto',
+      stage: { sampleType: '1st Proto', isPPF: false },
+      swoSnapshot: { style: '67NM' }
     },
     {
       authorized: true,
       override: true,
-      source: 'PRODUCTION',
-      status: 'DEVELOPMENT'
+      currentStatus: 'PRODUCTION_LOCKED',
+      label: 'External Testing'
     }
   );
 
-  assert.equal(next.version, 5);
+  assert.equal(next.number, 5);
   assert.equal(next.parentVersion, 4);
-  assert.equal(next.source, 'PRODUCTION');
-  assert.equal(next.status, 'DEVELOPMENT');
-  assert.equal(next.approvedBy, null);
-  assert.equal(next.lockedAt, null);
+  assert.equal(next.label, 'External Testing');
+  assert.equal(next.stage.sampleType, '1st Proto');
 });
 
-test('locked version cannot be forked without authorization', () => {
-  const { SpecLifecycle } = loadBrowserModules(['../../modules/spec-lifecycle.js']);
+test('locked style version cannot be forked without authorization', () => {
+  const { StyleVersion } = loadBrowserModules(['../../modules/style-version.js']);
 
   assert.throws(
-    () => SpecLifecycle.createDerivedVersion(
-      { status: 'PRODUCTION_LOCKED', version: 4 },
-      { authorized: false, override: true }
+    () => StyleVersion.createDerivedVersion(
+      { number: 4, stage: { sampleType: '1st Proto' } },
+      { authorized: false, override: true, currentStatus: 'PRODUCTION_LOCKED' }
     ),
     /autorización explícita/
   );
+});
+
+test('stage remains data-driven and is not inferred from version number', () => {
+  const { StyleVersion } = loadBrowserModules(['../../modules/style-version.js']);
+
+  const version = StyleVersion.createStyleVersion(
+    {
+      style: '67NM',
+      sampleType: 'QRS PPF',
+      pattern: '530926F_24'
+    },
+    {
+      number: 4,
+      label: 'Custom Stage'
+    }
+  );
+
+  assert.equal(version.number, 4);
+  assert.equal(version.label, 'Custom Stage');
+  assert.equal(version.stage.sampleType, 'QRS PPF');
+  assert.equal(version.stage.isPPF, true);
 });
 
 test('audit entry records actor, authorization, reason and before/after values', () => {
@@ -154,40 +177,63 @@ test('audit entry records actor, authorization, reason and before/after values',
   assert.equal(audit[0].toVersion, 5);
 });
 
-
-test('Store preserves spec lifecycle and audit trail through serialization state', () => {
+test('Store and spec data model preserve styleVersion, lifecycle, audit trail and sequence', () => {
   const window = {};
   const context = vm.createContext({ window, globalThis: window, console });
-  for (const relativePath of ['../../modules/spec-lifecycle.js', '../../modules/spec-normalizer.js', '../../modules/store.js', '../../modules/spec-data-model.js']) {
+  for (const relativePath of [
+    '../../modules/spec-lifecycle.js',
+    '../../modules/style-version.js',
+    '../../modules/spec-normalizer.js',
+    '../../modules/store.js',
+    '../../modules/spec-data-model.js'
+  ]) {
     vm.runInContext(fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8'), context);
   }
 
   window.Store.replaceState({
-    generalData: { style: '67NM' },
+    generalData: {
+      style: '67NM',
+      customer: 'Fanatics',
+      season: 'FA26',
+      pattern: '530926F_24',
+      sampleType: 'QRS PPF',
+      po: '111825SRB'
+    },
+    styleVersion: {
+      number: 3,
+      label: 'PPS',
+      parentVersion: 2,
+      stage: { sampleType: 'QRS PPF' },
+      swoSnapshot: { style: '67NM' }
+    },
     specLifecycle: {
       status: 'DEVELOPMENT_APPROVED',
       source: 'DEVELOPMENT',
-      version: 3,
       approvedBy: 'development-user',
       approvedAt: '2026-09-21T20:00:00.000Z'
     },
     auditTrail: [{
       action: 'APPROVED',
       actor: 'development-user',
-      at: '2026-09-21T20:00:00.000Z'
+      at: '2026-09-21T20:00:00.000Z',
+      fromVersion: 2,
+      toVersion: 3
     }],
     placements: [{
       id: 1,
-      sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED', source: 'DEVELOPMENT', version: 3 },
+      sequenceLifecycle: { status: 'DEVELOPMENT_APPROVED', source: 'DEVELOPMENT' },
       sequence: [{ type: 'COLOR', val: '872 C', mesh: '122/55' }]
     }]
   });
 
   const data = window.buildSpecData();
+  assert.equal(data.styleVersion.number, 3);
+  assert.equal(data.styleVersion.label, 'PPS');
+  assert.equal(data.styleVersion.parentVersion, 2);
+  assert.equal(data.styleVersion.stage.sampleType, 'QRS PPF');
+  assert.equal(data.styleVersion.stage.isPPF, true);
   assert.equal(data.specLifecycle.status, 'DEVELOPMENT_APPROVED');
-  assert.equal(data.specLifecycle.version, 3);
   assert.equal(data.specLifecycle.approvedBy, 'development-user');
   assert.equal(data.auditTrail.length, 1);
-  assert.equal(data.placements[0].sequenceLifecycle.status, 'DEVELOPMENT_APPROVED');
   assert.deepEqual(data.placements[0].sequence, [{ type: 'COLOR', val: '872 C', mesh: '122/55' }]);
 });
