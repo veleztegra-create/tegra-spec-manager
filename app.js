@@ -2219,8 +2219,7 @@ function movePlacementColorItem(placementId, colorId, direction) {
     if (targetIndex < 0 || targetIndex >= placement.printColors.length) return;
 
     movePlacementColorByIndex(placementId, currentIndex, targetIndex);
-    const placement = placements.find(p => String(p.id) === String(placementId));
-    if (placement?.sequenceMode !== 'MANUAL') {
+    if (placement.sequenceMode !== 'MANUAL') {
         try {
             if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
                 updatePlacementStations(placementId);
