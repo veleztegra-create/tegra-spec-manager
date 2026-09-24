@@ -4151,6 +4151,15 @@ function loadSpecData(data) {
         initializePlacements();
     }
 
+    // Synchronize the rebuilt UI placements back into Store so future
+    // save/export operations serialize the loaded spec instead of an empty array.
+    if (window.Store && typeof Store.replaceState === 'function') {
+        Store.replaceState({
+            ...Store.getState(),
+            placements: placements.map((placement) => JSON.parse(JSON.stringify(placement)))
+        });
+    }
+
     updatePlacementsTabs();
     showPlacement(1);
     updateClientLogo();
