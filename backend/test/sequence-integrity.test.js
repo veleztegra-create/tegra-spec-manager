@@ -200,3 +200,17 @@ test('StyleVersion preserves audit trail while ignoring SWO request dates', () =
   assert.equal(normalized.swoSnapshot.requestDate, undefined);
   assert.equal(normalized.swoSnapshot.needByDate, undefined);
 });
+
+
+test('StyleVersion creation stamps the spec creation date automatically', () => {
+  const { StyleVersion } = loadBrowserModule('../../modules/style-version.js');
+  const before = Date.now();
+  const version = StyleVersion.createStyleVersion({ customer: 'Fanatics', style: 'TEST-STYLE' });
+  const after = Date.now();
+
+  assert.ok(version.createdAt);
+  const created = Date.parse(version.createdAt);
+  assert.ok(created >= before && created <= after);
+  assert.equal(version.updatedAt, null);
+  assert.deepEqual(version.auditTrail, []);
+});
