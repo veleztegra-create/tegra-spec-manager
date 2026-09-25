@@ -89,8 +89,6 @@
             sampleType: submit,
             requestor: requester,
             requestedBy: requester,
-            requestDate: findLabelValue(data, ['REQUEST DATE'], { date: true }),
-            needByDate: findLabelValue(data, ['NEED BY DATE'], { date: true }),
             category: findLabelValue(data, ['CATEGORY']),
             description,
             artworkPath: findLabelValue(data, ['ARTWORK PATH']),
