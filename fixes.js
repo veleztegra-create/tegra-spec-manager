@@ -5,28 +5,45 @@
 
     const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
-    function findLabelValue(data, labels) {
-        const wanted = labels.map((label) => clean(label).toUpperCase());
+    function normalizeLabel(value) {
+        return clean(value)
+            .replace(/[\s:#]+$/g, '')
+            .trim()
+            .toUpperCase();
+    }
+
+    function normalizeDate(value) {
+        if (value instanceof Date && !Number.isNaN(value.getTime())) {
+            return value.toISOString().slice(0, 10);
+        }
+
+        const text = clean(value);
+        const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+        return match ? match[1] : text;
+    }
+
+    function findLabelValue(data, labels, options = {}) {
+        const wanted = labels.map(normalizeLabel);
 
         for (let rowIndex = 0; rowIndex < Math.min(data.length, 40); rowIndex += 1) {
             const row = data[rowIndex];
             if (!Array.isArray(row)) continue;
 
             for (let col = 0; col < row.length; col += 1) {
-                const cell = clean(row[col]);
-                if (!cell) continue;
-
-                const normalized = cell.replace(/\s*[:#]\s*$/, '').trim().toUpperCase();
-                if (!wanted.includes(normalized)) continue;
+                if (normalizeLabel(row[col]) !== wanted.find((label) => label === normalizeLabel(row[col]))) {
+                    continue;
+                }
 
                 const candidates = [
                     row[col + 1],
                     row[col + 2],
-                    rowIndex + 1 < data.length ? data[rowIndex + 1]?.[col] : ''
+                    rowIndex + 1 < data.length ? row[row.length > col ? col : 0] : ''
                 ];
 
-                const value = candidates.map(clean).find(Boolean);
-                if (value) return value;
+                const value = candidates.find((candidate) => clean(candidate));
+                if (value !== undefined && value !== '') {
+                    return options.date ? normalizeDate(value) : clean(value);
+                }
             }
         }
 
@@ -71,8 +88,8 @@
             sampleType: submit,
             requestor: requester,
             requestedBy: requester,
-            requestDate: findLabelValue(data, ['REQUEST DATE']),
-            needByDate: findLabelValue(data, ['NEED BY DATE']),
+            requestDate: findLabelValue(data, ['REQUEST DATE'], { date: true }),
+            needByDate: findLabelValue(data, ['NEED BY DATE'], { date: true }),
             category: findLabelValue(data, ['CATEGORY']),
             description,
             artworkPath: findLabelValue(data, ['ARTWORK PATH']),
@@ -160,11 +177,12 @@
         isFanaticsStrikeOff,
         extractStyleFromDescription,
         normalize,
+        normalizeDate,
+        normalizeLabel,
         mergeIntoStore,
         wrapExcelAutomation
     };
 
-    // fixes.js se carga después de ExcelAutomation, pero antes de DOMContentLoaded.
     wrapExcelAutomation();
 })(typeof window !== 'undefined' ? window : globalThis);
 
