@@ -214,3 +214,34 @@ test('StyleVersion creation stamps the spec creation date automatically', () => 
   assert.equal(version.updatedAt, null);
   assert.deepEqual(version.auditTrail, []);
 });
+
+
+test('StyleVersion derives V2 from V1 without mutating the parent', () => {
+  const { StyleVersion } = loadBrowserModule('../../modules/style-version.js');
+  const v1 = StyleVersion.createStyleVersion({
+    customer: 'Fanatics',
+    style: '67NM-BBGH-81F',
+    sampleType: 'QRS PPF'
+  }, { number: 1, label: 'Strike Off' });
+
+  v1.updatedAt = '2026-09-25T10:00:00.000Z';
+  v1.updatedBy = 'Development';
+  v1.auditTrail = [{ action: 'CHANGE', actor: 'Development', path: 'sequence[4]', oldValue: '2', newValue: '4' }];
+
+  const v2 = StyleVersion.deriveVersionFrom(v1, {
+    label: '2nd Strike Off',
+    stage: { sampleType: '2nd Strike Off', isPPF: true }
+  });
+
+  assert.equal(v1.number, 1);
+  assert.equal(v1.label, 'Strike Off');
+  assert.equal(v1.auditTrail.length, 1);
+  assert.equal(v2.number, 2);
+  assert.equal(v2.parentVersion, 1);
+  assert.equal(v2.label, '2nd Strike Off');
+  assert.equal(v2.stage.sampleType, '2nd Strike Off');
+  assert.equal(v2.createdAt !== null, true);
+  assert.equal(v2.updatedAt, null);
+  assert.equal(v2.updatedBy, null);
+  assert.deepEqual(v2.auditTrail, []);
+});
