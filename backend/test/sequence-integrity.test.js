@@ -141,3 +141,62 @@ test('RulesEngine treats WHITE 10A as explicit reinforcement and does not duplic
     0
   );
 });
+
+
+test('SpecLifecycle records a small sequence change without creating a new version', () => {
+  const { SpecLifecycle } = loadBrowserModule('../../modules/spec-lifecycle.js');
+  const styleVersion = { number: 4, updatedAt: null, updatedBy: null, auditTrail: [] };
+  const entry = SpecLifecycle.createAuditEntry({
+    actor: 'Development',
+    path: 'placements[1].sequence[4].screenLetter',
+    oldValue: '2',
+    newValue: '4',
+    reason: 'Desarrollo solicitó abrir el color 2 en dos pantallas',
+    fromVersion: 4,
+    toVersion: 4,
+    at: '2026-09-25T10:00:00.000Z'
+  });
+
+  SpecLifecycle.touchVersionMetadata(styleVersion, {
+    at: entry.at,
+    actor: entry.actor,
+    entry
+  });
+
+  assert.equal(styleVersion.number, 4);
+  assert.equal(styleVersion.updatedAt, entry.at);
+  assert.equal(styleVersion.updatedBy, 'Development');
+  assert.equal(styleVersion.auditTrail.length, 1);
+  assert.equal(styleVersion.auditTrail[0].oldValue, '2');
+  assert.equal(styleVersion.auditTrail[0].newValue, '4');
+  assert.equal(styleVersion.auditTrail[0].fromVersion, 4);
+  assert.equal(styleVersion.auditTrail[0].toVersion, 4);
+});
+
+test('StyleVersion preserves audit trail while ignoring SWO request dates', () => {
+  const { StyleVersion } = loadBrowserModule('../../modules/style-version.js');
+  const normalized = StyleVersion.normalizeStyleVersion({
+    number: 2,
+    createdAt: '2026-09-25T09:00:00.000Z',
+    updatedAt: '2026-09-25T10:00:00.000Z',
+    updatedBy: 'Development',
+    auditTrail: [{
+      action: 'CHANGE',
+      actor: 'Development',
+      at: '2026-09-25T10:00:00.000Z',
+      path: 'sequence[4].screenLetter',
+      oldValue: '2',
+      newValue: '4'
+    }],
+    swoSnapshot: {
+      requestDate: '2026-09-21',
+      needByDate: '2026-10-04'
+    }
+  });
+
+  assert.equal(normalized.createdAt, '2026-09-25T09:00:00.000Z');
+  assert.equal(normalized.updatedBy, 'Development');
+  assert.equal(normalized.auditTrail.length, 1);
+  assert.equal(normalized.swoSnapshot.requestDate, undefined);
+  assert.equal(normalized.swoSnapshot.needByDate, undefined);
+});
