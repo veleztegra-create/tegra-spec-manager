@@ -14,7 +14,6 @@
     });
 
     const EDITABLE_STATUSES = new Set([STATUS.DRAFT, STATUS.DEVELOPMENT]);
-    const LOCKED_STATUSES = new Set([STATUS.DEVELOPMENT_APPROVED, STATUS.PRODUCTION_LOCKED]);
 
     function normalizeLifecycle(value = {}) {
         return {
@@ -46,6 +45,22 @@
         return Array.isArray(entries) ? entries.map(normalizeAuditEntry) : [];
     }
 
+    function createAuditEntry(options = {}) {
+        return normalizeAuditEntry({
+            id: options.id || null,
+            action: options.action || 'CHANGE',
+            actor: options.actor || null,
+            authorizedBy: options.authorizedBy || null,
+            reason: options.reason || '',
+            at: options.at || new Date().toISOString(),
+            path: options.path || null,
+            oldValue: options.oldValue,
+            newValue: options.newValue,
+            fromVersion: options.fromVersion ?? null,
+            toVersion: options.toVersion ?? null
+        });
+    }
+
     function canEditSequence(lifecycle = {}, permission = {}) {
         const normalized = normalizeLifecycle(lifecycle);
         if (EDITABLE_STATUSES.has(normalized.status)) return true;
@@ -69,8 +84,6 @@
 
         if (statuses.includes(STATUS.DEVELOPMENT)) return STATUS.DEVELOPMENT;
 
-        // A placement still in DRAFT means the complete spec is not ready
-        // for Development approval, even if another placement is already approved.
         return STATUS.DRAFT;
     }
 
@@ -96,6 +109,7 @@
         normalizeLifecycle,
         normalizeAuditEntry,
         normalizeAuditTrail,
+        createAuditEntry,
         canEditSequence,
         deriveOverallStatus,
         appendAuditEntry
