@@ -99,7 +99,7 @@
             parentVersion: source.number,
             stage: options.stage || source.stage,
             swoSnapshot: options.swoSnapshot || source.swoSnapshot,
-            createdAt: options.createdAt || null,
+            createdAt: options.createdAt || new Date().toISOString(),
             updatedAt: options.updatedAt || null,
             updatedBy: options.updatedBy || null,
             auditTrail: []
@@ -113,7 +113,7 @@
             parentVersion: options.parentVersion ?? null,
             stage: options.stage,
             swoSnapshot: generalData,
-            createdAt: options.createdAt,
+            createdAt: options.createdAt || new Date().toISOString(),
             updatedAt: options.updatedAt,
             updatedBy: options.updatedBy
         }, generalData);
