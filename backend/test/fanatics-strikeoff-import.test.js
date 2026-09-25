@@ -70,6 +70,7 @@ test('Fanatics Strike Off SWO format is normalized without creating screen-print
 
   assert.equal(normalized.sourceFormat, 'FANATICS_STRIKE_OFF');
   assert.equal(normalized.customer, 'Fanatics');
+  assert.equal(normalized.team, 'LAC');
   assert.equal(normalized.style, '37NM-0N4A-97F');
   assert.equal(normalized.colorway, 'Rivalry');
   assert.equal(normalized.po, '210926SCA');
@@ -80,7 +81,22 @@ test('Fanatics Strike Off SWO format is normalized without creating screen-print
   assert.equal(normalized.needByDate, '2026-10-04');
   assert.equal(normalized.category, 'NFL - Limited');
   assert.equal(normalized.swoSnapshot.description, strikeOffRows[8][1]);
+  assert.equal(normalized.pattern, '');
+  assert.equal(normalized.baseSize, '');
   assert.deepEqual(normalized.autoPlacements, []);
+});
+
+test('Fanatics Strike Off dates keep the local Excel calendar date', () => {
+  const window = loadFixes();
+  const rows = strikeOffRows.map((row) => [...row]);
+
+  rows[2][1] = new Date(2026, 8, 21);
+  rows[6][1] = new Date(2026, 9, 4);
+
+  const normalized = window.FanaticsStrikeOffNormalizer.normalize(rows);
+
+  assert.equal(normalized.requestDate, '2026-09-21');
+  assert.equal(normalized.needByDate, '2026-10-04');
 });
 
 test('Fanatics Strike Off style extraction only applies to the recognized format', () => {
@@ -150,6 +166,8 @@ test('ExcelAutomation wrapper enriches the imported Strike Off result and preser
   assert.equal(result.style, '37NM-0N4A-97F');
   assert.equal(result.sampleType, '1st Strike Off');
   assert.equal(result.requestor, 'Sindy Castro');
+  assert.equal(result.pattern, '');
+  assert.equal(result.baseSize, '');
   assert.deepEqual(result.autoPlacements, []);
   assert.equal(
     window.Store.state.styleVersion.swoSnapshot.sourceFormat,
