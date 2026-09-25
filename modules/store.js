@@ -32,7 +32,11 @@
                 isPPF: false
             },
             swoSnapshot: {},
-            createdAt: null
+            // Creation/update metadata belongs to the spec/version,
+            // not to the SWO request dates.
+            createdAt: null,
+            updatedAt: null,
+            updatedBy: null
         },
         auditTrail: []
     };
@@ -164,7 +168,7 @@
 
         redo() {
             if (future.length === 0) return;
-            // Save current state into history for undo
+            // Save current state into history for redo
             history.push(safeClone(rawState));
             // Pop first future state 
             rawState = future.pop();
