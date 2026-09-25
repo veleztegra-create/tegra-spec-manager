@@ -77,16 +77,16 @@ test('Fanatics Strike Off SWO format is normalized without creating screen-print
   assert.equal(normalized.season, 'FA27');
   assert.equal(normalized.sampleType, '1st Strike Off');
   assert.equal(normalized.requestor, 'Sindy Castro');
-  assert.equal(normalized.requestDate, '2026-09-21');
-  assert.equal(normalized.needByDate, '2026-10-04');
   assert.equal(normalized.category, 'NFL - Limited');
   assert.equal(normalized.swoSnapshot.description, strikeOffRows[8][1]);
   assert.equal(normalized.pattern, '');
   assert.equal(normalized.baseSize, '');
+  assert.equal(normalized.requestDate, undefined);
+  assert.equal(normalized.needByDate, undefined);
   assert.deepEqual(normalized.autoPlacements, []);
 });
 
-test('Fanatics Strike Off dates keep the local Excel calendar date', () => {
+test('Fanatics Strike Off source dates are ignored as spec dates', () => {
   const window = loadFixes();
   const rows = strikeOffRows.map((row) => [...row]);
 
@@ -95,8 +95,9 @@ test('Fanatics Strike Off dates keep the local Excel calendar date', () => {
 
   const normalized = window.FanaticsStrikeOffNormalizer.normalize(rows);
 
-  assert.equal(normalized.requestDate, '2026-09-21');
-  assert.equal(normalized.needByDate, '2026-10-04');
+  assert.equal(normalized.swoSnapshot.requestDate, undefined);
+  assert.equal(normalized.swoSnapshot.needByDate, undefined);
+  assert.equal(normalized.swoSnapshot.specDate, undefined);
 });
 
 test('Fanatics Strike Off style extraction only applies to the recognized format', () => {
@@ -118,7 +119,7 @@ test('Fanatics Strike Off style extraction only applies to the recognized format
   );
 });
 
-test('StyleVersion preserves extended SWO metadata used by Strike Off imports', () => {
+test('StyleVersion tracks spec creation/update metadata separately from SWO dates', () => {
   const window = {};
   const context = vm.createContext({ window, globalThis: window, console });
   vm.runInContext(
@@ -129,19 +130,21 @@ test('StyleVersion preserves extended SWO metadata used by Strike Off imports', 
   const version = window.StyleVersion.normalizeStyleVersion({
     number: 1,
     stage: { sampleType: '1st Strike Off', isPPF: false },
+    createdAt: '2026-09-24T10:00:00.000Z',
+    updatedAt: '2026-09-24T11:30:00.000Z',
+    updatedBy: 'Elmer Velez',
     swoSnapshot: {
-      sourceFormat: 'FANATICS_STRIKE_OFF',
-      requestDate: '2026-09-21',
-      needByDate: '2026-10-04',
-      category: 'NFL - Limited'
+      sourceFormat: 'FANATICS_STRIKE_OFF'
     }
   });
 
   assert.equal(version.stage.sampleType, '1st Strike Off');
   assert.equal(version.swoSnapshot.sourceFormat, 'FANATICS_STRIKE_OFF');
-  assert.equal(version.swoSnapshot.requestDate, '2026-09-21');
-  assert.equal(version.swoSnapshot.needByDate, '2026-10-04');
-  assert.equal(version.swoSnapshot.category, 'NFL - Limited');
+  assert.equal(version.swoSnapshot.requestDate, undefined);
+  assert.equal(version.swoSnapshot.needByDate, undefined);
+  assert.equal(version.createdAt, '2026-09-24T10:00:00.000Z');
+  assert.equal(version.updatedAt, '2026-09-24T11:30:00.000Z');
+  assert.equal(version.updatedBy, 'Elmer Velez');
 });
 
 test('ExcelAutomation wrapper enriches the imported Strike Off result and preserves zero auto placements', () => {
@@ -168,7 +171,7 @@ test('ExcelAutomation wrapper enriches the imported Strike Off result and preser
   assert.equal(result.requestor, 'Sindy Castro');
   assert.equal(result.pattern, '');
   assert.equal(result.baseSize, '');
-  assert.deepEqual(result.autoPlacements, []);
+  assert.equal(result.autoPlacements.length, 0);
   assert.equal(
     window.Store.state.styleVersion.swoSnapshot.sourceFormat,
     'FANATICS_STRIKE_OFF'
