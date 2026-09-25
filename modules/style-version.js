@@ -93,17 +93,23 @@
             throw new Error('No se puede crear una nueva versión desde un estado bloqueado sin autorización explícita.');
         }
 
-        return normalizeStyleVersion({
+        const derived = normalizeStyleVersion({
             number: nextVersion(source),
             label: options.label ?? '',
             parentVersion: source.number,
             stage: options.stage || source.stage,
             swoSnapshot: options.swoSnapshot || source.swoSnapshot,
             createdAt: options.createdAt || new Date().toISOString(),
-            updatedAt: options.updatedAt || null,
-            updatedBy: options.updatedBy || null,
+            updatedAt: null,
+            updatedBy: null,
             auditTrail: []
         }, options.swoSnapshot || source.swoSnapshot);
+
+        return derived;
+    }
+
+    function deriveVersionFrom(current = {}, options = {}) {
+        return createDerivedVersion(current, options);
     }
 
     function createStyleVersion(generalData = {}, options = {}) {
@@ -126,6 +132,7 @@
         normalizeStyleVersion,
         createStyleVersion,
         createDerivedVersion,
+        deriveVersionFrom,
         nextVersion,
         normalizeStage,
         normalizeSwoSnapshot,
