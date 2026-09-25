@@ -23,21 +23,19 @@
     }
 
     function findLabelValue(data, labels, options = {}) {
-        const wanted = labels.map(normalizeLabel);
+        const wanted = new Set(labels.map(normalizeLabel));
 
         for (let rowIndex = 0; rowIndex < Math.min(data.length, 40); rowIndex += 1) {
             const row = data[rowIndex];
             if (!Array.isArray(row)) continue;
 
             for (let col = 0; col < row.length; col += 1) {
-                if (normalizeLabel(row[col]) !== wanted.find((label) => label === normalizeLabel(row[col]))) {
-                    continue;
-                }
+                if (!wanted.has(normalizeLabel(row[col]))) continue;
 
                 const candidates = [
                     row[col + 1],
                     row[col + 2],
-                    rowIndex + 1 < data.length ? row[row.length > col ? col : 0] : ''
+                    rowIndex + 1 < data.length ? data[rowIndex + 1]?.[col] : ''
                 ];
 
                 const value = candidates.find((candidate) => clean(candidate));
