@@ -36,7 +36,8 @@
             // not to the SWO request dates.
             createdAt: null,
             updatedAt: null,
-            updatedBy: null
+            updatedBy: null,
+            auditTrail: []
         },
         auditTrail: []
     };
