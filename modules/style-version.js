@@ -71,7 +71,12 @@
             createdAt: source.createdAt || null,
             // Updated whenever the spec data is intentionally changed.
             updatedAt: source.updatedAt || null,
-            updatedBy: normalizeActor(source.updatedBy)
+            updatedBy: normalizeActor(source.updatedBy),
+            auditTrail: Array.isArray(source.auditTrail)
+                ? (global.SpecLifecycle?.normalizeAuditTrail
+                    ? global.SpecLifecycle.normalizeAuditTrail(source.auditTrail)
+                    : source.auditTrail.slice())
+                : []
         };
     }
 
@@ -96,7 +101,8 @@
             swoSnapshot: options.swoSnapshot || source.swoSnapshot,
             createdAt: options.createdAt || null,
             updatedAt: options.updatedAt || null,
-            updatedBy: options.updatedBy || null
+            updatedBy: options.updatedBy || null,
+            auditTrail: []
         }, options.swoSnapshot || source.swoSnapshot);
     }
 
