@@ -3,13 +3,38 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-function loadFixes() {
-  const window = {};
+function loadFixes(overrides = {}) {
+  const window = {
+    ExcelAutomation: {
+      processExcelWithAutomation() {
+        return { sourceSheet: 'SWO', autoPlacements: [] };
+      }
+    },
+    XLSX: {
+      utils: {
+        sheet_to_json() {
+          return strikeOffRows;
+        }
+      }
+    },
+    Store: {
+      state: {
+        generalData: {},
+        styleVersion: { number: 1, swoSnapshot: {} }
+      }
+    },
+    ...overrides
+  };
+
   const document = {
     addEventListener() {}
   };
+
   const context = vm.createContext({ window, globalThis: window, document, console });
-  vm.runInContext(fs.readFileSync(new URL('../../fixes.js', import.meta.url), 'utf8'), context);
+  vm.runInContext(
+    fs.readFileSync(new URL('../../fixes.js', import.meta.url), 'utf8'),
+    context
+  );
   return window;
 }
 
@@ -101,4 +126,33 @@ test('StyleVersion preserves extended SWO metadata used by Strike Off imports', 
   assert.equal(version.swoSnapshot.requestDate, '2026-09-21');
   assert.equal(version.swoSnapshot.needByDate, '2026-10-04');
   assert.equal(version.swoSnapshot.category, 'NFL - Limited');
+});
+
+test('ExcelAutomation wrapper enriches the imported Strike Off result and preserves zero auto placements', () => {
+  const window = loadFixes({
+    StyleVersion: {
+      normalizeStyleVersion(value, generalData) {
+        return {
+          ...value,
+          normalizedWithGeneralData: generalData
+        };
+      }
+    }
+  });
+
+  const result = window.ExcelAutomation.processExcelWithAutomation(
+    {},
+    'SWO',
+    { Sheets: { SWO: {} } }
+  );
+
+  assert.equal(result.sourceFormat, 'FANATICS_STRIKE_OFF');
+  assert.equal(result.style, '37NM-0N4A-97F');
+  assert.equal(result.sampleType, '1st Strike Off');
+  assert.equal(result.requestor, 'Sindy Castro');
+  assert.deepEqual(result.autoPlacements, []);
+  assert.equal(
+    window.Store.state.styleVersion.swoSnapshot.sourceFormat,
+    'FANATICS_STRIKE_OFF'
+  );
 });
