@@ -64,3 +64,24 @@ test('PDF stations consume the existing sequence rather than legacy colors', () 
   assert.equal(JSON.stringify(stations.map((station) => station.screenCombined)), JSON.stringify(['SEQUENCE COLOR', 'FLASH']));
   assert.equal(stations.some((station) => station.screenCombined === 'LEGACY COLOR'), false);
 });
+
+
+test('Fanatics Strike Off normalization ignores SWO request and need-by dates', () => {
+  const { FanaticsStrikeOffNormalizer } = loadBrowserModule('../../fixes.js');
+  const data = [
+    ['Customer:', 'Fanatics', 'Team Name:', 'LAC', 'Request Date:', new Date('2026-09-21')],
+    ['Category:', 'NFL - Limited', 'Colorway:', 'Rivalry', 'Need by Date:', new Date('2026-10-04')],
+    ['Submit #:', '1st Strike Off', 'Requester:', 'Sindy Castro', 'Season:', 'FA27'],
+    ['Description:', '37NM-0N4A-97F Los Angeles Chargers-Rivalry Front and Back Number StrikeOff Twill with HSWB', 'PO #:', '210926SCA'],
+    ['Artwork Path:', 'https://example.com/art']
+  ];
+
+  const normalized = FanaticsStrikeOffNormalizer.normalize(data);
+  assert.equal(normalized.style, '37NM-0N4A-97F');
+  assert.equal(normalized.sampleType, '1st Strike Off');
+  assert.equal(normalized.requestor, 'Sindy Castro');
+  assert.equal(normalized.requestDate, undefined);
+  assert.equal(normalized.needByDate, undefined);
+  assert.equal(normalized.swoSnapshot.requestDate, undefined);
+  assert.equal(normalized.swoSnapshot.needByDate, undefined);
+});
