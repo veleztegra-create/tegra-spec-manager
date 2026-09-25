@@ -5,7 +5,8 @@ import vm from 'node:vm';
 
 function loadBrowserModule(relativePath) {
   const window = {};
-  const context = vm.createContext({ window, globalThis: window, console });
+  const document = { addEventListener() {} };
+  const context = vm.createContext({ window, globalThis: window, console, document });
   vm.runInContext(fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8'), context);
   return window;
 }
