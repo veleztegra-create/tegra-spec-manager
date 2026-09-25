@@ -7,6 +7,11 @@
         return Number.isFinite(number) && number >= 1 ? Math.floor(number) : DEFAULT_VERSION;
     }
 
+    function normalizeActor(value) {
+        const text = String(value ?? '').trim();
+        return text || null;
+    }
+
     function isPPF(sampleType = '', pattern = '') {
         return /PPF/i.test(String(sampleType || '')) || /PPF/i.test(String(pattern || ''));
     }
@@ -43,8 +48,6 @@
             specDate: source.specDate ?? generalData.specDate ?? '',
             requestedBy: source.requestedBy ?? source.requestor ?? generalData.requestedBy ?? generalData.requestor ?? '',
             requestor: source.requestor ?? source.requestedBy ?? generalData.requestor ?? generalData.requestedBy ?? '',
-            requestDate: source.requestDate ?? generalData.requestDate ?? '',
-            needByDate: source.needByDate ?? generalData.needByDate ?? '',
             category: source.category ?? generalData.category ?? '',
             description: source.description ?? generalData.description ?? '',
             artworkPath: source.artworkPath ?? generalData.artworkPath ?? '',
@@ -64,7 +67,11 @@
             parentVersion: source.parentVersion == null ? null : normalizeNumber(source.parentVersion),
             stage,
             swoSnapshot,
-            createdAt: source.createdAt || null
+            // This is the spec/version creation date, not the SWO request date.
+            createdAt: source.createdAt || null,
+            // Updated whenever the spec data is intentionally changed.
+            updatedAt: source.updatedAt || null,
+            updatedBy: normalizeActor(source.updatedBy)
         };
     }
 
@@ -87,7 +94,9 @@
             parentVersion: source.number,
             stage: options.stage || source.stage,
             swoSnapshot: options.swoSnapshot || source.swoSnapshot,
-            createdAt: options.createdAt || null
+            createdAt: options.createdAt || null,
+            updatedAt: options.updatedAt || null,
+            updatedBy: options.updatedBy || null
         }, options.swoSnapshot || source.swoSnapshot);
     }
 
@@ -98,7 +107,9 @@
             parentVersion: options.parentVersion ?? null,
             stage: options.stage,
             swoSnapshot: generalData,
-            createdAt: options.createdAt
+            createdAt: options.createdAt,
+            updatedAt: options.updatedAt,
+            updatedBy: options.updatedBy
         }, generalData);
 
         return normalized;
