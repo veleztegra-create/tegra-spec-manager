@@ -103,6 +103,22 @@
         return next;
     }
 
+    function touchVersionMetadata(styleVersion, options = {}) {
+        const target = styleVersion && typeof styleVersion === 'object' ? styleVersion : {};
+        const at = options.at || new Date().toISOString();
+        target.updatedAt = at;
+        target.updatedBy = options.actor || null;
+        target.auditTrail = appendAuditEntry(target.auditTrail, options.entry || createAuditEntry({
+            actor: options.actor || null,
+            at,
+            path: options.path || null,
+            oldValue: options.oldValue,
+            newValue: options.newValue,
+            reason: options.reason || ''
+        }));
+        return target;
+    }
+
     global.SpecLifecycle = {
         STATUS,
         SOURCE,
@@ -112,6 +128,7 @@
         createAuditEntry,
         canEditSequence,
         deriveOverallStatus,
-        appendAuditEntry
+        appendAuditEntry,
+        touchVersionMetadata
     };
 })(typeof window !== 'undefined' ? window : globalThis);
