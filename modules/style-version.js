@@ -43,6 +43,12 @@
             specDate: source.specDate ?? generalData.specDate ?? '',
             requestedBy: source.requestedBy ?? source.requestor ?? generalData.requestedBy ?? generalData.requestor ?? '',
             requestor: source.requestor ?? source.requestedBy ?? generalData.requestor ?? generalData.requestedBy ?? '',
+            requestDate: source.requestDate ?? generalData.requestDate ?? '',
+            needByDate: source.needByDate ?? generalData.needByDate ?? '',
+            category: source.category ?? generalData.category ?? '',
+            description: source.description ?? generalData.description ?? '',
+            artworkPath: source.artworkPath ?? generalData.artworkPath ?? '',
+            sourceFormat: source.sourceFormat ?? generalData.sourceFormat ?? '',
             processFlags: source.processFlags ?? generalData.processFlags ?? null
         };
     }
