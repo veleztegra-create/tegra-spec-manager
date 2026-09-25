@@ -61,6 +61,22 @@
         });
     }
 
+
+    function createVersionAuditEntry(fromVersion, toVersion, options = {}) {
+        return createAuditEntry({
+            action: 'CREATE_VERSION',
+            actor: options.actor || null,
+            authorizedBy: options.authorizedBy || null,
+            reason: options.reason || 'Nueva versión de Spec',
+            at: options.at,
+            fromVersion,
+            toVersion,
+            oldValue: options.oldValue,
+            newValue: options.newValue,
+            path: options.path || 'styleVersion'
+        });
+    }
+
     function canEditSequence(lifecycle = {}, permission = {}) {
         const normalized = normalizeLifecycle(lifecycle);
         if (EDITABLE_STATUSES.has(normalized.status)) return true;
@@ -126,6 +142,7 @@
         normalizeAuditEntry,
         normalizeAuditTrail,
         createAuditEntry,
+        createVersionAuditEntry,
         canEditSequence,
         deriveOverallStatus,
         appendAuditEntry,
