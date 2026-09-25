@@ -1795,6 +1795,53 @@ function markPlacementSequenceManual(placement) {
     placement.sequenceMode = 'MANUAL';
 }
 
+function getCurrentSpecActor() {
+    const candidates = [
+        typeof window.SpecUser?.getCurrentUser === 'function' ? window.SpecUser.getCurrentUser() : null,
+        window.SpecUser?.currentUser,
+        window.currentSpecUser,
+        window.currentUser,
+        localStorage.getItem('tegra-spec-user')
+    ];
+
+    for (const candidate of candidates) {
+        const value = typeof candidate === 'object' ? (candidate?.name || candidate?.displayName || candidate?.login) : candidate;
+        const normalized = String(value ?? '').trim();
+        if (normalized) return normalized;
+    }
+
+    return null;
+}
+
+function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason = 'Ajuste manual de secuencia', action = 'CHANGE' }) {
+    if (!placement) return null;
+
+    const now = new Date().toISOString();
+    const actor = getCurrentSpecActor();
+    const styleVersion = Store.state.styleVersion || (Store.state.styleVersion = {});
+    const version = styleVersion.number ?? null;
+    const entry = window.SpecLifecycle?.createAuditEntry
+        ? window.SpecLifecycle.createAuditEntry({
+            action, actor, at: now, path, oldValue, newValue, reason,
+            fromVersion: version, toVersion: version
+        })
+        : { action, actor, at: now, path, oldValue, newValue, reason, fromVersion: version, toVersion: version };
+
+    if (window.SpecLifecycle?.touchVersionMetadata) {
+        window.SpecLifecycle.touchVersionMetadata(styleVersion, { at: now, actor, entry });
+    } else {
+        styleVersion.updatedAt = now;
+        styleVersion.updatedBy = actor;
+        styleVersion.auditTrail = Array.isArray(styleVersion.auditTrail) ? [...styleVersion.auditTrail, entry] : [entry];
+    }
+
+    Store.state.auditTrail = Array.isArray(Store.state.auditTrail)
+        ? [...Store.state.auditTrail, entry]
+        : [entry];
+
+    return entry;
+}
+
 function generatePlacementSequenceFromRules(placementId, options = {}) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !window.RulesEngine?.generarSecuencia) return false;
@@ -2592,13 +2639,22 @@ function updatePlacementSequenceItem(placementId, index, field, value) {
     const item = placement.sequence[index];
     if (!item) return;
 
-    item[field] = field === 'screenLetter'
+    const previousValue = item[field];
+    const nextValue = field === 'screenLetter'
         ? String(value || '').toUpperCase()
         : value;
+    item[field] = nextValue;
+
+    recordSpecSequenceChange({
+        placement,
+        path: `placements[${placementId}].sequence[${index}].${field}`,
+        oldValue: previousValue,
+        newValue: nextValue
+    });
 
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
-    showStatus('✏️ Secuencia marcada como ajustada manualmente', 'success');
+    showStatus('✏️ Cambio de secuencia registrado', 'success');
 }
 
 function movePlacementSequenceItem(placementId, index, direction) {
@@ -2611,9 +2667,17 @@ function movePlacementSequenceItem(placementId, index, direction) {
     const [moved] = placement.sequence.splice(index, 1);
     placement.sequence.splice(target, 0, moved);
 
+    recordSpecSequenceChange({
+        placement,
+        path: `placements[${placementId}].sequence.order`,
+        oldValue: { from: index, to: target, item: { ...moved } },
+        newValue: { from: target, to: target, item: { ...moved } },
+        reason: 'Cambio de orden de producción'
+    });
+
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
-    showStatus('↕️ Orden de producción ajustado manualmente', 'success');
+    showStatus('↕️ Cambio de orden registrado', 'success');
 }
 
 function removePlacementSequenceItem(placementId, index) {
@@ -2624,9 +2688,19 @@ function removePlacementSequenceItem(placementId, index) {
     if (!item) return;
 
     placement.sequence.splice(index, 1);
+
+    recordSpecSequenceChange({
+        placement,
+        path: `placements[${placementId}].sequence[${index}]`,
+        oldValue: { ...item },
+        newValue: null,
+        reason: 'Eliminación manual de paso de producción',
+        action: 'DELETE'
+    });
+
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
-    showStatus(`🗑️ Paso ${item.type || item.tipo || 'de producción'} eliminado manualmente`, 'success');
+    showStatus('🗑️ Cambio de secuencia registrado', 'success');
 }
 
 function addPlacementSequenceScreen(placementId) {
@@ -2651,7 +2725,7 @@ function addPlacementSequenceScreen(placementId) {
         else break;
     }
 
-    placement.sequence.splice(insertAt, 0,
+    const addedSteps = [
         {
             id: idBase,
             type: 'COLOR',
@@ -2676,11 +2750,22 @@ function addPlacementSequenceScreen(placementId) {
             mesh: '-',
             additives: ''
         }
-    );
+    ];
+
+    placement.sequence.splice(insertAt, 0, ...addedSteps);
+
+    recordSpecSequenceChange({
+        placement,
+        path: `placements[${placementId}].sequence[${insertAt}]`,
+        oldValue: null,
+        newValue: addedSteps.map(step => ({ ...step })),
+        reason: 'Nueva pantalla agregada manualmente',
+        action: 'ADD'
+    });
 
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
-    showStatus('➕ Pantalla agregada manualmente a la secuencia', 'success');
+    showStatus('➕ Pantalla agregada y cambio registrado', 'success');
 }
 
 function renderPlacementStationsTable(placementId, data) {
