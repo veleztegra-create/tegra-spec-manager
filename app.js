@@ -3884,6 +3884,7 @@ function buildRemoteSpecPayload(data = {}) {
         generalData: getSpecGeneralData(data),
         placements: Array.isArray(data.placements) ? data.placements : [],
         styleVersion: data.styleVersion || null,
+        versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],
         specLifecycle: data.specLifecycle || null,
         auditTrail: Array.isArray(data.auditTrail) ? data.auditTrail : [],
         meta: {
@@ -4189,6 +4190,7 @@ function loadSpecData(data) {
             ...Store.getState(),
             specLifecycle: data.specLifecycle,
             styleVersion: data.styleVersion,
+            versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],
             auditTrail: data.auditTrail,
             placements: []
         });
@@ -4419,6 +4421,56 @@ function collectData() {
     return { placements: [] };
 }
 
+/**
+ * Creates a new global style version.
+ *
+ * Version history is immutable: the current version is archived as a complete
+ * snapshot before the new version becomes active. SAMPLE TYPE is the stage
+ * authority; parentVersion records lineage/reference only.
+ */
+function createNewStyleVersion(options = {}) {
+    if (!window.Store || !window.StyleVersion) {
+        throw new Error('Store y StyleVersion deben estar disponibles para crear una versión.');
+    }
+
+    const currentState = Store.getState();
+    const currentVersion = window.StyleVersion.normalizeStyleVersion(
+        currentState.styleVersion || {},
+        currentState.generalData || {}
+    );
+    const actor = options.actor || getCurrentSpecActor();
+    const now = options.at || new Date().toISOString();
+
+    const archive = window.StyleVersion.createVersionArchive(currentState);
+    const nextState = window.StyleVersion.createDerivedState(currentState, {
+        ...options,
+        createdAt: options.createdAt || now
+    });
+
+    const nextNumber = nextState.styleVersion.number;
+    const versionEntry = window.SpecLifecycle?.createVersionAuditEntry
+        ? window.SpecLifecycle.createVersionAuditEntry(currentVersion.number, nextNumber, {
+            actor,
+            authorizedBy: options.authorizedBy || null,
+            reason: options.reason || 'Nueva versión de Spec',
+            at: now,
+            oldValue: { version: currentVersion.number, label: currentVersion.label },
+            newValue: { version: nextNumber, label: nextState.styleVersion.label }
+        })
+        : null;
+
+    nextState.styleVersion.auditTrail = versionEntry ? [versionEntry] : [];
+    nextState.auditTrail = versionEntry ? [versionEntry] : [];
+    nextState.versionHistory = [
+        ...(Array.isArray(currentState.versionHistory) ? currentState.versionHistory : []),
+        archive
+    ];
+
+    Store.replaceState(nextState);
+
+    return Store.getState();
+}
+
 // =====================================================
 // FUNCIONES DE LIMPIEZA
 // =====================================================
@@ -4485,6 +4537,7 @@ function clearForm() {
                         swoSnapshot: {},
                         createdAt: null
                     },
+                versionHistory: [],
                 auditTrail: []
             });
         }
