@@ -69,6 +69,21 @@
     function normalizeSpecData(spec = {}) {
         const placements = Array.isArray(spec.placements) ? spec.placements : [];
 
+        const generalData = spec.generalData && typeof spec.generalData === 'object'
+            ? spec.generalData
+            : spec;
+
+        const versionHistory = Array.isArray(spec.versionHistory)
+            ? spec.versionHistory.map((entry) => ({
+                ...entry,
+                styleVersion: normalizeStyleVersion(entry.styleVersion || {}, entry.generalData || generalData),
+                placements: Array.isArray(entry.placements)
+                    ? entry.placements.map(normalizePlacement)
+                    : [],
+                auditTrail: normalizeAuditTrail(entry.auditTrail)
+            }))
+            : [];
+
         return {
             ...spec,
             specLifecycle: normalizeLifecycle(spec.specLifecycle),
@@ -77,8 +92,9 @@
                     number: spec.specLifecycle?.version,
                     parentVersion: spec.specLifecycle?.parentVersion
                 },
-                spec.generalData && typeof spec.generalData === 'object' ? spec.generalData : spec
+                generalData
             ),
+            versionHistory,
             auditTrail: normalizeAuditTrail(spec.auditTrail),
             placements: placements.map(normalizePlacement)
         };
