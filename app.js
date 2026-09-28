@@ -2012,7 +2012,45 @@ function renderPlacementColors(placementId) {
         return;
     }
 
-    container.innerHTML = '';
+    const productionEvaluation = window.ProductionConditionEngine?.evaluatePlacement
+        ? window.ProductionConditionEngine.evaluatePlacement({ designColors: placement.printColors })
+        : null;
+
+    const matchedConditions = productionEvaluation?.matchedConditions || [];
+    const uniqueConditions = [];
+    matchedConditions.forEach(condition => {
+        const key = condition.id || condition.color;
+        if (!uniqueConditions.some(existing => (existing.id || existing.color) === key)) {
+            uniqueConditions.push(condition);
+        }
+    });
+
+    const allColorsApproved = productionEvaluation?.directToBlocker === true;
+    const productionAlert = uniqueConditions.length > 0
+        ? `
+            <div class="production-condition-alert" style="
+                margin: 0 0 12px 0;
+                padding: 12px 14px;
+                border-radius: 8px;
+                border-left: 4px solid ${allColorsApproved ? '#198754' : '#d39e00'};
+                background: ${allColorsApproved ? 'rgba(25,135,84,.10)' : 'rgba(211,158,0,.10)'};
+            ">
+                <div style="font-weight:700; margin-bottom:6px;">
+                    ${allColorsApproved ? '🟢 CONDICIÓN DE PRODUCCIÓN APROBADA' : '🟡 RECUERDA — CONDICIÓN DE PRODUCCIÓN'}
+                </div>
+                ${uniqueConditions.map(condition => `
+                    <div style="font-size:.86rem; margin-top:4px;">
+                        ${condition.message || ('Color aprobado: ' + condition.color)}
+                    </div>
+                `).join('')}
+                ${allColorsApproved
+                    ? '<div style="font-size:.78rem; margin-top:7px; opacity:.8;">Todos los colores actuales cumplen la condición DIRECT_TO_BLOCKER. La propuesta automática no agrega White Base.</div>'
+                    : '<div style="font-size:.78rem; margin-top:7px; opacity:.8;">La condición aplica a parte de los colores actuales. El motor no eliminará White Base automáticamente.</div>'}
+            </div>
+        `
+        : '';
+
+    container.innerHTML = productionAlert;
 
     placement.printColors.forEach(color => {
         let badgeClass = 'badge-color';
