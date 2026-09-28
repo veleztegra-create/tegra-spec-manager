@@ -236,6 +236,9 @@ function showTab(tabName) {
     if (tabName === 'color-lab' && window.initColorLab) {
         window.initColorLab();
     }
+    if (tabName === 'production-conditions' && window.ProductionConditionsUI) {
+        window.ProductionConditionsUI.initialize();
+    }
     if (tabName === 'spec-creator') {
         if (placements.length === 0 && document.getElementById('placements-container')) {
             initializePlacements();
