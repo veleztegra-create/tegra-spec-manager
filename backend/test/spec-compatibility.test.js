@@ -120,3 +120,78 @@ test('Fanatics Strike Off normalization ignores SWO request and need-by dates', 
   assert.equal(normalized.swoSnapshot.requestDate, undefined);
   assert.equal(normalized.swoSnapshot.needByDate, undefined);
 });
+
+
+test('style version derivation archives lineage metadata without overwriting the previous version', () => {
+  const { StyleVersion } = loadBrowserModule('../../modules/style-version.js');
+  const current = StyleVersion.createStyleVersion({
+    customer: 'Fanatics',
+    style: '67NM',
+    sampleType: '1st Strike Off',
+    pattern: '530926F_24',
+    po: '111825SRB'
+  }, {
+    label: 'Strike Off'
+  });
+
+  const next = StyleVersion.createDerivedState({
+    generalData: {
+      customer: 'Fanatics',
+      style: '67NM',
+      sampleType: '1st Strike Off',
+      pattern: '530926F_24',
+      po: '111825SRB'
+    },
+    styleVersion: current,
+    placements: [],
+    versionHistory: []
+  }, {
+    label: '2nd Strike Off',
+    stage: { sampleType: '2nd Strike Off', isPPF: false },
+    swoSnapshot: {
+      customer: 'Fanatics',
+      style: '67NM',
+      sampleType: '2nd Strike Off',
+      pattern: '530926F_24',
+      po: '111825SRB'
+    }
+  });
+
+  assert.equal(current.number, 1);
+  assert.equal(current.label, 'Strike Off');
+  assert.equal(next.styleVersion.number, 2);
+  assert.equal(next.styleVersion.label, '2nd Strike Off');
+  assert.equal(next.styleVersion.parentVersion, 1);
+  assert.equal(next.styleVersion.stage.sampleType, '2nd Strike Off');
+  assert.equal(next.specLifecycle.status, 'DRAFT');
+});
+
+test('version history normalizes archived snapshots and keeps them separate from the active version', () => {
+  const { SpecNormalizer } = loadBrowserModule('../../modules/spec-normalizer.js');
+  const normalized = SpecNormalizer.normalizeSpecData({
+    styleVersion: {
+      number: 3,
+      label: 'PPS',
+      stage: { sampleType: 'PPS', isPPF: false },
+      swoSnapshot: { style: '67NM' }
+    },
+    versionHistory: [{
+      version: 1,
+      label: 'Strike Off',
+      styleVersion: {
+        number: 1,
+        label: 'Strike Off',
+        stage: { sampleType: '1st Strike Off', isPPF: false },
+        swoSnapshot: { style: '67NM', sampleType: '1st Strike Off' }
+      },
+      generalData: { style: '67NM', sampleType: '1st Strike Off' },
+      placements: [{ id: 1, sequence: [{ type: 'COLOR', val: 'RED' }] }]
+    }]
+  });
+
+  assert.equal(normalized.styleVersion.number, 3);
+  assert.equal(normalized.versionHistory.length, 1);
+  assert.equal(normalized.versionHistory[0].styleVersion.number, 1);
+  assert.equal(normalized.versionHistory[0].styleVersion.label, 'Strike Off');
+  assert.equal(normalized.versionHistory[0].placements[0].sequence[0].val, 'RED');
+});
