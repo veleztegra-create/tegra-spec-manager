@@ -4,14 +4,12 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 function loadProductionConditionEngine() {
-  const window = {
-    TegraProductionConditions: JSON.parse(
-      fs.readFileSync(new URL('../../config/production-conditions.js', import.meta.url), 'utf8')
-        .replace(/^.*?window\.TegraProductionConditions\s*=\s*/, '')
-        .replace(/;\s*$/, '')
-    )
-  };
+  const window = {};
   const context = vm.createContext({ window, globalThis: window, console });
+  vm.runInContext(
+    fs.readFileSync(new URL('../../config/production-conditions.js', import.meta.url), 'utf8'),
+    context
+  );
   vm.runInContext(
     fs.readFileSync(new URL('../../core/production-condition-engine.js', import.meta.url), 'utf8'),
     context
