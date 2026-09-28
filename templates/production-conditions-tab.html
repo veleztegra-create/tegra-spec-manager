@@ -1,0 +1,59 @@
+<div class="section-header">
+    <div>
+        <h2><i class="fas fa-shield-halved"></i> Production Conditions</h2>
+        <p>Conocimiento de producción configurable sin modificar el Rules Engine.</p>
+    </div>
+    <div class="button-group">
+        <button class="btn btn-outline" onclick="ProductionConditionsUI.exportData()">
+            <i class="fas fa-download"></i> Exportar
+        </button>
+        <button class="btn btn-outline" onclick="document.getElementById('production-conditions-import').click()">
+            <i class="fas fa-upload"></i> Importar
+        </button>
+        <input id="production-conditions-import" type="file" accept=".json,application/json" style="display:none"
+            onchange="ProductionConditionsUI.importData(this.files[0]); this.value='';">
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="production-condition-editor">
+            <div class="form-group">
+                <label>Color / Pantone</label>
+                <input id="pc-color" class="form-control" placeholder="Ej. 41L MARINE">
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="pc-type" class="form-control">
+                    <option value="DIRECT_TO_BLOCKER">DIRECT TO BLOCKER</option>
+                    <option value="PRODUCTION_REMINDER">PRODUCTION REMINDER</option>
+                    <option value="REVIEW_REQUIRED">REVIEW REQUIRED</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Severidad</label>
+                <select id="pc-severity" class="form-control">
+                    <option value="INFO">INFO</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="BLOCKER">BLOCKER</option>
+                </select>
+            </div>
+            <div class="form-group production-condition-message">
+                <label>Mensaje para producción / Development</label>
+                <input id="pc-message" class="form-control"
+                    placeholder="Ej. RECUERDA: El color 41L MARINE ha sido aprobado directo a BLOCKER CHT.">
+            </div>
+            <div class="form-group production-condition-notes">
+                <label>Notas / evidencia</label>
+                <input id="pc-notes" class="form-control" placeholder="Referencia, aprobación, observación, etc.">
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="ProductionConditionsUI.add()">
+                    <i class="fas fa-plus"></i> Agregar condición
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="production-conditions-list"></div>
