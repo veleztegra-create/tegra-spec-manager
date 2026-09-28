@@ -67,6 +67,40 @@ test('PDF stations consume the existing sequence rather than legacy colors', () 
 });
 
 
+test('PDF renderer exposes placement print parameters separately from sequence', () => {
+  const { PdfSpecRenderer } = loadBrowserModule('../../features/pdf-generator-mejorado.js');
+  const placement = {
+    inkType: 'WATER',
+    durometer: '65',
+    strokes: '3',
+    angle: '20',
+    pressure: '45',
+    speed: '30',
+    additives: '3% CL500',
+    additivesBlocker: '10% V2 Neutral',
+    additivesWhiteBase: '0.25% Thickener',
+    sequence: [{ type: 'COLOR', val: 'RED', mesh: '157/48' }]
+  };
+
+  const params = PdfSpecRenderer.getPrintParameters(placement);
+  assert.deepEqual(params, {
+    durometer: '65',
+    strokes: '3',
+    angle: '20',
+    pressure: '45',
+    speed: '30',
+    additives: '3% CL500',
+    additivesBlocker: '10% V2 Neutral',
+    additivesWhiteBase: '0.25% Thickener'
+  });
+
+  const html = PdfSpecRenderer.buildPrintParametersHtml(placement);
+  assert.match(html, /Parámetros de Impresión/);
+  assert.match(html, /3% CL500/);
+  assert.match(html, /10% V2 Neutral/);
+  assert.match(html, /0\.25% Thickener/);
+});
+
 test('Fanatics Strike Off normalization ignores SWO request and need-by dates', () => {
   const { FanaticsStrikeOffNormalizer } = loadBrowserModule('../../fixes.js');
   const data = [
