@@ -163,6 +163,7 @@ test('style version derivation archives lineage metadata without overwriting the
   assert.equal(next.styleVersion.label, '2nd Strike Off');
   assert.equal(next.styleVersion.parentVersion, 1);
   assert.equal(next.styleVersion.stage.sampleType, '2nd Strike Off');
+  assert.equal(next.generalData.sampleType, '2nd Strike Off');
   assert.equal(next.specLifecycle.status, 'DRAFT');
 });
 
