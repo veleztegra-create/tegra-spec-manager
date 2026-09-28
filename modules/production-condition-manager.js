@@ -69,7 +69,14 @@ window.ProductionConditionManager = (function () {
 
     function upsert(input) {
         const conditions = load();
-        const condition = createCondition(input);
+        const existing = conditions.find(item => item.id === input.id);
+
+        const condition = createCondition({
+            ...(existing || {}),
+            ...input,
+            createdAt: input.createdAt || existing?.createdAt || undefined
+        });
+
         const index = conditions.findIndex(item => item.id === condition.id);
 
         if (index >= 0) conditions[index] = condition;
