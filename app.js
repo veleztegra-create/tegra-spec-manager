@@ -4447,6 +4447,18 @@ function createNewStyleVersion(options = {}) {
         createdAt: options.createdAt || now
     });
 
+    // The new SWO is authoritative for the new version. Only fields explicitly
+    // supplied by the new SWO/options are carried into generalData.
+    const nextSwo = nextState.styleVersion.swoSnapshot || {};
+    nextState.generalData = {
+        ...(currentState.generalData || {}),
+        ...(options.generalData || {}),
+        ...Object.fromEntries(
+            Object.entries(nextSwo).filter(([, value]) => value !== undefined && value !== null && value !== '')
+        )
+    };
+    nextState.generalData.sampleType = nextState.styleVersion.stage.sampleType || nextState.generalData.sampleType || '';
+
     const nextNumber = nextState.styleVersion.number;
     const versionEntry = window.SpecLifecycle?.createVersionAuditEntry
         ? window.SpecLifecycle.createVersionAuditEntry(currentVersion.number, nextNumber, {
