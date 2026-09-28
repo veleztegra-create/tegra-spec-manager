@@ -39,6 +39,9 @@
             updatedBy: null,
             auditTrail: []
         },
+        // Immutable snapshots of previous style versions.
+        // The active styleVersion is always kept separately above.
+        versionHistory: [],
         auditTrail: []
     };
 
