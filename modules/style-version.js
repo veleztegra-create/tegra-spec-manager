@@ -84,6 +84,62 @@
         return normalizeNumber(value.number ?? value.version) + 1;
     }
 
+    function createVersionArchive(state = {}) {
+        const source = state && typeof state === 'object' ? state : {};
+        const generalData = source.generalData && typeof source.generalData === 'object'
+            ? { ...source.generalData }
+            : {};
+        const styleVersion = normalizeStyleVersion(
+            source.styleVersion || {},
+            generalData
+        );
+
+        return {
+            version: styleVersion.number,
+            label: styleVersion.label,
+            styleVersion,
+            generalData,
+            placements: Array.isArray(source.placements)
+                ? source.placements.map((placement) => JSON.parse(JSON.stringify(placement)))
+                : [],
+            specLifecycle: source.specLifecycle
+                ? JSON.parse(JSON.stringify(source.specLifecycle))
+                : null,
+            auditTrail: Array.isArray(source.auditTrail)
+                ? JSON.parse(JSON.stringify(source.auditTrail))
+                : []
+        };
+    }
+
+    function createDerivedState(currentState = {}, options = {}) {
+        const sourceState = currentState && typeof currentState === 'object' ? currentState : {};
+        const currentVersion = normalizeStyleVersion(
+            sourceState.styleVersion || {},
+            sourceState.generalData || {}
+        );
+
+        const derivedVersion = createDerivedVersion(currentVersion, {
+            ...options,
+            currentStatus: sourceState.specLifecycle?.status
+        });
+
+        return {
+            ...sourceState,
+            styleVersion: derivedVersion,
+            specLifecycle: {
+                status: 'DRAFT',
+                source: 'RULE_ENGINE',
+                approvedBy: null,
+                approvedAt: null,
+                lockedAt: null
+            },
+            auditTrail: [],
+            versionHistory: Array.isArray(sourceState.versionHistory)
+                ? sourceState.versionHistory.slice()
+                : []
+        };
+    }
+
     function createDerivedVersion(current = {}, options = {}) {
         const source = normalizeStyleVersion(current, current.swoSnapshot || {});
         const authorized = Boolean(options.authorized);
@@ -134,6 +190,8 @@
         createDerivedVersion,
         deriveVersionFrom,
         nextVersion,
+        createVersionArchive,
+        createDerivedState,
         normalizeStage,
         normalizeSwoSnapshot,
         isPPF
