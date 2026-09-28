@@ -141,6 +141,36 @@
     return stations;
   }
 
+  function getPrintParameters(placement) {
+    const preset = getInkPreset(placement?.inkType || 'WATER');
+    const colorPreset = preset?.color || {};
+    const blockerPreset = preset?.blocker || {};
+    const whitePreset = preset?.white || {};
+    return {
+      durometer: normalizeTextValue(placement?.durometer, normalizeTextValue(colorPreset.durometer, '--')),
+      strokes: normalizeTextValue(placement?.strokes, normalizeTextValue(colorPreset.strokes, '--')),
+      angle: normalizeTextValue(placement?.angle, normalizeTextValue(colorPreset.angle, '--')),
+      pressure: normalizeTextValue(placement?.pressure, normalizeTextValue(colorPreset.pressure, '--')),
+      speed: normalizeTextValue(placement?.speed, normalizeTextValue(colorPreset.speed, '--')),
+      additives: normalizeTextValue(placement?.additives, normalizeTextValue(colorPreset.additives, '--')),
+      additivesBlocker: normalizeTextValue(placement?.additivesBlocker, normalizeTextValue(blockerPreset.additives, '--')),
+      additivesWhiteBase: normalizeTextValue(placement?.additivesWhiteBase, normalizeTextValue(whitePreset.additives, '--'))
+    };
+  }
+
+  function buildPrintParametersHtml(placement) {
+    const p = getPrintParameters(placement);
+    const items = [
+      ['DURÓMETRO', p.durometer], ['STROKES', p.strokes], ['ANGLE', p.angle], ['PRESSURE', p.pressure],
+      ['SPEED', p.speed], ['ADITIVOS COLOR', p.additives], ['ADITIVOS BLOCKER', p.additivesBlocker], ['ADITIVOS WHITE BASE', p.additivesWhiteBase]
+    ];
+    return '<div class="print-parameters-section">' +
+      '<div class="print-parameters-title">Parámetros de Impresión</div>' +
+      '<div class="print-parameters-grid">' +
+      items.map(([label, value]) => '<div class="print-parameter-item"><span class="print-parameter-label">' + esc(label) + '</span><span class="print-parameter-value">' + esc(value) + '</span></div>').join('') +
+      '</div></div>';
+  }
+
   function buildPlacementHtml(placement, index, total, data) {
     const title = esc((placement.title || placement.type || `Placement ${index + 1}`).replace('CUSTOM: ', ''));
     const imageData = placement.imageData && String(placement.imageData).startsWith('data:')
@@ -212,6 +242,8 @@
             ${sizeNotesHtml}
           </div>
         </div>
+
+        ${buildPrintParametersHtml(placement)}
 
         <div class="colors-section"><h3 class="sub-title">Colores y Tintas</h3><div class="colors-grid">${colors}</div></div>
 
@@ -345,7 +377,7 @@
     .spec-header{background:linear-gradient(135deg,var(--tegra-red-dark) 0%,var(--tegra-red) 100%);color:#fff;display:grid;grid-template-columns:140px 1fr 160px 100px;min-height:70px;align-items:center;position:relative;overflow:hidden;} .spec-header::before{content:'';position:absolute;top:-50%;right:-10%;width:300px;height:200%;background:rgba(255,255,255,.05);transform:rotate(15deg);} .header-logo{padding:15px;display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.2);} .header-logo svg{width:110px;height:auto;filter:brightness(0) invert(1);} .header-title{padding:15px 20px;z-index:1;} .header-title h1{font-family:var(--font-display);font-size:1.4rem;text-transform:uppercase;} .header-title p{font-size:.75rem;opacity:.9;} .header-customer{background:rgba(0,0,0,.2);padding:12px 15px;text-align:center;border-left:1px solid rgba(255,255,255,.2);border-right:1px solid rgba(255,255,255,.2);} .header-customer-label{font-size:.6rem;text-transform:uppercase;opacity:.8;margin-bottom:5px;} .header-customer-logo{background:#fff;padding:6px 10px;border-radius:4px;display:inline-block;} .header-customer-logo img{max-height:20px;max-width:80px;object-fit:contain;} .header-folder{padding:15px;text-align:right;z-index:1;} .folder-label{font-size:.65rem;text-transform:uppercase;opacity:.8;} .folder-number{font-family:var(--font-display);font-size:1.8rem;font-weight:700;}
     .info-section{background:var(--tegra-gray-light);padding:15px 20px;border-bottom:3px solid var(--tegra-red);} .section-title{font-family:var(--font-display);font-size:.9rem;font-weight:700;text-transform:uppercase;color:var(--tegra-red);margin-bottom:12px;display:flex;align-items:center;gap:8px;} .section-title::before{content:'';width:3px;height:18px;background:var(--tegra-red);} .info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 30px;} .info-row{display:flex;gap:8px;} .info-label{font-family:var(--font-condensed);font-size:.75rem;font-weight:700;text-transform:uppercase;min-width:100px;} .info-value{font-size:.85rem;font-weight:500;flex:1;border-bottom:1px solid #ccc;padding-bottom:1px;}
     .placement-section{padding:18px;border-bottom:1px solid var(--border-light);display:flex;flex-direction:column;} .placement-header-bar{background:var(--tegra-red);color:#fff;padding:9px 14px;margin:-18px -18px 12px -18px;display:flex;gap:10px;align-items:center;} .placement-icon{width:26px;height:26px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;} .placement-title-text{font-family:var(--font-display);font-size:1rem;text-transform:uppercase;} .placement-content{display:grid;grid-template-columns:195px 1fr;gap:16px;margin-bottom:12px;} .placement-image-container{position:relative;background:linear-gradient(135deg,#f8f8f8 0%,#e8e8e8 100%);border-radius:6px;padding:10px;border:2px solid var(--border-light);height:fit-content;} .placement-image{width:100%;max-height:170px;object-fit:contain;border-radius:4px;} .placement-badge{position:absolute;top:8px;right:8px;background:var(--tegra-red);color:#fff;padding:4px 8px;border-radius:3px;font-size:.58rem;font-weight:700;text-transform:uppercase;} .placement-details-panel{background:var(--tegra-gray-light);border-radius:6px;padding:12px;border-left:3px solid var(--tegra-red);} .detail-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e0e0e0;} .detail-row:last-child{border-bottom:none;} .detail-label{font-family:var(--font-condensed);font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);} .detail-value{font-size:.78rem;font-weight:600;} .detail-value.highlight{color:var(--tegra-red);} 
-    .colors-section{margin-top:12px;padding:10px;background:#fff;border:1px solid var(--border-light);border-radius:6px;} .sub-title{font-family:var(--font-condensed);font-size:.72rem;text-transform:uppercase;color:var(--text-muted);} .colors-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;} .color-swatch{display:flex;align-items:center;gap:7px;background:var(--tegra-gray-light);padding:7px 10px;border-radius:4px;border:1px solid var(--border-light);} .color-box{width:22px;height:22px;border-radius:3px;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.2);} .color-number{font-family:var(--font-condensed);font-weight:700;font-size:.72rem;color:var(--tegra-red);} .color-name{font-size:.62rem;color:var(--text-muted);}
+    .print-parameters-section{margin-top:12px;padding:10px;background:var(--tegra-gray-light);border:1px solid var(--border-light);border-left:3px solid var(--tegra-red);border-radius:6px;} .print-parameters-title{font-family:var(--font-condensed);font-size:.72rem;text-transform:uppercase;color:var(--tegra-red);font-weight:700;margin-bottom:8px;} .print-parameters-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 8px;} .print-parameter-item{background:#fff;border:1px solid var(--border-light);border-radius:4px;padding:6px 7px;min-height:38px;display:flex;flex-direction:column;justify-content:center;} .print-parameter-label{font-family:var(--font-condensed);font-size:.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;} .print-parameter-value{font-size:.64rem;font-weight:600;line-height:1.15;word-break:break-word;}     .colors-section{margin-top:12px;padding:10px;background:#fff;border:1px solid var(--border-light);border-radius:6px;} .sub-title{font-family:var(--font-condensed);font-size:.72rem;text-transform:uppercase;color:var(--text-muted);} .colors-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;} .color-swatch{display:flex;align-items:center;gap:7px;background:var(--tegra-gray-light);padding:7px 10px;border-radius:4px;border:1px solid var(--border-light);} .color-box{width:22px;height:22px;border-radius:3px;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.2);} .color-number{font-family:var(--font-condensed);font-weight:700;font-size:.72rem;color:var(--tegra-red);} .color-name{font-size:.62rem;color:var(--text-muted);}
     .sequence-section{margin-top:12px;} .sequence-header{background:var(--tegra-red);color:#fff;padding:7px 12px;font-family:var(--font-display);font-size:.76rem;text-transform:uppercase;} .sequence-table{width:100%;border-collapse:collapse;font-size:.68rem;} .sequence-table th{background:var(--tegra-gray-dark);color:#fff;padding:7px 5px;text-align:left;font-family:var(--font-condensed);font-size:.56rem;text-transform:uppercase;} .sequence-table td{padding:5px;border-bottom:1px solid var(--border-light);} .station-number{font-family:var(--font-display);font-size:.8rem;color:var(--tegra-red);text-align:center;} .screen-letter{font-weight:700;color:var(--tegra-red);} .ink-name{font-weight:600;} .additives{font-size:.62rem;color:var(--text-muted);font-style:italic;} .flash-row{background:#f5f5f5 !important;font-style:italic;color:var(--text-muted);} 
     .curing-section{margin-top:15px;background:linear-gradient(135deg,var(--tegra-gray-light) 0%,#e8e8e8 100%);border-radius:6px;padding:12px;border-left:3px solid var(--tegra-red);} .curing-title{font-family:var(--font-display);font-size:.85rem;color:var(--tegra-red);margin-bottom:10px;} .curing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;} .curing-item{text-align:center;} .curing-label{font-size:.7rem;text-transform:uppercase;color:var(--text-muted);} .curing-value{font-family:var(--font-display);font-size:1.2rem;font-weight:700;} .curing-value.small{font-size:1rem;}
     .spec-footer{background:var(--tegra-gray-dark);color:#fff;padding:10px 20px;display:flex;justify-content:space-between;font-size:.75rem;margin-top:20px;} .footer-center{font-family:var(--font-display);font-weight:700;letter-spacing:1px;}
@@ -387,5 +419,5 @@
   }
 
   window.generateSpecHTMLDocument = generateSpecHTMLDocument;
-  window.PdfSpecRenderer = { generateStationsData };
+  window.PdfSpecRenderer = { generateStationsData, getPrintParameters, buildPrintParametersHtml };
 })();
