@@ -28,6 +28,9 @@ function buildSpecData() {
         ...state.generalData,
         placements: state.placements,
         styleVersion,
+        versionHistory: Array.isArray(state.versionHistory)
+            ? state.versionHistory
+            : [],
         specLifecycle: state.specLifecycle,
         auditTrail: state.auditTrail,
         savedAt: new Date().toISOString()
