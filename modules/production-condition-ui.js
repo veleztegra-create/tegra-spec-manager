@@ -49,6 +49,9 @@ window.ProductionConditionsUI = (function () {
                             (condition.notes ? '<div class="production-condition-notes"><i class="fas fa-note-sticky"></i> ' + escapeHtml(condition.notes) + '</div>' : '') +
                         '</div>' +
                         '<div class="button-group">' +
+                            '<button class="btn btn-outline btn-sm" onclick="ProductionConditionsUI.edit(\'' + escapeHtml(condition.id) + '\')">' +
+                                '<i class="fas fa-pen"></i> Editar' +
+                            '</button>' +
                             '<button class="btn btn-outline btn-sm" onclick="ProductionConditionsUI.toggle(\'' + escapeHtml(condition.id) + '\')">' +
                                 (active ? '<i class="fas fa-toggle-on"></i> Desactivar' : '<i class="fas fa-toggle-off"></i> Activar') +
                             '</button>' +
@@ -80,6 +83,7 @@ window.ProductionConditionsUI = (function () {
         }
 
         window.ProductionConditionManager.upsert({
+            id: window._editingProductionConditionId || undefined,
             type,
             color,
             severity,
@@ -88,12 +92,38 @@ window.ProductionConditionsUI = (function () {
             tags: [type]
         });
 
+        window._editingProductionConditionId = null;
+        const saveButton = document.querySelector(".production-condition-editor .btn-primary");
+        if (saveButton) saveButton.innerHTML = '<i class="fas fa-plus"></i> Agregar condición';
+
         ["pc-color", "pc-message", "pc-notes"].forEach(id => {
             const field = document.getElementById(id);
             if (field) field.value = "";
         });
 
         render();
+    }
+
+    function edit(id) {
+        const condition = window.ProductionConditionManager.load().find(item => item.id === id);
+        if (!condition) return;
+
+        const values = {
+            "pc-color": condition.color || "",
+            "pc-type": condition.type || "DIRECT_TO_BLOCKER",
+            "pc-severity": condition.severity || "INFO",
+            "pc-message": condition.message || "",
+            "pc-notes": condition.notes || ""
+        };
+
+        Object.entries(values).forEach(([fieldId, value]) => {
+            const field = document.getElementById(fieldId);
+            if (field) field.value = value;
+        });
+
+        window._editingProductionConditionId = id;
+        const button = document.querySelector(".production-condition-editor .btn-primary");
+        if (button) button.innerHTML = '<i class="fas fa-save"></i> Guardar cambios';
     }
 
     function toggle(id) {
@@ -133,5 +163,5 @@ window.ProductionConditionsUI = (function () {
         render();
     }
 
-    return { initialize, render, add, toggle, remove, exportData, importData };
+    return { initialize, render, add, edit, toggle, remove, exportData, importData };
 })();
