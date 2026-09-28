@@ -66,6 +66,9 @@
             styleVersion: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
                 ? window.SpecNormalizer.normalizeSpecData(safeCandidate).styleVersion
                 : (safeCandidate.styleVersion || DEFAULT_STATE.styleVersion),
+            versionHistory: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).versionHistory
+                : (Array.isArray(safeCandidate.versionHistory) ? safeCandidate.versionHistory : []),
             auditTrail: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
                 ? window.SpecNormalizer.normalizeSpecData(safeCandidate).auditTrail
                 : (Array.isArray(safeCandidate.auditTrail) ? safeCandidate.auditTrail : [])
