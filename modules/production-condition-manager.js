@@ -147,6 +147,8 @@ window.ProductionConditionManager = (function () {
         });
     }
 
+    initialize();
+
     return {
         initialize,
         load,
