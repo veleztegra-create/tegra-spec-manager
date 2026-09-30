@@ -176,6 +176,147 @@
         return true;
     }
 
+
+    // =====================================================
+    // PRECEDENCIA DE FUENTES: SWO -> TECH PACK -> REGLAS
+    // =====================================================
+    function ensureSourceTracking() {
+        if (!global.Store?.state) return;
+        if (!global.Store.state.fieldSources || typeof global.Store.state.fieldSources !== 'object') {
+            global.Store.state.fieldSources = {};
+        }
+        if (!Array.isArray(global.Store.state.sourceConflicts)) {
+            global.Store.state.sourceConflicts = [];
+        }
+    }
+
+    const SOURCE_PRIORITY = Object.freeze({
+        SWO: 100,
+        TECHPACK: 80,
+        RULE_ENGINE: 50,
+        USER: 120,
+        UNKNOWN: 0
+    });
+
+    function normalizeSource(source) {
+        const value = String(source || '').trim().toUpperCase();
+        if (value.includes('SWO')) return 'SWO';
+        if (value.includes('TECH')) return 'TECHPACK';
+        if (value.includes('RULE')) return 'RULE_ENGINE';
+        if (value.includes('USER') || value.includes('MANUAL')) return 'USER';
+        return 'UNKNOWN';
+    }
+
+    function recordImportedFields(info = {}, source = 'UNKNOWN') {
+        ensureSourceTracking();
+        if (!global.Store?.state) return;
+        const normalizedSource = normalizeSource(source);
+        Object.entries(info).forEach(([field, value]) => {
+            if (value == null || String(value).trim() === '') return;
+            global.Store.state.fieldSources[field] = normalizedSource;
+        });
+    }
+
+    function mergeTechPackField(field, value, inputId, options = {}) {
+        ensureSourceTracking();
+        const nextValue = String(value ?? '').trim();
+        if (!nextValue || nextValue === 'N/A') {
+            return { action: 'ignored', value: '' };
+        }
+
+        const currentInput = global.document?.getElementById(inputId);
+        const currentValue = String(currentInput?.value ?? global.Store?.state?.generalData?.[field] ?? '').trim();
+        const currentSource = normalizeSource(global.Store?.state?.fieldSources?.[field]);
+
+        if (!currentValue) {
+            if (currentInput) {
+                currentInput.value = nextValue;
+                currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+                currentInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (global.Store?.state?.generalData) {
+                global.Store.state.generalData[field] = nextValue;
+            }
+            global.Store.state.fieldSources[field] = 'TECHPACK';
+            return { action: 'filled', value: nextValue };
+        }
+
+        if (currentSource === 'SWO') {
+            const conflict = {
+                field,
+                swoValue: currentValue,
+                techPackValue: nextValue,
+                source: 'TECHPACK',
+                severity: options.severity || 'WARNING',
+                message: options.message || `Conflicto de fuente en ${field}: SWO = "${currentValue}" / Tech Pack = "${nextValue}"`,
+                detectedAt: new Date().toISOString()
+            };
+            const conflicts = global.Store.state.sourceConflicts;
+            const duplicate = conflicts.some(item =>
+                item.field === conflict.field &&
+                item.swoValue === conflict.swoValue &&
+                item.techPackValue === conflict.techPackValue
+            );
+            if (!duplicate) conflicts.push(conflict);
+            return { action: 'conflict', value: currentValue, conflict };
+        }
+
+        return { action: 'protected', value: currentValue };
+    }
+
+    function evaluateTechPackInkConflict(techPackInkType) {
+        const ink = normalizeSource(techPackInkType) === 'UNKNOWN'
+            ? String(techPackInkType || '').trim().toUpperCase()
+            : String(techPackInkType || '').trim().toUpperCase();
+        if (!ink) return { action: 'ignored' };
+
+        const customer = String(global.document?.getElementById('customer')?.value || '').toUpperCase();
+        const expectedByCustomer = customer.includes('FANATICS') || customer.includes('FANATIC')
+            ? 'WATER'
+            : '';
+
+        if (expectedByCustomer && ink === 'SILICONE') {
+            const conflict = {
+                field: 'inkType',
+                expectedValue: expectedByCustomer,
+                techPackValue: 'SILICONE',
+                source: 'TECHPACK',
+                severity: 'BLOCKER',
+                message: 'El cliente sugiere WATER BASE por regla de Customer, pero el Tech Pack indica SILICONE. Requiere revisión de ART/Development.',
+                detectedAt: new Date().toISOString()
+            };
+            ensureSourceTracking();
+            const conflicts = global.Store.state.sourceConflicts;
+            const duplicate = conflicts.some(item =>
+                item.field === conflict.field &&
+                item.expectedValue === conflict.expectedValue &&
+                item.techPackValue === conflict.techPackValue
+            );
+            if (!duplicate) conflicts.push(conflict);
+            return { action: 'conflict', conflict };
+        }
+
+        return { action: 'ok' };
+    }
+
+    global.SourcePriority = {
+        SOURCE_PRIORITY,
+        normalizeSource,
+        recordImportedFields,
+        mergeTechPackField,
+        evaluateTechPackInkConflict,
+        getConflicts: () => {
+            ensureSourceTracking();
+            return Array.isArray(global.Store?.state?.sourceConflicts)
+                ? global.Store.state.sourceConflicts.slice()
+                : [];
+        },
+        clearConflicts: () => {
+            ensureSourceTracking();
+            global.Store.state.sourceConflicts = [];
+        }
+    };
+
     global.FanaticsStrikeOffNormalizer = {
         isFanaticsStrikeOff,
         extractStyleFromDescription,
