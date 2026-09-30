@@ -135,14 +135,14 @@
         // 1. INFORMACIÓN GENERAL
         if (datosPDF.informacionGeneral) {
             const info = datosPDF.informacionGeneral;
-            if (info.equipo) setInputValue('name-team', info.equipo);
-            if (info.styleNumber) setInputValue('style', info.styleNumber);
+            if (info.equipo) setTechPackGeneralField('nameTeam', 'name-team', info.equipo);
+            if (info.styleNumber) setTechPackGeneralField('style', 'style', info.styleNumber);
             if (info.season) setTechPackGeneralField('season', 'season', info.season);
         }
 
         // 2. TALLA BASE
         if (datosPDF.tallaBase) {
-            setInputValue('base-size', datosPDF.tallaBase);
+            setTechPackGeneralField('baseSize', 'base-size', datosPDF.tallaBase);
         }
 
         // 3. TELA
