@@ -76,6 +76,46 @@ test('overall lifecycle status is derived conservatively from placement lifecycl
   );
 });
 
+test('approved and locked sequences are not editable by default, while draft/development remain editable', () => {
+  const { SpecLifecycle } = loadBrowserModules(['../../modules/spec-lifecycle.js']);
+
+  assert.equal(
+    SpecLifecycle.canEditSequence(
+      { status: 'DRAFT' },
+      {}
+    ),
+    true
+  );
+  assert.equal(
+    SpecLifecycle.canEditSequence(
+      { status: 'DEVELOPMENT' },
+      {}
+    ),
+    true
+  );
+  assert.equal(
+    SpecLifecycle.canEditSequence(
+      { status: 'DEVELOPMENT_APPROVED' },
+      {}
+    ),
+    false
+  );
+  assert.equal(
+    SpecLifecycle.canEditSequence(
+      { status: 'PRODUCTION_LOCKED' },
+      { canEditLockedSequence: false }
+    ),
+    false
+  );
+  assert.equal(
+    SpecLifecycle.canEditSequence(
+      { status: 'PRODUCTION_LOCKED' },
+      { canEditLockedSequence: true }
+    ),
+    true
+  );
+});
+
 test('locked sequence is not editable without explicit permission', () => {
   const { SpecLifecycle } = loadBrowserModules(['../../modules/spec-lifecycle.js']);
 
