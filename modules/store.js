@@ -43,6 +43,9 @@
         // The active styleVersion is always kept separately above.
         versionHistory: [],
         auditTrail: []
+
+        fieldSources: {},
+        sourceConflicts: [],
     };
 
     function normalizeState(candidateState) {
