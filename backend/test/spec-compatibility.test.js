@@ -122,7 +122,7 @@ test('Fanatics Strike Off normalization ignores SWO request and need-by dates', 
 });
 
 
-test('style version derivation archives lineage metadata without overwriting the previous version', () => {
+test('style version derivation creates lineage metadata without mutating the previous version', () => {
   const { StyleVersion } = loadBrowserModule('../../modules/style-version.js');
   const current = StyleVersion.createStyleVersion({
     customer: 'Fanatics',
@@ -163,8 +163,51 @@ test('style version derivation archives lineage metadata without overwriting the
   assert.equal(next.styleVersion.label, '2nd Strike Off');
   assert.equal(next.styleVersion.parentVersion, 1);
   assert.equal(next.styleVersion.stage.sampleType, '2nd Strike Off');
-  assert.equal(next.generalData.sampleType, '2nd Strike Off');
+  // createDerivedState only derives the canonical version object. The
+  // application-level createNewStyleVersion() orchestrator archives the
+  // previous state and applies the new SWO fields to generalData.
+  assert.equal(next.generalData.sampleType, '1st Strike Off');
   assert.equal(next.specLifecycle.status, 'DRAFT');
+});
+
+test('version archive captures the previous state as an immutable snapshot', () => {
+  const { StyleVersion } = loadBrowserModule('../../modules/style-version.js');
+  const state = {
+    generalData: {
+      customer: 'Fanatics',
+      style: '67NM',
+      sampleType: '1st Strike Off'
+    },
+    styleVersion: StyleVersion.createStyleVersion({
+      customer: 'Fanatics',
+      style: '67NM',
+      sampleType: '1st Strike Off'
+    }, { label: 'Strike Off' }),
+    placements: [{
+      id: 1,
+      sequence: [{ type: 'COLOR', val: 'RED' }]
+    }],
+    specLifecycle: {
+      status: 'DEVELOPMENT',
+      source: 'DEVELOPMENT'
+    },
+    auditTrail: [{ action: 'CHANGE', actor: 'tester' }]
+  };
+
+  const archive = StyleVersion.createVersionArchive(state);
+
+  assert.equal(archive.version, 1);
+  assert.equal(archive.styleVersion.label, 'Strike Off');
+  assert.equal(archive.generalData.sampleType, '1st Strike Off');
+  assert.equal(archive.placements[0].sequence[0].val, 'RED');
+  assert.equal(archive.specLifecycle.status, 'DEVELOPMENT');
+  assert.equal(archive.auditTrail[0].actor, 'tester');
+
+  state.generalData.sampleType = '2nd Strike Off';
+  state.placements[0].sequence[0].val = 'BLUE';
+
+  assert.equal(archive.generalData.sampleType, '1st Strike Off');
+  assert.equal(archive.placements[0].sequence[0].val, 'RED');
 });
 
 test('version history normalizes archived snapshots and keeps them separate from the active version', () => {
