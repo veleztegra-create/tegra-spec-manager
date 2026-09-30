@@ -123,12 +123,21 @@
             }
         }
 
+        function setTechPackGeneralField(field, inputId, value, options = {}) {
+            if (window.SourcePriority && typeof window.SourcePriority.mergeTechPackField === 'function') {
+                return window.SourcePriority.mergeTechPackField(field, value, inputId, options);
+            }
+            const current = document.getElementById(inputId)?.value || '';
+            if (!current && value) setInputValue(inputId, value);
+            return { action: current ? 'protected' : 'filled', value: current || value };
+        }
+
         // 1. INFORMACIÓN GENERAL
         if (datosPDF.informacionGeneral) {
             const info = datosPDF.informacionGeneral;
             if (info.equipo) setInputValue('name-team', info.equipo);
             if (info.styleNumber) setInputValue('style', info.styleNumber);
-            if (info.season) setInputValue('season', info.season);
+            if (info.season) setTechPackGeneralField('season', 'season', info.season);
         }
 
         // 2. TALLA BASE
@@ -140,7 +149,15 @@
         if (datosPDF.telas && datosPDF.telas.length > 0) {
             const tela = datosPDF.telas[0];
             if (tela.composicion) {
-                setInputValue('fabric', tela.composicion);
+                setTechPackGeneralField('fabric', 'fabric', tela.composicion);
+            }
+        }
+
+        if (datosPDF.tinta?.tipo && window.SourcePriority?.evaluateTechPackInkConflict) {
+            const inkCheck = window.SourcePriority.evaluateTechPackInkConflict(datosPDF.tinta.tipo);
+            if (inkCheck.action === 'conflict') {
+                showStatus('⚠️ Tech Pack indica SILICONE y existe una expectativa de WATER BASE. Revisar antes de continuar.', 'warning');
+                console.warn('⚠️ Conflicto de tinta Tech Pack:', inkCheck.conflict);
             }
         }
 
