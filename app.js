@@ -3130,6 +3130,9 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('📦 Datos extraídos:', extracted);
 
     const applyGeneralInfo = (info, source = 'manual') => {
+        if (window.SourcePriority && typeof window.SourcePriority.recordImportedFields === 'function') {
+            window.SourcePriority.recordImportedFields(info, source);
+        }
         if (!info || typeof info !== 'object') return;
 
         if (info.customer) {
@@ -3157,7 +3160,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     };
 
     // --- 2. ASIGNAR VALORES INICIALES A LOS INPUTS ---
-    applyGeneralInfo(extracted, 'extracción base');
+    applyGeneralInfo(extracted, isSWOSheet ? 'SWO' : 'extracción base');
 
     // --- 3. EJECUTAR AUTOMATIZACIÓN DE PLACEMENTS ---
     if (window.ExcelAutomation) {
@@ -3174,7 +3177,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
             }
 
             // Completar/actualizar información general con la mejor hoja detectada
-            applyGeneralInfo(result, 'ExcelAutomation');
+            applyGeneralInfo(result, (result?.sourceSheet && /SWO|PPS|PROTO/i.test(result.sourceSheet)) || isSWOSheet ? 'SWO' : 'ExcelAutomation');
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
                 console.log(`📦 Se detectaron ${result.autoPlacements.length} placements automáticos`);
