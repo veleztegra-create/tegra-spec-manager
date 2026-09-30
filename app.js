@@ -1819,7 +1819,7 @@ function getCurrentSpecActor() {
 }
 
 function canEditCurrentSpecSequence() {
-    const lifecycle = Store?.state?.specLifecycle || {};
+    const lifecycle = window.Store?.state?.specLifecycle || {};
     const permission = window.SpecUser?.permissions || window.SpecPermissions || {};
     return window.SpecLifecycle?.canEditSequence
         ? window.SpecLifecycle.canEditSequence(lifecycle, permission)
