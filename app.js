@@ -1612,6 +1612,8 @@ function copyPlacementSequence(placementId) {
 }
 
 function pastePlacementSequence(placementId) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -1816,6 +1818,21 @@ function getCurrentSpecActor() {
     return null;
 }
 
+function canEditCurrentSpecSequence() {
+    const lifecycle = Store?.state?.specLifecycle || {};
+    const permission = window.SpecUser?.permissions || window.SpecPermissions || {};
+    return window.SpecLifecycle?.canEditSequence
+        ? window.SpecLifecycle.canEditSequence(lifecycle, permission)
+        : true;
+}
+
+function guardSpecSequenceEdit() {
+    if (canEditCurrentSpecSequence()) return true;
+
+    showStatus('🔒 Esta Spec está aprobada/bloqueada y su secuencia de producción no puede modificarse.', 'warning');
+    return false;
+}
+
 function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason = 'Ajuste manual de secuencia', action = 'CHANGE' }) {
     if (!placement) return null;
 
@@ -1919,6 +1936,8 @@ function syncPlacementSequenceWithColors(placement, force = false) {
 }
 
 function addPlacementColorItem(placementId, type) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2141,6 +2160,8 @@ function renderPlacementColors(placementId) {
 }
 
 function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
+    if (!guardSpecSequenceEdit()) return;
+
     if (placementColorDndManager) {
         placementColorDndManager.moveByIndex(placementId, fromIndex, toIndex);
         return;
@@ -2161,6 +2182,8 @@ function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
 }
 
 function updatePlacementColorValue(placementId, colorId, value) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2199,6 +2222,8 @@ function updatePlacementColorValue(placementId, colorId, value) {
 }
 
 function updatePlacementScreenLetter(placementId, colorId, value) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2229,6 +2254,8 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
 }
 
 function updatePlacementColorMesh(placementId, colorId, value) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2259,6 +2286,8 @@ function updatePlacementColorMesh(placementId, colorId, value) {
 }
 
 function removePlacementColorItem(placementId, colorId) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2674,6 +2703,8 @@ function escapeSequenceCellValue(value) {
 }
 
 function updatePlacementSequenceItem(placementId, index, field, value) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !Array.isArray(placement.sequence)) return;
 
@@ -2699,6 +2730,8 @@ function updatePlacementSequenceItem(placementId, index, field, value) {
 }
 
 function movePlacementSequenceItem(placementId, index, direction) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !Array.isArray(placement.sequence)) return;
 
@@ -2722,6 +2755,8 @@ function movePlacementSequenceItem(placementId, index, direction) {
 }
 
 function removePlacementSequenceItem(placementId, index) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !Array.isArray(placement.sequence)) return;
 
@@ -2745,6 +2780,8 @@ function removePlacementSequenceItem(placementId, index) {
 }
 
 function addPlacementSequenceScreen(placementId) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
