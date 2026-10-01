@@ -15,6 +15,16 @@
 
     const EDITABLE_STATUSES = new Set([STATUS.DRAFT, STATUS.DEVELOPMENT]);
 
+    // Lifecycle transitions are intentionally forward-only. Reverting an
+    // approved/locked Spec should happen through a new version, not by
+    // rewriting the historical state in place.
+    const TRANSITIONS = Object.freeze({
+        [STATUS.DRAFT]: Object.freeze([STATUS.DEVELOPMENT]),
+        [STATUS.DEVELOPMENT]: Object.freeze([STATUS.DEVELOPMENT_APPROVED]),
+        [STATUS.DEVELOPMENT_APPROVED]: Object.freeze([STATUS.PRODUCTION_LOCKED]),
+        [STATUS.PRODUCTION_LOCKED]: Object.freeze([])
+    });
+
     function normalizeLifecycle(value = {}) {
         return {
             status: Object.values(STATUS).includes(value.status) ? value.status : STATUS.DRAFT,
@@ -61,7 +71,6 @@
         });
     }
 
-
     function createVersionAuditEntry(fromVersion, toVersion, options = {}) {
         return createAuditEntry({
             action: 'CREATE_VERSION',
@@ -81,6 +90,50 @@
         const normalized = normalizeLifecycle(lifecycle);
         if (EDITABLE_STATUSES.has(normalized.status)) return true;
         return Boolean(permission.canEditLockedSequence);
+    }
+
+    function canTransition(fromStatus, toStatus, permission = {}) {
+        const from = Object.values(STATUS).includes(fromStatus) ? fromStatus : STATUS.DRAFT;
+        if (!Object.values(STATUS).includes(toStatus)) return false;
+
+        const allowedTargets = TRANSITIONS[from] || [];
+        if (!allowedTargets.includes(toStatus)) return false;
+
+        if (from === STATUS.DEVELOPMENT && toStatus === STATUS.DEVELOPMENT_APPROVED) {
+            return Boolean(permission.canApproveDevelopment);
+        }
+
+        if (from === STATUS.DEVELOPMENT_APPROVED && toStatus === STATUS.PRODUCTION_LOCKED) {
+            return Boolean(permission.canLockProduction);
+        }
+
+        return true;
+    }
+
+    function transitionLifecycle(lifecycle = {}, toStatus, options = {}) {
+        const current = normalizeLifecycle(lifecycle);
+        const permission = options.permission || {};
+        if (!canTransition(current.status, toStatus, permission)) {
+            throw new Error(`Transición de lifecycle no autorizada: ${current.status} → ${toStatus}`);
+        }
+
+        const at = options.at || new Date().toISOString();
+        const actor = options.actor || null;
+        const next = {
+            ...current,
+            status: toStatus
+        };
+
+        if (toStatus === STATUS.DEVELOPMENT_APPROVED) {
+            next.approvedBy = actor;
+            next.approvedAt = at;
+        }
+
+        if (toStatus === STATUS.PRODUCTION_LOCKED) {
+            next.lockedAt = at;
+        }
+
+        return next;
     }
 
     function deriveOverallStatus(placements = []) {
@@ -138,12 +191,15 @@
     global.SpecLifecycle = {
         STATUS,
         SOURCE,
+        TRANSITIONS,
         normalizeLifecycle,
         normalizeAuditEntry,
         normalizeAuditTrail,
         createAuditEntry,
         createVersionAuditEntry,
         canEditSequence,
+        canTransition,
+        transitionLifecycle,
         deriveOverallStatus,
         appendAuditEntry,
         touchVersionMetadata
