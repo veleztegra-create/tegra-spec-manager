@@ -239,3 +239,99 @@ test('version history normalizes archived snapshots and keeps them separate from
   assert.equal(normalized.versionHistory[0].styleVersion.label, 'Strike Off');
   assert.equal(normalized.versionHistory[0].placements[0].sequence[0].val, 'RED');
 });
+
+
+test('lifecycle transitions require explicit approval and production permissions', () => {
+  const { SpecLifecycle } = loadBrowserModule('../../modules/spec-lifecycle.js');
+  const { STATUS } = SpecLifecycle;
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DRAFT, STATUS.DEVELOPMENT, {}),
+    true
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT, STATUS.DEVELOPMENT_APPROVED, {}),
+    false
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT, STATUS.DEVELOPMENT_APPROVED, {
+      canApproveDevelopment: true
+    }),
+    true
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT_APPROVED, STATUS.PRODUCTION_LOCKED, {}),
+    false
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT_APPROVED, STATUS.PRODUCTION_LOCKED, {
+      canLockProduction: true
+    }),
+    true
+  );
+});
+
+test('lifecycle transition records approval and lock metadata without mutating the previous state', () => {
+  const { SpecLifecycle } = loadBrowserModule('../../modules/spec-lifecycle.js');
+  const { STATUS } = SpecLifecycle;
+
+  const draft = SpecLifecycle.createLifecycle({
+    status: STATUS.DEVELOPMENT,
+    source: SpecLifecycle.SOURCE.DEVELOPMENT
+  });
+
+  const approved = SpecLifecycle.transitionLifecycle(draft, STATUS.DEVELOPMENT_APPROVED, {
+    actor: 'approver@example',
+    at: '2026-10-01T20:00:00.000Z',
+    permission: { canApproveDevelopment: true }
+  });
+
+  assert.equal(draft.status, STATUS.DEVELOPMENT);
+  assert.equal(draft.approvedBy, null);
+  assert.equal(approved.status, STATUS.DEVELOPMENT_APPROVED);
+  assert.equal(approved.approvedBy, 'approver@example');
+  assert.equal(approved.approvedAt, '2026-10-01T20:00:00.000Z');
+
+  const locked = SpecLifecycle.transitionLifecycle(approved, STATUS.PRODUCTION_LOCKED, {
+    actor: 'production@example',
+    at: '2026-10-01T21:00:00.000Z',
+    permission: { canLockProduction: true }
+  });
+
+  assert.equal(approved.status, STATUS.DEVELOPMENT_APPROVED);
+  assert.equal(locked.status, STATUS.PRODUCTION_LOCKED);
+  assert.equal(locked.lockedAt, '2026-10-01T21:00:00.000Z');
+});
+
+test('lifecycle cannot skip approval, reopen, or mutate a locked state through transition API', () => {
+  const { SpecLifecycle } = loadBrowserModule('../../modules/spec-lifecycle.js');
+  const { STATUS } = SpecLifecycle;
+
+  assert.throws(
+    () => SpecLifecycle.transitionLifecycle(
+      { status: STATUS.DEVELOPMENT },
+      STATUS.PRODUCTION_LOCKED,
+      { permission: { canLockProduction: true } }
+    ),
+    /Transición de lifecycle no autorizada/
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT_APPROVED, STATUS.DEVELOPMENT, {
+      canApproveDevelopment: true
+    }),
+    false
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.PRODUCTION_LOCKED, STATUS.DEVELOPMENT, {
+      canApproveDevelopment: true,
+      canLockProduction: true
+    }),
+    false
+  );
+});
