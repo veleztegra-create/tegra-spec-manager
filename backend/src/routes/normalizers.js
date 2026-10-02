@@ -126,6 +126,14 @@ export function normalizeSpecPayload(payload = {}) {
   return {
     generalData,
     placements,
+    styleVersion: payload.styleVersion && typeof payload.styleVersion === 'object'
+      ? payload.styleVersion
+      : null,
+    versionHistory: Array.isArray(payload.versionHistory) ? payload.versionHistory : [],
+    specLifecycle: payload.specLifecycle && typeof payload.specLifecycle === 'object'
+      ? payload.specLifecycle
+      : null,
+    auditTrail: Array.isArray(payload.auditTrail) ? payload.auditTrail : [],
     meta: payload.meta && typeof payload.meta === 'object' ? payload.meta : {}
   };
 }
