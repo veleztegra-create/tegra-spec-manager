@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { normalizeSpecPayload } from '../src/routes/normalizers.js';
 
 function loadBrowserModules(relativePaths) {
   const window = {};
@@ -276,4 +277,63 @@ test('Store and spec data model preserve styleVersion, lifecycle, audit trail an
   assert.equal(data.specLifecycle.approvedBy, 'development-user');
   assert.equal(data.auditTrail.length, 1);
   assert.deepEqual(data.placements[0].sequence, [{ type: 'COLOR', val: '872 C', mesh: '122/55' }]);
+});
+
+test('lifecycle transition controller preserves audit metadata and rejects illegal jumps', () => {
+  const { SpecLifecycle } = loadBrowserModules(['../../modules/spec-lifecycle.js']);
+
+  const draft = SpecLifecycle.normalizeLifecycle({ status: 'DRAFT' });
+  const development = SpecLifecycle.transitionLifecycle(draft, 'DEVELOPMENT', {
+    actor: 'developer',
+    at: '2026-10-02T17:00:00.000Z',
+    permission: {}
+  });
+
+  assert.equal(development.status, 'DEVELOPMENT');
+  assert.equal(draft.status, 'DRAFT');
+
+  assert.throws(
+    () => SpecLifecycle.transitionLifecycle(
+      development,
+      'PRODUCTION_LOCKED',
+      { permission: { canApproveDevelopment: true, canLockProduction: true } }
+    ),
+    /Transición de lifecycle no autorizada/
+  );
+
+  const approved = SpecLifecycle.transitionLifecycle(
+    development,
+    'DEVELOPMENT_APPROVED',
+    {
+      actor: 'approver',
+      at: '2026-10-02T17:05:00.000Z',
+      permission: { canApproveDevelopment: true }
+    }
+  );
+
+  assert.equal(approved.status, 'DEVELOPMENT_APPROVED');
+  assert.equal(approved.approvedBy, 'approver');
+  assert.equal(approved.approvedAt, '2026-10-02T17:05:00.000Z');
+});
+
+test('remote spec normalization preserves lifecycle/version metadata', () => {
+  const normalized = normalizeSpecPayload({
+    generalData: { style: '67NM' },
+    placements: [],
+    styleVersion: { number: 3, label: 'PPS' },
+    versionHistory: [{ version: 2 }],
+    specLifecycle: {
+      status: 'DEVELOPMENT_APPROVED',
+      source: 'DEVELOPMENT',
+      approvedBy: 'approver',
+      approvedAt: '2026-10-02T17:05:00.000Z'
+    },
+    auditTrail: [{ action: 'LIFECYCLE_STATUS_CHANGE' }]
+  });
+
+  assert.equal(normalized.styleVersion.number, 3);
+  assert.equal(normalized.specLifecycle.status, 'DEVELOPMENT_APPROVED');
+  assert.equal(normalized.specLifecycle.approvedBy, 'approver');
+  assert.equal(normalized.versionHistory.length, 1);
+  assert.equal(normalized.auditTrail.length, 1);
 });
