@@ -1833,6 +1833,69 @@ function guardSpecSequenceEdit() {
     return false;
 }
 
+function getSpecLifecyclePermission() {
+    return window.SpecUser?.permissions || window.SpecPermissions || {};
+}
+
+function changeSpecLifecycleStatus(targetStatus, options = {}) {
+    if (!window.Store || !window.SpecLifecycle?.transitionLifecycle) {
+        throw new Error('Store y SpecLifecycle deben estar disponibles para cambiar el lifecycle.');
+    }
+
+    const currentState = Store.getState();
+    const currentLifecycle = window.SpecLifecycle.normalizeLifecycle(
+        currentState.specLifecycle || {}
+    );
+    const permission = options.permission || getSpecLifecyclePermission();
+    const actor = options.actor || getCurrentSpecActor();
+    const at = options.at || new Date().toISOString();
+
+    const nextLifecycle = window.SpecLifecycle.transitionLifecycle(
+        currentLifecycle,
+        targetStatus,
+        { permission, actor, at }
+    );
+
+    const version = currentState.styleVersion?.number ?? null;
+    const auditEntry = window.SpecLifecycle.createAuditEntry
+        ? window.SpecLifecycle.createAuditEntry({
+            action: 'LIFECYCLE_STATUS_CHANGE',
+            actor,
+            authorizedBy: options.authorizedBy || null,
+            reason: options.reason || `Cambio de lifecycle: ${currentLifecycle.status} → ${targetStatus}`,
+            at,
+            path: 'specLifecycle.status',
+            oldValue: currentLifecycle.status,
+            newValue: nextLifecycle.status,
+            fromVersion: version,
+            toVersion: version
+        })
+        : null;
+
+    const nextState = {
+        ...currentState,
+        specLifecycle: nextLifecycle,
+        auditTrail: auditEntry
+            ? window.SpecLifecycle.appendAuditEntry(currentState.auditTrail, auditEntry)
+            : (currentState.auditTrail || [])
+    };
+
+    if (nextState.styleVersion && window.SpecLifecycle?.appendAuditEntry && auditEntry) {
+        nextState.styleVersion = {
+            ...nextState.styleVersion,
+            updatedAt: at,
+            updatedBy: actor,
+            auditTrail: window.SpecLifecycle.appendAuditEntry(
+                nextState.styleVersion.auditTrail,
+                auditEntry
+            )
+        };
+    }
+
+    Store.replaceState(nextState);
+    return nextState.specLifecycle;
+}
+
 function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason = 'Ajuste manual de secuencia', action = 'CHANGE' }) {
     if (!placement) return null;
 
@@ -4267,12 +4330,16 @@ function loadSpecData(data) {
     // Restore top-level lifecycle metadata before rebuilding placements.
     // Placement sequence lifecycle remains inside each loaded placement object.
     if (window.Store && typeof Store.replaceState === 'function') {
+        const loadedLifecycle = window.SpecLifecycle?.normalizeLifecycle
+            ? window.SpecLifecycle.normalizeLifecycle(data.specLifecycle || {})
+            : (data.specLifecycle || {});
+
         Store.replaceState({
             ...Store.getState(),
-            specLifecycle: data.specLifecycle,
+            specLifecycle: loadedLifecycle,
             styleVersion: data.styleVersion,
             versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],
-            auditTrail: data.auditTrail,
+            auditTrail: Array.isArray(data.auditTrail) ? data.auditTrail : [],
             placements: []
         });
     } else {
@@ -5298,3 +5365,4 @@ window.applyCustomerInkDefaults = applyCustomerInkDefaults;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
 window.generarConAsistente = generarConAsistente;
 window.normalizeGearForSportStyleAndColorway = normalizeGearForSportStyleAndColorway;
+window.changeSpecLifecycleStatus = changeSpecLifecycleStatus;
