@@ -2,42 +2,46 @@
 window.LayerNormalizer = (function () {
   'use strict';
 
+  function normalizePart(value) {
+    return String(value ?? '').trim();
+  }
+
   function getNormalizationKey(layer) {
-    const type = String(layer?.tipo || '').toUpperCase();
-    const mesh = layer?.mesh || '';
-    const additives = layer?.additives || '';
+    const type = String(layer?.tipo || layer?.type || '').trim().toUpperCase();
+    const screenLetter = normalizePart(layer?.screenLetter);
+    const name = normalizePart(layer?.nombre || layer?.name || layer?.val);
+    const mesh = normalizePart(layer?.mesh);
+    const additives = normalizePart(layer?.additives);
+    const purpose = normalizePart(layer?.purpose || layer?.role || layer?.position);
 
-    // Nunca mezclar colores de pantallas distintas aunque compartan malla/aditivos.
-    if (type === 'COLOR') {
-      const screenLetter = layer?.screenLetter || '';
-      return `${type}|${screenLetter}|${mesh}|${additives}`;
-    }
-
-    return `${type}|${mesh}|${additives}`;
+    // The key represents semantic production identity. It intentionally excludes
+    // volatile fields such as id/count so repeated equivalent passes can still be
+    // represented by count when they are consecutive.
+    return [type, screenLetter, name, mesh, additives, purpose].join('|');
   }
 
   function normalizeLayers(layers = [], options = {}) {
     const mergeTypes = new Set(options.mergeTypes || ['WHITE_BASE', 'BLOCKER']);
     const ordered = [];
-    const groupedIndex = new Map();
 
     layers.forEach((layer) => {
       const current = { ...layer };
-      const type = String(current.tipo || '').toUpperCase();
+      const type = String(current.tipo || current.type || '').toUpperCase();
 
       if (!mergeTypes.has(type)) {
         ordered.push({ ...current, count: 1 });
         return;
       }
 
-      const key = getNormalizationKey(current);
-      if (groupedIndex.has(key)) {
-        const index = groupedIndex.get(key);
-        ordered[index].count += 1;
+      // Only merge adjacent equivalent production layers. Global grouping is
+      // unsafe because it moves later passes to the first occurrence and can
+      // change the manufacturing order.
+      const previous = ordered[ordered.length - 1];
+      if (previous && getNormalizationKey(previous) === getNormalizationKey(current)) {
+        previous.count += 1;
         return;
       }
 
-      groupedIndex.set(key, ordered.length);
       ordered.push({ ...current, count: 1 });
     });
 

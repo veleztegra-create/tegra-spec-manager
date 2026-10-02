@@ -1,0 +1,337 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+function loadBrowserModule(relativePath) {
+  const window = {};
+  const document = { addEventListener() {} };
+  const context = vm.createContext({ window, globalThis: window, console, document });
+  vm.runInContext(fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8'), context);
+  return window;
+}
+
+test('legacy colors normalize to printColors without losing production entries', () => {
+  const { SpecNormalizer } = loadBrowserModule('../../modules/spec-normalizer.js');
+  const legacy = {
+    colors: [
+      { type: 'COLOR', val: 'RED' },
+      { type: 'WHITE_BASE', val: 'BASE WHITE' },
+      { type: 'BLOCKER', val: 'BLOCKER' }
+    ]
+  };
+
+  const placement = SpecNormalizer.normalizePlacement(legacy);
+  assert.deepEqual(placement.printColors, [{ type: 'COLOR', val: 'RED' }]);
+  assert.deepEqual(placement.colors, legacy.colors);
+});
+
+test('normalization preserves an existing production sequence unchanged', () => {
+  const { SpecNormalizer } = loadBrowserModule('../../modules/spec-normalizer.js');
+  const sequence = [
+    { type: 'COLOR', val: '872 C', mesh: '122/55', additives: 'A' },
+    { type: 'FLASH' },
+    { type: 'COLOR', val: '872 C', mesh: '157/48', additives: 'B' },
+    { type: 'COOL' }
+  ];
+
+  const placement = SpecNormalizer.normalizePlacement({
+    colors: [{ type: 'COLOR', val: '872 C' }],
+    sequence
+  });
+  assert.deepEqual(placement.sequence, sequence);
+});
+
+test('normalization canonicalizes legacy curing field variants', () => {
+  const { SpecNormalizer } = loadBrowserModule('../../modules/spec-normalizer.js');
+  const tempTime = SpecNormalizer.normalizePlacement({ temp: '320 °F', time: '1:40 min' }).curing;
+  assert.equal(tempTime.temperature, '320 °F');
+  assert.equal(tempTime.time, '1:40 min');
+  const spanish = SpecNormalizer.normalizePlacement({ temperatura: '300 °F', tiempo: '1:00 min' }).curing;
+  assert.equal(spanish.temperature, '300 °F');
+  assert.equal(spanish.time, '1:00 min');
+});
+
+test('PDF stations consume the existing sequence rather than legacy colors', () => {
+  const { PdfSpecRenderer } = loadBrowserModule('../../features/pdf-generator-mejorado.js');
+  const stations = PdfSpecRenderer.generateStationsData({
+    colors: [{ type: 'COLOR', val: 'LEGACY COLOR' }],
+    sequence: [
+      { type: 'COLOR', val: 'SEQUENCE COLOR', mesh: '157/48' },
+      { type: 'FLASH', val: 'FLASH', mesh: '-' }
+    ]
+  }, {});
+
+  assert.equal(JSON.stringify(stations.map((station) => station.screenCombined)), JSON.stringify(['SEQUENCE COLOR', 'FLASH']));
+  assert.equal(stations.some((station) => station.screenCombined === 'LEGACY COLOR'), false);
+});
+
+
+test('PDF renderer exposes placement print parameters separately from sequence', () => {
+  const { PdfSpecRenderer } = loadBrowserModule('../../features/pdf-generator-mejorado.js');
+  const placement = {
+    inkType: 'WATER',
+    durometer: '65',
+    strokes: '3',
+    angle: '20',
+    pressure: '45',
+    speed: '30',
+    additives: '3% CL500',
+    additivesBlocker: '10% V2 Neutral',
+    additivesWhiteBase: '0.25% Thickener',
+    sequence: [{ type: 'COLOR', val: 'RED', mesh: '157/48' }]
+  };
+
+  const params = PdfSpecRenderer.getPrintParameters(placement);
+  assert.deepEqual(params, {
+    durometer: '65',
+    strokes: '3',
+    angle: '20',
+    pressure: '45',
+    speed: '30',
+    additives: '3% CL500',
+    additivesBlocker: '10% V2 Neutral',
+    additivesWhiteBase: '0.25% Thickener'
+  });
+
+  const html = PdfSpecRenderer.buildPrintParametersHtml(placement);
+  assert.match(html, /Parámetros de Impresión/);
+  assert.match(html, /3% CL500/);
+  assert.match(html, /10% V2 Neutral/);
+  assert.match(html, /0\.25% Thickener/);
+});
+
+test('Fanatics Strike Off normalization ignores SWO request and need-by dates', () => {
+  const { FanaticsStrikeOffNormalizer } = loadBrowserModule('../../fixes.js');
+  const data = [
+    ['Customer:', 'Fanatics', 'Team Name:', 'LAC', 'Request Date:', new Date('2026-09-21')],
+    ['Category:', 'NFL - Limited', 'Colorway:', 'Rivalry', 'Need by Date:', new Date('2026-10-04')],
+    ['Submit #:', '1st Strike Off', 'Requester:', 'Sindy Castro', 'Season:', 'FA27'],
+    ['Description:', '37NM-0N4A-97F Los Angeles Chargers-Rivalry Front and Back Number StrikeOff Twill with HSWB', 'PO #:', '210926SCA'],
+    ['Artwork Path:', 'https://example.com/art']
+  ];
+
+  const normalized = FanaticsStrikeOffNormalizer.normalize(data);
+  assert.equal(normalized.style, '37NM-0N4A-97F');
+  assert.equal(normalized.sampleType, '1st Strike Off');
+  assert.equal(normalized.requestor, 'Sindy Castro');
+  assert.equal(normalized.requestDate, undefined);
+  assert.equal(normalized.needByDate, undefined);
+  assert.equal(normalized.swoSnapshot.requestDate, undefined);
+  assert.equal(normalized.swoSnapshot.needByDate, undefined);
+});
+
+
+test('style version derivation creates lineage metadata without mutating the previous version', () => {
+  const { StyleVersion } = loadBrowserModule('../../modules/style-version.js');
+  const current = StyleVersion.createStyleVersion({
+    customer: 'Fanatics',
+    style: '67NM',
+    sampleType: '1st Strike Off',
+    pattern: '530926F_24',
+    po: '111825SRB'
+  }, {
+    label: 'Strike Off'
+  });
+
+  const next = StyleVersion.createDerivedState({
+    generalData: {
+      customer: 'Fanatics',
+      style: '67NM',
+      sampleType: '1st Strike Off',
+      pattern: '530926F_24',
+      po: '111825SRB'
+    },
+    styleVersion: current,
+    placements: [],
+    versionHistory: []
+  }, {
+    label: '2nd Strike Off',
+    stage: { sampleType: '2nd Strike Off', isPPF: false },
+    swoSnapshot: {
+      customer: 'Fanatics',
+      style: '67NM',
+      sampleType: '2nd Strike Off',
+      pattern: '530926F_24',
+      po: '111825SRB'
+    }
+  });
+
+  assert.equal(current.number, 1);
+  assert.equal(current.label, 'Strike Off');
+  assert.equal(next.styleVersion.number, 2);
+  assert.equal(next.styleVersion.label, '2nd Strike Off');
+  assert.equal(next.styleVersion.parentVersion, 1);
+  assert.equal(next.styleVersion.stage.sampleType, '2nd Strike Off');
+  // createDerivedState only derives the canonical version object. The
+  // application-level createNewStyleVersion() orchestrator archives the
+  // previous state and applies the new SWO fields to generalData.
+  assert.equal(next.generalData.sampleType, '1st Strike Off');
+  assert.equal(next.specLifecycle.status, 'DRAFT');
+});
+
+test('version archive captures the previous state as an immutable snapshot', () => {
+  const { StyleVersion } = loadBrowserModule('../../modules/style-version.js');
+  const state = {
+    generalData: {
+      customer: 'Fanatics',
+      style: '67NM',
+      sampleType: '1st Strike Off'
+    },
+    styleVersion: StyleVersion.createStyleVersion({
+      customer: 'Fanatics',
+      style: '67NM',
+      sampleType: '1st Strike Off'
+    }, { label: 'Strike Off' }),
+    placements: [{
+      id: 1,
+      sequence: [{ type: 'COLOR', val: 'RED' }]
+    }],
+    specLifecycle: {
+      status: 'DEVELOPMENT',
+      source: 'DEVELOPMENT'
+    },
+    auditTrail: [{ action: 'CHANGE', actor: 'tester' }]
+  };
+
+  const archive = StyleVersion.createVersionArchive(state);
+
+  assert.equal(archive.version, 1);
+  assert.equal(archive.styleVersion.label, 'Strike Off');
+  assert.equal(archive.generalData.sampleType, '1st Strike Off');
+  assert.equal(archive.placements[0].sequence[0].val, 'RED');
+  assert.equal(archive.specLifecycle.status, 'DEVELOPMENT');
+  assert.equal(archive.auditTrail[0].actor, 'tester');
+
+  state.generalData.sampleType = '2nd Strike Off';
+  state.placements[0].sequence[0].val = 'BLUE';
+
+  assert.equal(archive.generalData.sampleType, '1st Strike Off');
+  assert.equal(archive.placements[0].sequence[0].val, 'RED');
+});
+
+test('version history normalizes archived snapshots and keeps them separate from the active version', () => {
+  const { SpecNormalizer } = loadBrowserModule('../../modules/spec-normalizer.js');
+  const normalized = SpecNormalizer.normalizeSpecData({
+    styleVersion: {
+      number: 3,
+      label: 'PPS',
+      stage: { sampleType: 'PPS', isPPF: false },
+      swoSnapshot: { style: '67NM' }
+    },
+    versionHistory: [{
+      version: 1,
+      label: 'Strike Off',
+      styleVersion: {
+        number: 1,
+        label: 'Strike Off',
+        stage: { sampleType: '1st Strike Off', isPPF: false },
+        swoSnapshot: { style: '67NM', sampleType: '1st Strike Off' }
+      },
+      generalData: { style: '67NM', sampleType: '1st Strike Off' },
+      placements: [{ id: 1, sequence: [{ type: 'COLOR', val: 'RED' }] }]
+    }]
+  });
+
+  assert.equal(normalized.styleVersion.number, 3);
+  assert.equal(normalized.versionHistory.length, 1);
+  assert.equal(normalized.versionHistory[0].styleVersion.number, 1);
+  assert.equal(normalized.versionHistory[0].styleVersion.label, 'Strike Off');
+  assert.equal(normalized.versionHistory[0].placements[0].sequence[0].val, 'RED');
+});
+
+
+test('lifecycle transitions require explicit approval and production permissions', () => {
+  const { SpecLifecycle } = loadBrowserModule('../../modules/spec-lifecycle.js');
+  const { STATUS } = SpecLifecycle;
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DRAFT, STATUS.DEVELOPMENT, {}),
+    true
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT, STATUS.DEVELOPMENT_APPROVED, {}),
+    false
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT, STATUS.DEVELOPMENT_APPROVED, {
+      canApproveDevelopment: true
+    }),
+    true
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT_APPROVED, STATUS.PRODUCTION_LOCKED, {}),
+    false
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT_APPROVED, STATUS.PRODUCTION_LOCKED, {
+      canLockProduction: true
+    }),
+    true
+  );
+});
+
+test('lifecycle transition records approval and lock metadata without mutating the previous state', () => {
+  const { SpecLifecycle } = loadBrowserModule('../../modules/spec-lifecycle.js');
+  const { STATUS } = SpecLifecycle;
+
+  const draft = SpecLifecycle.createLifecycle({
+    status: STATUS.DEVELOPMENT,
+    source: SpecLifecycle.SOURCE.DEVELOPMENT
+  });
+
+  const approved = SpecLifecycle.transitionLifecycle(draft, STATUS.DEVELOPMENT_APPROVED, {
+    actor: 'approver@example',
+    at: '2026-10-01T20:00:00.000Z',
+    permission: { canApproveDevelopment: true }
+  });
+
+  assert.equal(draft.status, STATUS.DEVELOPMENT);
+  assert.equal(draft.approvedBy, null);
+  assert.equal(approved.status, STATUS.DEVELOPMENT_APPROVED);
+  assert.equal(approved.approvedBy, 'approver@example');
+  assert.equal(approved.approvedAt, '2026-10-01T20:00:00.000Z');
+
+  const locked = SpecLifecycle.transitionLifecycle(approved, STATUS.PRODUCTION_LOCKED, {
+    actor: 'production@example',
+    at: '2026-10-01T21:00:00.000Z',
+    permission: { canLockProduction: true }
+  });
+
+  assert.equal(approved.status, STATUS.DEVELOPMENT_APPROVED);
+  assert.equal(locked.status, STATUS.PRODUCTION_LOCKED);
+  assert.equal(locked.lockedAt, '2026-10-01T21:00:00.000Z');
+});
+
+test('lifecycle cannot skip approval, reopen, or mutate a locked state through transition API', () => {
+  const { SpecLifecycle } = loadBrowserModule('../../modules/spec-lifecycle.js');
+  const { STATUS } = SpecLifecycle;
+
+  assert.throws(
+    () => SpecLifecycle.transitionLifecycle(
+      { status: STATUS.DEVELOPMENT },
+      STATUS.PRODUCTION_LOCKED,
+      { permission: { canLockProduction: true } }
+    ),
+    /Transición de lifecycle no autorizada/
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.DEVELOPMENT_APPROVED, STATUS.DEVELOPMENT, {
+      canApproveDevelopment: true
+    }),
+    false
+  );
+
+  assert.equal(
+    SpecLifecycle.canTransition(STATUS.PRODUCTION_LOCKED, STATUS.DEVELOPMENT, {
+      canApproveDevelopment: true,
+      canLockProduction: true
+    }),
+    false
+  );
+});

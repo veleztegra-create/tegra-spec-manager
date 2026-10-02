@@ -15,7 +15,37 @@
             program: "",
             specDate: ""
         },
-        placements: []
+        placements: [],
+        specLifecycle: {
+            status: 'DRAFT',
+            source: 'RULE_ENGINE',
+            approvedBy: null,
+            approvedAt: null,
+            lockedAt: null
+        },
+        styleVersion: {
+            number: 1,
+            label: '',
+            parentVersion: null,
+            stage: {
+                sampleType: '',
+                isPPF: false
+            },
+            swoSnapshot: {},
+            // Creation/update metadata belongs to the spec/version,
+            // not to the SWO request dates.
+            createdAt: null,
+            updatedAt: null,
+            updatedBy: null,
+            auditTrail: []
+        },
+        // Immutable snapshots of previous style versions.
+        // The active styleVersion is always kept separately above.
+        versionHistory: [],
+        auditTrail: []
+
+        fieldSources: {},
+        sourceConflicts: [],
     };
 
     function normalizeState(candidateState) {
@@ -30,9 +60,21 @@
                 ...DEFAULT_STATE.generalData,
                 ...legacyGeneralData
             },
-            placements: Array.isArray(safeCandidate.placements)
-                ? safeCandidate.placements
-                : []
+            placements: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).placements
+                : (Array.isArray(safeCandidate.placements) ? safeCandidate.placements : []),
+            specLifecycle: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).specLifecycle
+                : (safeCandidate.specLifecycle || DEFAULT_STATE.specLifecycle),
+            styleVersion: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).styleVersion
+                : (safeCandidate.styleVersion || DEFAULT_STATE.styleVersion),
+            versionHistory: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).versionHistory
+                : (Array.isArray(safeCandidate.versionHistory) ? safeCandidate.versionHistory : []),
+            auditTrail: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).auditTrail
+                : (Array.isArray(safeCandidate.auditTrail) ? safeCandidate.auditTrail : [])
         };
     }
 
@@ -136,7 +178,7 @@
 
         redo() {
             if (future.length === 0) return;
-            // Save current state into history for undo
+            // Save current state into history for redo
             history.push(safeClone(rawState));
             // Pop first future state 
             rawState = future.pop();
