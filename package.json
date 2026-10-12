@@ -9,6 +9,7 @@
     "render:build": "npm --prefix backend install && npm --prefix backend run prisma:generate && npm --prefix backend run prisma:deploy",
     "render:start": "npm --prefix backend start",
     "backend:check": "npm --prefix backend run check",
-    "backend:test": "npm --prefix backend test"
+    "backend:test": "npm --prefix backend test",
+    "test:acb": "node --test tests/acb-reader.test.js"
   }
 }
