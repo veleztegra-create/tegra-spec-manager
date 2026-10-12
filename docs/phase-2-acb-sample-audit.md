@@ -1,6 +1,6 @@
 # Phase 2 — ACB Sample Audit (NIKE.acb)
 
-**Status:** Binary-format sample inspection completed; no application parser added  
+**Status:** Sample inspected; isolated RGB decoder added; UI/library integration not yet implemented  
 **Sample:** `NIKE.acb` supplied with the project context  
 **Purpose:** Confirm what the real Adobe Color Book contains and whether it can supply production metadata.
 
@@ -38,11 +38,11 @@ These values are a binary sample inspection, not a claim that the HEX values are
 
 Therefore the ACB can seed color identity and appearance fields, but it cannot replace the production metadata/rules library described in `docs/phase-2-color-library-data-contract.md`.
 
-## 3. Parser availability in the inspected branch
+## 3. Decoder status
 
-No dedicated ACB decoder was found in the inspected `codex/phase-2-lifecycle-foundation` branch. The active `features/manual-palette-extractor.js` is an image-pixel/OCR workflow; it does not parse ACB binary files. The backend palette route stores extracted colors and does not decode an ACB file.
+The inspected branch did not previously contain a dedicated ACB decoder. An isolated decoder has now been added at `modules/acb-reader.js`, with tests in `tests/acb-reader.test.js` and the command `npm run test:acb`.
 
-The sample can be structurally decoded, but this does **not** mean the application already supports importing it. A production-ready reader still needs to be implemented and tested.
+The decoder currently supports version-1 RGB books only. It deliberately rejects other color models rather than guessing how to convert them. It is not yet loaded into the UI, does not import directly into a saved palette, and does not change production rules. The sample `NIKE.acb` was decoded locally with this implementation and returned 47 entries; the first and last records match the values in the table above. Seven unit tests passed locally against the isolated decoder. Those local results do not establish that the GitHub-hosted test command has run in CI.
 
 ## 4. Format reference and assumptions
 
@@ -68,4 +68,4 @@ The sample's own description explicitly says RGB, and the record values decode c
 
 ## 6. Decision
 
-The sample confirms the feasibility of extracting color identity from ACB. It does **not** justify inferring production rules from the ACB. The next implementation should be an isolated, tested ACB decoder with no UI or production-rule changes, followed by integration through the library import preview only after its output is validated.
+The sample confirms the feasibility of extracting color identity from ACB. It does **not** justify inferring production rules from the ACB. The next implementation step is to test the decoder through the repository's own `npm run test:acb` command in the project environment, then add broader real-file fixtures (including a non-RGB book) before integrating it through a library import preview. No UI or production-rule changes are included yet.
