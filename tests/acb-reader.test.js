@@ -10,13 +10,13 @@ function str(s) {
     return [n >> 8, n & 255];
   })];
 }
-function fixture({ model = 0, tail = 'spflproc', colors = [
+function fixture({ model = 0, tail = 'spflproc', prefix = '', postfix = '', colors = [
   { name: 'Red', code: 'C00001', rgb: [255, 0, 0] },
   { name: 'White', code: 'C00002', rgb: [255, 255, 255] }
 ] } = {}) {
   const out = [
     ...Buffer.from('8BCB'), ...u16(1), ...u16(3000),
-    ...str('Test Book'), ...str(''), ...str(''), ...str('Test description'),
+    ...str('Test Book'), ...str(prefix), ...str(postfix), ...str('Test description'),
     ...u16(colors.length), ...u16(9), ...u16(4), ...u16(model)
   ];
   for (const color of colors) {
@@ -34,6 +34,12 @@ test('decodes RGB entries and book metadata', () => {
   assert.equal(book.colors[0].hex, '#FF0000');
   assert.equal(book.colors[1].name, 'White');
   assert.equal(book.spotProcessIdentifier, 'spflproc');
+});
+
+test('preserves raw color name and applies book prefix and postfix', () => {
+  const book = decodeAcb(fixture({ prefix: 'Nike ', postfix: ' C' }));
+  assert.equal(book.colors[0].rawName, 'Red');
+  assert.equal(book.colors[0].name, 'Nike Red C');
 });
 
 test('rejects invalid signature', () => {
@@ -55,10 +61,30 @@ test('rejects truncated records', () => {
   assert.throws(() => decodeAcb(bytes.slice(0, -10)), /truncado/);
 });
 
+test('rejects non-printable color codes', () => {
+  const bytes = fixture({ colors: [{ name: 'Bad code', code: '\u0001ABCDE', rgb: [1, 2, 3] }] });
+  assert.throws(() => decodeAcb(bytes), /no ASCII imprimible/);
+});
+
 test('rejects unknown spot/process identifier', () => {
   assert.throws(() => decodeAcb(fixture({ tail: 'xxxxxxxx' })), /no reconocido/);
 });
 
+test('rejects unexpected trailing bytes', () => {
+  const bytes = fixture({ tail: '' });
+  const withExtraByte = new Uint8Array(bytes.length + 1);
+  withExtraByte.set(bytes);
+  withExtraByte[withExtraByte.length - 1] = 1;
+  assert.throws(() => decodeAcb(withExtraByte), /bytes inesperados/);
+});
+
 test('accepts a book without the optional spot/process identifier', () => {
   assert.equal(decodeAcb(fixture({ tail: '' })).spotProcessIdentifier, null);
+});
+
+test('rejects an excessive string length before attempting to read it', () => {
+  const bytes = fixture();
+  // The first string length begins at byte 8 (after signature, version, and book ID).
+  bytes.set(u32(1_000_001), 8);
+  assert.throws(() => decodeAcb(bytes), /longitud excesiva/);
 });
