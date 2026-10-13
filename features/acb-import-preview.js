@@ -203,3 +203,104 @@ function initAcbImporter() {
 }
 
 window.initAcbImporter = initAcbImporter;
+function getAcbColorLibrary() {
+  if (!currentBook) return null;
+  return {
+    title: currentBook.title || '',
+    sourceFile: currentFileName,
+    colors: currentBook.colors.map((color) => ({
+      index: color.index,
+      name: color.name,
+      rawName: color.rawName,
+      code: color.code,
+      hex: color.hex,
+      rgb: color.rgb
+    }))
+  };
+}
+
+function closeAcbColorPicker() {
+  document.getElementById('acb-selection-modal')?.remove();
+}
+
+function openAcbColorPicker(placementId, colorId) {
+  const book = getAcbColorLibrary();
+  if (!book || !book.colors.length) {
+    if (typeof window.showStatus === 'function') {
+      window.showStatus('Primero carga un archivo .ACB en la pestaña Biblioteca ACB.', 'info');
+    }
+    window.showTab?.('acb-library');
+    return;
+  }
+
+  closeAcbColorPicker();
+  const modal = document.createElement('div');
+  modal.id = 'acb-selection-modal';
+  modal.className = 'acb-selection-overlay';
+  modal.innerHTML = `
+    <section class="acb-selection-dialog" role="dialog" aria-modal="true" aria-labelledby="acb-selection-title">
+      <header class="acb-selection-header">
+        <div>
+          <h2 id="acb-selection-title">Seleccionar color ACB</h2>
+          <p>${escapeHtml(book.title || book.sourceFile || 'Biblioteca cargada')} · ${book.colors.length} colores</p>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" data-acb-close aria-label="Cerrar selector">Cerrar ✕</button>
+      </header>
+      <label class="acb-selection-search-label" for="acb-selection-search">Buscar por nombre, código, HEX o RGB</label>
+      <input id="acb-selection-search" class="form-control" type="search" placeholder="Ej. University Gold, C00047 o #F2AE2D" autocomplete="off">
+      <p class="acb-import-muted acb-selection-help">La selección actualiza el color de diseño de esta pantalla; no asigna tinta ni cambia la malla o los parámetros de producción.</p>
+      <div id="acb-selection-results" class="acb-selection-results"></div>
+    </section>`;
+  document.body.appendChild(modal);
+
+  const search = modal.querySelector('#acb-selection-search');
+  const results = modal.querySelector('#acb-selection-results');
+  const filterColors = () => {
+    const query = search.value.trim().toLocaleLowerCase();
+    return book.colors.filter((color) =>
+      [color.name, color.rawName, color.code, color.hex, color.rgb ? `${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}` : '']
+        .some((value) => String(value ?? '').toLocaleLowerCase().includes(query))
+    );
+  };
+  const render = () => {
+    const matching = filterColors();
+    const filtered = matching.slice(0, 300);
+    results.innerHTML = filtered.length ? filtered.map((color) => {
+      const safeHex = /^#[0-9A-F]{6}$/i.test(String(color.hex || '')) ? color.hex : '#CCCCCC';
+      const rgb = color.rgb || { r: 0, g: 0, b: 0 };
+      return `
+        <button type="button" class="acb-selection-option" data-acb-color-index="${color.index}">
+          <span class="acb-selection-swatch" style="background:${safeHex}"></span>
+          <span class="acb-selection-color-info">
+            <strong>${escapeHtml(color.name || color.rawName || 'Color sin nombre')}</strong>
+            <small>${escapeHtml(color.code || 'Sin código')} · ${escapeHtml(color.hex || '')} · RGB ${rgb.r}, ${rgb.g}, ${rgb.b}</small>
+          </span>
+          <span class="acb-selection-choose">Seleccionar</span>
+        </button>`;
+    }).join('') : '<p class="acb-import-muted">No hay coincidencias.</p>';
+    if (matching.length > 300) results.insertAdjacentHTML('beforeend', `<p class="acb-import-muted acb-selection-help">Se muestran 300 coincidencias de ${matching.length}. Refina la búsqueda para encontrar el color exacto.</p>`);
+  };
+
+  search.addEventListener('input', render);
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal || event.target.closest('[data-acb-close]')) {
+      closeAcbColorPicker();
+      return;
+    }
+    const option = event.target.closest('[data-acb-color-index]');
+    if (!option) return;
+    const index = Number(option.dataset.acbColorIndex);
+    const selected = book.colors.find((color) => color.index === index);
+    if (!selected) return;
+    if (typeof window.applyAcbColorToPlacement === 'function') {
+      window.applyAcbColorToPlacement(placementId, colorId, selected, book);
+    }
+    closeAcbColorPicker();
+  });
+  render();
+  search.focus();
+}
+
+window.getAcbColorLibrary = getAcbColorLibrary;
+window.openAcbColorPicker = openAcbColorPicker;
+
