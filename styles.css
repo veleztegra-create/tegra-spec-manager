@@ -1523,3 +1523,36 @@ textarea.form-control:focus {
         align-items: stretch;
     }
 }
+
+
+/* =====================================================
+   ACB COLOR BOOK IMPORT PREVIEW
+   ===================================================== */
+.acb-import-shell { display:flex; flex-direction:column; gap:16px; }
+.acb-import-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.acb-import-head h2 { margin:0 0 6px; }
+.acb-import-muted { color:var(--text-secondary); font-size:.9rem; }
+.acb-import-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.acb-import-file { max-width:100%; padding:10px; border:1px dashed var(--border-dark); border-radius:8px; background:var(--bg-elevated,#161a22); }
+.acb-import-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.acb-import-stat { border:1px solid var(--border-dark); border-radius:8px; padding:12px; background:var(--bg-elevated,#161a22); min-width:0; }
+.acb-import-stat small { display:block; color:var(--text-secondary); text-transform:uppercase; font-size:.7rem; letter-spacing:.05em; margin-bottom:4px; }
+.acb-import-stat strong { font-size:1.2rem; overflow-wrap:anywhere; }
+.acb-import-message { padding:11px 13px; border-radius:7px; border:1px solid var(--border-dark); color:var(--text-secondary); }
+.acb-import-message.error { border-color:var(--error,#e05252); color:var(--error,#e05252); }
+.acb-import-message.warning { border-color:var(--warning,#e8a23a); }
+.acb-import-table-wrap { overflow:auto; border:1px solid var(--border-dark); border-radius:8px; }
+.acb-import-table { width:100%; border-collapse:collapse; min-width:700px; font-size:.85rem; }
+.acb-import-table th,.acb-import-table td { padding:9px 11px; text-align:left; border-bottom:1px solid var(--border-dark); vertical-align:middle; }
+.acb-import-table th { position:sticky; top:0; background:var(--bg-elevated,#161a22); z-index:1; }
+.acb-import-table tr:last-child td { border-bottom:0; }
+.acb-import-swatch { display:inline-block; width:26px; height:26px; border:1px solid rgba(127,127,127,.5); border-radius:5px; vertical-align:middle; }
+.acb-import-badge { display:inline-flex; border-radius:999px; padding:3px 7px; font-size:.68rem; font-weight:700; background:var(--gray-dark); color:var(--text-secondary); }
+.acb-import-badge.duplicate { color:var(--warning,#e8a23a); }
+.acb-import-footer { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+@media(max-width:800px) { .acb-import-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } .acb-import-head { flex-direction:column; } }
+@media(max-width:460px) { .acb-import-summary { grid-template-columns:1fr 1fr; gap:7px; } .acb-import-stat { padding:9px; } }
+
+#acb-color-search { width:min(360px,100%); text-align:left; }
+#acb-import-results code { color:var(--text-primary); }
+#acb-file-input { color:var(--text-primary); }
