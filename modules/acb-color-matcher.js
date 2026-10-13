@@ -1,9 +1,9 @@
 function normalizeAcbColorName(value) {
   return String(value ?? '')
     .normalize('NFKD')
-    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim()
-    .replace(/\\s+/g, ' ')
+    .replace(/\s+/g, ' ')
     .toLocaleLowerCase();
 }
 
