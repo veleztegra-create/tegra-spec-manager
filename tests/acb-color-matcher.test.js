@@ -18,7 +18,7 @@ test('supports exact raw ACB names', () => {
 });
 
 test('does not accept partial or fuzzy matches', () => {
-  assert.equal(matchExactAcbColor(book, 'Deep Jungle').code, undefined);
+  assert.equal(matchExactAcbColor(book, 'Deep Jungle'), null);
   assert.equal(matchExactAcbColor(book, 'Deep Jungle 3MG v19'), null);
 });
 
