@@ -233,6 +233,9 @@ function showTab(tabName) {
     if (tabName === 'palette-extractor' && window.initManualPaletteExtractor) {
         window.initManualPaletteExtractor();
     }
+    if (tabName === 'acb-library' && window.initAcbImporter) {
+        window.initAcbImporter();
+    }
     if (tabName === 'color-lab' && window.initColorLab) {
         window.initColorLab();
     }
