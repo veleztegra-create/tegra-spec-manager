@@ -2301,6 +2301,12 @@ function updatePlacementColorValue(placementId, colorId, value) {
     if (!color) return;
 
     const previousValue = color.val;
+    if (color.acbColor && String(value).trim() !== String(color.acbColor.name || '')) {
+        // Evita conservar una referencia ACB antigua si el usuario cambia el nombre manualmente.
+        delete color.acbColor;
+        delete color.hex;
+        delete color.rgb;
+    }
     color.val = value;
 
     if (placement.sequenceMode === 'MANUAL') {
