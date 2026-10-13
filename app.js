@@ -2190,6 +2190,8 @@ function renderPlacementColors(placementId) {
                    title="Malla por tinta"
                    oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)"
                    ondblclick="this.select()">
+            ${color.type === 'COLOR' || color.type === 'METALLIC' ? `<button type="button" class="btn btn-outline btn-sm acb-color-pick-button" onclick="openAcbColorPicker(${placementId}, ${color.id})" title="Seleccionar color desde la biblioteca ACB"><i class="fas fa-book-open"></i></button>` : ''}
+            ${color.acbColor?.code ? `<span class="acb-selected-color-code" title="Color vinculado desde ${String(color.acbColor.bookTitle || 'ACB').replace(/[<>&"]/g, '')}">${String(color.acbColor.code).replace(/[<>&"]/g, '')}</span>` : ''}
             <div class="color-preview" 
                  id="placement-color-preview-${placementId}-${color.id}" 
                  title="Vista previa del color"></div>
@@ -2223,6 +2225,48 @@ function renderPlacementColors(placementId) {
 
         setTimeout(() => updatePlacementColorPreview(placementId, color.id), 10);
     });
+}
+
+function applyAcbColorToPlacement(placementId, colorId, selectedColor, bookInfo = {}) {
+    if (!guardSpecSequenceEdit()) return false;
+
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    const color = placement?.printColors?.find(item => String(item.id) === String(colorId));
+    if (!placement || !color || !selectedColor || !/^#[0-9A-F]{6}$/i.test(String(selectedColor.hex || ''))) {
+        showStatus('No se pudo aplicar el color ACB seleccionado.', 'error');
+        return false;
+    }
+
+    const selectedName = String(selectedColor.name || selectedColor.rawName || selectedColor.code || '').trim();
+    if (!selectedName) {
+        showStatus('El color ACB no tiene un nombre o código utilizable.', 'error');
+        return false;
+    }
+
+    // Reutiliza el flujo existente para mantener sincronizada la secuencia de producción.
+    // Los metadatos ACB se guardan aparte y nunca sustituyen tinta, malla, base o blocker.
+    updatePlacementColorValue(placementId, colorId, selectedName);
+    color.hex = selectedColor.hex.toUpperCase();
+    color.rgb = selectedColor.rgb && Number.isFinite(selectedColor.rgb.r)
+        ? { r: selectedColor.rgb.r, g: selectedColor.rgb.g, b: selectedColor.rgb.b }
+        : null;
+    color.acbColor = {
+        source: 'ACB',
+        bookTitle: String(bookInfo.title || ''),
+        sourceFile: String(bookInfo.sourceFile || ''),
+        name: selectedName,
+        rawName: String(selectedColor.rawName || selectedName),
+        code: String(selectedColor.code || ''),
+        hex: color.hex,
+        rgb: color.rgb,
+        index: Number.isInteger(selectedColor.index) ? selectedColor.index : null
+    };
+
+    updatePlacementColorPreview(placementId, colorId);
+    updatePlacementColorsPreview(placementId);
+    renderPlacementColors(placementId);
+    showStatus(`Color ACB aplicado: ${selectedName}${selectedColor.code ? ' · ' + selectedColor.code : ''}`, 'success');
+    return true;
 }
 
 function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
@@ -2425,7 +2469,7 @@ function updatePlacementColorPreview(placementId, colorId) {
     if (!preview) return;
 
     const colorName = (color.val || '').toUpperCase().trim();
-    let colorHex = null;
+    let colorHex = /^#[0-9A-F]{6}$/i.test(String(color.hex || '')) ? String(color.hex).toUpperCase() : null;
 
     if (window.ColorConfig && window.ColorConfig.findColorHex) {
         colorHex = window.ColorConfig.findColorHex(color.val);
@@ -5357,6 +5401,7 @@ window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.movePlacementColorItem = movePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
+window.applyAcbColorToPlacement = applyAcbColorToPlacement;
 window.updatePlacementColorMesh = updatePlacementColorMesh;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
 window.updatePlacementParam = updatePlacementParam;
