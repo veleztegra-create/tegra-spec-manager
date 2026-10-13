@@ -2291,6 +2291,25 @@ function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
     checkForSpecialtiesInColors(placementId);
 }
 
+function syncPlacementAcbColorBadge(placementId, colorId, acbColor) {
+    const item = document.querySelector(`.color-item[data-placement-id="${placementId}"][data-color-id="${colorId}"]`);
+    if (!item) return;
+    let badge = item.querySelector('.acb-selected-color-code');
+    if (!acbColor?.code) {
+        badge?.remove();
+        return;
+    }
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'acb-selected-color-code';
+        const preview = item.querySelector('.color-preview');
+        if (preview) item.insertBefore(badge, preview);
+        else item.appendChild(badge);
+    }
+    badge.textContent = String(acbColor.code).replace(/[<>&"]/g, '');
+    badge.title = `Color vinculado desde ${String(acbColor.bookTitle || 'ACB').replace(/[<>&"]/g, '')}`;
+}
+
 function updatePlacementColorValue(placementId, colorId, value) {
     if (!guardSpecSequenceEdit()) return;
 
@@ -2301,6 +2320,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
     if (!color) return;
 
     const previousValue = color.val;
+    const hadAcbReference = Boolean(color.acbColor);
     if (color.acbColor && String(value).trim() !== String(color.acbColor.name || '')) {
         // Evita conservar una referencia ACB antigua si el usuario cambia el nombre manualmente.
         delete color.acbColor;
@@ -2308,6 +2328,31 @@ function updatePlacementColorValue(placementId, colorId, value) {
         delete color.rgb;
     }
     color.val = value;
+
+    // Auto-link only an unambiguous exact name match. Never infer a color from
+    // partial text, because a wrong swatch or ACB code would be misleading.
+    const isDesignColor = color.type === 'COLOR' || color.type === 'METALLIC';
+    const matchedAcb = isDesignColor && typeof window.resolveAcbColorByName === 'function'
+        ? window.resolveAcbColorByName(value)
+        : null;
+    if (matchedAcb && /^#[0-9A-F]{6}$/i.test(String(matchedAcb.hex || ''))) {
+        color.hex = String(matchedAcb.hex).toUpperCase();
+        color.rgb = matchedAcb.rgb && [matchedAcb.rgb.r, matchedAcb.rgb.g, matchedAcb.rgb.b].every(Number.isFinite)
+            ? { r: matchedAcb.rgb.r, g: matchedAcb.rgb.g, b: matchedAcb.rgb.b }
+            : null;
+        color.acbColor = {
+            source: 'ACB',
+            bookTitle: String(matchedAcb.bookTitle || ''),
+            sourceFile: String(matchedAcb.sourceFile || ''),
+            name: String(matchedAcb.name || matchedAcb.rawName || value).trim(),
+            rawName: String(matchedAcb.rawName || matchedAcb.name || value).trim(),
+            code: String(matchedAcb.code || ''),
+            hex: color.hex,
+            rgb: color.rgb,
+            index: Number.isInteger(matchedAcb.index) ? matchedAcb.index : null
+        };
+    }
+    syncPlacementAcbColorBadge(placementId, colorId, color.acbColor);
 
     if (placement.sequenceMode === 'MANUAL') {
         // Manual production sequence remains authoritative. Update only the
@@ -2477,7 +2522,7 @@ function updatePlacementColorPreview(placementId, colorId) {
     const colorName = (color.val || '').toUpperCase().trim();
     let colorHex = /^#[0-9A-F]{6}$/i.test(String(color.hex || '')) ? String(color.hex).toUpperCase() : null;
 
-    if (window.ColorConfig && window.ColorConfig.findColorHex) {
+    if (!color.acbColor && window.ColorConfig && window.ColorConfig.findColorHex) {
         colorHex = window.ColorConfig.findColorHex(color.val);
     }
 
