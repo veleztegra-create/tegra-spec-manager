@@ -1,4 +1,5 @@
 import { decodeAcb } from '../modules/acb-reader.js';
+import { saveAcbLibrary, loadAcbLibrary, clearAcbLibrary } from '../modules/acb-library-storage.js';
 
 const PAGE_SIZE = 250;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -89,7 +90,7 @@ function renderRows() {
   document.getElementById('acb-show-more').textContent = `Mostrar siguientes ${PAGE_SIZE}`;
 }
 
-function showBook(book, fileName) {
+function showBook(book, fileName, options = {}) {
   currentBook = book;
   currentFileName = fileName;
   visibleLimit = PAGE_SIZE;
@@ -106,10 +107,25 @@ function showBook(book, fileName) {
   ];
   document.getElementById('acb-book-details').textContent = details.join(' · ');
   const duplicateCount = findDuplicates(book.colors).size;
+  let persistenceNote = '';
+  if (options.restored) {
+    persistenceNote = ' Biblioteca restaurada desde este navegador.';
+  } else {
+    try {
+      const result = saveAcbLibrary(window.localStorage, book, fileName);
+      persistenceNote = result.ok
+        ? ' Biblioteca guardada localmente en este navegador.'
+        : result.reason === 'too-large' || result.reason === 'quota-exceeded'
+          ? ' No se pudo guardar: el almacenamiento local está lleno o la biblioteca es demasiado grande.'
+          : ' No se pudo guardar en el almacenamiento local de este navegador.';
+    } catch {
+      persistenceNote = ' El navegador no permitió guardar la biblioteca localmente.';
+    }
+  }
   setMessage(
-    duplicateCount
+    (duplicateCount
       ? `Lectura completada: ${book.colorCount} colores. ${duplicateCount} registros tienen posibles repeticiones internas; revisa la tabla antes de usar los datos.`
-      : `Lectura completada: ${book.colorCount} colores. No se encontraron repeticiones internas por código, nombre o HEX.`,
+      : `Lectura completada: ${book.colorCount} colores. No se encontraron repeticiones internas por código, nombre o HEX.`) + persistenceNote,
     duplicateCount ? 'warning' : ''
   );
   renderRows();
@@ -200,6 +216,25 @@ function initAcbImporter() {
     renderRows();
   });
   document.getElementById('acb-export-preview').addEventListener('click', exportPreview);
+  document.getElementById('acb-clear-saved-library')?.addEventListener('click', () => {
+    if (!window.confirm('¿Eliminar la biblioteca ACB guardada en este navegador? Esto no modifica las especificaciones ya creadas.')) return;
+    let cleared = false;
+    try { cleared = clearAcbLibrary(window.localStorage); } catch {}
+    currentBook = null;
+    currentFileName = '';
+    document.getElementById('acb-import-results').hidden = true;
+    document.getElementById('acb-export-preview').disabled = true;
+    setMessage(cleared
+      ? 'Biblioteca local eliminada. Las especificaciones existentes no se han modificado.'
+      : 'No se pudo eliminar la biblioteca guardada.', cleared ? '' : 'error');
+  });
+
+  try {
+    const saved = loadAcbLibrary(window.localStorage);
+    if (saved) showBook(saved.book, saved.sourceFile, { restored: true });
+  } catch (error) {
+    console.warn('No se pudo restaurar la biblioteca ACB local:', error);
+  }
 }
 
 window.initAcbImporter = initAcbImporter;
