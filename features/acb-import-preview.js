@@ -1,5 +1,6 @@
 import { decodeAcb } from '../modules/acb-reader.js';
 import { saveAcbLibrary, loadAcbLibrary, clearAcbLibrary } from '../modules/acb-library-storage.js';
+import { matchExactAcbColor } from '../modules/acb-color-matcher.js';
 
 const PAGE_SIZE = 250;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -239,6 +240,19 @@ function initAcbImporter() {
 
 window.initAcbImporter = initAcbImporter;
 function getAcbColorLibrary() {
+  // Restore the persisted library on demand so Spec Creator can resolve names
+  // even if the user has not opened the ACB tab after refreshing the app.
+  if (!currentBook) {
+    try {
+      const saved = loadAcbLibrary(window.localStorage);
+      if (saved?.book) {
+        currentBook = saved.book;
+        currentFileName = saved.sourceFile || '';
+      }
+    } catch (error) {
+      console.warn('No se pudo recuperar la biblioteca ACB para resolver colores:', error);
+    }
+  }
   if (!currentBook) return null;
   return {
     title: currentBook.title || '',
@@ -253,6 +267,13 @@ function getAcbColorLibrary() {
     }))
   };
 }
+
+window.resolveAcbColorByName = function resolveAcbColorByName(query) {
+  const book = getAcbColorLibrary();
+  if (!book) return null;
+  const color = matchExactAcbColor(book, query);
+  return color ? { ...color, bookTitle: book.title, sourceFile: book.sourceFile } : null;
+};
 
 function closeAcbColorPicker() {
   document.getElementById('acb-selection-modal')?.remove();
