@@ -26,5 +26,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check features/acb-import-preview.js
+          node --check features/pdf-generator-mejorado.js
+          node --check modules/acb-reader.js
+          node --check modules/acb-library-storage.js
       - name: Run ACB tests
         run: npm run test:acb
