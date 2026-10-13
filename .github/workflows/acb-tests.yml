@@ -1,0 +1,30 @@
+name: ACB tests
+
+on:
+  push:
+    paths:
+      - 'modules/acb-*.js'
+      - 'tests/acb-*.test.js'
+      - 'features/acb-import-preview.js'
+      - 'package.json'
+      - '.github/workflows/acb-tests.yml'
+  pull_request:
+    paths:
+      - 'modules/acb-*.js'
+      - 'tests/acb-*.test.js'
+      - 'features/acb-import-preview.js'
+      - 'package.json'
+      - '.github/workflows/acb-tests.yml'
+
+jobs:
+  acb-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run ACB tests
+        run: npm run test:acb
