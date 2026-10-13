@@ -1552,3 +1552,7 @@ textarea.form-control:focus {
 .acb-import-footer { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
 @media(max-width:800px) { .acb-import-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } .acb-import-head { flex-direction:column; } }
 @media(max-width:460px) { .acb-import-summary { grid-template-columns:1fr 1fr; gap:7px; } .acb-import-stat { padding:9px; } }
+
+#acb-color-search { width:min(360px,100%); text-align:left; }
+#acb-import-results code { color:var(--text-primary); }
+#acb-file-input { color:var(--text-primary); }
