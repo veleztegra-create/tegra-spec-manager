@@ -1,5 +1,5 @@
 import { decodeAcb } from '../modules/acb-reader.js';
-import { saveAcbLibrary, loadAcbLibrary, clearAcbLibrary } from '../modules/acb-library-storage.js';
+import { saveAcbLibrary, loadAcbLibrary, loadAcbLibraries, loadActiveAcbLibrary, setActiveAcbLibrary, deleteAcbLibrary, clearAcbLibrary } from '../modules/acb-library-storage.js';
 import { matchExactAcbColor } from '../modules/acb-color-matcher.js';
 
 const PAGE_SIZE = 250;
@@ -20,6 +20,36 @@ function setMessage(message, type = '') {
   if (!el) return;
   el.textContent = message;
   el.className = `acb-import-message${type ? ` ${type}` : ''}`;
+}
+
+function refreshLibraryControls() {
+  const select = document.getElementById('acb-saved-libraries');
+  const deleteButton = document.getElementById('acb-delete-current-library');
+  if (!select) return;
+  const { libraries, activeLibraryId } = loadAcbLibraries(window.localStorage);
+  select.innerHTML = libraries.map((item) => {
+    const label = item.book.title || item.sourceFile || 'Biblioteca sin nombre';
+    const file = item.sourceFile ? ` — ${item.sourceFile}` : '';
+    return `<option value="${escapeHtml(item.id)}" ${item.id === activeLibraryId ? 'selected' : ''}>${escapeHtml(label + file)}</option>`;
+  }).join('');
+  if (!libraries.length) {
+    select.innerHTML = '<option value="">No hay bibliotecas guardadas</option>';
+    select.disabled = true;
+  } else {
+    select.disabled = false;
+  }
+  if (deleteButton) deleteButton.disabled = !libraries.length;
+}
+
+function activateSavedLibrary(libraryId) {
+  const result = setActiveAcbLibrary(window.localStorage, libraryId);
+  if (!result.ok) {
+    setMessage('No se pudo activar la biblioteca seleccionada.', 'error');
+    return;
+  }
+  const active = loadActiveAcbLibrary(window.localStorage);
+  if (active) showBook(active.book, active.sourceFile, { restored: true });
+  refreshLibraryControls();
 }
 
 function findDuplicates(colors) {
@@ -94,6 +124,7 @@ function renderRows() {
 function showBook(book, fileName, options = {}) {
   currentBook = book;
   currentFileName = fileName;
+  refreshLibraryControls();
   visibleLimit = PAGE_SIZE;
   document.getElementById('acb-import-results').hidden = false;
   document.getElementById('acb-export-preview').disabled = false;
@@ -115,7 +146,7 @@ function showBook(book, fileName, options = {}) {
     try {
       const result = saveAcbLibrary(window.localStorage, book, fileName);
       persistenceNote = result.ok
-        ? ' Biblioteca guardada localmente en este navegador.'
+        ? ' Biblioteca guardada localmente en este navegador. Puedes conservar otras paletas y cambiar entre ellas.'
         : result.reason === 'too-large' || result.reason === 'quota-exceeded'
           ? ' No se pudo guardar: el almacenamiento local está lleno o la biblioteca es demasiado grande.'
           : ' No se pudo guardar en el almacenamiento local de este navegador.';
@@ -217,22 +248,44 @@ function initAcbImporter() {
     renderRows();
   });
   document.getElementById('acb-export-preview').addEventListener('click', exportPreview);
+  document.getElementById('acb-saved-libraries')?.addEventListener('change', (event) => {
+    if (event.target.value) activateSavedLibrary(event.target.value);
+  });
+  document.getElementById('acb-delete-current-library')?.addEventListener('click', () => {
+    const active = loadActiveAcbLibrary(window.localStorage);
+    if (!active) return;
+    if (!window.confirm(`¿Eliminar solo la biblioteca "${active.book.title || active.sourceFile}"? Las demás bibliotecas y las especificaciones existentes no se modificarán.`)) return;
+    const result = deleteAcbLibrary(window.localStorage, active.id);
+    if (!result.ok) {
+      setMessage('No se pudo eliminar la biblioteca seleccionada.', 'error');
+      return;
+    }
+    const next = loadActiveAcbLibrary(window.localStorage);
+    refreshLibraryControls();
+    if (next) showBook(next.book, next.sourceFile, { restored: true });
+    else {
+      currentBook = null;
+      currentFileName = '';
+      document.getElementById('acb-import-results').hidden = true;
+      document.getElementById('acb-export-preview').disabled = true;
+      setMessage('No quedan bibliotecas guardadas. Puedes cargar otra paleta cuando la necesites.');
+    }
+  });
   document.getElementById('acb-clear-saved-library')?.addEventListener('click', () => {
-    if (!window.confirm('¿Eliminar la biblioteca ACB guardada en este navegador? Esto no modifica las especificaciones ya creadas.')) return;
-    let cleared = false;
-    try { cleared = clearAcbLibrary(window.localStorage); } catch {}
+    if (!window.confirm('¿Eliminar TODAS las bibliotecas ACB guardadas en este navegador? Las especificaciones existentes no se modificarán.')) return;
+    const cleared = clearAcbLibrary(window.localStorage);
     currentBook = null;
     currentFileName = '';
     document.getElementById('acb-import-results').hidden = true;
     document.getElementById('acb-export-preview').disabled = true;
-    setMessage(cleared
-      ? 'Biblioteca local eliminada. Las especificaciones existentes no se han modificado.'
-      : 'No se pudo eliminar la biblioteca guardada.', cleared ? '' : 'error');
+    refreshLibraryControls();
+    setMessage(cleared ? 'Todas las bibliotecas locales fueron eliminadas. Las especificaciones existentes no se han modificado.' : 'No se pudieron eliminar las bibliotecas guardadas.', cleared ? '' : 'error');
   });
 
   try {
     const saved = loadAcbLibrary(window.localStorage);
     if (saved) showBook(saved.book, saved.sourceFile, { restored: true });
+    refreshLibraryControls();
   } catch (error) {
     console.warn('No se pudo restaurar la biblioteca ACB local:', error);
   }
