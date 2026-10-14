@@ -124,7 +124,6 @@ function renderRows() {
 function showBook(book, fileName, options = {}) {
   currentBook = book;
   currentFileName = fileName;
-  refreshLibraryControls();
   visibleLimit = PAGE_SIZE;
   document.getElementById('acb-import-results').hidden = false;
   document.getElementById('acb-export-preview').disabled = false;
@@ -161,6 +160,7 @@ function showBook(book, fileName, options = {}) {
     duplicateCount ? 'warning' : ''
   );
   renderRows();
+  refreshLibraryControls();
 }
 
 async function handleFile(file) {
