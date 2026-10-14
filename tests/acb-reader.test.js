@@ -50,6 +50,17 @@ test('rejects unsupported color model instead of guessing', () => {
   assert.throws(() => decodeAcb(fixture({ model: 2 })), /no compatible/);
 });
 
+test('decodes Lab books and derives RGB swatches while preserving Lab values', () => {
+  const book = decodeAcb(fixture({ model: 7, colors: [
+    { name: 'Neutral', code: 'L00001', rgb: [128, 128, 128] }
+  ] }));
+  assert.equal(book.colorModel, 'Lab');
+  assert.equal(book.colorModelId, 7);
+  assert.deepEqual(book.colors[0].lab, { l: 128 * 100 / 255, a: 0, b: 0 });
+  assert.match(book.colors[0].hex, /^#[0-9A-F]{6}$/);
+  assert.ok(book.colors[0].rgb.r >= 0 && book.colors[0].rgb.r <= 255);
+});
+
 test('rejects truncated records', () => {
   const bytes = fixture();
   assert.throws(() => decodeAcb(bytes.slice(0, -10)), /truncado/);
