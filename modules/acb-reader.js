@@ -55,8 +55,8 @@ export function decodeAcb(input) {
   if (version !== 1) throw new Error(`Versión ACB no compatible: ${version}.`);
   const bookId = readU16('ID del libro');
   const title = readString('título');
-  const colorNamePrefix = readString('prefijo');
-  const colorNamePostfix = readString('sufijo');
+  const colorNamePrefix = normalizeAcbNameAffix(readString('prefijo'));
+  const colorNamePostfix = normalizeAcbNameAffix(readString('sufijo'));
   const description = readString('descripción');
   const colorCount = readU16('cantidad de colores');
   const pageSize = readU16('tamaño de página');
@@ -137,6 +137,17 @@ export function decodeAcb(input) {
     spotProcessIdentifier,
     colors
   };
+}
+
+function normalizeAcbNameAffix(value) {
+  // Adobe books can store localized resource tokens such as
+  // $$/colorbook/PANTONE/prefix=PANTONE  and $$/colorbook/PANTONE/postfix=.
+  // The actual affix is the default value after the final '='.
+  const marker = value.lastIndexOf('$$/');
+  const candidate = marker >= 0 ? value.slice(marker) : value;
+  if (!candidate.startsWith('$$/')) return value;
+  const equals = candidate.indexOf('=');
+  return equals >= 0 ? candidate.slice(equals + 1) : value;
 }
 
 function labD50ToSrgb({ l, a, b }) {
