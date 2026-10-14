@@ -4,14 +4,19 @@
       <div class="acb-import-head">
         <div>
           <h2>Biblioteca ACB</h2>
-          <p class="acb-import-muted">Carga un Adobe Color Book para consultar y seleccionar colores en tus especificaciones. La biblioteca se guarda solo en este navegador; no modifica las reglas de producción.</p>
+          <p class="acb-import-muted">Guarda varias bibliotecas Adobe Color Book (por ejemplo, Nike y NFL), cambia cuál está activa y consulta sus colores en tus especificaciones. Se guardan solo en este navegador; no modifican las reglas de producción.</p>
         </div>
         <span class="acb-import-badge">IMPORTACIÓN · VISTA PREVIA</span>
       </div>
       <div class="acb-import-controls" style="margin-top:14px">
         <input id="acb-file-input" class="acb-import-file" type="file" accept=".acb,application/octet-stream">
+        <label for="acb-saved-libraries">Biblioteca activa</label>
+        <select id="acb-saved-libraries" class="form-control" aria-label="Seleccionar biblioteca ACB guardada">
+          <option value="">No hay bibliotecas guardadas</option>
+        </select>
+        <button id="acb-delete-current-library" class="btn" type="button" disabled>Eliminar esta biblioteca</button>
         <button id="acb-export-preview" class="btn btn-primary" type="button" disabled>Exportar vista previa JSON</button>
-        <button id="acb-clear-saved-library" class="btn" type="button">Eliminar biblioteca guardada</button>
+        <button id="acb-clear-saved-library" class="btn" type="button">Eliminar todas las bibliotecas</button>
       </div>
       <p id="acb-import-message" class="acb-import-message" role="status" aria-live="polite" style="margin-top:12px">Selecciona un archivo .ACB. El archivo se procesa localmente y la biblioteca puede restaurarse al volver a abrir la aplicación en este mismo navegador.</p>
     </div>
