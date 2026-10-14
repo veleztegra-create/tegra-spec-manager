@@ -10,13 +10,13 @@ function str(s) {
     return [n >> 8, n & 255];
   })];
 }
-function fixture({ model = 0, tail = 'spflproc', colors = [
+function fixture({ model = 0, tail = 'spflproc', prefix = '', postfix = '', colors = [
   { name: 'Red', code: 'C00001', rgb: [255, 0, 0] },
   { name: 'White', code: 'C00002', rgb: [255, 255, 255] }
 ] } = {}) {
   const out = [
     ...Buffer.from('8BCB'), ...u16(1), ...u16(3000),
-    ...str('Test Book'), ...str(''), ...str(''), ...str('Test description'),
+    ...str('Test Book'), ...str(prefix), ...str(postfix), ...str('Test description'),
     ...u16(colors.length), ...u16(9), ...u16(4), ...u16(model)
   ];
   for (const color of colors) {
@@ -25,6 +25,18 @@ function fixture({ model = 0, tail = 'spflproc', colors = [
   if (tail) out.push(...Buffer.from(tail, 'ascii'));
   return new Uint8Array(out);
 }
+
+test('strips Adobe localized resource markers from Pantone prefix and postfix', () => {
+  const book = decodeAcb(fixture({
+    prefix: '$$/colorbook/PANTONE/prefix=PANTONE ',
+    postfix: '$$/colorbook/PANTONE/postfix=',
+    colors: [{ name: '2006 C', code: 'P2006C', rgb: [255, 0, 0] }]
+  }));
+  assert.equal(book.colorNamePrefix, 'PANTONE ');
+  assert.equal(book.colorNamePostfix, '');
+  assert.equal(book.colors[0].name, 'PANTONE 2006 C');
+  assert.equal(book.colors[0].rawName, '2006 C');
+});
 
 test('decodes RGB entries and book metadata', () => {
   const book = decodeAcb(fixture());
