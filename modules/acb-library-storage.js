@@ -9,7 +9,7 @@ function isByte(value) {
 }
 
 function isValidBook(book) {
-  if (!book || book.sourceFormat !== 'ACB' || book.version !== 1 || book.colorModel !== 'RGB') return false;
+  if (!book || book.sourceFormat !== 'ACB' || book.version !== 1 || !['RGB', 'Lab'].includes(book.colorModel)) return false;
   if (!Array.isArray(book.colors) || book.colors.length > MAX_COLORS || book.colorCount !== book.colors.length) return false;
   return book.colors.every((color, index) => {
     if (!color || color.index !== index || typeof color.name !== 'string' || typeof color.rawName !== 'string') return false;
