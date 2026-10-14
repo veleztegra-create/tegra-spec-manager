@@ -21,7 +21,9 @@ function isValidBook(book) {
 }
 
 function makeLibraryId(book, sourceFile) {
-  const identity = `${String(sourceFile || '').trim().toLocaleLowerCase()}|${String(book.bookId ?? '').trim()}|${String(book.title || '').trim().toLocaleLowerCase()}`;
+  const source = String(sourceFile || '').trim().toLocaleLowerCase();
+  const bookId = String(book.bookId ?? '').trim();
+  const identity = source ? `${source}|${bookId}` : `title|${String(book.title || '').trim().toLocaleLowerCase()}|${bookId}`;
   let hash = 2166136261;
   for (let index = 0; index < identity.length; index += 1) {
     hash ^= identity.charCodeAt(index);
