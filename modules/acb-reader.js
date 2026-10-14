@@ -3,9 +3,9 @@ const MAX_COLORS = 8000;
 const MAX_STRING_CHARS = 1_000_000;
 
 /**
- * Decode an Adobe Color Book (ACB) binary file.
- * Initial support is intentionally limited to version-1 RGB books (model ID 0).
- * Production metadata such as ink type, white base, and blocker is not part of this format.
+ * Decode Adobe Color Book (ACB) v1 books.
+ * Supports RGB (0) and CIELAB D50 (7). Lab values are retained and converted
+ * to sRGB only for the application's on-screen swatches and HTML/PDF previews.
  */
 export function decodeAcb(input) {
   const bytes = toBytes(input);
@@ -66,24 +66,46 @@ export function decodeAcb(input) {
   if (colorCount > MAX_COLORS) throw new Error(`Cantidad de colores fuera de rango: ${colorCount}.`);
   if (pageSize > 9) throw new Error(`Tamaño de página ACB fuera de rango: ${pageSize}.`);
   if (pageSize > 0 && pageKey > pageSize) throw new Error(`Clave de página inválida: ${pageKey}.`);
-  if (colorModelId !== 0) {
-    throw new Error(`Modelo de color ACB no compatible todavía: ${colorModelId}. Solo se admite RGB (0).`);
+  if (![0, 7].includes(colorModelId)) {
+    const modelName = colorModelId === 2 ? 'CMYK (2)' : `modelo ${colorModelId}`;
+    throw new Error(`Modelo de color ACB no compatible todavía: ${modelName}. Se admiten RGB (0) y Lab (7).`);
   }
 
   const colors = [];
   for (let i = 0; i < colorCount; i++) {
     const rawName = readString(`nombre del color ${i + 1}`);
-    ensure(9, `código y RGB del color ${i + 1}`);
+    ensure(9, `código y componentes del color ${i + 1}`);
     const codeBytes = bytes.slice(offset, offset + 6);
     if (codeBytes.some((byte) => byte < 0x20 || byte > 0x7e)) {
       throw new Error(`Código no ASCII imprimible en el color ${i + 1}.`);
     }
     const code = String.fromCharCode(...codeBytes);
     offset += 6;
-    const rgb = { r: bytes[offset], g: bytes[offset + 1], b: bytes[offset + 2] };
+    const components = [bytes[offset], bytes[offset + 1], bytes[offset + 2]];
     offset += 3;
+
+    let rgb;
+    let lab = null;
+    if (colorModelId === 0) {
+      rgb = { r: components[0], g: components[1], b: components[2] };
+    } else {
+      lab = {
+        l: components[0] * 100 / 255,
+        a: components[1] - 128,
+        b: components[2] - 128
+      };
+      rgb = labD50ToSrgb(lab);
+    }
     const hex = `#${[rgb.r, rgb.g, rgb.b].map((n) => n.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
-    colors.push({ index: i, name: `${colorNamePrefix}${rawName}${colorNamePostfix}`, rawName, code, rgb, hex });
+    colors.push({
+      index: i,
+      name: `${colorNamePrefix}${rawName}${colorNamePostfix}`,
+      rawName,
+      code,
+      rgb,
+      hex,
+      ...(lab ? { lab } : {})
+    });
   }
 
   let spotProcessIdentifier = null;
@@ -110,10 +132,40 @@ export function decodeAcb(input) {
     colorCount,
     pageSize,
     pageKey,
-    colorModel: 'RGB',
+    colorModel: colorModelId === 0 ? 'RGB' : 'Lab',
     colorModelId,
     spotProcessIdentifier,
     colors
+  };
+}
+
+function labD50ToSrgb({ l, a, b }) {
+  const epsilon = 216 / 24389;
+  const kappa = 24389 / 27;
+  const fy = (l + 16) / 116;
+  const fx = fy + a / 500;
+  const fz = fy - b / 200;
+  const inverse = (value) => {
+    const cube = value ** 3;
+    return cube > epsilon ? cube : (116 * value - 16) / kappa;
+  };
+
+  // CIELAB D50 reference white, then Bradford adaptation from D50 to D65.
+  const x50 = 0.96422 * inverse(fx);
+  const y50 = inverse(fy);
+  const z50 = 0.82521 * inverse(fz);
+  const x = 0.9555766 * x50 - 0.0230393 * y50 + 0.0631636 * z50;
+  const y = -0.0282895 * x50 + 1.0099416 * y50 + 0.0210077 * z50;
+  const z = 0.0122982 * x50 - 0.0204830 * y50 + 1.3299098 * z50;
+
+  const linearToSrgb = (value) => {
+    const channel = value <= 0.0031308 ? 12.92 * value : 1.055 * (Math.max(0, value) ** (1 / 2.4)) - 0.055;
+    return Math.round(Math.max(0, Math.min(1, channel)) * 255);
+  };
+  return {
+    r: linearToSrgb(3.2404542 * x - 1.5371385 * y - 0.4985314 * z),
+    g: linearToSrgb(-0.9692660 * x + 1.8760108 * y + 0.0415560 * z),
+    b: linearToSrgb(0.0556434 * x - 0.2040259 * y + 1.0572252 * z)
   };
 }
 
