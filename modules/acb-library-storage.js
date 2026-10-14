@@ -15,19 +15,19 @@ function isValidBook(book) {
     if (!color || color.index !== index || typeof color.name !== 'string' || typeof color.rawName !== 'string') return false;
     if (typeof color.code !== 'string' || !/^[\x20-\x7E]{6}$/.test(color.code)) return false;
     if (!color.rgb || !isByte(color.rgb.r) || !isByte(color.rgb.g) || !isByte(color.rgb.b)) return false;
-    const expectedHex = \`#\${[color.rgb.r, color.rgb.g, color.rgb.b].map((n) => n.toString(16).padStart(2, '0')).join('').toUpperCase()}\`;
+    const expectedHex = `#${[color.rgb.r, color.rgb.g, color.rgb.b].map((n) => n.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
     return color.hex === expectedHex;
   });
 }
 
 function makeLibraryId(book, sourceFile) {
-  const identity = \`\${String(sourceFile || '').trim().toLocaleLowerCase()}|\${String(book.bookId ?? '').trim()}|\${String(book.title || '').trim().toLocaleLowerCase()}\`;
+  const identity = `${String(sourceFile || '').trim().toLocaleLowerCase()}|${String(book.bookId ?? '').trim()}|${String(book.title || '').trim().toLocaleLowerCase()}`;
   let hash = 2166136261;
   for (let index = 0; index < identity.length; index += 1) {
     hash ^= identity.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  return \`acb-\${(hash >>> 0).toString(16)}\`;
+  return `acb-${(hash >>> 0).toString(16)}`;
 }
 
 function validateCollection(collection) {
