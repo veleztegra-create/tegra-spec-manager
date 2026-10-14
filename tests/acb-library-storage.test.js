@@ -33,6 +33,18 @@ test('saves and restores a validated ACB book locally', () => {
   assert.equal(loaded.book.colors[0].hex, '#FF0000');
 });
 
+test('persists Lab books with their derived RGB swatches', () => {
+  const storage = memoryStorage();
+  const book = makeBook('Pantone C', 7, '#777777');
+  book.colorModel = 'Lab';
+  book.colorModelId = 7;
+  book.colors[0].lab = { l: 50.2, a: 0, b: 0 };
+  assert.equal(saveAcbLibrary(storage, book, 'PANTONE Solid Coated.acb').ok, true);
+  const loaded = loadAcbLibrary(storage);
+  assert.equal(loaded.book.colorModel, 'Lab');
+  assert.deepEqual(loaded.book.colors[0].lab, { l: 50.2, a: 0, b: 0 });
+});
+
 test('keeps multiple palettes available and activates the newly imported one', () => {
   const storage = memoryStorage();
   const nike = saveAcbLibrary(storage, makeBook('Nike', 1), 'NIKE.acb');
