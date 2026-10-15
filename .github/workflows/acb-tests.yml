@@ -33,6 +33,7 @@ jobs:
           node --check app.js
           node --check features/acb-import-preview.js
           node --check features/pdf-generator-mejorado.js
+          node --check features/manual-palette-extractor.js
           node --check modules/acb-reader.js
           node --check modules/acb-library-storage.js
           node --check modules/acb-color-matcher.js
