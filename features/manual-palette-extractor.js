@@ -298,8 +298,9 @@
       if (!palette) throw new Error('No hay una paleta activa.');
       const duplicate = palette.colors.find((color) => normalizeHex(color.hex) === pendingColor.hex);
       if (duplicate) {
+        const duplicateHex = pendingColor.hex;
         pendingColor = null;
-        setStatus(pendingColor.hex + ' ya existe en esta paleta. No se duplicó.', 'warning');
+        setStatus(duplicateHex + ' ya existe en esta paleta. No se duplicó.', 'warning');
         return;
       }
       palette.colors.push({ id: uid('color_'), hex: pendingColor.hex, colorName: name, underbase: pendingColor.underbase });
