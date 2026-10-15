@@ -1709,7 +1709,7 @@ textarea.form-control:focus {
 }
 .gfsextr-tool .btn-primary:hover,
 .gfsextr-tool .btn-primary:focus-visible {
-    background: var(--primary-red, #ff5252);
+    background: #b71c1c;
     color: #ffffff;
 }
 .gfsextr-tool .btn-secondary {
