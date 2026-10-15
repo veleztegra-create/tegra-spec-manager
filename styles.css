@@ -1695,3 +1695,44 @@ textarea.form-control:focus {
 .gfsextr-modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
 @media(max-width:1000px) { .gfsextr-layout { grid-template-columns:1fr; } .gfsextr-canvas-wrap { max-height:50vh; } }
 @media(max-width:650px) { .gfsextr-header { align-items:flex-start; flex-direction:column; } .gfsextr-toolbar-spacer { display:none; } .gfsextr-field { width:100%; } .gfsextr-field select { flex:1; max-width:none; } .gfsextr-color-row { grid-template-columns:38px minmax(80px,1fr) auto 30px; gap:7px; } .gfsextr-swatch { width:36px; height:36px; } .gfsextr-base-toggle { white-space:normal; } }
+
+
+/* GFSEXTR: contraste explícito para evitar botones blancos con texto blanco */
+.gfsextr-tool .btn {
+    color: #ffffff;
+    border: 1px solid transparent;
+    text-decoration: none;
+}
+.gfsextr-tool .btn-primary {
+    background: var(--primary-red-dark, #d32f2f);
+    color: #ffffff;
+}
+.gfsextr-tool .btn-primary:hover,
+.gfsextr-tool .btn-primary:focus-visible {
+    background: var(--primary-red, #ff5252);
+    color: #ffffff;
+}
+.gfsextr-tool .btn-secondary {
+    background: var(--gray-medium, #3d3d3d);
+    color: var(--text-primary, #ffffff);
+    border-color: var(--border-light, #444444);
+}
+.gfsextr-tool .btn-secondary:hover,
+.gfsextr-tool .btn-secondary:focus-visible {
+    background: var(--gray-light, #4d4d4d);
+    color: #ffffff;
+    border-color: var(--border-hover, #555555);
+}
+.gfsextr-tool .btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+.gfsextr-tool .gfsextr-file-button {
+    background: var(--gray-medium, #3d3d3d);
+    color: #ffffff;
+}
+.gfsextr-tool .gfsextr-file-button:hover,
+.gfsextr-tool .gfsextr-file-button:focus-within {
+    background: var(--gray-light, #4d4d4d);
+    color: #ffffff;
+}
