@@ -27,11 +27,20 @@ function normalizeColorNameForCounting(name = '') {
         .trim();
 }
 
+function isExplicitScreenStep(step = {}) {
+    const stationType = String(step?.stationType || step?.stepType || '').trim().toUpperCase();
+    if (stationType) return stationType === 'SCREEN';
+
+    // Compatibility with existing sequences generated before stationType existed.
+    // Only known screen-producing types qualify; unknown/future process steps do not.
+    const type = String(step?.type || step?.tipo || '').trim().toUpperCase();
+    return new Set(['SCREEN', 'BLOCKER', 'WHITE_BASE', 'COLOR', 'METALLIC']).has(type);
+}
+
 function countScreensFromSequence(sequence = []) {
-    return sequence.filter((step) => {
-        const type = String(step?.type || step?.tipo || '').toUpperCase();
-        return type !== 'FLASH' && type !== 'COOL';
-    }).length;
+    return Array.isArray(sequence)
+        ? sequence.filter(isExplicitScreenStep).length
+        : 0;
 }
 
 function countStationsFromSequence(sequence = []) {
@@ -39,17 +48,8 @@ function countStationsFromSequence(sequence = []) {
 }
 
 function countUniquePrintedColors(placement = {}) {
-    const sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
-    const fromSequence = sequence
-        .filter((step) => {
-            const type = String(step?.type || step?.tipo || '').toUpperCase();
-            return type === 'COLOR' || type === 'METALLIC';
-        })
-        .map((step) => normalizeColorNameForCounting(step?.val || step?.nombre || ''))
-        .filter(Boolean);
-
-    const fallbackColors = Array.isArray(placement.colors)
-        ? placement.colors
+    const printColors = Array.isArray(placement.printColors)
+        ? placement.printColors
             .filter((item) => {
                 const type = String(item?.type || '').toUpperCase();
                 return type === 'COLOR' || type === 'METALLIC';
@@ -57,9 +57,7 @@ function countUniquePrintedColors(placement = {}) {
             .map((item) => normalizeColorNameForCounting(item?.val || ''))
             .filter(Boolean)
         : [];
-
-    const allColors = fromSequence.length > 0 ? fromSequence : fallbackColors;
-    return new Set(allColors).size;
+    return new Set(printColors).size;
 }
 
 function getInkTypeLabel(inkType) {
@@ -170,4 +168,13 @@ function exportToExcel() {
         console.error('Error al exportar Excel:', error);
         if (typeof showStatus === 'function') showStatus('❌ Error al generar Spec Excel: ' + error.message, 'error');
     }
+}
+
+if (typeof window !== 'undefined') {
+    window.SpecExcelUtils = {
+        isExplicitScreenStep,
+        countScreensFromSequence,
+        countStationsFromSequence,
+        countUniquePrintedColors
+    };
 }

@@ -16,11 +16,11 @@
 
     function moveByIndex(placementId, fromIndex, toIndex) {
       const placement = getPlacementById(placementId);
-      if (!placement || !Array.isArray(placement.colors)) return;
-      if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= placement.colors.length || toIndex >= placement.colors.length) return;
+      if (!placement || !Array.isArray(placement.printColors)) return;
+      if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= placement.printColors.length || toIndex >= placement.printColors.length) return;
 
-      const [moved] = placement.colors.splice(fromIndex, 1);
-      placement.colors.splice(toIndex, 0, moved);
+      const [moved] = placement.printColors.splice(fromIndex, 1);
+      placement.printColors.splice(toIndex, 0, moved);
 
       syncPlacementSequenceWithColors(placement, true);
       renderPlacementColors(placementId);
@@ -72,12 +72,12 @@
       if (String(placementId) !== String(draggedColorContext.placementId)) return;
 
       const placement = getPlacementById(placementId);
-      if (!placement || !Array.isArray(placement.colors)) return;
+      if (!placement || !Array.isArray(placement.printColors)) return;
 
       event.preventDefault();
 
-      const fromIndex = placement.colors.findIndex((c) => String(c.id) === draggedColorContext.colorId);
-      const toIndex = placement.colors.findIndex((c) => String(c.id) === String(target.dataset.colorId));
+      const fromIndex = placement.printColors.findIndex((c) => String(c.id) === draggedColorContext.colorId);
+      const toIndex = placement.printColors.findIndex((c) => String(c.id) === String(target.dataset.colorId));
       moveByIndex(placementId, fromIndex, toIndex);
       showStatus('↕️ Secuencia de colores actualizada');
     }

@@ -316,16 +316,23 @@ class NikeTechPackExtractor {
     }
 
     extractInkType(text) {
-        if (text.match(/High Solids Water Base/i)) {
-            return { tipo: 'WATER', nombreCompleto: 'High Solids Water Base (Base de agua de alto sólido)' };
+        const source = String(text || '');
+
+        // El Tech Pack es evidencia documental explícita. SILICONE debe
+        // detectarse antes que Water Base para no caer en el fallback.
+        if (source.match(/Silicone|Silicone Ink|Silicone Print/i)) {
+            return { tipo: 'SILICONE', nombreCompleto: 'Silicone' };
         }
-        if (text.match(/Water Base|Waterbase/i)) {
-            return { tipo: 'WATER', nombreCompleto: 'Water Base (Base de agua)' };
-        }
-        if (text.match(/Plastisol/i)) {
+        if (source.match(/Plastisol/i)) {
             return { tipo: 'PLASTISOL', nombreCompleto: 'Plastisol' };
         }
-        return { tipo: 'WATER', nombreCompleto: 'Base de agua' };
+        if (source.match(/High Solids Water Base/i)) {
+            return { tipo: 'WATER', nombreCompleto: 'High Solids Water Base (Base de agua de alto sólido)' };
+        }
+        if (source.match(/Water Base|Waterbase/i)) {
+            return { tipo: 'WATER', nombreCompleto: 'Water Base (Base de agua)' };
+        }
+        return { tipo: null, nombreCompleto: null };
     }
 }
 

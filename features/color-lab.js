@@ -357,7 +357,7 @@
     const seen = new Set();
 
     placements.forEach((placement) => {
-      const colors = Array.isArray(placement?.colors) ? placement.colors : [];
+      const colors = Array.isArray(placement?.printColors) ? placement.printColors : [];
       colors
         .filter((color) => color && (color.type === 'COLOR' || color.type === 'METALLIC'))
         .forEach((color) => {
