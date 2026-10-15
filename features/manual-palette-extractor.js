@@ -50,7 +50,12 @@
     });
   }
   async function persist() {
-    if (db) await dbSet('state', state);
+    if (!db) {
+      const saveState = $('#gfsextr-save-state');
+      if (saveState) saveState.textContent = 'Almacenamiento no disponible';
+      return;
+    }
+    await dbSet('state', state);
     const saveState = $('#gfsextr-save-state');
     if (saveState) {
       saveState.textContent = '✓ Guardado local';
