@@ -38,6 +38,16 @@ test('strips Adobe localized resource markers from Pantone prefix and postfix', 
   assert.equal(book.colors[0].rawName, '2006 C');
 });
 
+test('cleans Adobe resource tokens embedded in a Pantone color name', () => {
+  const book = decodeAcb(fixture({
+    colors: [{
+      name: '$$/colorbook/PANTONE/prefix=PANTONE Bright Red C$$/colorbook/PANTONE/postfix=',
+      code: 'PBR001',
+      rgb: [255, 0, 0]
+    }]
+  }));
+  assert.equal(book.colors[0].name, 'PANTONE Bright Red C');
+});
 test('decodes RGB entries and book metadata', () => {
   const book = decodeAcb(fixture());
   assert.equal(book.title, 'Test Book');
