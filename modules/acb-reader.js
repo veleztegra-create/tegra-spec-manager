@@ -97,9 +97,11 @@ export function decodeAcb(input) {
       rgb = labD50ToSrgb(lab);
     }
     const hex = `#${[rgb.r, rgb.g, rgb.b].map((n) => n.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+    const combinedName = `${colorNamePrefix}${rawName}${colorNamePostfix}`;
+    const cleanName = normalizeAcbColorName(combinedName);
     colors.push({
       index: i,
-      name: `${colorNamePrefix}${rawName}${colorNamePostfix}`,
+      name: cleanName,
       rawName,
       code,
       rgb,
@@ -141,13 +143,19 @@ export function decodeAcb(input) {
 
 function normalizeAcbNameAffix(value) {
   // Adobe books can store localized resource tokens such as
-  // $$/colorbook/PANTONE/prefix=PANTONE  and $$/colorbook/PANTONE/postfix=.
-  // The actual affix is the default value after the final '='.
-  const marker = value.lastIndexOf('$$/');
+  // $/colorbook/PANTONE/prefix=PANTONE  and $/colorbook/PANTONE/postfix=.
+  // Accept two or more dollar signs because some books use $$/ instead.
+  const marker = value.lastIndexOf('$/');
   const candidate = marker >= 0 ? value.slice(marker) : value;
-  if (!candidate.startsWith('$$/')) return value;
+  if (!candidate.startsWith('$/')) return value;
   const equals = candidate.indexOf('=');
   return equals >= 0 ? candidate.slice(equals + 1) : value;
+}
+
+function normalizeAcbColorName(value) {
+  // Some ACBs leave Adobe's localized resource tokens embedded in the final
+  // color name instead of keeping them solely in the prefix/suffix fields.
+  return value.replace(/\\$\\$+\\/colorbook\\/PANTONE\\/(?:prefix|postfix)=/gi, '');
 }
 
 function labD50ToSrgb({ l, a, b }) {
