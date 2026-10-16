@@ -1736,3 +1736,42 @@ textarea.form-control:focus {
     background: var(--gray-light, #4d4d4d);
     color: #ffffff;
 }
+
+
+/* ACB Library: ensure button labels remain readable on light browser defaults */
+.acb-import-shell .btn {
+    background: var(--gray-medium, #3d3d3d);
+    color: #ffffff;
+    border: 1px solid var(--border-light, #444444);
+}
+.acb-import-shell .btn:hover,
+.acb-import-shell .btn:focus-visible {
+    background: var(--gray-light, #4d4d4d);
+    color: #ffffff;
+    border-color: var(--border-hover, #555555);
+}
+.acb-import-shell .btn.btn-primary {
+    background: var(--primary-red-dark, #d32f2f);
+    color: #ffffff;
+    border-color: transparent;
+}
+.acb-import-shell .btn.btn-primary:hover,
+.acb-import-shell .btn.btn-primary:focus-visible {
+    background: #b71c1c;
+    color: #ffffff;
+}
+#acb-delete-current-library,
+#acb-clear-saved-library {
+    background: #8f2020;
+    color: #ffffff;
+    border-color: #b94a4a;
+}
+#acb-delete-current-library:hover:not(:disabled),
+#acb-clear-saved-library:hover {
+    background: #b3261e;
+    color: #ffffff;
+}
+.acb-import-shell .btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
