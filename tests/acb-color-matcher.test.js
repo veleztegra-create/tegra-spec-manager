@@ -17,6 +17,23 @@ test('supports exact raw ACB names', () => {
   assert.equal(matchExactAcbColor(book, 'University Gold').code, 'C00002');
 });
 
+test('resolves a Pantone code without requiring its full color name', () => {
+  const pantoneBook = { colors: [
+    { index: 0, name: 'PANTONE Yellow 012 C', rawName: 'Yellow 012 C', code: 'Y012C', hex: '#F7D417' },
+    { index: 1, name: 'PANTONE Red 032 C', rawName: 'Red 032 C', code: 'R032C', hex: '#EF3340' }
+  ] };
+  assert.equal(matchExactAcbColor(pantoneBook, '012 C')?.name, 'PANTONE Yellow 012 C');
+  assert.equal(matchExactAcbColor(pantoneBook, '012C')?.name, 'PANTONE Yellow 012 C');
+  assert.equal(matchExactAcbColor(pantoneBook, 'PANTONE 012 C')?.name, 'PANTONE Yellow 012 C');
+});
+
+test('does not guess when a Pantone code matches multiple ACB colors', () => {
+  const duplicateCodeBook = { colors: [
+    { name: 'PANTONE Yellow 012 C', rawName: 'Yellow 012 C' },
+    { name: 'Custom Yellow 012 C', rawName: 'Custom Yellow 012 C' }
+  ] };
+  assert.equal(matchExactAcbColor(duplicateCodeBook, '012 C'), null);
+});
 test('does not accept partial or fuzzy matches', () => {
   assert.equal(matchExactAcbColor(book, 'Deep Jungle'), null);
   assert.equal(matchExactAcbColor(book, 'Deep Jungle 3MG v19'), null);
