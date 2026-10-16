@@ -143,11 +143,11 @@ export function decodeAcb(input) {
 
 function normalizeAcbNameAffix(value) {
   // Adobe books can store localized resource tokens such as
-  // $/colorbook/PANTONE/prefix=PANTONE  and $/colorbook/PANTONE/postfix=.
-  // Accept two or more dollar signs because some books use $$/ instead.
-  const marker = value.lastIndexOf('$/');
+  // $$/colorbook/PANTONE/prefix=PANTONE  and $$/colorbook/PANTONE/postfix=.
+  // Some files use $$$/; matching the final two dollar signs handles both forms.
+  const marker = value.lastIndexOf('$$/');
   const candidate = marker >= 0 ? value.slice(marker) : value;
-  if (!candidate.startsWith('$/')) return value;
+  if (!candidate.startsWith('$$/')) return value;
   const equals = candidate.indexOf('=');
   return equals >= 0 ? candidate.slice(equals + 1) : value;
 }
@@ -155,9 +155,8 @@ function normalizeAcbNameAffix(value) {
 function normalizeAcbColorName(value) {
   // Some ACBs leave Adobe's localized resource tokens embedded in the final
   // color name instead of keeping them solely in the prefix/suffix fields.
-  return value.replace(/\\$\\$+\\/colorbook\\/PANTONE\\/(?:prefix|postfix)=/gi, '');
+  return value.replace(/\${2,}\/colorbook\/PANTONE\/(?:prefix|postfix)=/gi, '');
 }
-
 function labD50ToSrgb({ l, a, b }) {
   const epsilon = 216 / 24389;
   const kappa = 24389 / 27;
