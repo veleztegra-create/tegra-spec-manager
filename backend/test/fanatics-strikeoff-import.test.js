@@ -83,7 +83,7 @@ test('Fanatics Strike Off SWO format is normalized without creating screen-print
   assert.equal(normalized.baseSize, '');
   assert.equal(normalized.requestDate, undefined);
   assert.equal(normalized.needByDate, undefined);
-  assert.deepEqual(normalized.autoPlacements, []);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.autoPlacements)), []);
 });
 
 test('Fanatics Strike Off source dates are ignored as spec dates', () => {
