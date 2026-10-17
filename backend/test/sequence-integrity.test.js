@@ -128,9 +128,10 @@ test('RulesEngine treats WHITE 10A as explicit reinforcement and does not duplic
   const screens = sequence.filter((step) => step.tipo !== 'FLASH' && step.tipo !== 'COOL');
   const whiteBaseScreens = screens.filter((step) => step.tipo === 'WHITE_BASE');
 
+  assert.equal(screens.filter((step) => step.tipo === 'BLOCKER').length, 3);
   assert.deepEqual(
     JSON.parse(JSON.stringify(whiteBaseScreens.map((step) => step.nombre))),
-    ['BLOCKER CHT', 'BLOCKER CHT', 'BLOCKER CHT', 'AQUAFLEX V2', 'AQUAFLEX V2']
+    ['AQUAFLEX V2', 'AQUAFLEX V2 (2)']
   );
   assert.equal(
     screens.filter((step) => step.tipo === 'COLOR' && step.screenLetter === '1' && step.nombre === 'REF. AQUAFLEX MAGNA').length,
