@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 function loadProductionConditionEngine() {
   const window = {};
-  const context = vm.createContext({ window, globalThis: window, console });
+  const context = vm.createContext({ window, globalThis: window, console, document: { addEventListener() {} } });
   vm.runInContext(
     fs.readFileSync(new URL('../../config/production-conditions.js', import.meta.url), 'utf8'),
     context
@@ -136,7 +136,7 @@ test('Production condition matching exposes the approved production evidence', (
   assert.equal(evaluation.directToBlocker, true);
   assert.equal(evaluation.matchedConditions.length, 2);
   assert.deepEqual(
-    evaluation.matchedConditions.map((condition) => condition.color),
+    JSON.parse(JSON.stringify(evaluation.matchedConditions.map((condition) => condition.color))),
     ['41L MARINE', 'PMS 430C']
   );
 });
