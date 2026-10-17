@@ -10,13 +10,13 @@ function str(s) {
     return [n >> 8, n & 255];
   })];
 }
-function fixture({ model = 0, tail = 'spflproc', colors = [
+function fixture({ model = 0, tail = 'spflproc', prefix = '', postfix = '', colors = [
   { name: 'Red', code: 'C00001', rgb: [255, 0, 0] },
   { name: 'White', code: 'C00002', rgb: [255, 255, 255] }
 ] } = {}) {
   const out = [
     ...Buffer.from('8BCB'), ...u16(1), ...u16(3000),
-    ...str('Test Book'), ...str(''), ...str(''), ...str('Test description'),
+    ...str('Test Book'), ...str(prefix), ...str(postfix), ...str('Test description'),
     ...u16(colors.length), ...u16(9), ...u16(4), ...u16(model)
   ];
   for (const color of colors) {
@@ -26,6 +26,28 @@ function fixture({ model = 0, tail = 'spflproc', colors = [
   return new Uint8Array(out);
 }
 
+test('strips Adobe localized resource markers from Pantone prefix and postfix', () => {
+  const book = decodeAcb(fixture({
+    prefix: '$$/colorbook/PANTONE/prefix=PANTONE ',
+    postfix: '$$/colorbook/PANTONE/postfix=',
+    colors: [{ name: '2006 C', code: 'P2006C', rgb: [255, 0, 0] }]
+  }));
+  assert.equal(book.colorNamePrefix, 'PANTONE ');
+  assert.equal(book.colorNamePostfix, '');
+  assert.equal(book.colors[0].name, 'PANTONE 2006 C');
+  assert.equal(book.colors[0].rawName, '2006 C');
+});
+
+test('cleans Adobe resource tokens embedded in a Pantone color name', () => {
+  const book = decodeAcb(fixture({
+    colors: [{
+      name: '$$/colorbook/PANTONE/prefix=PANTONE Bright Red C$$/colorbook/PANTONE/postfix=',
+      code: 'PBR001',
+      rgb: [255, 0, 0]
+    }]
+  }));
+  assert.equal(book.colors[0].name, 'PANTONE Bright Red C');
+});
 test('decodes RGB entries and book metadata', () => {
   const book = decodeAcb(fixture());
   assert.equal(book.title, 'Test Book');
@@ -48,6 +70,17 @@ test('rejects unsupported version', () => {
 
 test('rejects unsupported color model instead of guessing', () => {
   assert.throws(() => decodeAcb(fixture({ model: 2 })), /no compatible/);
+});
+
+test('decodes Lab books and derives RGB swatches while preserving Lab values', () => {
+  const book = decodeAcb(fixture({ model: 7, colors: [
+    { name: 'Neutral', code: 'L00001', rgb: [128, 128, 128] }
+  ] }));
+  assert.equal(book.colorModel, 'Lab');
+  assert.equal(book.colorModelId, 7);
+  assert.deepEqual(book.colors[0].lab, { l: 128 * 100 / 255, a: 0, b: 0 });
+  assert.match(book.colors[0].hex, /^#[0-9A-F]{6}$/);
+  assert.ok(book.colors[0].rgb.r >= 0 && book.colors[0].rgb.r <= 255);
 });
 
 test('rejects truncated records', () => {

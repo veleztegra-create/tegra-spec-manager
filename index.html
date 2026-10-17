@@ -48,6 +48,7 @@
     <!-- MÓDULOS BASE -->
     <!-- ========================================= -->
     <script src="modules/utils.js"></script>
+    <script src="modules/html-utils.js"></script>
     <script src="modules/state-manager.js"></script>
     <script src="modules/error-handler.js"></script>
     <script src="modules/validators.js"></script>
@@ -99,6 +100,7 @@
     <!-- ========================================= -->
     <!-- APLICACIÓN PRINCIPAL -->
     <!-- ========================================= -->
+    <script type="module" src="features/acb-import-preview.js"></script>
     <script src="app.js"></script>
     <script src="fixes.js"></script>
     <!-- ===================================== -->
@@ -171,6 +173,9 @@
             <li class="nav-tab" data-tab="production-conditions" onclick="showTab('production-conditions')">
                 <i class="fas fa-shield-halved"></i> Production Conditions
             </li>
+            <li class="nav-tab" data-tab="acb-library" onclick="showTab('acb-library')">
+                <i class="fas fa-swatchbook"></i> Biblioteca ACB
+            </li>
             <li class="nav-tab" data-tab="color-lab" onclick="showTab('color-lab')">
                 <i class="fas fa-flask"></i> Color Lab
             </li>
@@ -198,6 +203,9 @@
 
         <!-- Production Conditions -->
         <div id="production-conditions" class="tab-content" data-template="templates/production-conditions-tab.html"></div>
+
+        <!-- ACB Color Book Import Preview -->
+        <div id="acb-library" class="tab-content" data-template="templates/acb-import-preview-tab.html"></div>
 
         <!-- Color Lab -->
         <div id="color-lab" class="tab-content" data-template="templates/color-lab-tab.html"></div>

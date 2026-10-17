@@ -194,7 +194,7 @@
 
       return `
       <div class="color-swatch">
-        <div class="color-box" style="background:${esc(resolveColorHex(c.val))};"></div>
+        <div class="color-box" style="background:${esc(c.hex || resolveColorHex(c.val))};"></div>
         <div class="color-info"><span class="color-number">${esc(c.screenLetter || String(i + 1))}</span><span class="color-name">${esc(colorDisplay)}</span></div>
       </div>`;
     }).join('') || '<div class="color-name">Sin colores registrados</div>';

@@ -10,6 +10,6 @@
     "render:start": "npm --prefix backend start",
     "backend:check": "npm --prefix backend run check",
     "backend:test": "npm --prefix backend test",
-    "test:acb": "node --test tests/acb-reader.test.js"
+    "test:acb": "node --test tests/acb-*.test.js"
   }
 }
