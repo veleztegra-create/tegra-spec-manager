@@ -5,7 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const root = path.dirname(fileURLToPath(import.meta.url));
 // html-utils.js es un script clásico de navegador: lo cargamos con window simulado.
 const browser = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(root, 'modules', 'html-utils.js'), 'utf8'), browser);
@@ -42,4 +42,30 @@ test('renderSavedSpecListItem (app.js) no deja pasar HTML en los campos de la sp
   });
   assert.ok(!html.includes('<img'), 'quedó una etiqueta <img> sin escapar');
   assert.ok(html.includes('&lt;img'));
+});
+
+test('la tecla Enter en el campo Pantone no se propaga ni ejecuta la acción predeterminada', () => {
+  const src = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const inputStart = src.indexOf('class="form-control placement-ink-input"');
+  assert.ok(inputStart >= 0, 'no se encontró el campo Pantone');
+  const inputEnd = src.indexOf('ondblclick="this.select()"', inputStart);
+  assert.ok(inputEnd > inputStart, 'no se encontró el final de la plantilla del campo Pantone');
+  const inputMarkup = src.slice(inputStart, inputEnd);
+  const match = inputMarkup.match(/onkeydown="([^"]+)"/);
+  assert.ok(match, 'el campo Pantone debe manejar la tecla Enter');
+
+  const event = {
+    key: 'Enter',
+    prevented: false,
+    stopped: false,
+    preventDefault() { this.prevented = true; },
+    stopPropagation() { this.stopped = true; }
+  };
+  let blurred = false;
+  const input = { blur() { blurred = true; } };
+  vm.runInNewContext(`(function(event) { ${match[1]} }).call(input, event)`, { input, event });
+
+  assert.equal(event.prevented, true, 'Enter debe cancelar la acción predeterminada');
+  assert.equal(event.stopped, true, 'Enter no debe propagarse a manejadores globales');
+  assert.equal(blurred, true, 'Enter debe retirar el foco del campo Pantone');
 });
