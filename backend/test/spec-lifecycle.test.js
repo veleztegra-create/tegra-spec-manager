@@ -220,8 +220,10 @@ test('audit entry records actor, authorization, reason and before/after values',
 });
 
 test('Store and spec data model preserve styleVersion, lifecycle, audit trail and sequence', () => {
-  const window = {};
-  const context = vm.createContext({ window, globalThis: window, console });
+  const context = vm.createContext({ console });
+  context.window = context;
+  context.globalThis = context;
+  const window = context;
   for (const relativePath of [
     '../../modules/spec-lifecycle.js',
     '../../modules/style-version.js',
