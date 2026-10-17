@@ -200,6 +200,7 @@
         canEditSequence,
         canTransition,
         transitionLifecycle,
+        createLifecycle,
         deriveOverallStatus,
         appendAuditEntry,
         touchVersionMetadata
