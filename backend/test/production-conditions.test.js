@@ -50,7 +50,7 @@ function loadRulesEngineWithProductionConditions() {
     }
   };
 
-  const context = vm.createContext({ window, globalThis: window, console });
+  const context = vm.createContext({ window, globalThis: window, console, document: { addEventListener() {} } });
   for (const relativePath of [
     '../../core/production-condition-engine.js',
     '../../core/layer-normalizer.js',
