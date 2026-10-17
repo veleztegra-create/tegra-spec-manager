@@ -83,7 +83,7 @@ test('PDF renderer exposes placement print parameters separately from sequence',
   };
 
   const params = PdfSpecRenderer.getPrintParameters(placement);
-  assert.deepEqual(params, {
+  assert.deepEqual(JSON.parse(JSON.stringify(params)), {
     durometer: '65',
     strokes: '3',
     angle: '20',
@@ -108,7 +108,8 @@ test('Fanatics Strike Off normalization ignores SWO request and need-by dates', 
     ['Category:', 'NFL - Limited', 'Colorway:', 'Rivalry', 'Need by Date:', new Date('2026-10-04')],
     ['Submit #:', '1st Strike Off', 'Requester:', 'Sindy Castro', 'Season:', 'FA27'],
     ['Description:', '37NM-0N4A-97F Los Angeles Chargers-Rivalry Front and Back Number StrikeOff Twill with HSWB', 'PO #:', '210926SCA'],
-    ['Artwork Path:', 'https://example.com/art']
+    ['Artwork Path:', 'https://example.com/art'],
+    ['Type of Embellishment:', 'Twill']
   ];
 
   const normalized = FanaticsStrikeOffNormalizer.normalize(data);
