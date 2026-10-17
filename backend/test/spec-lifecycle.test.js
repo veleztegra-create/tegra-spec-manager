@@ -5,12 +5,13 @@ import vm from 'node:vm';
 import { normalizeSpecPayload } from '../src/routes/normalizers.js';
 
 function loadBrowserModules(relativePaths) {
-  const window = {};
-  const context = vm.createContext({ window, globalThis: window, console });
+  const context = vm.createContext({ console });
+  context.window = context;
+  context.globalThis = context;
   for (const relativePath of relativePaths) {
     vm.runInContext(fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8'), context);
   }
-  return window;
+  return context;
 }
 
 test('legacy specs normalize lifecycle and style version separately without losing sequence', () => {
@@ -276,7 +277,7 @@ test('Store and spec data model preserve styleVersion, lifecycle, audit trail an
   assert.equal(data.specLifecycle.status, 'DEVELOPMENT_APPROVED');
   assert.equal(data.specLifecycle.approvedBy, 'development-user');
   assert.equal(data.auditTrail.length, 1);
-  assert.deepEqual(data.placements[0].sequence, [{ type: 'COLOR', val: '872 C', mesh: '122/55' }]);
+  assert.deepEqual(JSON.parse(JSON.stringify(data.placements[0].sequence)), [{ type: 'COLOR', val: '872 C', mesh: '122/55' }]);
 });
 
 test('lifecycle transition controller preserves audit metadata and rejects illegal jumps', () => {
