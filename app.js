@@ -1281,7 +1281,7 @@ function updatePlacementsTabs() {
         tab.setAttribute('data-placement-id', placement.id);
         tab.innerHTML = `
             <i class="fas fa-${getPlacementIcon(placement.type)}"></i>
-            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
+            ${escapeHtml(displayType.substring(0, 15))}${displayType.length > 15 ? '...' : ''}
             ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
         `;
 
@@ -1402,19 +1402,19 @@ function updateAllPlacementTitles(placementId) {
         const titleText = titleElement.textContent;
 
         if (titleText.includes('Colores para')) {
-            titleElement.innerHTML = `<i class="fas fa-palette"></i> Colores para ${displayType}`;
+            titleElement.innerHTML = `<i class="fas fa-palette"></i> Colores para ${escapeHtml(displayType)}`;
         }
         else if (titleText.includes('Imagen para')) {
-            titleElement.innerHTML = `<i class="fas fa-image"></i> Imagen para ${displayType}`;
+            titleElement.innerHTML = `<i class="fas fa-image"></i> Imagen para ${escapeHtml(displayType)}`;
         }
         else if (titleText.includes('Condiciones para')) {
-            titleElement.innerHTML = `<i class="fas fa-print"></i> Condiciones para ${displayType}`;
+            titleElement.innerHTML = `<i class="fas fa-print"></i> Condiciones para ${escapeHtml(displayType)}`;
         }
     });
 
     const sequenceTitle = section.querySelector('h4');
     if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
-        sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${displayType}`;
+        sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${escapeHtml(displayType)}`;
     }
 
     updatePlacementsTabs();
@@ -2167,7 +2167,7 @@ function renderPlacementColors(placementId) {
             <span class="badge ${badgeClass}">${label}</span>
             <input type="text" 
                    style="width: 60px; text-align: center; font-weight: bold;" 
-                   value="${color.screenLetter}" 
+                   value="${escapeHtml(color.screenLetter)}" 
                    class="form-control placement-screen-letter"
                    data-color-id="${color.id}"
                    data-placement-id="${placementId}"
@@ -2179,13 +2179,13 @@ function renderPlacementColors(placementId) {
                    data-color-id="${color.id}"
                    data-placement-id="${placementId}"
                    placeholder="Nombre de la tinta..." 
-                   value="${color.val}"
+                   value="${escapeHtml(color.val)}"
                    oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)"
                    ondblclick="this.select()">
             <input type="text"
                    style="width: 82px; text-align:center;"
                    class="form-control placement-mesh-line"
-                   value="${color.mesh || ''}"
+                   value="${escapeHtml(color.mesh || '')}"
                    placeholder="Malla"
                    title="Malla por tinta"
                    oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)"
@@ -4068,7 +4068,9 @@ window.copyPaletteJsonFromDashboard = copyPaletteJsonFromDashboard;
 window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
 window.focusPasteForPaletteFromDashboard = focusPasteForPaletteFromDashboard;
 window.editPaletteExtractedName = editPaletteExtractedName;
-const REMOTE_SPECS_API_BASE = String(window.TEGRA_BACKEND_URL || 'https://tegra-spec-manager.onrender.com').replace(/\/+$/, '');
+// Backend remoto desactivado por defecto (el servicio de Render ya no existe).
+// Para activarlo, define window.TEGRA_BACKEND_URL = 'https://tu-servidor' antes de cargar app.js.
+const REMOTE_SPECS_API_BASE = String(window.TEGRA_BACKEND_URL || '').replace(/\/+$/, '');
 const REMOTE_SPECS_API_URL = REMOTE_SPECS_API_BASE ? `${REMOTE_SPECS_API_BASE}/api/specs` : '';
 let savedSpecsCache = null;
 let savedSpecsCacheMode = 'local';
@@ -4275,8 +4277,8 @@ function renderSavedSpecListItem(record) {
     return `
         <div style="padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition); gap: 10px;">
             <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'} | PO: ${data.po || 'N/A'}</div>
+                <div style="font-weight: 700; color: var(--primary);">${escapeHtml(data.style || 'N/A')}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${escapeHtml(data.customer || 'N/A')} | Colorway: ${escapeHtml(data.colorway || 'N/A')} | PO: ${escapeHtml(data.po || 'N/A')}</div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(record.savedAt || 0).toLocaleDateString('es-ES')} · ${record.source === 'remote' ? 'Render' : 'Este navegador'}</div>
             </div>
             <div style="display: flex; gap: 8px; flex-shrink: 0;">
@@ -4297,7 +4299,7 @@ async function updateDashboard(options = {}) {
         const lastRecord = specs[0] || null;
         const todaySpecsEl = document.getElementById('today-specs');
         if (lastRecord && todaySpecsEl) {
-            const safeStyle = (lastRecord.data?.style || 'Sin nombre').replace(/"/g, '&quot;');
+            const safeStyle = escapeHtml(lastRecord.data?.style || 'Sin nombre');
             todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
                 <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastRecord.key)}'))" title="Abrir para seguir editando"
@@ -4382,7 +4384,7 @@ async function loadSavedSpecsList(options = {}) {
         list.innerHTML = `
             <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
                 <i class="fas fa-search" style="margin-right: 6px;"></i>
-                No se encontraron specs para <strong>${query}</strong>
+                No se encontraron specs para <strong>${escapeHtml(query)}</strong>
             </p>
         `;
     }
@@ -5351,8 +5353,8 @@ async function searchDashboardSpecs() {
         resultsHtml += `
             <div style="padding:12px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; gap:10px;">
                 <div style="flex:1; min-width:0;">
-                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | PO: ${data.po || 'N/A'} | ${record.source === 'remote' ? 'Render' : 'Local'}</div>
+                    <div style="font-weight: 700; color: var(--primary);">${escapeHtml(data.style || 'N/A')}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${escapeHtml(data.customer || 'N/A')} | PO: ${escapeHtml(data.po || 'N/A')} | ${record.source === 'remote' ? 'Render' : 'Local'}</div>
                 </div>
                 <div style="display: flex; gap: 5px; flex-shrink:0;">
                     <button class="btn btn-primary btn-sm" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(record.key)}'))" title="Abrir para editar"><i class="fas fa-edit"></i></button>
@@ -5366,7 +5368,7 @@ async function searchDashboardSpecs() {
         resultsDiv.innerHTML = `
             <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
                 <i class="fas fa-search" style="margin-right: 6px;"></i>
-                No se encontraron specs para <strong>${query}</strong>
+                No se encontraron specs para <strong>${escapeHtml(query)}</strong>
             </p>
         `;
     } else {
