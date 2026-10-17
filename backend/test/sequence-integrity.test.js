@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 function loadBrowserModule(relativePath) {
   const window = {};
-  const context = vm.createContext({ window, globalThis: window, console });
+  const context = vm.createContext({ window, globalThis: window, console, document: { addEventListener() {} } });
   vm.runInContext(fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8'), context);
   return window;
 }
@@ -21,8 +21,8 @@ test('LayerNormalizer preserves production order for repeated non-adjacent base 
   const normalized = LayerNormalizer.normalizeLayers(layers);
 
   assert.equal(normalized.length, 3);
-  assert.deepEqual(normalized.map((layer) => layer.tipo), ['WHITE_BASE', 'BLOCKER', 'WHITE_BASE']);
-  assert.deepEqual(normalized.map((layer) => layer.count), [1, 1, 1]);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.map((layer) => layer.tipo))), ['WHITE_BASE', 'BLOCKER', 'WHITE_BASE']);
+  assert.deepEqual(JSON.parse(JSON.stringify(normalized.map((layer) => layer.count))), [1, 1, 1]);
 });
 
 test('LayerNormalizer only merges adjacent semantically equivalent base steps', () => {
@@ -50,11 +50,11 @@ test('SequenceBuilder preserves repeated production passes and inserts process s
   ]);
 
   assert.deepEqual(
-    sequence.map((step) => step.tipo),
+    JSON.parse(JSON.stringify(sequence.map((step) => step.tipo))),
     ['WHITE_BASE', 'FLASH', 'COOL', 'BLOCKER', 'FLASH', 'COOL', 'WHITE_BASE']
   );
   assert.deepEqual(
-    sequence.filter((step) => step.tipo !== 'FLASH' && step.tipo !== 'COOL').map((step) => step.nombre),
+    JSON.parse(JSON.stringify(sequence.filter((step) => step.tipo !== 'FLASH' && step.tipo !== 'COOL').map((step) => step.nombre))),
     ['AQUAFLEX V2', 'BLOCKER CHT', 'REF. AQUAFLEX MAGNA']
   );
 });
@@ -112,7 +112,7 @@ test('RulesEngine treats WHITE 10A as explicit reinforcement and does not duplic
       resolveColor: ({ hex }) => ({ toneCategory: hex === '#FFFFFF' ? 'light' : 'dark' })
     }
   };
-  const context = vm.createContext({ window, globalThis: window, console });
+  const context = vm.createContext({ window, globalThis: window, console, document: { addEventListener() {} } });
 
   for (const relativePath of ['../../core/layer-normalizer.js', '../../core/sequence-builder.js', '../../core/rules-engine.js']) {
     vm.runInContext(fs.readFileSync(new URL(relativePath, import.meta.url), 'utf8'), context);
@@ -129,7 +129,7 @@ test('RulesEngine treats WHITE 10A as explicit reinforcement and does not duplic
   const whiteBaseScreens = screens.filter((step) => step.tipo === 'WHITE_BASE');
 
   assert.deepEqual(
-    whiteBaseScreens.map((step) => step.nombre),
+    JSON.parse(JSON.stringify(whiteBaseScreens.map((step) => step.nombre))),
     ['BLOCKER CHT', 'BLOCKER CHT', 'BLOCKER CHT', 'AQUAFLEX V2', 'AQUAFLEX V2']
   );
   assert.equal(
@@ -212,7 +212,7 @@ test('StyleVersion creation stamps the spec creation date automatically', () => 
   const created = Date.parse(version.createdAt);
   assert.ok(created >= before && created <= after);
   assert.equal(version.updatedAt, null);
-  assert.deepEqual(version.auditTrail, []);
+  assert.deepEqual(JSON.parse(JSON.stringify(version.auditTrail)), []);
 });
 
 
@@ -243,5 +243,5 @@ test('StyleVersion derives V2 from V1 without mutating the parent', () => {
   assert.equal(v2.createdAt !== null, true);
   assert.equal(v2.updatedAt, null);
   assert.equal(v2.updatedBy, null);
-  assert.deepEqual(v2.auditTrail, []);
+  assert.deepEqual(JSON.parse(JSON.stringify(v2.auditTrail)), []);
 });
