@@ -2181,6 +2181,7 @@ function renderPlacementColors(placementId) {
                    placeholder="Nombre de la tinta..." 
                    value="${escapeHtml(color.val)}"
                    oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)"
+                   onkeydown="if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); this.blur(); }"
                    ondblclick="this.select()">
             <input type="text"
                    style="width: 82px; text-align:center;"
