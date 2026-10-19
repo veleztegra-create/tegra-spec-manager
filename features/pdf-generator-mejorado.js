@@ -19,6 +19,16 @@
       .replace(/^_+|_+$/g, '');
   }
 
+  // Solo se aceptan imágenes raster en data URI base64. No interpolar valores
+  // arbitrarios en el atributo src: pueden contener comillas u otros atributos.
+  function safeImageSource(value) {
+    const source = String(value ?? '');
+    if (/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(source)) {
+      return source;
+    }
+    return 'https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT';
+  }
+
   function resolveColorHex(name) {
     try {
       if (window.ColorConfig?.findColorHex) return window.ColorConfig.findColorHex(name) || '#999999';
@@ -173,9 +183,7 @@
 
   function buildPlacementHtml(placement, index, total, data) {
     const title = esc((placement.title || placement.type || `Placement ${index + 1}`).replace('CUSTOM: ', ''));
-    const imageData = placement.imageData && String(placement.imageData).startsWith('data:')
-      ? String(placement.imageData)
-      : 'https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT';
+    const imageData = safeImageSource(placement.imageData);
 
     const enrichedColors = enrichPlacementColors(placement);
 
@@ -232,7 +240,7 @@
       <section class="placement-section">
         <div class="placement-header-bar"><div class="placement-icon">👕</div><span class="placement-title-text">Placement: ${title}</span></div>
         <div class="placement-content">
-          <div class="placement-image-container"><span class="placement-badge">${title}</span><img src="${imageData}" class="placement-image" alt="${title}"></div>
+          <div class="placement-image-container"><span class="placement-badge">${title}</span><img src="${esc(imageData)}" class="placement-image" alt="${title}"></div>
           <div class="placement-details-panel">
             <div class="detail-row"><span class="detail-label">Tipo de Tinta</span><span class="detail-value highlight">${esc(placement.inkType || 'WATER')}</span></div>
             <div class="detail-row"><span class="detail-label">Dimensiones</span><span class="detail-value">${esc(`${placement.width || '--'} x ${placement.height || '--'}`)}</span></div>
