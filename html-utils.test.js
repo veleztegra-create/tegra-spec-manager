@@ -69,3 +69,29 @@ test('la tecla Enter en el campo Pantone no se propaga ni ejecuta la acción pre
   assert.equal(event.stopped, true, 'Enter no debe propagarse a manejadores globales');
   assert.equal(blurred, true, 'Enter debe retirar el foco del campo Pantone');
 });
+
+test('el generador de la spec rechaza imageData no válido y escapa src', () => {
+  const generatorContext = { window: {} };
+  vm.runInNewContext(
+    fs.readFileSync(path.join(root, 'features', 'pdf-generator-mejorado.js'), 'utf8'),
+    generatorContext
+  );
+  const generate = generatorContext.window.generateSpecHTMLDocument;
+  assert.equal(typeof generate, 'function');
+
+  const malicious = 'data:image/png;base64,AAAA" onerror="alert(1)';
+  const maliciousHtml = generate({
+    style: 'TEST',
+    placements: [{ title: 'BACK', imageData: malicious }]
+  });
+  assert.ok(!maliciousHtml.includes('onerror="alert(1)"'), 'no debe permitir atributos inyectados');
+  assert.ok(maliciousHtml.includes('https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT'),
+    'un imageData inválido debe usar el placeholder seguro');
+
+  const validHtml = generate({
+    style: 'TEST',
+    placements: [{ title: 'BACK', imageData: 'data:image/png;base64,AAAA' }]
+  });
+  assert.ok(validHtml.includes('src="data:image/png;base64,AAAA"'),
+    'debe conservar data URI raster base64 válido');
+});
