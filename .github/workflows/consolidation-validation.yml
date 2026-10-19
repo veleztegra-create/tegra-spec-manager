@@ -1,0 +1,49 @@
+name: Consolidation validation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  frontend-and-acb:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate HTML document structure
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; const html = fs.readFileSync('index.html', 'utf8'); if ((html.match(/<head\\b/gi) || []).length !== 1 || !/<\\/head>\\s*<body\\b/i.test(html) || (html.match(/<body\\b/gi) || []).length !== 1 || !/<\\/body>\\s*<\\/html>/i.test(html)) process.exit(1);"
+      - name: Check frontend JavaScript syntax
+        run: |
+          node --check app.js
+          node --check fixes.js
+          node --check js/nikeTechPackExtractor.js
+          node --check features/pdf-generator-mejorado.js
+          node --check features/manual-palette-extractor.js
+          node --check modules/acb-reader.js
+          node --check modules/acb-library-storage.js
+          node --check modules/acb-color-matcher.js
+      - name: Run frontend utility and Pantone regression tests
+        run: node --test html-utils.test.js
+      - name: Run ACB tests
+        run: npm run test:acb
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install backend dependencies
+        run: npm install --prefix backend
+      - name: Check backend JavaScript syntax
+        run: npm run backend:check
+      - name: Run backend and source-priority tests
+        run: npm run backend:test

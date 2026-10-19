@@ -233,8 +233,14 @@ function showTab(tabName) {
     if (tabName === 'palette-extractor' && window.initManualPaletteExtractor) {
         window.initManualPaletteExtractor();
     }
+    if (tabName === 'acb-library' && window.initAcbImporter) {
+        window.initAcbImporter();
+    }
     if (tabName === 'color-lab' && window.initColorLab) {
         window.initColorLab();
+    }
+    if (tabName === 'production-conditions' && window.ProductionConditionsUI) {
+        window.ProductionConditionsUI.initialize();
     }
     if (tabName === 'spec-creator') {
         if (placements.length === 0 && document.getElementById('placements-container')) {
@@ -1275,7 +1281,7 @@ function updatePlacementsTabs() {
         tab.setAttribute('data-placement-id', placement.id);
         tab.innerHTML = `
             <i class="fas fa-${getPlacementIcon(placement.type)}"></i>
-            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
+            ${escapeHtml(displayType.substring(0, 15))}${displayType.length > 15 ? '...' : ''}
             ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
         `;
 
@@ -1396,19 +1402,19 @@ function updateAllPlacementTitles(placementId) {
         const titleText = titleElement.textContent;
 
         if (titleText.includes('Colores para')) {
-            titleElement.innerHTML = `<i class="fas fa-palette"></i> Colores para ${displayType}`;
+            titleElement.innerHTML = `<i class="fas fa-palette"></i> Colores para ${escapeHtml(displayType)}`;
         }
         else if (titleText.includes('Imagen para')) {
-            titleElement.innerHTML = `<i class="fas fa-image"></i> Imagen para ${displayType}`;
+            titleElement.innerHTML = `<i class="fas fa-image"></i> Imagen para ${escapeHtml(displayType)}`;
         }
         else if (titleText.includes('Condiciones para')) {
-            titleElement.innerHTML = `<i class="fas fa-print"></i> Condiciones para ${displayType}`;
+            titleElement.innerHTML = `<i class="fas fa-print"></i> Condiciones para ${escapeHtml(displayType)}`;
         }
     });
 
     const sequenceTitle = section.querySelector('h4');
     if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
-        sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${displayType}`;
+        sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${escapeHtml(displayType)}`;
     }
 
     updatePlacementsTabs();
@@ -1609,6 +1615,8 @@ function copyPlacementSequence(placementId) {
 }
 
 function pastePlacementSequence(placementId) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -1795,7 +1803,132 @@ function markPlacementSequenceManual(placement) {
     placement.sequenceMode = 'MANUAL';
 }
 
-async function generatePlacementSequenceFromRules(placementId, options = {}) {
+function getCurrentSpecActor() {
+    const candidates = [
+        typeof window.SpecUser?.getCurrentUser === 'function' ? window.SpecUser.getCurrentUser() : null,
+        window.SpecUser?.currentUser,
+        window.currentSpecUser,
+        window.currentUser,
+        localStorage.getItem('tegra-spec-user')
+    ];
+
+    for (const candidate of candidates) {
+        const value = typeof candidate === 'object' ? (candidate?.name || candidate?.displayName || candidate?.login) : candidate;
+        const normalized = String(value ?? '').trim();
+        if (normalized) return normalized;
+    }
+
+    return null;
+}
+
+function canEditCurrentSpecSequence() {
+    const lifecycle = window.Store?.state?.specLifecycle || {};
+    const permission = window.SpecUser?.permissions || window.SpecPermissions || {};
+    return window.SpecLifecycle?.canEditSequence
+        ? window.SpecLifecycle.canEditSequence(lifecycle, permission)
+        : true;
+}
+
+function guardSpecSequenceEdit() {
+    if (canEditCurrentSpecSequence()) return true;
+
+    showStatus('🔒 Esta Spec está aprobada/bloqueada y su secuencia de producción no puede modificarse.', 'warning');
+    return false;
+}
+
+function getSpecLifecyclePermission() {
+    return window.SpecUser?.permissions || window.SpecPermissions || {};
+}
+
+function changeSpecLifecycleStatus(targetStatus, options = {}) {
+    if (!window.Store || !window.SpecLifecycle?.transitionLifecycle) {
+        throw new Error('Store y SpecLifecycle deben estar disponibles para cambiar el lifecycle.');
+    }
+
+    const currentState = Store.getState();
+    const currentLifecycle = window.SpecLifecycle.normalizeLifecycle(
+        currentState.specLifecycle || {}
+    );
+    const permission = options.permission || getSpecLifecyclePermission();
+    const actor = options.actor || getCurrentSpecActor();
+    const at = options.at || new Date().toISOString();
+
+    const nextLifecycle = window.SpecLifecycle.transitionLifecycle(
+        currentLifecycle,
+        targetStatus,
+        { permission, actor, at }
+    );
+
+    const version = currentState.styleVersion?.number ?? null;
+    const auditEntry = window.SpecLifecycle.createAuditEntry
+        ? window.SpecLifecycle.createAuditEntry({
+            action: 'LIFECYCLE_STATUS_CHANGE',
+            actor,
+            authorizedBy: options.authorizedBy || null,
+            reason: options.reason || `Cambio de lifecycle: ${currentLifecycle.status} → ${targetStatus}`,
+            at,
+            path: 'specLifecycle.status',
+            oldValue: currentLifecycle.status,
+            newValue: nextLifecycle.status,
+            fromVersion: version,
+            toVersion: version
+        })
+        : null;
+
+    const nextState = {
+        ...currentState,
+        specLifecycle: nextLifecycle,
+        auditTrail: auditEntry
+            ? window.SpecLifecycle.appendAuditEntry(currentState.auditTrail, auditEntry)
+            : (currentState.auditTrail || [])
+    };
+
+    if (nextState.styleVersion && window.SpecLifecycle?.appendAuditEntry && auditEntry) {
+        nextState.styleVersion = {
+            ...nextState.styleVersion,
+            updatedAt: at,
+            updatedBy: actor,
+            auditTrail: window.SpecLifecycle.appendAuditEntry(
+                nextState.styleVersion.auditTrail,
+                auditEntry
+            )
+        };
+    }
+
+    Store.replaceState(nextState);
+    return nextState.specLifecycle;
+}
+
+function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason = 'Ajuste manual de secuencia', action = 'CHANGE' }) {
+    if (!placement) return null;
+
+    const now = new Date().toISOString();
+    const actor = getCurrentSpecActor();
+    const styleVersion = Store.state.styleVersion || (Store.state.styleVersion = {});
+    const version = styleVersion.number ?? null;
+    const entry = window.SpecLifecycle?.createAuditEntry
+        ? window.SpecLifecycle.createAuditEntry({
+            action, actor, at: now, path, oldValue, newValue, reason,
+            fromVersion: version, toVersion: version
+        })
+        : { action, actor, at: now, path, oldValue, newValue, reason, fromVersion: version, toVersion: version };
+
+    if (window.SpecLifecycle?.touchVersionMetadata) {
+        window.SpecLifecycle.touchVersionMetadata(styleVersion, { at: now, actor, entry });
+    } else {
+        styleVersion.updatedAt = now;
+        styleVersion.updatedBy = actor;
+        styleVersion.auditTrail = Array.isArray(styleVersion.auditTrail) ? [...styleVersion.auditTrail, entry] : [entry];
+    }
+
+    Store.state.auditTrail = Array.isArray(Store.state.auditTrail)
+        ? [...Store.state.auditTrail, entry]
+        : [entry];
+
+    return entry;
+}
+
+function generatePlacementSequenceFromRules(placementId, options = {}) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !window.RulesEngine?.generarSecuencia) return false;
 
@@ -1869,6 +2002,8 @@ function syncPlacementSequenceWithColors(placement, force = false) {
 }
 
 function addPlacementColorItem(placementId, type) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -1965,7 +2100,45 @@ function renderPlacementColors(placementId) {
         return;
     }
 
-    container.innerHTML = '';
+    const productionEvaluation = window.ProductionConditionEngine?.evaluatePlacement
+        ? window.ProductionConditionEngine.evaluatePlacement({ designColors: placement.printColors })
+        : null;
+
+    const matchedConditions = productionEvaluation?.matchedConditions || [];
+    const uniqueConditions = [];
+    matchedConditions.forEach(condition => {
+        const key = condition.id || condition.color;
+        if (!uniqueConditions.some(existing => (existing.id || existing.color) === key)) {
+            uniqueConditions.push(condition);
+        }
+    });
+
+    const allColorsApproved = productionEvaluation?.directToBlocker === true;
+    const productionAlert = uniqueConditions.length > 0
+        ? `
+            <div class="production-condition-alert" style="
+                margin: 0 0 12px 0;
+                padding: 12px 14px;
+                border-radius: 8px;
+                border-left: 4px solid ${allColorsApproved ? '#198754' : '#d39e00'};
+                background: ${allColorsApproved ? 'rgba(25,135,84,.10)' : 'rgba(211,158,0,.10)'};
+            ">
+                <div style="font-weight:700; margin-bottom:6px;">
+                    ${allColorsApproved ? '🟢 CONDICIÓN DE PRODUCCIÓN APROBADA' : '🟡 RECUERDA — CONDICIÓN DE PRODUCCIÓN'}
+                </div>
+                ${uniqueConditions.map(condition => `
+                    <div style="font-size:.86rem; margin-top:4px;">
+                        ${condition.message || ('Color aprobado: ' + condition.color)}
+                    </div>
+                `).join('')}
+                ${allColorsApproved
+                    ? '<div style="font-size:.78rem; margin-top:7px; opacity:.8;">Todos los colores actuales cumplen la condición DIRECT_TO_BLOCKER. La propuesta automática no agrega White Base.</div>'
+                    : '<div style="font-size:.78rem; margin-top:7px; opacity:.8;">La condición aplica a parte de los colores actuales. El motor no eliminará White Base automáticamente.</div>'}
+            </div>
+        `
+        : '';
+
+    container.innerHTML = productionAlert;
 
     placement.printColors.forEach(color => {
         let badgeClass = 'badge-color';
@@ -1994,7 +2167,7 @@ function renderPlacementColors(placementId) {
             <span class="badge ${badgeClass}">${label}</span>
             <input type="text" 
                    style="width: 60px; text-align: center; font-weight: bold;" 
-                   value="${color.screenLetter}" 
+                   value="${escapeHtml(color.screenLetter)}" 
                    class="form-control placement-screen-letter"
                    data-color-id="${color.id}"
                    data-placement-id="${placementId}"
@@ -2006,17 +2179,20 @@ function renderPlacementColors(placementId) {
                    data-color-id="${color.id}"
                    data-placement-id="${placementId}"
                    placeholder="Nombre de la tinta..." 
-                   value="${color.val}"
+                   value="${escapeHtml(color.val)}"
                    oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)"
+                   onkeydown="if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); this.blur(); }"
                    ondblclick="this.select()">
             <input type="text"
                    style="width: 82px; text-align:center;"
                    class="form-control placement-mesh-line"
-                   value="${color.mesh || ''}"
+                   value="${escapeHtml(color.mesh || '')}"
                    placeholder="Malla"
                    title="Malla por tinta"
                    oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)"
                    ondblclick="this.select()">
+            ${color.type === 'COLOR' || color.type === 'METALLIC' ? `<button type="button" class="btn btn-outline btn-sm acb-color-pick-button" onclick="openAcbColorPicker(${placementId}, ${color.id})" title="Seleccionar color desde la biblioteca ACB"><i class="fas fa-book-open"></i></button>` : ''}
+            ${color.acbColor?.code ? `<span class="acb-selected-color-code" title="Color vinculado desde ${String(color.acbColor.bookTitle || 'ACB').replace(/[<>&"]/g, '')}">${String(color.acbColor.code).replace(/[<>&"]/g, '')}</span>` : ''}
             <div class="color-preview" 
                  id="placement-color-preview-${placementId}-${color.id}" 
                  title="Vista previa del color"></div>
@@ -2052,7 +2228,51 @@ function renderPlacementColors(placementId) {
     });
 }
 
+function applyAcbColorToPlacement(placementId, colorId, selectedColor, bookInfo = {}) {
+    if (!guardSpecSequenceEdit()) return false;
+
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    const color = placement?.printColors?.find(item => String(item.id) === String(colorId));
+    if (!placement || !color || !selectedColor || !/^#[0-9A-F]{6}$/i.test(String(selectedColor.hex || ''))) {
+        showStatus('No se pudo aplicar el color ACB seleccionado.', 'error');
+        return false;
+    }
+
+    const selectedName = String(selectedColor.name || selectedColor.rawName || selectedColor.code || '').trim();
+    if (!selectedName) {
+        showStatus('El color ACB no tiene un nombre o código utilizable.', 'error');
+        return false;
+    }
+
+    // Reutiliza el flujo existente para mantener sincronizada la secuencia de producción.
+    // Los metadatos ACB se guardan aparte y nunca sustituyen tinta, malla, base o blocker.
+    updatePlacementColorValue(placementId, colorId, selectedName);
+    color.hex = selectedColor.hex.toUpperCase();
+    color.rgb = selectedColor.rgb && Number.isFinite(selectedColor.rgb.r)
+        ? { r: selectedColor.rgb.r, g: selectedColor.rgb.g, b: selectedColor.rgb.b }
+        : null;
+    color.acbColor = {
+        source: 'ACB',
+        bookTitle: String(bookInfo.title || ''),
+        sourceFile: String(bookInfo.sourceFile || ''),
+        name: selectedName,
+        rawName: String(selectedColor.rawName || selectedName),
+        code: String(selectedColor.code || ''),
+        hex: color.hex,
+        rgb: color.rgb,
+        index: Number.isInteger(selectedColor.index) ? selectedColor.index : null
+    };
+
+    updatePlacementColorPreview(placementId, colorId);
+    updatePlacementColorsPreview(placementId);
+    renderPlacementColors(placementId);
+    showStatus(`Color ACB aplicado: ${selectedName}${selectedColor.code ? ' · ' + selectedColor.code : ''}`, 'success');
+    return true;
+}
+
 function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
+    if (!guardSpecSequenceEdit()) return;
+
     if (placementColorDndManager) {
         placementColorDndManager.moveByIndex(placementId, fromIndex, toIndex);
         return;
@@ -2072,7 +2292,28 @@ function movePlacementColorByIndex(placementId, fromIndex, toIndex) {
     checkForSpecialtiesInColors(placementId);
 }
 
+function syncPlacementAcbColorBadge(placementId, colorId, acbColor) {
+    const item = document.querySelector(`.color-item[data-placement-id="${placementId}"][data-color-id="${colorId}"]`);
+    if (!item) return;
+    let badge = item.querySelector('.acb-selected-color-code');
+    if (!acbColor?.code) {
+        badge?.remove();
+        return;
+    }
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'acb-selected-color-code';
+        const preview = item.querySelector('.color-preview');
+        if (preview) item.insertBefore(badge, preview);
+        else item.appendChild(badge);
+    }
+    badge.textContent = String(acbColor.code).replace(/[<>&"]/g, '');
+    badge.title = `Color vinculado desde ${String(acbColor.bookTitle || 'ACB').replace(/[<>&"]/g, '')}`;
+}
+
 function updatePlacementColorValue(placementId, colorId, value) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2080,7 +2321,39 @@ function updatePlacementColorValue(placementId, colorId, value) {
     if (!color) return;
 
     const previousValue = color.val;
+    const hadAcbReference = Boolean(color.acbColor);
+    if (color.acbColor && String(value).trim() !== String(color.acbColor.name || '')) {
+        // Evita conservar una referencia ACB antigua si el usuario cambia el nombre manualmente.
+        delete color.acbColor;
+        delete color.hex;
+        delete color.rgb;
+    }
     color.val = value;
+
+    // Auto-link only an unambiguous exact name match. Never infer a color from
+    // partial text, because a wrong swatch or ACB code would be misleading.
+    const isDesignColor = color.type === 'COLOR' || color.type === 'METALLIC';
+    const matchedAcb = isDesignColor && typeof window.resolveAcbColorByName === 'function'
+        ? window.resolveAcbColorByName(value)
+        : null;
+    if (matchedAcb && /^#[0-9A-F]{6}$/i.test(String(matchedAcb.hex || ''))) {
+        color.hex = String(matchedAcb.hex).toUpperCase();
+        color.rgb = matchedAcb.rgb && [matchedAcb.rgb.r, matchedAcb.rgb.g, matchedAcb.rgb.b].every(Number.isFinite)
+            ? { r: matchedAcb.rgb.r, g: matchedAcb.rgb.g, b: matchedAcb.rgb.b }
+            : null;
+        color.acbColor = {
+            source: 'ACB',
+            bookTitle: String(matchedAcb.bookTitle || ''),
+            sourceFile: String(matchedAcb.sourceFile || ''),
+            name: String(matchedAcb.name || matchedAcb.rawName || value).trim(),
+            rawName: String(matchedAcb.rawName || matchedAcb.name || value).trim(),
+            code: String(matchedAcb.code || ''),
+            hex: color.hex,
+            rgb: color.rgb,
+            index: Number.isInteger(matchedAcb.index) ? matchedAcb.index : null
+        };
+    }
+    syncPlacementAcbColorBadge(placementId, colorId, color.acbColor);
 
     if (placement.sequenceMode === 'MANUAL') {
         // Manual production sequence remains authoritative. Update only the
@@ -2096,9 +2369,13 @@ function updatePlacementColorValue(placementId, colorId, value) {
         updatePlacementStations(placementId);
     } else {
         // In AUTO mode the Rules Engine remains responsible for rebuilding the proposal.
-        generatePlacementSequenceFromRules(placementId, { silent: true })
-            .then(() => updatePlacementStations(placementId))
-            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
     }
 
     updatePlacementColorPreview(placementId, colorId);
@@ -2107,6 +2384,8 @@ function updatePlacementColorValue(placementId, colorId, value) {
 }
 
 function updatePlacementScreenLetter(placementId, colorId, value) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2126,13 +2405,19 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
         markPlacementSequenceManual(placement);
         updatePlacementStations(placementId);
     } else {
-        generatePlacementSequenceFromRules(placementId, { silent: true })
-            .then(() => updatePlacementStations(placementId))
-            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
     }
 }
 
 function updatePlacementColorMesh(placementId, colorId, value) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2152,22 +2437,53 @@ function updatePlacementColorMesh(placementId, colorId, value) {
         markPlacementSequenceManual(placement);
         updatePlacementStations(placementId);
     } else {
-        generatePlacementSequenceFromRules(placementId, { silent: true })
-            .then(() => updatePlacementStations(placementId))
-            .catch((error) => console.warn('No se pudo regenerar la secuencia automática:', error));
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
     }
 }
 
 function removePlacementColorItem(placementId, colorId) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
-    placement.printColors = placement.printColors.filter(c => String(c.id) !== String(colorId));
-    syncPlacementSequenceWithColors(placement, true);
-    renderPlacementColors(placementId);
-    updatePlacementStations(placementId);
-    updatePlacementColorsPreview(placementId);
+    const color = placement.printColors.find(c => String(c.id) === String(colorId));
+    if (!color) return;
 
+    placement.printColors = placement.printColors.filter(c => String(c.id) !== String(colorId));
+
+    if (placement.sequenceMode === 'MANUAL') {
+        // Manual mode: remove only production screen(s) tied to this color.
+        const letter = String(color.screenLetter || '');
+        placement.sequence = (placement.sequence || []).filter((step) => {
+            const type = String(step.type || step.tipo || '').toUpperCase();
+            if (type !== 'COLOR' && type !== 'METALLIC') return true;
+            return String(step.screenLetter || '') !== letter;
+        });
+        markPlacementSequenceManual(placement);
+        updatePlacementStations(placementId);
+    } else {
+        // AUTO mode: printColors are Rules Engine inputs, so regenerate.
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            } else {
+                placement.sequence = [];
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
+    }
+
+    renderPlacementColors(placementId);
+    updatePlacementColorsPreview(placementId);
     checkForSpecialtiesInColors(placementId);
 }
 
@@ -2182,7 +2498,16 @@ function movePlacementColorItem(placementId, colorId, direction) {
     if (targetIndex < 0 || targetIndex >= placement.printColors.length) return;
 
     movePlacementColorByIndex(placementId, currentIndex, targetIndex);
-    showStatus('↕️ Secuencia de colores actualizada');
+    if (placement.sequenceMode !== 'MANUAL') {
+        try {
+            if (generatePlacementSequenceFromRules(placementId, { silent: true })) {
+                updatePlacementStations(placementId);
+            }
+        } catch (error) {
+            console.warn('No se pudo regenerar la secuencia automática:', error);
+        }
+    }
+    showStatus('↕️ Orden de colores actualizado');
 }
 
 function updatePlacementColorPreview(placementId, colorId) {
@@ -2196,9 +2521,9 @@ function updatePlacementColorPreview(placementId, colorId) {
     if (!preview) return;
 
     const colorName = (color.val || '').toUpperCase().trim();
-    let colorHex = null;
+    let colorHex = /^#[0-9A-F]{6}$/i.test(String(color.hex || '')) ? String(color.hex).toUpperCase() : null;
 
-    if (window.ColorConfig && window.ColorConfig.findColorHex) {
+    if (!color.acbColor && window.ColorConfig && window.ColorConfig.findColorHex) {
         colorHex = window.ColorConfig.findColorHex(color.val);
     }
 
@@ -2540,22 +2865,35 @@ function escapeSequenceCellValue(value) {
 }
 
 function updatePlacementSequenceItem(placementId, index, field, value) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !Array.isArray(placement.sequence)) return;
 
     const item = placement.sequence[index];
     if (!item) return;
 
-    item[field] = field === 'screenLetter'
+    const previousValue = item[field];
+    const nextValue = field === 'screenLetter'
         ? String(value || '').toUpperCase()
         : value;
+    item[field] = nextValue;
+
+    recordSpecSequenceChange({
+        placement,
+        path: `placements[${placementId}].sequence[${index}].${field}`,
+        oldValue: previousValue,
+        newValue: nextValue
+    });
 
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
-    showStatus('✏️ Secuencia marcada como ajustada manualmente', 'success');
+    showStatus('✏️ Cambio de secuencia registrado', 'success');
 }
 
 function movePlacementSequenceItem(placementId, index, direction) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !Array.isArray(placement.sequence)) return;
 
@@ -2565,12 +2903,22 @@ function movePlacementSequenceItem(placementId, index, direction) {
     const [moved] = placement.sequence.splice(index, 1);
     placement.sequence.splice(target, 0, moved);
 
+    recordSpecSequenceChange({
+        placement,
+        path: `placements[${placementId}].sequence.order`,
+        oldValue: { from: index, to: target, item: { ...moved } },
+        newValue: { from: target, to: target, item: { ...moved } },
+        reason: 'Cambio de orden de producción'
+    });
+
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
-    showStatus('↕️ Orden de producción ajustado manualmente', 'success');
+    showStatus('↕️ Cambio de orden registrado', 'success');
 }
 
 function removePlacementSequenceItem(placementId, index) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !Array.isArray(placement.sequence)) return;
 
@@ -2578,12 +2926,24 @@ function removePlacementSequenceItem(placementId, index) {
     if (!item) return;
 
     placement.sequence.splice(index, 1);
+
+    recordSpecSequenceChange({
+        placement,
+        path: `placements[${placementId}].sequence[${index}]`,
+        oldValue: { ...item },
+        newValue: null,
+        reason: 'Eliminación manual de paso de producción',
+        action: 'DELETE'
+    });
+
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
-    showStatus(`🗑️ Paso ${item.type || item.tipo || 'de producción'} eliminado manualmente`, 'success');
+    showStatus('🗑️ Cambio de secuencia registrado', 'success');
 }
 
 function addPlacementSequenceScreen(placementId) {
+    if (!guardSpecSequenceEdit()) return;
+
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
 
@@ -2605,7 +2965,7 @@ function addPlacementSequenceScreen(placementId) {
         else break;
     }
 
-    placement.sequence.splice(insertAt, 0,
+    const addedSteps = [
         {
             id: idBase,
             type: 'COLOR',
@@ -2630,11 +2990,22 @@ function addPlacementSequenceScreen(placementId) {
             mesh: '-',
             additives: ''
         }
-    );
+    ];
+
+    placement.sequence.splice(insertAt, 0, ...addedSteps);
+
+    recordSpecSequenceChange({
+        placement,
+        path: `placements[${placementId}].sequence[${insertAt}]`,
+        oldValue: null,
+        newValue: addedSteps.map(step => ({ ...step })),
+        reason: 'Nueva pantalla agregada manualmente',
+        action: 'ADD'
+    });
 
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
-    showStatus('➕ Pantalla agregada manualmente a la secuencia', 'success');
+    showStatus('➕ Pantalla agregada y cambio registrado', 'success');
 }
 
 function renderPlacementStationsTable(placementId, data) {
@@ -2958,6 +3329,9 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('📦 Datos extraídos:', extracted);
 
     const applyGeneralInfo = (info, source = 'manual') => {
+        if (window.SourcePriority && typeof window.SourcePriority.recordImportedFields === 'function') {
+            window.SourcePriority.recordImportedFields(info, source);
+        }
         if (!info || typeof info !== 'object') return;
 
         if (info.customer) {
@@ -2985,7 +3359,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     };
 
     // --- 2. ASIGNAR VALORES INICIALES A LOS INPUTS ---
-    applyGeneralInfo(extracted, 'extracción base');
+    applyGeneralInfo(extracted, isSWOSheet ? 'SWO' : 'extracción base');
 
     // --- 3. EJECUTAR AUTOMATIZACIÓN DE PLACEMENTS ---
     if (window.ExcelAutomation) {
@@ -3002,7 +3376,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
             }
 
             // Completar/actualizar información general con la mejor hoja detectada
-            applyGeneralInfo(result, 'ExcelAutomation');
+            applyGeneralInfo(result, (result?.sourceSheet && /SWO|PPS|PROTO/i.test(result.sourceSheet)) || isSWOSheet ? 'SWO' : 'ExcelAutomation');
             
             if (result.autoPlacements && result.autoPlacements.length > 0) {
                 console.log(`📦 Se detectaron ${result.autoPlacements.length} placements automáticos`);
@@ -3695,7 +4069,9 @@ window.copyPaletteJsonFromDashboard = copyPaletteJsonFromDashboard;
 window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
 window.focusPasteForPaletteFromDashboard = focusPasteForPaletteFromDashboard;
 window.editPaletteExtractedName = editPaletteExtractedName;
-const REMOTE_SPECS_API_BASE = String(window.TEGRA_BACKEND_URL || 'https://tegra-spec-manager.onrender.com').replace(/\/+$/, '');
+// Backend remoto desactivado por defecto (el servicio de Render ya no existe).
+// Para activarlo, define window.TEGRA_BACKEND_URL = 'https://tu-servidor' antes de cargar app.js.
+const REMOTE_SPECS_API_BASE = String(window.TEGRA_BACKEND_URL || '').replace(/\/+$/, '');
 const REMOTE_SPECS_API_URL = REMOTE_SPECS_API_BASE ? `${REMOTE_SPECS_API_BASE}/api/specs` : '';
 let savedSpecsCache = null;
 let savedSpecsCacheMode = 'local';
@@ -3752,6 +4128,10 @@ function buildRemoteSpecPayload(data = {}) {
     return {
         generalData: getSpecGeneralData(data),
         placements: Array.isArray(data.placements) ? data.placements : [],
+        styleVersion: data.styleVersion || null,
+        versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],
+        specLifecycle: data.specLifecycle || null,
+        auditTrail: Array.isArray(data.auditTrail) ? data.auditTrail : [],
         meta: {
             savedAt: data.savedAt || new Date().toISOString(),
             lastModified: data.lastModified || data.savedAt || new Date().toISOString(),
@@ -3898,8 +4278,8 @@ function renderSavedSpecListItem(record) {
     return `
         <div style="padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition); gap: 10px;">
             <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'} | PO: ${data.po || 'N/A'}</div>
+                <div style="font-weight: 700; color: var(--primary);">${escapeHtml(data.style || 'N/A')}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${escapeHtml(data.customer || 'N/A')} | Colorway: ${escapeHtml(data.colorway || 'N/A')} | PO: ${escapeHtml(data.po || 'N/A')}</div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(record.savedAt || 0).toLocaleDateString('es-ES')} · ${record.source === 'remote' ? 'Render' : 'Este navegador'}</div>
             </div>
             <div style="display: flex; gap: 8px; flex-shrink: 0;">
@@ -3920,7 +4300,7 @@ async function updateDashboard(options = {}) {
         const lastRecord = specs[0] || null;
         const todaySpecsEl = document.getElementById('today-specs');
         if (lastRecord && todaySpecsEl) {
-            const safeStyle = (lastRecord.data?.style || 'Sin nombre').replace(/"/g, '&quot;');
+            const safeStyle = escapeHtml(lastRecord.data?.style || 'Sin nombre');
             todaySpecsEl.innerHTML = `
                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
                 <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastRecord.key)}'))" title="Abrir para seguir editando"
@@ -4005,7 +4385,7 @@ async function loadSavedSpecsList(options = {}) {
         list.innerHTML = `
             <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
                 <i class="fas fa-search" style="margin-right: 6px;"></i>
-                No se encontraron specs para <strong>${query}</strong>
+                No se encontraron specs para <strong>${escapeHtml(query)}</strong>
             </p>
         `;
     }
@@ -4051,10 +4431,16 @@ function loadSpecData(data) {
     // Restore top-level lifecycle metadata before rebuilding placements.
     // Placement sequence lifecycle remains inside each loaded placement object.
     if (window.Store && typeof Store.replaceState === 'function') {
+        const loadedLifecycle = window.SpecLifecycle?.normalizeLifecycle
+            ? window.SpecLifecycle.normalizeLifecycle(data.specLifecycle || {})
+            : (data.specLifecycle || {});
+
         Store.replaceState({
             ...Store.getState(),
-            specLifecycle: data.specLifecycle,
-            auditTrail: data.auditTrail,
+            specLifecycle: loadedLifecycle,
+            styleVersion: data.styleVersion,
+            versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],
+            auditTrail: Array.isArray(data.auditTrail) ? data.auditTrail : [],
             placements: []
         });
     } else {
@@ -4099,6 +4485,15 @@ function loadSpecData(data) {
         });
     } else {
         initializePlacements();
+    }
+
+    // Synchronize the rebuilt UI placements back into Store so future
+    // save/export operations serialize the loaded spec instead of an empty array.
+    if (window.Store && typeof Store.replaceState === 'function') {
+        Store.replaceState({
+            ...Store.getState(),
+            placements: placements.map((placement) => JSON.parse(JSON.stringify(placement)))
+        });
     }
 
     updatePlacementsTabs();
@@ -4275,6 +4670,68 @@ function collectData() {
     return { placements: [] };
 }
 
+/**
+ * Creates a new global style version.
+ *
+ * Version history is immutable: the current version is archived as a complete
+ * snapshot before the new version becomes active. SAMPLE TYPE is the stage
+ * authority; parentVersion records lineage/reference only.
+ */
+function createNewStyleVersion(options = {}) {
+    if (!window.Store || !window.StyleVersion) {
+        throw new Error('Store y StyleVersion deben estar disponibles para crear una versión.');
+    }
+
+    const currentState = Store.getState();
+    const currentVersion = window.StyleVersion.normalizeStyleVersion(
+        currentState.styleVersion || {},
+        currentState.generalData || {}
+    );
+    const actor = options.actor || getCurrentSpecActor();
+    const now = options.at || new Date().toISOString();
+
+    const archive = window.StyleVersion.createVersionArchive(currentState);
+    const nextState = window.StyleVersion.createDerivedState(currentState, {
+        ...options,
+        createdAt: options.createdAt || now
+    });
+
+    // The new SWO is authoritative for the new version. Only fields explicitly
+    // supplied by the new SWO/options are carried into generalData.
+    const nextSwo = nextState.styleVersion.swoSnapshot || {};
+    nextState.generalData = {
+        ...(currentState.generalData || {}),
+        ...(options.generalData || {}),
+        ...Object.fromEntries(
+            Object.entries(nextSwo).filter(([, value]) => value !== undefined && value !== null && value !== '')
+        )
+    };
+    nextState.generalData.sampleType = nextState.styleVersion.stage.sampleType || nextState.generalData.sampleType || '';
+
+    const nextNumber = nextState.styleVersion.number;
+    const versionEntry = window.SpecLifecycle?.createVersionAuditEntry
+        ? window.SpecLifecycle.createVersionAuditEntry(currentVersion.number, nextNumber, {
+            actor,
+            authorizedBy: options.authorizedBy || null,
+            reason: options.reason || 'Nueva versión de Spec',
+            at: now,
+            oldValue: { version: currentVersion.number, label: currentVersion.label },
+            newValue: { version: nextNumber, label: nextState.styleVersion.label }
+        })
+        : null;
+
+    nextState.styleVersion.auditTrail = versionEntry ? [versionEntry] : [];
+    nextState.auditTrail = versionEntry ? [versionEntry] : [];
+    nextState.versionHistory = [
+        ...(Array.isArray(currentState.versionHistory) ? currentState.versionHistory : []),
+        archive
+    ];
+
+    Store.replaceState(nextState);
+
+    return Store.getState();
+}
+
 // =====================================================
 // FUNCIONES DE LIMPIEZA
 // =====================================================
@@ -4327,12 +4784,21 @@ function clearForm() {
                 specLifecycle: {
                     status: 'DRAFT',
                     source: 'RULE_ENGINE',
-                    version: 1,
                     approvedBy: null,
                     approvedAt: null,
-                    lockedAt: null,
-                    parentVersion: null
+                    lockedAt: null
                 },
+                styleVersion: window.StyleVersion?.createStyleVersion
+                    ? window.StyleVersion.createStyleVersion({})
+                    : {
+                        number: 1,
+                        label: '',
+                        parentVersion: null,
+                        stage: { sampleType: '', isPPF: false },
+                        swoSnapshot: {},
+                        createdAt: null
+                    },
+                versionHistory: [],
                 auditTrail: []
             });
         }
@@ -4407,6 +4873,46 @@ async function exportHTML() {
     } catch (error) {
         console.error('Error al exportar HTML:', error);
         showStatus('❌ Error al generar HTML: ' + error.message, 'error');
+    }
+}
+
+
+/**
+ * Abre la especificación HTML en una pestaña imprimible.
+ * El usuario puede elegir "Guardar como PDF" en el diálogo de impresión del navegador.
+ */
+async function exportPDF() {
+    let printWindow = null;
+    try {
+        if (!window.generateSpecHTMLDocument) {
+            throw new Error('Generador HTML no disponible (window.generateSpecHTMLDocument).');
+        }
+
+        const data = collectData();
+        data.placements = placements.map(p => ({
+            ...p,
+            printColors: p.printColors,
+            sequence: p.sequence
+        }));
+
+        // Abrir la pestaña directamente desde la acción del usuario para evitar bloqueadores de ventanas emergentes.
+        printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            throw new Error('El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes para esta página e inténtalo de nuevo.');
+        }
+
+        const htmlContent = window.generateSpecHTMLDocument(data);
+        const printScript = '<script>window.addEventListener("load", function () { window.focus(); window.print(); });<\/script>';
+        const printableHtml = htmlContent.replace(/<\/body>/i, printScript + '</body>');
+
+        printWindow.document.open();
+        printWindow.document.write(printableHtml);
+        printWindow.document.close();
+        showStatus('Vista de impresión abierta. Selecciona "Guardar como PDF" en el diálogo del navegador.', 'success');
+    } catch (error) {
+        if (printWindow && !printWindow.closed) printWindow.close();
+        console.error('Error al preparar PDF:', error);
+        showStatus('No se pudo preparar la impresión: ' + error.message, 'error');
     }
 }
 
@@ -4888,8 +5394,8 @@ async function searchDashboardSpecs() {
         resultsHtml += `
             <div style="padding:12px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; gap:10px;">
                 <div style="flex:1; min-width:0;">
-                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | PO: ${data.po || 'N/A'} | ${record.source === 'remote' ? 'Render' : 'Local'}</div>
+                    <div style="font-weight: 700; color: var(--primary);">${escapeHtml(data.style || 'N/A')}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${escapeHtml(data.customer || 'N/A')} | PO: ${escapeHtml(data.po || 'N/A')} | ${record.source === 'remote' ? 'Render' : 'Local'}</div>
                 </div>
                 <div style="display: flex; gap: 5px; flex-shrink:0;">
                     <button class="btn btn-primary btn-sm" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(record.key)}'))" title="Abrir para editar"><i class="fas fa-edit"></i></button>
@@ -4903,7 +5409,7 @@ async function searchDashboardSpecs() {
         resultsDiv.innerHTML = `
             <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
                 <i class="fas fa-search" style="margin-right: 6px;"></i>
-                No se encontraron specs para <strong>${query}</strong>
+                No se encontraron specs para <strong>${escapeHtml(query)}</strong>
             </p>
         `;
     } else {
@@ -4976,7 +5482,7 @@ window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
 window.exportHTML = exportHTML; // ✅ Renombrado
-window.exportPDF = exportHTML; // Compatibilidad con botones legacy
+window.exportPDF = exportPDF;
 window.downloadProjectZip = downloadProjectZip;
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
@@ -4989,6 +5495,7 @@ window.addPlacementColorItem = addPlacementColorItem;
 window.removePlacementColorItem = removePlacementColorItem;
 window.movePlacementColorItem = movePlacementColorItem;
 window.updatePlacementColorValue = updatePlacementColorValue;
+window.applyAcbColorToPlacement = applyAcbColorToPlacement;
 window.updatePlacementColorMesh = updatePlacementColorMesh;
 window.updatePlacementScreenLetter = updatePlacementScreenLetter;
 window.updatePlacementParam = updatePlacementParam;
@@ -5000,3 +5507,4 @@ window.applyCustomerInkDefaults = applyCustomerInkDefaults;
 window.setupPlacementAutocomplete = setupPlacementAutocomplete;
 window.generarConAsistente = generarConAsistente;
 window.normalizeGearForSportStyleAndColorway = normalizeGearForSportStyleAndColorway;
+window.changeSpecLifecycleStatus = changeSpecLifecycleStatus;

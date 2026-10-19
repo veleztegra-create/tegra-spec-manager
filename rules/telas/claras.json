@@ -1,0 +1,27 @@
+{
+  "nombre": "Telas Claras",
+  "version": "1.0",
+  "identificadores": ["blanco", "white", "natural", "crema", "ivory", "beige", "claro", "light", "gris claro", "light gray"],
+  "reglas": {
+    "bloqueadores": {
+      "requeridos": false,
+      "cantidad": 1,
+      "mallas": ["157"],
+      "orden": "despues_bases"
+    },
+    "bases_blancas": {
+      "requeridas": true,
+      "cantidad": 2,
+      "mallas": ["110", "122"],
+      "aditivos": "N/A"
+    },
+    "colores_claros": {
+      "requieren_base_blanca_extra": true,
+      "base_sobre": "AQUAFLEX"
+    },
+    "colores_oscuros": {
+      "requieren_base_blanca_extra": false,
+      "base_sobre": "BLOCKER"
+    }
+  }
+}

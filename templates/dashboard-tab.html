@@ -12,8 +12,8 @@
         <div class="stat-label">Última Creación</div>
     </div>
     <div class="stat-card">
-        <div class="stat-number" id="active-projects">0</div>
-        <div class="stat-label">Proyectos Activos</div>
+        <div class="stat-number" id="extracted-colors-count">0</div>
+        <div class="stat-label">Colores Extraídos (Sesión)</div>
     </div>
     <div class="stat-card">
         <div id="completion-rate">
@@ -24,7 +24,20 @@
     </div>
 </div>
 
-<div class="card">
+<!-- NUEVO: BUSCADOR DE SPECS EN EL DASHBOARD -->
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-search"></i> Buscar Specs</h2>
+    </div>
+    <div class="card-body">
+        <input type="text" id="dashboard-spec-search" class="form-control" placeholder="Buscar por código/style, cliente, PO o colorway..." oninput="debouncedSearchDashboardSpecs()">
+        <div id="dashboard-search-results" style="margin-top: 15px; max-height: 300px; overflow-y: auto;">
+            <p style="color: var(--text-secondary); text-align: center; padding: 15px;">Escribe para buscar specs guardadas...</p>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
     <div class="card-header">
         <h2 class="card-title"><i class="fas fa-rocket"></i> Acciones Rápidas</h2>
         <div class="no-print">
@@ -34,20 +47,20 @@
         </div>
     </div>
     <div class="card-body" style="text-align:center;">
-        <div style="margin-top:20px; display:flex; gap:15px; justify-content:center; flex-wrap:wrap;">
+        <div class="quick-actions" style="margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
             <button class="btn btn-primary btn-lg" onclick="showTab('spec-creator')">
                 <i class="fas fa-plus"></i> Nueva Spec
             </button>
-            <button class="btn btn-warning btn-lg" onclick="document.getElementById('excelFile').click()">
-                <i class="fas fa-folder-open"></i> Cargar Spec
+            <button class="btn btn-outline btn-lg" onclick="document.getElementById('excelFile').click()">
+                <i class="fas fa-folder-open"></i> Cargar Spec (JSON/ZIP)
             </button>
-            <button class="btn btn-success btn-lg" onclick="document.getElementById('excelFile').click()">
+            <button class="btn btn-outline btn-lg" onclick="document.getElementById('excelFile').click()">
                 <i class="fas fa-file-excel"></i> Cargar SWO
             </button>
             <button class="btn btn-outline btn-lg" onclick="loadSavedSpecsList(); showTab('saved-specs')">
                 <i class="fas fa-history"></i> Ver Historial
             </button>
-            <button class="btn btn-danger btn-lg" onclick="showTab('error-log')">
+            <button class="btn btn-outline btn-lg" onclick="showTab('error-log')">
                 <i class="fas fa-bug"></i> Ver Errores
             </button>
         </div>

@@ -1,0 +1,37 @@
+{
+  "nombre": "WATERBASE",
+  "version": "1.0",
+  "reglas_generales": {
+    "temperatura": "320 °F",
+    "tiempo": "1:40 min",
+    "requiere_bloqueador": true,
+    "bases_blancas": {
+      "sobre_claro": 2,
+      "sobre_oscuro": 1
+    },
+    "mallas": {
+      "BLOCKER": {
+        "primera": "122/55",
+        "segunda": "157/48"
+      },
+      "WHITE_BASE": {
+        "primera": "198/40",
+        "segunda": "157/48"
+      },
+      "COLOR": {
+        "normal": "157/48",
+        "segunda_pantalla": "198/40"
+      }
+    },
+    "aditivos": {
+      "COLOR": "3% CL 500 · 5% ecofix XL",
+      "BLOCKER": "N/A",
+      "WHITE_BASE": "3% CL 500"
+    },
+    "durometro": "70",
+    "strokes": "2",
+    "angulo": "15",
+    "presion": "40",
+    "velocidad": "35"
+  }
+}

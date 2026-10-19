@@ -1,0 +1,46 @@
+<div class="gfsextr-tool" id="gfsextr-tool">
+  <header class="gfsextr-header">
+    <div><h2>GFSEXTR <span>Extractor de paletas</span></h2><p>Extrae colores de tech packs, organiza bibliotecas y exporta para Illustrator.</p></div>
+    <span id="gfsextr-save-state" class="gfsextr-save-state">Almacenamiento local</span>
+  </header>
+
+  <div class="gfsextr-toolbar">
+    <label class="gfsextr-field">Paleta <select id="gfsextr-palette-select" aria-label="Paleta activa"></select></label>
+    <button type="button" id="gfsextr-new" class="btn btn-primary">+ Nueva</button>
+    <button type="button" id="gfsextr-rename" class="btn btn-secondary">Renombrar</button>
+    <button type="button" id="gfsextr-delete" class="btn btn-secondary">Eliminar</button>
+    <span class="gfsextr-toolbar-spacer"></span>
+    <label class="btn btn-secondary gfsextr-file-button">Importar JSON<input id="gfsextr-import" type="file" accept=".json,application/json"></label>
+    <button type="button" id="gfsextr-export-json" class="btn btn-secondary">Exportar JSON</button>
+    <button type="button" id="gfsextr-export-acb" class="btn btn-primary">Exportar ACB</button>
+    <button type="button" id="gfsextr-export-all" class="btn btn-secondary">Backup completo</button>
+  </div>
+
+  <div class="gfsextr-settings">
+    <label for="gfsextr-threshold">Umbral de base (0–255)</label>
+    <input type="number" id="gfsextr-threshold" min="0" max="255" value="155">
+    <span>Los tonos claros pueden requerir base; revisa siempre el criterio antes de producción.</span>
+  </div>
+
+  <div class="gfsextr-layout">
+    <section class="gfsextr-panel">
+      <div class="gfsextr-panel-heading"><h3>01 — Extraer desde imagen</h3><label class="btn btn-primary gfsextr-file-button">Cargar imagen<input type="file" id="gfsextr-image-upload" accept="image/*"></label></div>
+      <div id="gfsextr-status" class="gfsextr-status">Carga una imagen para comenzar. Haz clic en una muestra de color y luego arrastra sobre su nombre.</div>
+      <div class="gfsextr-canvas-wrap"><canvas id="gfsextr-canvas"></canvas></div>
+    </section>
+
+    <section class="gfsextr-panel">
+      <div class="gfsextr-panel-heading"><h3>02 — Colores de la paleta</h3><strong id="gfsextr-count">0 colores</strong></div>
+      <div id="gfsextr-colors" class="gfsextr-colors"><p class="gfsextr-empty">Crea o selecciona una paleta y captura colores.</p></div>
+    </section>
+  </div>
+
+  <div class="gfsextr-note">Las paletas se guardan localmente en este navegador. Usa “Backup completo” para trasladarlas o conservar una copia. El archivo ACB exportado contiene la información de color para usarla en aplicaciones compatibles; el indicador de base es una referencia de serigrafía y debe validarse según el proceso real.</div>
+
+  <div id="gfsextr-modal" class="gfsextr-modal" hidden>
+    <div class="gfsextr-modal-card" role="dialog" aria-modal="true" aria-labelledby="gfsextr-modal-title">
+      <h3 id="gfsextr-modal-title">Paleta</h3><input id="gfsextr-modal-input" type="text" autocomplete="off">
+      <div class="gfsextr-modal-actions"><button type="button" id="gfsextr-modal-cancel" class="btn btn-secondary">Cancelar</button><button type="button" id="gfsextr-modal-save" class="btn btn-primary">Guardar</button></div>
+    </div>
+  </div>
+</div>
