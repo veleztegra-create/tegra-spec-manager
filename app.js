@@ -4902,8 +4902,8 @@ async function exportPDF() {
         }
 
         const htmlContent = window.generateSpecHTMLDocument(data);
-        const printScript = '<script>window.addEventListener("load", function () { window.focus(); window.print(); });<\\/script>';
-        const printableHtml = htmlContent.replace(/<\\/body>/i, printScript + '</body>');
+        const printScript = '<script>window.addEventListener("load", function () { window.focus(); window.print(); });<\/script>';
+        const printableHtml = htmlContent.replace(/<\/body>/i, printScript + '</body>');
 
         printWindow.document.open();
         printWindow.document.write(printableHtml);
