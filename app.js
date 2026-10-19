@@ -4876,6 +4876,46 @@ async function exportHTML() {
     }
 }
 
+
+/**
+ * Abre la especificación HTML en una pestaña imprimible.
+ * El usuario puede elegir "Guardar como PDF" en el diálogo de impresión del navegador.
+ */
+async function exportPDF() {
+    let printWindow = null;
+    try {
+        if (!window.generateSpecHTMLDocument) {
+            throw new Error('Generador HTML no disponible (window.generateSpecHTMLDocument).');
+        }
+
+        const data = collectData();
+        data.placements = placements.map(p => ({
+            ...p,
+            printColors: p.printColors,
+            sequence: p.sequence
+        }));
+
+        // Abrir la pestaña directamente desde la acción del usuario para evitar bloqueadores de ventanas emergentes.
+        printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            throw new Error('El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes para esta página e inténtalo de nuevo.');
+        }
+
+        const htmlContent = window.generateSpecHTMLDocument(data);
+        const printScript = '<script>window.addEventListener("load", function () { window.focus(); window.print(); });<\\/script>';
+        const printableHtml = htmlContent.replace(/<\\/body>/i, printScript + '</body>');
+
+        printWindow.document.open();
+        printWindow.document.write(printableHtml);
+        printWindow.document.close();
+        showStatus('Vista de impresión abierta. Selecciona "Guardar como PDF" en el diálogo del navegador.', 'success');
+    } catch (error) {
+        if (printWindow && !printWindow.closed) printWindow.close();
+        console.error('Error al preparar PDF:', error);
+        showStatus('No se pudo preparar la impresión: ' + error.message, 'error');
+    }
+}
+
 // exportToExcel movido a modules/export-excel.js
 
 async function downloadProjectZip() {
@@ -5442,7 +5482,7 @@ window.saveCurrentSpec = saveCurrentSpec;
 window.clearForm = clearForm;
 window.exportToExcel = exportToExcel;
 window.exportHTML = exportHTML; // ✅ Renombrado
-window.exportPDF = exportHTML; // Compatibilidad con botones legacy
+window.exportPDF = exportPDF;
 window.downloadProjectZip = downloadProjectZip;
 window.removePlacement = removePlacement;
 window.duplicatePlacement = duplicatePlacement;
