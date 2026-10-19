@@ -16,10 +16,13 @@ Esta lista complementa las pruebas automatizadas. No marcar una prueba como apro
 - [ ] Confirmar que los colores y sus nombres se resuelven correctamente desde las bibliotecas disponibles.
 - [ ] Guardar, recargar la aplicación y comprobar qué datos persisten y cuáles no, sin asumir persistencia si no está configurada.
 
-## Salida
-- [ ] Generar la hoja/PDF con una especificación representativa.
-- [ ] Revisar visualmente cortes de página, alineación, legibilidad, placements, Pantones y tipo de tinta.
+## Salida HTML y PDF
+- [ ] Descargar HTML Spec y abrirlo en un navegador: revisar que el contenido y las imágenes se muestren.
+- [ ] Pulsar Imprimir / Guardar PDF y confirmar que se abre la vista de impresión.
+- [ ] En el diálogo del navegador, elegir Guardar como PDF y guardar el archivo.
+- [ ] Revisar tamaño de papel carta, cortes de página, alineación, legibilidad, placements, Pantones y tipos de tinta.
 - [ ] Comparar el PDF contra los datos fuente para verificar que no falte ni se duplique información.
+- [ ] Confirmar que bloquear ventanas emergentes produce un mensaje entendible y que permitirlas vuelve a habilitar el flujo.
 
 ## Resultado
 Registrar navegador, archivo de prueba, fecha, incidencias y resultado. Mantener el PR en borrador hasta completar los puntos aplicables. No fusionar ni reemplazar `main` como parte de esta validación.
