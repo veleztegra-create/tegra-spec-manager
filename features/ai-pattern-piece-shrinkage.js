@@ -15,12 +15,13 @@
     while ((match = LABEL_RE.exec(source)) !== null) {
       const tail = source.slice(match.index + match[0].length, match.index + match[0].length + 180);
       const shrinkageMatch = tail.match(SHRINKAGE_RE);
+      const nextLabelIndex = tail.search(NEXT_LABEL_RE);
+      const shrinkageBeforeNextLabel = shrinkageMatch && (nextLabelIndex < 0 || shrinkageMatch.index < nextLabelIndex);
       let raw = '';
-      if (shrinkageMatch) {
+      if (shrinkageBeforeNextLabel) {
         raw = tail.slice(0, shrinkageMatch.index + shrinkageMatch[0].length);
       } else {
-        const next = tail.search(NEXT_LABEL_RE);
-        raw = tail.slice(0, next >= 0 ? next : Math.min(tail.length, 45));
+        raw = tail.slice(0, nextLabelIndex >= 0 ? nextLabelIndex : Math.min(tail.length, 45));
         const stop = raw.search(/\b(?:Piece\s*(?:Name|Number|No\.?|ID)|Pattern\s*:|Style\s*:|Material\s*:|Color\s*:)/i);
         if (stop >= 0) raw = raw.slice(0, stop);
       }
