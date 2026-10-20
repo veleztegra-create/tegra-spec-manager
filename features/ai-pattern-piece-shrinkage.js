@@ -65,6 +65,18 @@
     return pieces;
   }
 
+  // "FT" es la abreviatura operativa que se usa para localizar Front.
+  function filterPieces(pieces, query) {
+    const term = normalizeSpaces(query).toLowerCase();
+    if (!term) return pieces.slice();
+    const aliases = term === 'ft' || term === 'front' ? ['front'] : [term];
+    return pieces.filter(piece => {
+      const name = normalizeSpaces(piece.pieceName).toLowerCase();
+      const full = normalizeSpaces(piece.fullText).toLowerCase();
+      return aliases.some(alias => name.includes(alias) || (alias !== 'front' && full.includes(alias)));
+    });
+  }
+
   async function extractFromAiFile(file) {
     // Primero intenta leer el texto nativo de Illustrator/PostScript. Es rápido y
     // funciona incluso cuando el .ai no contiene una representación PDF compatible.
@@ -99,16 +111,18 @@
     }
     return { pieces, pageCount: pdf.numPages, sourceFormat: 'pdf' };
   }
-  root.PatternPieceShrinkage = { parsePieceNames, extractFromAiFile };
+  root.PatternPieceShrinkage = { parsePieceNames, filterPieces, extractFromAiFile };
   root.initPatternPieceShrinkage = function () {
     const input = document.getElementById('pattern-ai-file');
     const status = document.getElementById('pattern-ai-status');
+    const search = document.getElementById('pattern-piece-search');
     const list = document.getElementById('pattern-piece-list');
     const detail = document.getElementById('pattern-piece-detail');
     const copyButton = document.getElementById('pattern-piece-copy');
     if (!input || input.dataset.bound === '1') return;
     input.dataset.bound = '1';
     let selected = null;
+    let allPieces = [];
     function setStatus(message, kind) {
       status.textContent = message;
       status.className = 'pattern-ai-status ' + (kind || '');
@@ -118,6 +132,15 @@
       detail.textContent = 'Selecciona una pieza para ver el texto detectado.';
       copyButton.disabled = true;
       selected = null;
+      if (!pieces.length) {
+        const empty = document.createElement('p');
+        empty.className = 'pattern-piece-empty';
+        empty.textContent = allPieces.length
+          ? 'No se encontraron piezas que coincidan con la búsqueda.'
+          : 'Carga un archivo para ver las piezas encontradas.';
+        list.appendChild(empty);
+        return;
+      }
       pieces.forEach((piece, index) => {
         const button = document.createElement('button');
         button.type = 'button';
@@ -145,20 +168,39 @@
         setStatus('Selecciona un archivo de Adobe Illustrator (.ai).', 'error');
         return;
       }
+      allPieces = [];
+      if (search) search.value = '';
       setStatus('Analizando textos del archivo…', 'loading');
       list.replaceChildren();
       detail.textContent = 'Procesando archivo…';
       copyButton.disabled = true;
       try {
         const result = await extractFromAiFile(file);
-        renderPieces(result.pieces);
-        const withShrinkage = result.pieces.filter(piece => piece.hasShrinkage).length;
+        allPieces = result.pieces;
+        renderPieces(allPieces);
+        const withShrinkage = allPieces.filter(piece => piece.hasShrinkage).length;
         setStatus('Análisis completado: ' + result.pieces.length + ' piezas detectadas; ' + withShrinkage + ' con encogimiento indicado. No se verifica el encogimiento físico del patrón.', 'success');
       } catch (error) {
+        allPieces = [];
+        renderPieces([]);
         setStatus(error.message || 'No se pudo analizar el archivo.', 'error');
         detail.textContent = 'No hay resultados para mostrar.';
       }
     });
+    if (search && search.dataset.bound !== '1') {
+      search.dataset.bound = '1';
+      search.addEventListener('input', () => {
+        const query = search.value;
+        const filtered = root.PatternPieceShrinkage.filterPieces(allPieces, query);
+        renderPieces(filtered);
+        if (query.trim()) {
+          setStatus('Búsqueda: ' + filtered.length + ' coincidencia(s) para "' + query.trim() + '".', filtered.length ? 'success' : 'error');
+        } else if (allPieces.length) {
+          const withShrinkage = allPieces.filter(piece => piece.hasShrinkage).length;
+          setStatus('Análisis completado: ' + allPieces.length + ' piezas detectadas; ' + withShrinkage + ' con encogimiento indicado. No se verifica el encogimiento físico del patrón.', 'success');
+        }
+      });
+    }
     copyButton.addEventListener('click', async () => {
       if (!selected) return;
       try {
