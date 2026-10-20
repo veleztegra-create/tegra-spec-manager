@@ -31,3 +31,19 @@ test('admite etiquetas sin encogimiento legible', () => {
   assert.equal(pieces[0].pieceName, 'SLV BD');
   assert.equal(pieces[0].hasShrinkage, false);
 });
+
+test('lee etiquetas en cadenas nativas PostScript de Illustrator', () => {
+  const ai = [
+    '(Style Name: SAMPLE) Tx',
+    '(Piece Name: LF YOKE 3_L X 1.5_W) Tx',
+    '(Piece Name: SLV BD) Tx',
+    '(Piece Name: FRONT 2_L X 1.5_W) Tx'
+  ].join('\n');
+  const pieces = parsePieceNames(ai);
+  assert.equal(pieces.length, 3);
+  assert.equal(pieces[0].pieceName, 'LF YOKE');
+  assert.equal(pieces[0].shrinkage, '3_L X 1.5_W');
+  assert.equal(pieces[1].pieceName, 'SLV BD');
+  assert.equal(pieces[1].hasShrinkage, false);
+  assert.equal(pieces[2].pieceName, 'FRONT');
+});
