@@ -69,3 +69,17 @@ test('la búsqueda normal permite localizar nombres de pieza', () => {
   assert.equal(filterPieces(pieces, 'LF').length, 1);
   assert.equal(filterPieces(pieces, 'YOKE')[0].shrinkage, '3_L X 1.5_W');
 });
+
+
+test('FT también encuentra abreviaturas FT dentro de nombres concatenados', () => {
+  const pieces = parsePieceNames([
+    'Piece Name: FTBKYOKESLVUPR 2_L X 1.5_W',
+    'Piece Name: FT SDUPR 3_L X 1_W',
+    'Piece Name: BK SDLWR 2_L X 1_W'
+  ].join(' '));
+  const matches = filterPieces(pieces, 'FT');
+  assert.equal(matches.length, 2);
+  assert.equal(matches[0].pieceName, 'FTBKYOKESLVUPR');
+  assert.equal(matches[0].shrinkage, '2_L X 1.5_W');
+  assert.equal(matches[1].pieceName, 'FT SDUPR');
+});
