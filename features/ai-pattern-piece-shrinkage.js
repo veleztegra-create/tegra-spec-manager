@@ -66,9 +66,6 @@
   }
 
   async function extractFromAiFile(file) {
-    if (!root.pdfjsLib || typeof root.pdfjsLib.getDocument !== 'function') {
-      throw new Error('No está disponible el lector PDF.js necesario para analizar archivos .ai compatibles con PDF.');
-    }
     // Primero intenta leer el texto nativo de Illustrator/PostScript. Es rápido y
     // funciona incluso cuando el .ai no contiene una representación PDF compatible.
     let nativeText = '';
@@ -80,6 +77,9 @@
       // Continúa con PDF.js como alternativa.
     }
 
+    if (!root.pdfjsLib || typeof root.pdfjsLib.getDocument !== 'function') {
+      throw new Error('No se encontró texto nativo de piezas y tampoco está disponible el lector PDF.js para el formato alternativo.');
+    }
     const data = await file.arrayBuffer();
     let pdf;
     try {
