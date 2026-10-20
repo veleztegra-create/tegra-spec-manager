@@ -72,6 +72,7 @@
     <script src="features/sequence-automation.js"></script>
     <script src="features/pdf-generator-mejorado.js"></script>
     <script src="features/manual-palette-extractor.js"></script>
+    <script src="features/ai-pattern-piece-shrinkage.js"></script>
     <script src="features/color-lab.js"></script>
     <!-- EXTRACTOR DE TECH PACKS NIKE -->
 <script src="js/nikeTechPackExtractor.js"></script>
@@ -176,6 +177,9 @@
             <li class="nav-tab" data-tab="production-conditions" onclick="showTab('production-conditions')">
                 <i class="fas fa-shield-halved"></i> Production Conditions
             </li>
+            <li class="nav-tab" data-tab="pattern-shrinkage" onclick="showTab('pattern-shrinkage')">
+                <i class="fas fa-ruler-combined"></i> Piezas y encogimientos
+            </li>
             <li class="nav-tab" data-tab="acb-library" onclick="showTab('acb-library')">
                 <i class="fas fa-swatchbook"></i> Biblioteca ACB
             </li>
@@ -206,6 +210,9 @@
 
         <!-- Production Conditions -->
         <div id="production-conditions" class="tab-content" data-template="templates/production-conditions-tab.html"></div>
+
+        <!-- AI Pattern Piece Shrinkage -->
+        <div id="pattern-shrinkage" class="tab-content" data-template="templates/ai-pattern-piece-shrinkage-tab.html"></div>
 
         <!-- ACB Color Book Import Preview -->
         <div id="acb-library" class="tab-content" data-template="templates/acb-import-preview-tab.html"></div>
