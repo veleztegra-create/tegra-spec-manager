@@ -7,50 +7,85 @@
   function normalizeSpaces(value) {
     return String(value || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim();
   }
+  function decodePostScriptString(value) {
+    return String(value || '')
+      .replace(/\\([()\\])/g, '$1')
+      .replace(/\\([0-7]{1,3})/g, (_, octal) => String.fromCharCode(parseInt(octal, 8)));
+  }
+
   function parsePieceNames(text) {
-    const source = normalizeSpaces(text);
-    const labels = [];
-    LABEL_RE.lastIndex = 0;
-    let match;
-    while ((match = LABEL_RE.exec(source)) !== null) {
-      const tail = source.slice(match.index + match[0].length, match.index + match[0].length + 180);
+    const source = String(text || '');
+    const postScriptLabels = [];
+    const postScriptText = /\(((?:\\.|[^\\)])*)\)\s*Tx/g;
+    let psMatch;
+    while ((psMatch = postScriptText.exec(source)) !== null) {
+      const fragment = normalizeSpaces(decodePostScriptString(psMatch[1]));
+      if (/Piece\s*Name\s*:?/i.test(fragment)) postScriptLabels.push(fragment);
+    }
+
+    // Illustrator puede guardar las etiquetas como cadenas PostScript: (Piece Name: ...) Tx.
+    // Si existen, se analiza cada cadena de texto de forma aislada para no mezclar piezas.
+    const segments = postScriptLabels.length
+      ? postScriptLabels
+      : (normalizeSpaces(source).match(/Piece\s*Name\s*:?\s*[\s\S]*?(?=Piece\s*Name\s*:?\s*|$)/gi) || []);
+    const pieces = [];
+
+    for (const segment of segments) {
+      const label = segment.match(/Piece\s*Name\s*:?/i);
+      if (!label) continue;
+      const tail = segment.slice(label.index + label[0].length);
       const shrinkageMatch = tail.match(SHRINKAGE_RE);
-      const nextLabelIndex = tail.search(NEXT_LABEL_RE);
-      const shrinkageBeforeNextLabel = shrinkageMatch && (nextLabelIndex < 0 || shrinkageMatch.index < nextLabelIndex);
-      let raw = '';
-      if (shrinkageBeforeNextLabel) {
-        raw = tail.slice(0, shrinkageMatch.index + shrinkageMatch[0].length);
-      } else {
-        raw = tail.slice(0, nextLabelIndex >= 0 ? nextLabelIndex : Math.min(tail.length, 45));
-        const stop = raw.search(/\b(?:Piece\s*(?:Name|Number|No\.?|ID)|Pattern\s*:|Style\s*:|Material\s*:|Color\s*:)/i);
-        if (stop >= 0) raw = raw.slice(0, stop);
-      }
+      let raw = shrinkageMatch
+        ? tail.slice(0, shrinkageMatch.index + shrinkageMatch[0].length)
+        : tail.slice(0, 70);
       raw = normalizeSpaces(raw).replace(/^[:\-\s]+/, '').replace(/[;,\s]+$/, '');
+      // Remove PostScript/PDF string-command remnants from labels without shrinkage.
+      raw = raw.replace(/\)\s*Tx\s*$/i, '').replace(/\s*\)\s*Tx\s*$/i, '').trim();
       if (!raw) continue;
+
       const shrink = raw.match(SHRINKAGE_RE);
-      const shrinkage = shrink ? normalizeSpaces(shrink[1]).replace(/\s*_\s*/g, '_').replace(/\s*X\s*/gi, ' X ') : null;
-      const pieceName = shrink ? normalizeSpaces(raw.slice(0, shrink.index)).replace(/[-:;,\s]+$/, '') : raw;
+      const shrinkage = shrink
+        ? normalizeSpaces(shrink[1]).replace(/\s*_\s*/g, '_').replace(/\s*X\s*/gi, ' X ')
+        : null;
+      const pieceName = shrink
+        ? normalizeSpaces(raw.slice(0, shrink.index)).replace(/[-:;,\s]+$/, '')
+        : raw;
       if (!pieceName && !shrinkage) continue;
+
       const key = (pieceName + '|' + (shrinkage || '')).toLowerCase();
-      if (labels.some(item => item.key === key)) continue;
-      labels.push({
-        key, pieceName: pieceName || 'Nombre no identificado', shrinkage,
+      if (pieces.some(item => item.key === key)) continue;
+      pieces.push({
+        key,
+        pieceName: pieceName || 'Nombre no identificado',
+        shrinkage,
         fullText: 'Piece Name: ' + (pieceName ? pieceName + (shrinkage ? ' ' : '') : '') + (shrinkage || ''),
         hasShrinkage: Boolean(shrinkage)
       });
     }
-    return labels;
+    return pieces;
   }
+
   async function extractFromAiFile(file) {
     if (!root.pdfjsLib || typeof root.pdfjsLib.getDocument !== 'function') {
       throw new Error('No está disponible el lector PDF.js necesario para analizar archivos .ai compatibles con PDF.');
     }
+    // Primero intenta leer el texto nativo de Illustrator/PostScript. Es rápido y
+    // funciona incluso cuando el .ai no contiene una representación PDF compatible.
+    let nativeText = '';
+    try {
+      nativeText = await file.text();
+      const nativePieces = parsePieceNames(nativeText);
+      if (nativePieces.length) return { pieces: nativePieces, pageCount: null, sourceFormat: 'illustrator-postscript' };
+    } catch (_) {
+      // Continúa con PDF.js como alternativa.
+    }
+
     const data = await file.arrayBuffer();
     let pdf;
     try {
       pdf = await root.pdfjsLib.getDocument({ data }).promise;
     } catch (error) {
-      throw new Error('No se pudo leer el archivo como PDF compatible. En Illustrator, guarda una copia con “Crear archivo compatible con PDF” activado y vuelve a intentarlo.');
+      throw new Error('No se pudo extraer texto del archivo .ai. El formato debe conservar texto nativo de Illustrator o ser compatible con PDF.');
     }
     const chunks = [];
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
@@ -62,7 +97,7 @@
     if (!pieces.length) {
       throw new Error('El archivo se abrió, pero no se encontraron etiquetas “Piece Name” con texto legible. Verifica que las etiquetas no estén convertidas a contornos.');
     }
-    return { pieces, pageCount: pdf.numPages };
+    return { pieces, pageCount: pdf.numPages, sourceFormat: 'pdf' };
   }
   root.PatternPieceShrinkage = { parsePieceNames, extractFromAiFile };
   root.initPatternPieceShrinkage = function () {
