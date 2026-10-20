@@ -1,0 +1,42 @@
+<section class="card pattern-shrinkage-tool">
+  <div class="card-header">
+    <h2 class="card-title"><i class="fas fa-ruler-combined"></i> Buscador de piezas y encogimientos</h2>
+  </div>
+  <div class="card-body">
+    <p class="pattern-ai-help">Carga un archivo de Illustrator compatible con PDF. El análisis se realiza en el navegador; el archivo no se envía al backend.</p>
+    <div class="pattern-ai-upload">
+      <label for="pattern-ai-file" class="form-label">Archivo de patrón (.ai)</label>
+      <input id="pattern-ai-file" class="form-control" type="file" accept=".ai,application/pdf">
+    </div>
+    <p id="pattern-ai-status" class="pattern-ai-status" role="status" aria-live="polite">Esperando archivo.</p>
+    <div class="pattern-ai-results">
+      <div class="pattern-ai-list-panel">
+        <h3>Piezas encontradas</h3>
+        <div id="pattern-piece-list" class="pattern-piece-list" aria-label="Piezas encontradas"></div>
+      </div>
+      <div class="pattern-ai-detail-panel">
+        <h3>Texto detectado</h3>
+        <pre id="pattern-piece-detail" class="pattern-piece-detail">Selecciona una pieza para ver el texto detectado.</pre>
+        <button type="button" id="pattern-piece-copy" class="btn btn-primary" disabled><i class="fas fa-copy"></i> Copiar texto</button>
+      </div>
+    </div>
+    <p class="pattern-ai-note"><strong>Importante:</strong> esta herramienta extrae el encogimiento escrito en la etiqueta. No confirma que el patrón tenga aplicado físicamente ese encogimiento.</p>
+  </div>
+</section>
+<style>
+.pattern-ai-help,.pattern-ai-note{color:var(--text-secondary);line-height:1.5}
+.pattern-ai-upload{max-width:620px}
+.pattern-ai-status{padding:.75rem 1rem;border-radius:6px;background:var(--bg-card-hover);margin:1rem 0;color:var(--text-secondary)}
+.pattern-ai-status.success{border-left:3px solid var(--success)}
+.pattern-ai-status.error{border-left:3px solid var(--error)}
+.pattern-ai-status.loading{border-left:3px solid var(--info)}
+.pattern-ai-results{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(280px,1.2fr);gap:1rem;margin-top:1rem}
+.pattern-ai-list-panel,.pattern-ai-detail-panel{border:1px solid var(--border-dark);border-radius:8px;padding:1rem;min-width:0}
+.pattern-ai-results h3{font-size:1rem;margin:0 0 .75rem}
+.pattern-piece-list{display:flex;flex-direction:column;gap:.4rem}
+.pattern-piece-option{padding:.65rem .75rem;text-align:left;color:var(--text-primary);background:var(--bg-card);border:1px solid var(--border-dark);border-radius:5px;cursor:pointer}
+.pattern-piece-option:hover,.pattern-piece-option.selected{border-color:var(--primary);background:var(--bg-card-hover)}
+.pattern-piece-detail{white-space:pre-wrap;overflow-wrap:anywhere;padding:.85rem;background:var(--bg-darker);border-radius:5px;color:var(--text-primary);min-height:3rem;font:inherit}
+.pattern-ai-note{font-size:.9rem;margin-top:1rem}
+@media(max-width:700px){.pattern-ai-results{grid-template-columns:1fr}}
+</style>
