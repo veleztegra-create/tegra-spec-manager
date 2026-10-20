@@ -9,6 +9,11 @@
       <input id="pattern-ai-file" class="form-control" type="file" accept=".ai,application/pdf">
     </div>
     <p id="pattern-ai-status" class="pattern-ai-status" role="status" aria-live="polite">Esperando archivo.</p>
+    <div class="pattern-ai-search">
+      <label for="pattern-piece-search" class="form-label">Buscar pieza o encogimiento</label>
+      <input id="pattern-piece-search" class="form-control" type="search" placeholder="Escribe FT para buscar Front, o LF YOKE…" autocomplete="off">
+      <small class="pattern-ai-help">Ejemplo: FT busca las piezas identificadas como Front.</small>
+    </div>
     <div class="pattern-ai-results">
       <div class="pattern-ai-list-panel">
         <h3>Piezas encontradas</h3>
@@ -25,7 +30,9 @@
 </section>
 <style>
 .pattern-ai-help,.pattern-ai-note{color:var(--text-secondary);line-height:1.5}
-.pattern-ai-upload{max-width:620px}
+.pattern-ai-upload,.pattern-ai-search{max-width:620px}
+.pattern-ai-search{margin-top:1rem}
+.pattern-piece-empty{color:var(--text-secondary);padding:.5rem 0;margin:0}
 .pattern-ai-status{padding:.75rem 1rem;border-radius:6px;background:var(--bg-card-hover);margin:1rem 0;color:var(--text-secondary)}
 .pattern-ai-status.success{border-left:3px solid var(--success)}
 .pattern-ai-status.error{border-left:3px solid var(--error)}
