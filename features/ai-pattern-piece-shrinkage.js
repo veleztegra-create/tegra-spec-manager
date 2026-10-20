@@ -69,11 +69,13 @@
   function filterPieces(pieces, query) {
     const term = normalizeSpaces(query).toLowerCase();
     if (!term) return pieces.slice();
-    const aliases = term === 'ft' || term === 'front' ? ['front'] : [term];
+    // FT también se usa como abreviatura literal dentro de nombres concatenados
+    // (por ejemplo, FTBKYOKESLVUPR). Busca tanto "FT" como la palabra "Front".
+    const aliases = term === 'ft' ? ['ft', 'front'] : term === 'front' ? ['front', 'ft'] : [term];
     return pieces.filter(piece => {
       const name = normalizeSpaces(piece.pieceName).toLowerCase();
       const full = normalizeSpaces(piece.fullText).toLowerCase();
-      return aliases.some(alias => name.includes(alias) || (alias !== 'front' && full.includes(alias)));
+      return aliases.some(alias => name.includes(alias) || full.includes(alias));
     });
   }
 
