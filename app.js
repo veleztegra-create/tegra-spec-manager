@@ -4098,7 +4098,14 @@ function getSpecGeneralData(source = {}) {
         technicianName: data?.technicianName || '',
         technicalComments: data?.technicalComments || '',
         program: data?.program || '',
-        specDate: data?.specDate || ''
+        specDate: data?.specDate || '',
+        stageDate: data?.stageDate || '',
+        _stageDateForStage: data?._stageDateForStage || data?.sampleType || '',
+        exportedPatternName: data?.exportedPatternName || '',
+        blankPatternName: data?.blankPatternName || '',
+        customerSchematicName: data?.customerSchematicName || '',
+        customerTechpackName: data?.customerTechpackName || '',
+        patternPieces: Array.isArray(data?.patternPieces) ? data.patternPieces : []
     };
 }
 
@@ -4424,6 +4431,11 @@ function loadSpecData(data) {
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
     setInputValue('technical-comments', data.technicalComments || '');
+    setInputValue('spec-stage-date', data.stageDate || '');
+    setInputValue('exported-pattern-name', data.exportedPatternName || '');
+    setInputValue('blank-pattern-name', data.blankPatternName || '');
+    setInputValue('customer-schematic-name', data.customerSchematicName || '');
+    setInputValue('customer-techpack-name', data.customerTechpackName || '');
 
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
@@ -4441,6 +4453,7 @@ function loadSpecData(data) {
             styleVersion: data.styleVersion,
             versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],
             auditTrail: Array.isArray(data.auditTrail) ? data.auditTrail : [],
+            generalData: { ...(data.generalData || {}), ...getSpecGeneralData(data) },
             placements: []
         });
     } else {
