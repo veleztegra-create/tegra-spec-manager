@@ -378,7 +378,7 @@
           <div class="spec-pattern-resource-title">Customer Resources:</div>
           <div class="spec-pattern-resource">${esc(data.customerSchematicName || '---')}</div>
           <div class="spec-pattern-resource">${esc(data.customerTechpackName || '---')}</div>
-          <div class="spec-pattern-pieces">${patternPieces.map(piece => esc([piece.pieceName, piece.shrinkage].filter(Boolean).join(' '))).join('') || '<span class="spec-pattern-empty">No se detectaron piezas del patrón.</span>'}</div>
+          <div class="spec-pattern-pieces">${patternPieces.map(piece => '<div>' + esc([piece.pieceName, piece.shrinkage].filter(Boolean).join(' ')) + '</div>').join('') || '<span class="spec-pattern-empty">No se detectaron piezas del patrón.</span>'}</div>
         </section>`
       : '';
 
