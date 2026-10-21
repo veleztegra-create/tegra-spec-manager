@@ -97,7 +97,11 @@
   function initialize() { initializeStageDate(); renderPieces(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize);
   const observer = new MutationObserver(() => {
-    if (document.getElementById('spec-stage-date')) initialize();
+    const dateInput = document.getElementById('spec-stage-date');
+    if (dateInput && dateInput.dataset.patternMetadataInitialized !== '1') {
+      dateInput.dataset.patternMetadataInitialized = '1';
+      initialize();
+    }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
   window.renderPatternShrinkageExport = renderPieces;
