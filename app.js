@@ -4105,7 +4105,8 @@ function getSpecGeneralData(source = {}) {
         blankPatternName: data?.blankPatternName || '',
         customerSchematicName: data?.customerSchematicName || '',
         customerTechpackName: data?.customerTechpackName || '',
-        patternPieces: Array.isArray(data?.patternPieces) ? data.patternPieces : []
+        patternPieces: Array.isArray(data?.patternPieces) ? data.patternPieces : [],
+        availablePatternPieces: Array.isArray(data?.availablePatternPieces) ? data.availablePatternPieces : []
     };
 }
 
