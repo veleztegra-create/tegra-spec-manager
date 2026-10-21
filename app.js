@@ -4763,6 +4763,9 @@ function clearForm() {
                 i.value = '';
             }
         });
+        // Los archivos no se serializan; limpiar también sus selectores al iniciar una Spec nueva.
+        document.querySelectorAll('input[type="file"]').forEach(input => { input.value = ''; });
+        if (window.renderPatternShrinkageExport) window.renderPatternShrinkageExport();
 
         // 3) Reiniciar placements en memoria/UI
         placements = [];
