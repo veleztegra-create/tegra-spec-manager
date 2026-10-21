@@ -10,7 +10,9 @@
   };
   function generalData() {
     if (!window.Store) return {};
-    const state = Store.getState();
+    // Store.getState() devuelve una copia profunda; modificarla no persiste.
+    // Para que las piezas detectadas lleguen al selector, escribir en el estado reactivo.
+    const state = Store.state;
     if (!state.generalData || typeof state.generalData !== 'object') state.generalData = {};
     return state.generalData;
   }
