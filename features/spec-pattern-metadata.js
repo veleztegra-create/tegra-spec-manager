@@ -148,8 +148,8 @@
       if(!chosen&&pieces.length){const i=suggestLocalPieceIndex(placement,pieces);if(i>=0)chosen=String(i);}
       select.value=chosen;placement.patternPieceSelection=chosen;
       const status=document.getElementById('placement-pattern-status-'+placement.id);
-      if(status&&!pieces.length)status.textContent='Carga un patrón para ver las piezas disponibles.';
-      else if(status&&chosen)status.textContent='Sugerencia automática; puedes cambiarla antes de asignar.';
+      if(status&&!pieces.length&&status.textContent!=='Carga un patrón para ver las piezas disponibles.')status.textContent='Carga un patrón para ver las piezas disponibles.';
+      else if(status&&chosen&&status.textContent!=='Sugerencia automática; puedes cambiarla antes de asignar.')status.textContent='Sugerencia automática; puedes cambiarla antes de asignar.';
     });
   }
   function renderLocalAssignedPieces() {
