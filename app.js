@@ -925,6 +925,15 @@ function renderPlacementHTML(placement) {
             
             <div class="placement-grid">
                 <div class="placement-left-column">
+                    <div class="placement-pattern-assignment">
+                        <div class="form-group">
+                            <label class="form-label" for="placement-pattern-piece-${placement.id}">ASIGNAR PIEZA A PLACEMENT:</label>
+                            <select id="placement-pattern-piece-${placement.id}" class="form-control placement-pattern-piece-select" data-placement-id="${placement.id}"><option value="">Carga un patrón primero</option></select>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm" data-add-placement-pattern-piece="${placement.id}"><i class="fas fa-plus"></i> Asignar pieza</button>
+                        <small class="form-help pattern-piece-assignment-status" id="placement-pattern-status-${placement.id}">La pieza sugerida se puede cambiar manualmente.</small>
+                        <div class="placement-pattern-pieces" id="placement-pattern-pieces-${placement.id}"></div>
+                    </div>
                     <!-- Tipo de Placement -->
                     <div class="form-group">
                         <label class="form-label">TIPO DE PLACEMENT:</label>
