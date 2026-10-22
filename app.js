@@ -159,6 +159,12 @@ async function loadTabTemplates() {
                 throw new Error(`No se pudo cargar el template: ${templatePath}`);
             }
             section.innerHTML = await response.text();
+
+            // Los templates se cargan de forma asíncrona. Inicializa el buscador
+            // después de insertar su HTML para evitar que un clic temprano no haga nada.
+            if (section.id === 'pattern-shrinkage' && window.initPatternPieceShrinkage) {
+                window.initPatternPieceShrinkage();
+            }
         } catch (error) {
             console.error('Error cargando template:', templatePath, error);
             section.innerHTML = '<div class="card"><div class="card-body"><p style="color:var(--text-secondary);">No se pudo cargar esta sección.</p></div></div>';
@@ -232,6 +238,9 @@ function showTab(tabName) {
     }
     if (tabName === 'palette-extractor' && window.initManualPaletteExtractor) {
         window.initManualPaletteExtractor();
+    }
+    if (tabName === 'pattern-shrinkage' && window.initPatternPieceShrinkage) {
+        window.initPatternPieceShrinkage();
     }
     if (tabName === 'acb-library' && window.initAcbImporter) {
         window.initAcbImporter();
