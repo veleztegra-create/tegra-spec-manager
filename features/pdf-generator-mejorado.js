@@ -237,9 +237,7 @@
       : '';
 
     const placementPatternPieces = Array.isArray(placement.patternPieces) ? placement.patternPieces : [];
-    const placementPatternPiecesHtml = placementPatternPieces.length
-      ? `<div class="detail-row" style="display:block;"><span class="detail-label">Piezas de patrón / encogimiento</span><div class="detail-value" style="display:flex;flex-direction:column;gap:3px;">${placementPatternPieces.map(piece => `<span>${esc([piece.pieceName, piece.shrinkage].filter(Boolean).join(' '))}</span>`).join('')}</div></div>`
-      : '';
+    const placementPatternPiecesHtml = `<div class="detail-row placement-pattern-summary" style="display:block;"><span class="detail-label">Patrón y encogimiento</span><div class="detail-value" style="display:flex;flex-direction:column;gap:3px;">${placementPatternPieces.length ? placementPatternPieces.map(piece => `<span>${esc([piece.pieceName, piece.shrinkage].filter(Boolean).join(' '))}</span>`).join('') : '<span>---</span>'}</div></div>`;
 
     return `
       <section class="placement-section">
