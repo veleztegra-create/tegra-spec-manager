@@ -76,6 +76,13 @@
 
     const fabric = String(data?.fabric || '').toUpperCase();
     const customer = String(data?.customer || '').toUpperCase();
+    const placementType = String(placement.type || placement.title || placement.name || '').toUpperCase();
+    const ppfContext = [
+      data?.sampleType, data?.exportedPatternName, data?.blankPatternName,
+      data?.customerTechpackName, data?.style
+    ].join(' ').toUpperCase();
+    const isPpf = ppfContext.includes('PPF');
+    const isFrontOrBack = placementType.includes('FRONT') || placementType.includes('BACK');
     const isNfsArt = String(placement.type || '').toUpperCase().includes('NFS')
       || String(placement.name || '').toUpperCase().includes('NFS')
       || String(placement.placementDetails || '').toUpperCase().includes('NFS');
@@ -83,6 +90,20 @@
     if (fabric.includes('TWILL')) {
       notes.push(`Tamaño con -1% = ${formatScaledValue(width, 0.99)} x ${formatScaledValue(height, 0.99)}`);
       notes.push(`Tamaño con -4mm = ${formatOffsetValue(width, -0.1575)} x ${formatOffsetValue(height, -0.1575)}`);
+    }
+
+    // Regla QRS PPF confirmada por SWO: FRONT/BACK muestran tamaño real y tamaño +3 mm.
+    // No se modifica placement.width/height; se calcula una segunda referencia únicamente para el documento.
+    if (isPpf && isFrontOrBack) {
+      const addThreeMm = (raw) => {
+        const value = String(raw || '').trim();
+        const unitMatch = value.match(/(cm|in|inch|["″”])/i);
+        const unit = unitMatch ? (unitMatch[1].toLowerCase().startsWith('c') ? 'cm' : 'in') : '';
+        const offset = unit === 'cm' ? 0.3 : 0.1181; // 3 mm en cm o pulgadas
+        const result = formatOffsetValue(value, offset);
+        return result === '--' ? result : result + (unit ? (unit === 'in' ? 'in' : 'cm') : '');
+      };
+      notes.push(`Tamaño +3 mm (QRS PPF) = ${addThreeMm(width)} x ${addThreeMm(height)}`);
     }
 
     if (customer.includes('NCAA')) {
@@ -237,6 +258,19 @@
       : '';
 
     const placementPatternPieces = Array.isArray(placement.patternPieces) ? placement.patternPieces : [];
+    const patternStage = [data.sampleType, placement.baseSize || data.baseSize].filter(Boolean).join(' / ') || '---';
+    const placementPatternMetaHtml = `
+      <div class="detail-row placement-pattern-meta" style="display:block;">
+        <div class="detail-value" style="display:flex;flex-direction:column;gap:4px;">
+          <strong>${esc(patternStage)}</strong>
+          <strong>${esc(data.stageDate || '---')}</strong>
+          <span>Exported Pattern: ${esc(data.exportedPatternName || '---')}</span>
+          <span>Blank Pattern for Print: ${esc(data.blankPatternName || '---')}</span>
+          <strong style="margin-top:3px;">Customer Resources:</strong>
+          <span>${esc(data.customerSchematicName || '---')}</span>
+          <span>${esc(data.customerTechpackName || '---')}</span>
+        </div>
+      </div>`;
     const placementPatternPiecesHtml = `<div class="detail-row placement-pattern-summary" style="display:block;"><span class="detail-label">Patrón y encogimiento</span><div class="detail-value" style="display:flex;flex-direction:column;gap:3px;">${placementPatternPieces.length ? placementPatternPieces.map(piece => `<span>${esc([piece.pieceName, piece.shrinkage].filter(Boolean).join(' '))}</span>`).join('') : '<span>---</span>'}</div></div>`;
 
     return `
@@ -250,6 +284,7 @@
             <div class="detail-row"><span class="detail-label">Ubicación</span><span class="detail-value">${esc(placement.placementDetails || '---')}</span></div>
             <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${esc(placement.specialties || '—')}</span></div>
             <div class="detail-row"><span class="detail-label">Talla Base</span><span class="detail-value">${esc(placement.baseSize || data.baseSize || '---')}</span></div>
+            ${placementPatternMetaHtml}
             ${placementPatternPiecesHtml}
             ${sizeNotesHtml}
           </div>
@@ -372,19 +407,7 @@
 
     const placementSections = placements.map((p, i) => buildPlacementHtml(p, i, placements.length, data)).join('');
     const colorLabSection = buildColorLabLabelsSection(data);
-    const patternPieces = Array.isArray(data.patternPieces) ? data.patternPieces : [];
-    const patternMeta = (data.sampleType || data.baseSize || data.stageDate || data.exportedPatternName || data.blankPatternName || data.customerSchematicName || data.customerTechpackName || patternPieces.length)
-      ? `<section class="spec-pattern-meta">
-          <div class="spec-pattern-stage">${esc([data.sampleType, data.baseSize].filter(Boolean).join(' / ') || '---')}</div>
-          <div class="spec-pattern-date">${esc(data.stageDate || '---')}</div>
-          <div class="spec-pattern-file">Exported Pattern: ${esc(data.exportedPatternName || '---')}</div>
-          <div class="spec-pattern-file">Blank Pattern for Print: ${esc(data.blankPatternName || '---')}</div>
-          <div class="spec-pattern-resource-title">Customer Resources:</div>
-          <div class="spec-pattern-resource">${esc(data.customerSchematicName || '---')}</div>
-          <div class="spec-pattern-resource">${esc(data.customerTechpackName || '---')}</div>
-          <div class="spec-pattern-pieces">${patternPieces.map(piece => '<div>' + esc([piece.pieceName, piece.shrinkage].filter(Boolean).join(' ')) + '</div>').join('') || '<span class="spec-pattern-empty">No se detectaron piezas del patrón.</span>'}</div>
-        </section>`
-      : '';
+
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -434,7 +457,6 @@
       </div>
     </section>
 
-    ${patternMeta}
     ${placementSections}
     ${colorLabSection}
   </div>
