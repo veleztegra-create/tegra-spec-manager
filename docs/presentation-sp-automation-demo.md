@@ -14,17 +14,17 @@
 - Búsqueda de piezas por nombre o abreviatura, selección de piezas relevantes y visualización de las piezas seleccionadas en los metadatos de la Spec.
 - Conservación de referencias del patrón y de la información de encogimiento declarada, con advertencia de que extraer el dato no prueba que el encogimiento se haya aplicado geométricamente.
 
-## Incidencias reportadas durante la prueba con SWO
+## Correcciones integradas en la demo; prueba manual pendiente
 
 Caso de prueba: `67NM-0JFP-9HF HOU M GAME JSY RVLY-Non Recycled`.
 
-1. **NAME / TEAM incorrecto:** el campo devuelve `Houston Rockets`, pero para este estilo el valor requerido es `HOUSTON TEXAS`. No se debe resolver una abreviatura de ciudad buscando primero en una liga genérica; la identificación debe priorizar una regla de estilo/equipo confirmada o dejar el valor pendiente de confirmación.
-2. **Catálogo de diseñadores incompleto:** existe la opción `OTRO`, pero no un campo visible para capturar el nombre. Se necesita administrar el catálogo para agregar nuevos nombres y retirar diseñadores de las opciones sin alterar documentos históricos ya guardados.
-3. **Tela no completada:** en este caso el valor esperado es `100% Polyester`. Debe extraerse de una fuente de estilo documentada o de una regla específica confirmada, no asignarse como valor universal.
-4. **Piezas y encogimientos separados de los placements:** la selección global de piezas no permite elegir la pieza de patrón relevante dentro del placement que se está preparando. La asociación debe hacerse por placement, conservar la referencia de pieza y mostrar el encogimiento de esa pieza cuando exista.
-5. **Condiciones de producción y secuencia:** la UI y el motor de condiciones existen, pero la secuencia actual no consume de forma general esas condiciones para insertar, eliminar o reordenar pasos. Se debe distinguir explícitamente entre recordatorios, parámetros técnicos, reglas que alteran la secuencia y validaciones bloqueantes.
+1. **NAME / TEAM:** se agregó una excepción específica para el estilo de demostración que devuelve `HOUSTON TEXAS` antes de consultar los mapas genéricos de ligas. Falta confirmar el resultado al importar la SWO real.
+2. **Catálogo de diseñadores:** se agregó captura para `OTRO`, botones para agregar y retirar nombres y persistencia local del catálogo en el navegador. Retirar un nombre no modifica las specs ya guardadas. El catálogo todavía no se comparte entre computadoras o usuarios.
+3. **Tela:** se agregó una regla limitada al estilo `67NM-0JFP-9HF` para mostrar `100% Polyester`; no es un valor por defecto para otros estilos. Falta confirmar el resultado con el archivo real.
+4. **Piezas y encogimientos por placement:** el selector ahora pide el placement de destino y guarda la pieza/encogimiento dentro de ese placement. La exportación HTML/PDF muestra las piezas asociadas en los detalles del placement. Falta probar la lectura de un .ai real y confirmar que las asociaciones sobrevivan al guardar y volver a abrir una spec.
+5. **Condiciones de producción y secuencia:** la UI y el motor de condiciones existen, pero la secuencia actual no consume de forma general esas condiciones para insertar, eliminar o reordenar pasos. Este punto sigue pendiente y no forma parte de estas cuatro correcciones.
 
-Estas incidencias son criterios de aceptación pendientes; no se deben presentar como corregidas hasta que se implementen y se prueben.
+Las cuatro primeras correcciones ya están integradas en el código de esta rama, pero no deben considerarse funcionalmente validadas hasta completar las pruebas manuales indicadas.
 
 ## Flujo de demostración recomendado
 
