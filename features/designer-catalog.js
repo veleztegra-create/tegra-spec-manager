@@ -93,6 +93,13 @@
     select.addEventListener('change', updateOtherField);
     document.getElementById('designer-add-to-catalog')?.addEventListener('click', addDesigner);
     document.getElementById('designer-remove-from-catalog')?.addEventListener('click', removeDesigner);
+    const helpButton = document.getElementById('designer-catalog-help');
+    const helpText = document.getElementById('designer-catalog-help-text');
+    helpButton?.addEventListener('click', () => {
+      if (!helpText) return;
+      helpText.hidden = !helpText.hidden;
+      helpButton.setAttribute('aria-expanded', String(!helpText.hidden));
+    });
     document.getElementById('designer-other-name')?.addEventListener('input', (event) => {
       store().designerOtherName = event.target.value;
     });
