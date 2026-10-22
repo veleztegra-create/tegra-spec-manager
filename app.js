@@ -481,14 +481,13 @@ function updateGarmentColorRecognition() {
     const statusEl = document.getElementById('garment-color-recognition');
     if (!statusEl) return;
 
-    const colorway = document.getElementById('colorway')?.value || '';
-    const fabric = document.getElementById('fabric')?.value || '';
-    const sourceText = String(fabric || colorway || '').trim();
+    // COLORWAY es el color de la prenda; FABRIC contiene la composición textil.
+    const sourceText = String(document.getElementById('colorway')?.value || '').trim();
 
     statusEl.classList.remove('is-recognized', 'is-unrecognized');
 
     if (!sourceText) {
-        statusEl.textContent = 'Color de tela sin analizar.';
+        statusEl.textContent = 'Color de prenda sin analizar.';
         return;
     }
 
@@ -498,7 +497,7 @@ function updateGarmentColorRecognition() {
 
     if (!foundHex) {
         statusEl.classList.add('is-unrecognized');
-        statusEl.textContent = `No se reconoció "${sourceText}" en la base de colores. Se usará fallback por texto.`;
+        statusEl.textContent = `No se reconoció el color de prenda "${sourceText}" en la base de colores. Se usará fallback por texto.`;
         return;
     }
 
@@ -514,7 +513,7 @@ function updateGarmentColorRecognition() {
     const fabricToneLabel = fabricIsDark === null ? 'N/A' : (fabricIsDark ? 'OSCURA' : 'CLARA');
 
     statusEl.classList.add('is-recognized');
-    statusEl.textContent = `Reconocido: ${sourceText} → ${foundHex.toUpperCase()} · Tinta ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
+    statusEl.textContent = `Color de prenda: ${sourceText} → ${foundHex.toUpperCase()} · Tono ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
 }
 
 function applyCustomerInkDefaults() {
