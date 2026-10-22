@@ -236,6 +236,11 @@
       ? `<div class=\"detail-row\" style=\"display:block;\"><span class=\"detail-label\">Tamaños Spec</span><div class=\"detail-value\" style=\"display:flex;flex-direction:column;gap:3px;\">${sizeNotes.map((n) => `<span>${esc(n)}</span>`).join('')}</div></div>`
       : '';
 
+    const placementPatternPieces = Array.isArray(placement.patternPieces) ? placement.patternPieces : [];
+    const placementPatternPiecesHtml = placementPatternPieces.length
+      ? \`<div class="detail-row" style="display:block;"><span class="detail-label">Piezas de patrón / encogimiento</span><div class="detail-value" style="display:flex;flex-direction:column;gap:3px;">\${placementPatternPieces.map(piece => \`<span>\${esc([piece.pieceName, piece.shrinkage].filter(Boolean).join(' '))}</span>\`).join('')}</div></div>\`
+      : '';
+
     return `
       <section class="placement-section">
         <div class="placement-header-bar"><div class="placement-icon">👕</div><span class="placement-title-text">Placement: ${title}</span></div>
@@ -248,6 +253,7 @@
             <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${esc(placement.specialties || '—')}</span></div>
             <div class="detail-row"><span class="detail-label">Talla Base</span><span class="detail-value">${esc(placement.baseSize || data.baseSize || '---')}</span></div>
             ${sizeNotesHtml}
+            ${placementPatternPiecesHtml}
           </div>
         </div>
 
@@ -426,7 +432,7 @@
         <div class="info-row"><span class="info-label">Team:</span><span class="info-value">${esc(data.nameTeam || '---')}</span></div>
         <div class="info-row"><span class="info-label">Sample Type:</span><span class="info-value">${esc(data.sampleType || '---')}</span></div>
         <div class="info-row"><span class="info-label">Gender:</span><span class="info-value">${esc(data.gender || '---')}</span></div>
-        <div class="info-row"><span class="info-label">Designer:</span><span class="info-value">${esc(data.designer || '---')}</span></div>
+        <div class="info-row"><span class="info-label">Designer:</span><span class="info-value">${esc(data.designerOtherName || data.designer || '---')}</span></div>
       </div>
     </section>
 
