@@ -128,6 +128,68 @@
     const status = document.getElementById('pattern-piece-picker-status');
     if (status) status.textContent = 'Pieza asignada a ' + placementLabel(placement, placements().indexOf(placement)) + '.';
   }
+  function suggestLocalPieceIndex(placement, pieces) {
+    const type=String(placement.type||placement.title||placement.name||'').toUpperCase();
+    const tests=type.includes('FRONT')?[/^FT\\b/,/FRONT/]:type.includes('BACK')?[/^BK\\b/,/BACK/]:
+      type.includes('SLEEVE')?[/^SLV\\b/,/SLEEVE/]:type.includes('CHEST')?[/^CH\\b/,/CHEST/]:
+      type.includes('SHOULDER')?[/^SH\\b/,/SHOULDER/]:type.includes('COLLAR')?[/^CL\\b/,/COLLAR/]:[];
+    for(const test of tests){const i=pieces.findIndex(p=>test.test(String(p.pieceName||'').toUpperCase()));if(i>=0)return i;}
+    return -1;
+  }
+  function renderLocalPieceOptions() {
+    const pieces=availablePieces();
+    document.querySelectorAll('.placement-pattern-piece-select').forEach(select=>{
+      const placement=placements().find(p=>String(p.id)===String(select.dataset.placementId));if(!placement)return;
+      const previous=select.value||String(placement.patternPieceSelection||'');
+      const desired=[{value:'',label:pieces.length?'Selecciona la pieza…':'Carga un patrón primero'},...pieces.map((p,i)=>({value:String(i),label:[p.pieceName,p.shrinkage].filter(Boolean).join(' — ')}))];
+      const same=select.options.length===desired.length&&desired.every((o,i)=>select.options[i].value===o.value&&select.options[i].textContent===o.label);
+      if(!same){select.replaceChildren();desired.forEach(o=>select.add(new Option(o.label,o.value)));}
+      let chosen=previous&&pieces[Number(previous)]?previous:'';
+      if(!chosen&&pieces.length){const i=suggestLocalPieceIndex(placement,pieces);if(i>=0)chosen=String(i);}
+      select.value=chosen;placement.patternPieceSelection=chosen;
+      const status=document.getElementById('placement-pattern-status-'+placement.id);
+      if(status&&!pieces.length)status.textContent='Carga un patrón para ver las piezas disponibles.';
+      else if(status&&chosen)status.textContent='Sugerencia automática; puedes cambiarla antes de asignar.';
+    });
+  }
+  function renderLocalAssignedPieces() {
+    placements().forEach(placement=>{
+      const target=document.getElementById('placement-pattern-pieces-'+placement.id);if(!target)return;
+      const pieces=Array.isArray(placement.patternPieces)?placement.patternPieces:[];
+      target.innerHTML=pieces.length?pieces.map((p,i)=>'<div class="pattern-shrinkage-line"><span>'+esc([p.pieceName,p.shrinkage].filter(Boolean).join(' '))+'</span><button type="button" class="btn btn-outline btn-sm" data-remove-placement-pattern-piece="'+esc(placement.id)+'" data-piece-index="'+i+'"><i class="fas fa-times"></i> Quitar</button></div>').join(''):'<p class="pattern-shrinkage-empty">Sin piezas asignadas.</p>';
+    });
+  }
+  function addLocalPiece(placementId) {
+    const placement=placements().find(p=>String(p.id)===String(placementId));
+    const select=document.querySelector('.placement-pattern-piece-select[data-placement-id="'+placementId+'"]');
+    if(!placement||!select||select.value==='')return;
+    const piece=availablePieces()[Number(select.value)];if(!piece)return;
+    if(!Array.isArray(placement.patternPieces))placement.patternPieces=[];
+    if(placement.patternPieces.some(p=>p.key===piece.key||(p.pieceName===piece.pieceName&&p.shrinkage===piece.shrinkage))){
+      const status=document.getElementById('placement-pattern-status-'+placementId);if(status)status.textContent='Esa pieza ya está asignada a este placement.';return;
+    }
+    placement.patternPieces.push({...piece});renderLocalAssignedPieces();
+    const status=document.getElementById('placement-pattern-status-'+placementId);if(status)status.textContent='Pieza asignada correctamente.';
+  }
+  document.addEventListener('change',event=>{
+    const select=event.target;
+    if(select instanceof HTMLSelectElement&&select.classList.contains('placement-pattern-piece-select')){
+      const placement=placements().find(p=>String(p.id)===String(select.dataset.placementId));
+      if(placement)placement.patternPieceSelection=select.value;
+      const status=document.getElementById('placement-pattern-status-'+select.dataset.placementId);
+      if(status)status.textContent='Pieza seleccionada. Pulsa “Asignar pieza” para agregarla.';
+    }
+  });
+  document.addEventListener('click',event=>{
+    const add=event.target.closest('[data-add-placement-pattern-piece]');
+    if(add){addLocalPiece(add.getAttribute('data-add-placement-pattern-piece'));return;}
+    const remove=event.target.closest('[data-remove-placement-pattern-piece]');
+    if(remove){
+      const placement=placements().find(p=>String(p.id)===String(remove.getAttribute('data-remove-placement-pattern-piece')));
+      const i=Number(remove.getAttribute('data-piece-index'));
+      if(placement&&Array.isArray(placement.patternPieces)){placement.patternPieces=placement.patternPieces.filter((_,index)=>index!==i);renderLocalAssignedPieces();}
+    }
+  });
   function initializeStageDate() {
     const input = document.getElementById('spec-stage-date');
     if (!input) return;
@@ -172,6 +234,8 @@
         renderPlacementOptions();
         renderPieceOptions();
         renderPieces();
+        renderLocalPieceOptions();
+        renderLocalAssignedPieces();
         const withShrinkage = result.pieces.filter(piece => piece.hasShrinkage).length;
         if (status) status.textContent = result.pieces.length + ' piezas detectadas; ' + withShrinkage + ' con encogimiento indicado.';
         const pickerStatus = document.getElementById('pattern-piece-picker-status');
@@ -227,15 +291,15 @@
       }
     }
   });
-  function initialize() { initializeStageDate(); renderPlacementOptions(); renderPieceOptions(); renderPieces(); }
+  function initialize() { initializeStageDate(); renderPlacementOptions(); renderPieceOptions(); renderPieces(); renderLocalPieceOptions(); renderLocalAssignedPieces(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize);
   const observer = new MutationObserver(() => {
     const dateInput = document.getElementById('spec-stage-date');
     if (dateInput && dateInput.dataset.patternMetadataInitialized !== '1') {
       dateInput.dataset.patternMetadataInitialized = '1';
       initialize();
-    } else if (document.getElementById('pattern-placement-select')) {
-      renderPlacementOptions();
+    } else if (document.querySelector('.placement-pattern-piece-select')) {
+      renderLocalPieceOptions(); renderLocalAssignedPieces();
     }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
