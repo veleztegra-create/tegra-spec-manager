@@ -4440,6 +4440,7 @@ function loadSpecData(data) {
     setInputValue('name-team', data.nameTeam || '');
     setInputValue('gender', data.gender || '');
     setInputValue('designer', data.designer || '');
+    window.DesignerCatalog?.selectValue(data.designer || '');
     setInputValue('designer-other-name', data.designerOtherName || '');
     setInputValue('base-size', data.baseSize || '');
     setInputValue('fabric', data.fabric || '');
