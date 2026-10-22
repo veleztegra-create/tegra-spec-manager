@@ -10,7 +10,7 @@
   function catalog() {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-      if (Array.isArray(saved)) return [...new Set([...DEFAULTS, ...saved].map(v => String(v).trim()).filter(Boolean))];
+      if (Array.isArray(saved)) return [...new Set(saved.map(v => String(v).trim()).filter(Boolean))];
     } catch (error) {
       console.warn('No se pudo leer el catálogo local de diseñadores:', error);
     }
@@ -73,10 +73,6 @@
     const select = document.getElementById('designer');
     const name = select?.value;
     if (!name || name === 'OTRO') return;
-    if (DEFAULTS.includes(name)) {
-      window.showStatus?.('Los nombres iniciales se conservan en el catálogo base.', 'warning');
-      return;
-    }
     const items = catalog().filter(item => item !== name);
     saveCatalog(items);
     renderOptions('');
@@ -98,5 +94,5 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize);
   new MutationObserver(initialize).observe(document.documentElement, { childList: true, subtree: true });
-  window.DesignerCatalog = { initialize, catalog };
+  window.DesignerCatalog = { initialize, catalog, selectValue: (value) => renderOptions(value) };
 })();
