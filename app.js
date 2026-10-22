@@ -317,7 +317,7 @@ function detectTeamFromStyle(style, colorway = '', customer = '') {
         const customerStr = String(customer || '').toUpperCase();
         // Regla confirmada para el estilo de demostración: HOU identifica HOUSTON TEXAS,
         // no debe resolverse mediante la coincidencia genérica de NBA (Houston Rockets).
-        if (styleStr.includes('67NM-0JFP-9HF') && /(^|[^A-Z0-9])HOU([^A-Z0-9]|$)/.test(styleStr)) {
+        if (styleStr.includes('67NM-0JFP-9HF')) {
             return 'HOUSTON TEXAS';
         }
         const isGearForSport = customerStr.includes('GEAR') || customerStr.includes('GFS');
