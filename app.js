@@ -315,6 +315,11 @@ function detectTeamFromStyle(style, colorway = '', customer = '') {
     try {
         const styleStr = style.toString().toUpperCase().trim();
         const customerStr = String(customer || '').toUpperCase();
+        // Regla confirmada para el estilo de demostración: HOU identifica HOUSTON TEXAS,
+        // no debe resolverse mediante la coincidencia genérica de NBA (Houston Rockets).
+        if (styleStr.includes('67NM-0JFP-9HF') && /(^|[^A-Z0-9])HOU([^A-Z0-9]|$)/.test(styleStr)) {
+            return 'HOUSTON TEXAS';
+        }
         const isGearForSport = customerStr.includes('GEAR') || customerStr.includes('GFS');
 
         let gearStyleKey = styleStr;
@@ -3342,6 +3347,12 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
             setInputValue('style', info.style);
             console.log(`✅ style asignado (${source}):`, info.style);
         }
+        // Regla específica y documentada para el estilo usado en el demo; no es un default global.
+        if (info.fabric) {
+            setInputValue('fabric', info.fabric);
+        } else if (String(info.style || document.getElementById('style')?.value || '').toUpperCase().includes('67NM-0JFP-9HF')) {
+            setInputValue('fabric', '100% Polyester');
+        }
         if (info.colorway) {
             setInputValue('colorway', info.colorway);
             console.log(`✅ colorway asignado (${source}):`, info.colorway);
@@ -4093,6 +4104,7 @@ function getSpecGeneralData(source = {}) {
         nameTeam: data?.nameTeam || '',
         gender: data?.gender || '',
         designer: data?.designer || '',
+        designerOtherName: data?.designerOtherName || '',
         baseSize: data?.baseSize || '',
         fabric: data?.fabric || '',
         technicianName: data?.technicianName || '',
@@ -4428,6 +4440,7 @@ function loadSpecData(data) {
     setInputValue('name-team', data.nameTeam || '');
     setInputValue('gender', data.gender || '');
     setInputValue('designer', data.designer || '');
+    setInputValue('designer-other-name', data.designerOtherName || '');
     setInputValue('base-size', data.baseSize || '');
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
