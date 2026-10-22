@@ -83,6 +83,13 @@
                         <option value="NILDA CORDOBA">NILDA CORDOBA</option>
                         <option value="OTRO">OTRO</option>
                     </select>
+                    <input type="text" id="designer-other-name" class="form-control" data-bind-general="designerOtherName"
+                        placeholder="Nombre del diseñador (si seleccionas OTRO)" style="display:none; margin-top:8px;">
+                    <div class="designer-catalog-actions" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                        <button type="button" id="designer-add-to-catalog" class="btn btn-outline btn-sm">Agregar nombre al catálogo</button>
+                        <button type="button" id="designer-remove-from-catalog" class="btn btn-outline btn-sm">Eliminar seleccionado del catálogo</button>
+                    </div>
+                    <small class="form-help">El catálogo se guarda en este navegador. Eliminar un nombre solo lo retira de las opciones; no modifica especificaciones guardadas.</small>
                 </div>
                 <div class="form-group">
                     <label for="base-size" class="form-label">TALLA BASE:</label>
@@ -133,6 +140,12 @@
             </div>
             <div class="pattern-piece-picker">
                 <div class="form-group">
+                    <label for="pattern-placement-select" class="form-label">ASIGNAR PIEZA A PLACEMENT:</label>
+                    <select id="pattern-placement-select" class="form-control">
+                        <option value="">Primero crea un placement</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="pattern-piece-search" class="form-label">BUSCAR PIEZA:</label>
                     <input type="search" id="pattern-piece-search" class="form-control" placeholder="Escribe FT, BK, SLV, YOKE..." autocomplete="off">
                 </div>
@@ -142,8 +155,8 @@
                         <option value="">Primero carga un patrón .ai</option>
                     </select>
                 </div>
-                <button type="button" id="pattern-piece-add" class="btn btn-primary" disabled><i class="fas fa-plus"></i> Agregar pieza a la Spec</button>
-                <small id="pattern-piece-picker-status" class="form-help" aria-live="polite">Carga el patrón y después busca/selecciona las piezas que necesitas.</small>
+                <button type="button" id="pattern-piece-add" class="btn btn-primary" disabled><i class="fas fa-plus"></i> Asignar pieza al placement</button>
+                <small id="pattern-piece-picker-status" class="form-help" aria-live="polite">Carga el patrón, elige el placement de destino y asigna las piezas necesarias.</small>
             </div>
             <div id="pattern-shrinkage-export" class="pattern-shrinkage-export" aria-live="polite">
                 <p class="pattern-shrinkage-empty">Todavía no has agregado piezas a la Spec.</p>
@@ -152,7 +165,7 @@
     </div>
 
     <style>
-        .pattern-piece-picker { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(240px, 1.3fr); gap: 10px 14px; align-items: end; margin-top: 12px; }
+        .pattern-piece-picker { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 10px 14px; align-items: end; margin-top: 12px; }
         .pattern-piece-picker .form-group { margin-bottom: 0; }
         #pattern-piece-add, #pattern-piece-picker-status { grid-column: 1 / -1; }
         .pattern-shrinkage-export { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-dark); }
