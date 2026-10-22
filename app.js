@@ -3348,10 +3348,11 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
             console.log(`✅ style asignado (${source}):`, info.style);
         }
         // Regla específica y documentada para el estilo usado en el demo; no es un default global.
-        if (info.fabric) {
-            setInputValue('fabric', info.fabric);
-        } else if (String(info.style || document.getElementById('style')?.value || '').toUpperCase().includes('67NM-0JFP-9HF')) {
+        const styleForFabric = String(info.style || document.getElementById('style')?.value || '').toUpperCase();
+        if (styleForFabric.includes('67NM-0JFP-9HF')) {
             setInputValue('fabric', '100% Polyester');
+        } else if (info.fabric) {
+            setInputValue('fabric', info.fabric);
         }
         if (info.colorway) {
             setInputValue('colorway', info.colorway);
