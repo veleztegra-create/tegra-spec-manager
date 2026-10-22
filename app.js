@@ -509,11 +509,9 @@ function updateGarmentColorRecognition() {
     const tone = resolved?.toneCategory || 'unknown';
     const toneLabel = tone === 'light' ? 'CLARO' : (tone === 'dark' ? 'OSCURO' : 'SIN CLASIFICAR');
     const sourceLabel = resolved?.source === 'database' ? 'DB' : (resolved?.source === 'computed' ? 'COMPUTADO' : 'COLORCONFIG');
-    const fabricIsDark = window.RulesEngine?.esTelaOscura ? window.RulesEngine.esTelaOscura(sourceText) : null;
-    const fabricToneLabel = fabricIsDark === null ? 'N/A' : (fabricIsDark ? 'OSCURA' : 'CLARA');
 
     statusEl.classList.add('is-recognized');
-    statusEl.textContent = `Color de prenda: ${sourceText} → ${foundHex.toUpperCase()} · Tono ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
+    statusEl.textContent = `Color de prenda: ${sourceText} → ${foundHex.toUpperCase()} · Tono ${toneLabel} (${sourceLabel})`;
 }
 
 function applyCustomerInkDefaults() {
