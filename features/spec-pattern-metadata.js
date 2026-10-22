@@ -156,6 +156,7 @@
         if (!window.PatternPieceShrinkage?.extractFromAiFile) throw new Error('El lector de patrones no está disponible.');
         const result = await window.PatternPieceShrinkage.extractFromAiFile(file);
         setGeneral('availablePatternPieces', result.pieces);
+        setGeneral('patternPieces', []); // Limpiar metadatos globales heredados; las nuevas asociaciones son por placement.
         // Una nueva fuente de patrón invalida las asignaciones anteriores para evitar referencias mezcladas.
         placements().forEach(placement => { placement.patternPieces = []; });
         renderPlacementOptions();
