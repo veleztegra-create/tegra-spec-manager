@@ -45,8 +45,13 @@
     const select = document.getElementById('designer');
     const input = document.getElementById('designer-other-name');
     const remove = document.getElementById('designer-remove-from-catalog');
-    if (input) input.style.display = select?.value === 'OTRO' ? 'block' : 'none';
-    if (remove) remove.disabled = !select?.value || select.value === 'OTRO' || !catalog().includes(select.value);
+    const isOther = select?.value === 'OTRO';
+    if (input) input.style.display = isOther ? 'block' : 'none';
+    if (!isOther && input) {
+      input.value = '';
+      store().designerOtherName = '';
+    }
+    if (remove) remove.disabled = !select?.value || isOther || !catalog().includes(select.value);
   }
   function addDesigner() {
     const select = document.getElementById('designer');
