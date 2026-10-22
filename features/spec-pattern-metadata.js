@@ -31,17 +31,27 @@
     const select = document.getElementById('pattern-placement-select');
     if (!select) return;
     const previous = select.value;
-    select.replaceChildren();
     const list = placements();
-    if (!list.length) {
-      select.add(new Option('Primero crea un placement', ''));
-      return;
+    const desired = list.length
+      ? list.map((placement, index) => ({ value: String(placement.id), label: placementLabel(placement, index) }))
+      : [{ value: '', label: 'Primero crea un placement' }];
+
+    // Este archivo observa cambios del DOM. No reescribir el selector si ya está actualizado:
+    // hacerlo dispara al observer otra vez y puede crear un ciclo infinito de mutaciones.
+    const alreadyMatches = select.options.length === desired.length &&
+      desired.every((option, index) =>
+        select.options[index].value === option.value &&
+        select.options[index].textContent === option.label
+      );
+    if (alreadyMatches) return;
+
+    select.replaceChildren();
+    desired.forEach(option => select.add(new Option(option.label, option.value)));
+    if (previous && list.some(placement => String(placement.id) === previous)) {
+      select.value = previous;
+    } else if (list.length) {
+      select.value = String(list[0].id);
     }
-    list.forEach((placement, index) => {
-      select.add(new Option(placementLabel(placement, index), String(placement.id)));
-    });
-    if (previous && list.some(p => String(p.id) === previous)) select.value = previous;
-    else select.value = String(list[0].id);
   }
   function renderPieceOptions() {
     const select = document.getElementById('pattern-piece-select');
