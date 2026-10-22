@@ -1607,6 +1607,8 @@ function copyPlacementSequence(placementId) {
 
     placementSequenceClipboard = {
         sequence: JSON.parse(JSON.stringify(placement.sequence)),
+        // La secuencia y sus colores son una sola unidad al copiar/pegar entre placements.
+        printColors: JSON.parse(JSON.stringify(Array.isArray(placement.printColors) ? placement.printColors : [])),
         printParams: {
             meshColor: placement.meshColor || '',
             meshWhite: placement.meshWhite || '',
@@ -1637,6 +1639,9 @@ function pastePlacementSequence(placementId) {
     }
 
     placement.sequence = JSON.parse(JSON.stringify(placementSequenceClipboard.sequence));
+    placement.printColors = JSON.parse(JSON.stringify(
+        Array.isArray(placementSequenceClipboard.printColors) ? placementSequenceClipboard.printColors : []
+    ));
     markPlacementSequenceManual(placement);
 
     const params = placementSequenceClipboard.printParams || {};
