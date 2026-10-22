@@ -78,3 +78,45 @@ La demo debe distinguir claramente entre:
 - **Regla de producción acordada, todavía pendiente de implementar o verificar**.
 
 No se debe afirmar que la rama está lista para producción solo porque pasen las pruebas automatizadas.
+
+
+## Resumen ejecutivo para reunión y punto de continuidad
+
+### Mensaje de 60 segundos
+
+Tegra Spec Manager busca convertir la información de la SWO/Excel, Tech Pack, Schematics y patrón en una hoja técnica de serigrafía consistente, visualmente profesional y exportable a HTML/PDF. La mejora arquitectónica propuesta es sacar las condiciones variables de producción del código y administrarlas en Production Conditions. El código debe seguir siendo el motor que interpreta y aplica las reglas; Production Conditions define qué regla aplica, bajo qué alcance, con qué prioridad y con qué fuente aprobada. Así se evitan valores universales incorrectos y se pueden mantener excepciones auditables.
+
+### Qué existe y qué no se debe prometer
+
+- Existe una base de gestión de Production Conditions y una estructura de generación de secuencia, pero todavía hay que integrar y validar el consumo de condiciones tipadas por el motor.
+- La rama de demo contiene documentación de incidencias y criterios de aceptación; documentar una regla no significa que esté implementada.
+- El manejo de piezas/encogimientos debe pasar de una selección general a una asociación explícita por placement.
+- La detección de equipo necesita evitar coincidencias genéricas de liga cuando el estilo requiere un nombre específico.
+- El recorrido Excel → placements/colores → secuencia → HTML/PDF necesita una prueba manual integral con datos reales.
+
+### Decisiones que conviene solicitar en la reunión
+
+1. Confirmar quién es dueño de aprobar y mantener las Production Conditions.
+2. Confirmar qué fuentes tienen prioridad cuando SWO, Tech Pack, Schematics y patrón discrepan; el sistema debe mostrar la discrepancia, no resolverla en silencio.
+3. Acordar qué tipos de condición pueden bloquear una Spec y quién puede aprobar/desbloquear.
+4. Confirmar qué reglas deben entrar en el primer alcance y proporcionar ejemplos reales aprobados para las pruebas.
+5. Acordar si el uso inicial será local/demo o si se requiere backend compartido con permisos, historial y auditoría desde la primera liberación.
+
+### Plan de continuación técnica
+
+1. Auditar las reglas dispersas en los archivos actuales y clasificarlas como lógica general, dato variable, validación o comportamiento de interfaz.
+2. Diseñar un esquema tipado de Production Conditions: categoría, alcance/criterios, prioridad, acción estructurada, unidades, fuente, aprobación, vigencia y estado.
+3. Conectar el motor de secuencia a condiciones tipadas, sin ejecutar texto libre como código.
+4. Asociar piezas y encogimientos a cada placement y conservar la evidencia original.
+5. Corregir la resolución de equipo para priorizar coincidencias específicas confirmadas y pedir revisión cuando no exista una coincidencia fiable.
+6. Ejecutar pruebas de regresión y un recorrido manual completo de Excel a HTML/PDF antes de presentar el flujo como validado.
+
+### Punto de reanudación para futuras sesiones
+
+- Repositorio: https://github.com/veleztegra-create/tegra-spec-manager
+- Rama de trabajo para esta demo: `presentation/sp-automation-demo`
+- Documento de referencia: `docs/presentation-sp-automation-demo.md`
+- PR de demo: https://github.com/veleztegra-create/tegra-spec-manager/pull/46
+- No trabajar sobre `main` ni cambiar de rama sin confirmarlo explícitamente.
+- Fuente de verdad: GitHub y la rama indicada, no el ZIP adjunto.
+- Último estado documentado aquí: requisitos e incidencias organizados; no asumir que las cinco incidencias están corregidas. Próximo paso: auditar el código de la rama y construir el inventario de reglas antes de cambiar el motor.
