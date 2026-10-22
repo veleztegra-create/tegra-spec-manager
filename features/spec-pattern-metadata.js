@@ -156,7 +156,8 @@
     placements().forEach(placement=>{
       const target=document.getElementById('placement-pattern-pieces-'+placement.id);if(!target)return;
       const pieces=Array.isArray(placement.patternPieces)?placement.patternPieces:[];
-      target.innerHTML=pieces.length?pieces.map((p,i)=>'<div class="pattern-shrinkage-line"><span>'+esc([p.pieceName,p.shrinkage].filter(Boolean).join(' '))+'</span><button type="button" class="btn btn-outline btn-sm" data-remove-placement-pattern-piece="'+esc(placement.id)+'" data-piece-index="'+i+'"><i class="fas fa-times"></i> Quitar</button></div>').join(''):'<p class="pattern-shrinkage-empty">Sin piezas asignadas.</p>';
+      const html=pieces.length?pieces.map((p,i)=>'<div class="pattern-shrinkage-line"><span>'+esc([p.pieceName,p.shrinkage].filter(Boolean).join(' '))+'</span><button type="button" class="btn btn-outline btn-sm" data-remove-placement-pattern-piece="'+esc(placement.id)+'" data-piece-index="'+i+'"><i class="fas fa-times"></i> Quitar</button></div>').join(''):'<p class="pattern-shrinkage-empty">Sin piezas asignadas.</p>';
+      if(target.innerHTML!==html)target.innerHTML=html;
     });
   }
   function addLocalPiece(placementId) {
