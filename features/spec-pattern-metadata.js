@@ -130,8 +130,8 @@
   }
   function suggestLocalPieceIndex(placement, pieces) {
     const type=String(placement.type||placement.title||placement.name||'').toUpperCase();
-    const tests=type.includes('FRONT')?[/^FT\\b/,/FRONT/]:type.includes('BACK')?[/^BK\\b/,/BACK/]:
-      type.includes('SLEEVE')?[/^SLV\\b/,/SLEEVE/]:type.includes('CHEST')?[/^CH\\b/,/CHEST/]:
+    const tests=type.includes('FRONT')?[/^FT/,/FRONT/]:type.includes('BACK')?[/^BK/,/BACK/]:
+      type.includes('SLEEVE')?[/^SLV/,/SLEEVE/]:type.includes('CHEST')?[/^CH\\b/,/CHEST/]:
       type.includes('SHOULDER')?[/^SH\\b/,/SHOULDER/]:type.includes('COLLAR')?[/^CL\\b/,/COLLAR/]:[];
     for(const test of tests){const i=pieces.findIndex(p=>test.test(String(p.pieceName||'').toUpperCase()));if(i>=0)return i;}
     return -1;
