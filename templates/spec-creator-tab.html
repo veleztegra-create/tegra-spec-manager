@@ -138,36 +138,19 @@
                     <input type="text" id="customer-techpack-name" class="form-control" data-bind-general="customerTechpackName" placeholder="Se completa al usar “Cargar Tech Pack Nike”" readonly>
                 </div>
             </div>
-            <div class="pattern-piece-picker">
-                <div class="form-group">
-                    <label for="pattern-placement-select" class="form-label">ASIGNAR PIEZA A PLACEMENT:</label>
-                    <select id="pattern-placement-select" class="form-control">
-                        <option value="">Primero crea un placement</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="pattern-piece-search" class="form-label">BUSCAR PIEZA:</label>
-                    <input type="search" id="pattern-piece-search" class="form-control" placeholder="Escribe FT, BK, SLV, YOKE..." autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label for="pattern-piece-select" class="form-label">SELECCIONAR PIEZA DEL PATRÓN:</label>
-                    <select id="pattern-piece-select" class="form-control">
-                        <option value="">Primero carga un patrón .ai</option>
-                    </select>
-                </div>
-                <button type="button" id="pattern-piece-add" class="btn btn-primary" disabled><i class="fas fa-plus"></i> Asignar pieza al placement</button>
-                <small id="pattern-piece-picker-status" class="form-help" aria-live="polite">Carga el patrón, elige el placement de destino y asigna las piezas necesarias.</small>
-            </div>
-            <div id="pattern-shrinkage-export" class="pattern-shrinkage-export" aria-live="polite">
-                <p class="pattern-shrinkage-empty">Todavía no has agregado piezas a la Spec.</p>
-            </div>
+            <p class="form-help pattern-general-help">Carga el patrón para detectar piezas y encogimientos. La asignación se hace dentro de cada placement.</p>
         </div>
     </div>
 
     <style>
         .catalog-help-trigger { display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:6px;border:1px solid var(--border-dark);border-radius:50%;background:transparent;color:var(--text-secondary);font-weight:700;cursor:pointer; }
         .catalog-help-popover { margin-top:7px;padding:9px 11px;border:1px solid var(--border-dark);border-radius:6px;color:var(--text-secondary);font-size:12px;line-height:1.45; }
-        .pattern-piece-picker { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 10px 14px; align-items: end; margin-top: 12px; }
+        .pattern-general-help{display:block;margin-top:12px}
+.placement-pattern-assignment{margin:12px 0;padding:12px;border:1px solid var(--border-dark);border-radius:8px}
+.placement-pattern-assignment .form-group{margin-bottom:8px}
+.placement-pattern-assignment .pattern-piece-assignment-status{display:block;margin-top:6px}
+.placement-pattern-assignment .pattern-shrinkage-line{font-size:12px}
+.pattern-piece-picker { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 10px 14px; align-items: end; margin-top: 12px; }
         .pattern-piece-picker .form-group { margin-bottom: 0; }
         #pattern-piece-add, #pattern-piece-picker-status { grid-column: 1 / -1; }
         .pattern-shrinkage-export { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-dark); }
