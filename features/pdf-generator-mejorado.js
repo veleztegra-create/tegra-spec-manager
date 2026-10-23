@@ -153,53 +153,29 @@
   function generateStationsData(placement, data) {
     const stations = [];
     const sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+    const preset = getInkPreset(placement?.inkType || 'WATER');
     sequence.forEach((item, index) => {
       const type = String(item.type || item.tipo || '').toUpperCase();
+      const presetKey = type.includes('BLOCKER')
+        ? 'blocker'
+        : (type.includes('WHITE') || type.includes('WHITE_BASE') ? 'white' : 'color');
+      const stationPreset = preset?.[presetKey] || preset?.color || {};
       stations.push({
         st: index + 1,
         screenLetter: item.screenLetter || '',
         screenCombined: item.val || item.nombre || type || '---',
-        add: item.additives || '',
-        mesh: item.mesh || '-',
-        strokes: item.strokes || '-',
-        angle: item.angle || '-',
-        pressure: item.pressure || '-',
-        duro: item.durometer || '-'
+        add: normalizeTextValue(item.additives, normalizeTextValue(stationPreset.additives, '')),
+        mesh: normalizeTextValue(item.mesh, normalizeTextValue(stationPreset.mesh || stationPreset.mesh1, '-')),
+        strokes: normalizeTextValue(item.strokes, normalizeTextValue(stationPreset.strokes, '-')),
+        angle: normalizeTextValue(item.angle, normalizeTextValue(stationPreset.angle, '-')),
+        pressure: normalizeTextValue(item.pressure, normalizeTextValue(stationPreset.pressure, '-')),
+        duro: normalizeTextValue(item.durometer, normalizeTextValue(stationPreset.durometer, '-'))
       });
     });
-
     return stations;
   }
 
-  function getPrintParameters(placement) {
-    const preset = getInkPreset(placement?.inkType || 'WATER');
-    const colorPreset = preset?.color || {};
-    const blockerPreset = preset?.blocker || {};
-    const whitePreset = preset?.white || {};
-    return {
-      durometer: normalizeTextValue(placement?.durometer, normalizeTextValue(colorPreset.durometer, '--')),
-      strokes: normalizeTextValue(placement?.strokes, normalizeTextValue(colorPreset.strokes, '--')),
-      angle: normalizeTextValue(placement?.angle, normalizeTextValue(colorPreset.angle, '--')),
-      pressure: normalizeTextValue(placement?.pressure, normalizeTextValue(colorPreset.pressure, '--')),
-      speed: normalizeTextValue(placement?.speed, normalizeTextValue(colorPreset.speed, '--')),
-      additives: normalizeTextValue(placement?.additives, normalizeTextValue(colorPreset.additives, '--')),
-      additivesBlocker: normalizeTextValue(placement?.additivesBlocker, normalizeTextValue(blockerPreset.additives, '--')),
-      additivesWhiteBase: normalizeTextValue(placement?.additivesWhiteBase, normalizeTextValue(whitePreset.additives, '--'))
-    };
-  }
 
-  function buildPrintParametersHtml(placement) {
-    const p = getPrintParameters(placement);
-    const items = [
-      ['DURÓMETRO', p.durometer], ['STROKES', p.strokes], ['ANGLE', p.angle], ['PRESSURE', p.pressure],
-      ['SPEED', p.speed], ['ADITIVOS COLOR', p.additives], ['ADITIVOS BLOCKER', p.additivesBlocker], ['ADITIVOS WHITE BASE', p.additivesWhiteBase]
-    ];
-    return '<div class="print-parameters-section">' +
-      '<div class="print-parameters-title">Parámetros de Impresión</div>' +
-      '<div class="print-parameters-grid">' +
-      items.map(([label, value]) => '<div class="print-parameter-item"><span class="print-parameter-label">' + esc(label) + '</span><span class="print-parameter-value">' + esc(value) + '</span></div>').join('') +
-      '</div></div>';
-  }
 
   function buildPlacementHtml(placement, index, total, data) {
     const title = esc((placement.title || placement.type || `Placement ${index + 1}`).replace('CUSTOM: ', ''));
@@ -303,11 +279,7 @@
             <thead><tr><th>Est</th><th>Scr.</th><th>Screen (Tinta/Proceso)</th><th>Aditivos</th><th>Malla</th><th>Strk</th><th>Ang</th><th>Pres</th><th>Duro</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
-        </div>
-
-        ${buildPrintParametersHtml(placement)}
-
-        <div class="curing-section">
+        </div><div class="curing-section">
           <div class="curing-title">Condiciones de Curado</div>
           <div class="curing-grid">
             <div class="curing-item"><div class="curing-label">Temperatura</div><div class="curing-value">${esc(safeTemp)}</div></div>
@@ -431,7 +403,7 @@
     .info-section{background:var(--tegra-gray-light);padding:15px 20px;border-bottom:3px solid var(--tegra-red);} .section-title{font-family:var(--font-display);font-size:.9rem;font-weight:700;text-transform:uppercase;color:var(--tegra-red);margin-bottom:12px;display:flex;align-items:center;gap:8px;} .section-title::before{content:'';width:3px;height:18px;background:var(--tegra-red);} .info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 30px;} .info-row{display:flex;gap:8px;} .info-label{font-family:var(--font-condensed);font-size:.75rem;font-weight:700;text-transform:uppercase;min-width:100px;} .info-value{font-size:.85rem;font-weight:500;flex:1;border-bottom:1px solid #ccc;padding-bottom:1px;}
     .placement-section{padding:18px;border-bottom:1px solid var(--border-light);display:flex;flex-direction:column;} .placement-header-bar{background:var(--tegra-red);color:#fff;padding:9px 14px;margin:-18px -18px 12px -18px;display:flex;gap:10px;align-items:center;} .placement-icon{width:26px;height:26px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;} .placement-title-text{font-family:var(--font-display);font-size:1rem;text-transform:uppercase;} .placement-content{display:grid;grid-template-columns:250px minmax(0,1fr);gap:16px;margin-bottom:12px;} .placement-image-container{position:relative;background:linear-gradient(135deg,#f8f8f8 0%,#e8e8e8 100%);border-radius:6px;padding:10px;border:2px solid var(--border-light);height:fit-content;min-height:240px;display:flex;align-items:center;justify-content:center;} .placement-image{width:100%;max-height:250px;object-fit:contain;border-radius:4px;} .placement-location-note{margin-top:7px;padding:7px 9px;background:#f5f5f5;border-left:3px solid var(--tegra-red);font-size:.72rem;line-height:1.35;overflow-wrap:anywhere;} .placement-badge{position:absolute;top:8px;right:8px;background:var(--tegra-red);color:#fff;padding:4px 8px;border-radius:3px;font-size:.58rem;font-weight:700;text-transform:uppercase;} .placement-details-panel{background:var(--tegra-gray-light);border-radius:6px;padding:12px;border-left:3px solid var(--tegra-red);} .detail-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e0e0e0;} .detail-row:last-child{border-bottom:none;} .detail-label{font-family:var(--font-condensed);font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);} .detail-value{font-size:.78rem;font-weight:600;} .detail-value.highlight{color:var(--tegra-red);} 
     .spec-pattern-meta{padding:12px 20px;background:#fff;border-bottom:2px solid var(--tegra-red);font-family:var(--font-body);line-height:1.3;overflow-wrap:anywhere;}.spec-pattern-stage,.spec-pattern-date{font-size:14px;font-weight:700;margin-bottom:3px;}.spec-pattern-file,.spec-pattern-resource{font-size:12px;margin-bottom:3px;}.spec-pattern-resource-title{font-size:12px;font-weight:700;margin-top:4px;}.spec-pattern-pieces{margin-top:6px;font-size:13px;display:flex;flex-direction:column;gap:2px;}.spec-pattern-empty{font-size:12px;color:var(--text-muted);}     .colors-section{margin-top:12px;padding:10px;background:#fff;border:1px solid var(--border-light);border-radius:6px;} .sub-title{font-family:var(--font-condensed);font-size:.72rem;text-transform:uppercase;color:var(--text-muted);} .colors-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;} .color-swatch{display:flex;align-items:center;gap:7px;background:var(--tegra-gray-light);padding:7px 10px;border-radius:4px;border:1px solid var(--border-light);} .color-box{width:22px;height:22px;border-radius:3px;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.2);} .color-number{font-family:var(--font-condensed);font-weight:700;font-size:.72rem;color:var(--tegra-red);} .color-name{font-size:.62rem;color:var(--text-muted);}
-    .sequence-section{margin-top:12px;} .print-parameters-section{margin-top:10px;padding:10px 12px;background:#f5f5f5;border:1px solid #e0e0e0;border-left:3px solid var(--tegra-red);border-radius:5px;break-inside:avoid;page-break-inside:avoid;} .print-parameters-title{font-family:var(--font-display);font-size:.78rem;font-weight:700;text-transform:uppercase;color:var(--tegra-red);margin-bottom:7px;} .print-parameters-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px 10px;} .print-parameter-item{display:flex;flex-direction:column;gap:2px;min-width:0;} .print-parameter-label{font-family:var(--font-condensed);font-size:.58rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;} .print-parameter-value{font-size:.8rem;font-weight:700;overflow-wrap:anywhere;} .sequence-header{background:var(--tegra-red);color:#fff;padding:7px 12px;font-family:var(--font-display);font-size:.76rem;text-transform:uppercase;} .sequence-table{width:100%;border-collapse:collapse;font-size:.68rem;} .sequence-table th{background:var(--tegra-gray-dark);color:#fff;padding:7px 5px;text-align:left;font-family:var(--font-condensed);font-size:.56rem;text-transform:uppercase;} .sequence-table td{padding:5px;border-bottom:1px solid var(--border-light);} .station-number{font-family:var(--font-display);font-size:.8rem;color:var(--tegra-red);text-align:center;} .screen-letter{font-weight:700;color:var(--tegra-red);} .ink-name{font-weight:600;} .additives{font-size:.62rem;color:var(--text-muted);font-style:italic;} .flash-row{background:#f5f5f5 !important;font-style:italic;color:var(--text-muted);} 
+    .sequence-section{margin-top:12px;} .sequence-header{background:var(--tegra-red);color:#fff;padding:7px 12px;font-family:var(--font-display);font-size:.76rem;text-transform:uppercase;} .sequence-table{width:100%;border-collapse:collapse;font-size:.68rem;} .sequence-table th{background:var(--tegra-gray-dark);color:#fff;padding:7px 5px;text-align:left;font-family:var(--font-condensed);font-size:.56rem;text-transform:uppercase;} .sequence-table td{padding:5px;border-bottom:1px solid var(--border-light);} .station-number{font-family:var(--font-display);font-size:.8rem;color:var(--tegra-red);text-align:center;} .screen-letter{font-weight:700;color:var(--tegra-red);} .ink-name{font-weight:600;} .additives{font-size:.62rem;color:var(--text-muted);font-style:italic;} .flash-row{background:#f5f5f5 !important;font-style:italic;color:var(--text-muted);} 
     .curing-section{margin-top:15px;background:linear-gradient(135deg,var(--tegra-gray-light) 0%,#e8e8e8 100%);border-radius:6px;padding:12px;border-left:3px solid var(--tegra-red);} .curing-title{font-family:var(--font-display);font-size:.85rem;color:var(--tegra-red);margin-bottom:10px;} .curing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;} .curing-item{text-align:center;} .curing-label{font-size:.7rem;text-transform:uppercase;color:var(--text-muted);} .curing-value{font-family:var(--font-display);font-size:1.2rem;font-weight:700;} .curing-value.small{font-size:1rem;}
     .spec-footer{background:var(--tegra-gray-dark);color:#fff;padding:10px 20px;display:flex;justify-content:space-between;font-size:.75rem;margin-top:20px;} .footer-center{font-family:var(--font-display);font-weight:700;letter-spacing:1px;}
     .color-lab-labels-section{padding:18px 20px;border-top:3px solid var(--tegra-red);background:#fafafa;} .labels-page{margin-top:10px;padding:8px 0 4px 0;} .labels-page + .labels-page{border-top:1px dashed #bbb;padding-top:14px;} .labels-page-head{font-family:var(--font-condensed);font-size:.8rem;text-transform:uppercase;color:#333;letter-spacing:.06em;margin-bottom:8px;} .labels-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;} .lab-label-card{border:1px solid var(--border-light);border-left:4px solid var(--tegra-red);border-radius:6px;background:#fff;padding:8px;min-height:220px;} .lab-label-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;} .lab-label-meta{display:flex;flex-direction:column;gap:4px;font-size:.64rem;font-weight:700;text-transform:uppercase;color:#444;} .lab-warning-corner{width:100%;height:auto;max-height:96px;object-fit:contain;border:1px solid #ddd;border-radius:4px;} .lab-label-card header{display:flex;gap:8px;align-items:center;margin:8px 0;} .lab-color-chip{width:30px;height:30px;border-radius:6px;border:1px solid #bbb;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);} .lab-label-card h4{font-family:var(--font-display);font-size:1rem;line-height:1.1;} .lab-label-card p{font-size:.7rem;color:#555;text-transform:uppercase;letter-spacing:.05em;} .lab-ingredients{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;} .lab-ingredients li{display:flex;justify-content:space-between;font-size:.72rem;border-bottom:1px dashed #eee;padding-bottom:2px;} .lab-mini-pills{margin-top:8px;font-size:.62rem;color:#444;} .lab-additives-title{font-weight:700;margin-bottom:3px;} .lab-additives-lines{display:flex;flex-direction:column;gap:2px;}
