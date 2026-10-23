@@ -2,7 +2,8 @@
 window.SequenceBuilder = (function () {
   'use strict';
 
-  function buildSequence(layers = []) {
+  function buildSequence(layers = [], options = {}) {
+    const isPpf = Boolean(options.isPpf);
     const expanded = [];
 
     layers.forEach((layer) => {
@@ -26,6 +27,10 @@ window.SequenceBuilder = (function () {
       if (index < expanded.length - 1) {
         sequence.push({ tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' });
         sequence.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
+        if (isPpf && index === 0) {
+          sequence.push({ tipo: 'HOT_HEAD', stationType: 'HOT_HEAD', screenLetter: '', nombre: 'HOT HEAD', mesh: 'TEFLÓN', additives: '' });
+          sequence.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
+        }
       }
     });
 
