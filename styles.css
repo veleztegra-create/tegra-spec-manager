@@ -1775,3 +1775,18 @@ textarea.form-control:focus {
     opacity: .55;
     cursor: not-allowed;
 }
+
+/* Los valores de impresión sustituyen a los campos editables; no deben duplicarse en pantalla. */
+.print-only {
+    display: none !important;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .print-only {
+        display: inline !important;
+    }
+}
