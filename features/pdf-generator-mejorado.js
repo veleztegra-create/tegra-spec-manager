@@ -177,6 +177,37 @@
 
 
 
+  // Se conserva la API pública por compatibilidad; los parámetros de cada estación se renderizan en la tabla de secuencia.
+  function getPrintParameters(placement) {
+    const preset = getInkPreset(placement?.inkType || 'WATER');
+    const colorPreset = preset?.color || {};
+    const blockerPreset = preset?.blocker || {};
+    const whitePreset = preset?.white || {};
+    return {
+      durometer: normalizeTextValue(placement?.durometer, normalizeTextValue(colorPreset.durometer, '--')),
+      strokes: normalizeTextValue(placement?.strokes, normalizeTextValue(colorPreset.strokes, '--')),
+      angle: normalizeTextValue(placement?.angle, normalizeTextValue(colorPreset.angle, '--')),
+      pressure: normalizeTextValue(placement?.pressure, normalizeTextValue(colorPreset.pressure, '--')),
+      speed: normalizeTextValue(placement?.speed, normalizeTextValue(colorPreset.speed, '--')),
+      additives: normalizeTextValue(placement?.additives, normalizeTextValue(colorPreset.additives, '--')),
+      additivesBlocker: normalizeTextValue(placement?.additivesBlocker, normalizeTextValue(blockerPreset.additives, '--')),
+      additivesWhiteBase: normalizeTextValue(placement?.additivesWhiteBase, normalizeTextValue(whitePreset.additives, '--'))
+    };
+  }
+
+  function buildPrintParametersHtml(placement) {
+    const p = getPrintParameters(placement);
+    const items = [
+      ['DURÓMETRO', p.durometer], ['STROKES', p.strokes], ['ANGLE', p.angle], ['PRESSURE', p.pressure],
+      ['SPEED', p.speed], ['ADITIVOS COLOR', p.additives], ['ADITIVOS BLOCKER', p.additivesBlocker], ['ADITIVOS WHITE BASE', p.additivesWhiteBase]
+    ];
+    return '<div class="print-parameters-section">' +
+      '<div class="print-parameters-title">Parámetros de Impresión</div>' +
+      '<div class="print-parameters-grid">' +
+      items.map(([label, value]) => '<div class="print-parameter-item"><span class="print-parameter-label">' + esc(label) + '</span><span class="print-parameter-value">' + esc(value) + '</span></div>').join('') +
+      '</div></div>';
+  }
+
   function buildPlacementHtml(placement, index, total, data) {
     const title = esc((placement.title || placement.type || `Placement ${index + 1}`).replace('CUSTOM: ', ''));
     const imageData = safeImageSource(placement.imageData);
