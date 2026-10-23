@@ -163,19 +163,19 @@
       // FLASH y COOL son pasos de proceso: nunca deben heredar los aditivos de COLOR.
       const isProcessStep = type === 'FLASH' || type === 'COOL';
       const isHotHead = type === 'HOT_HEAD';
-      const additives = isProcessStep
+      const additives = (isProcessStep || isHotHead)
         ? normalizeTextValue(item.additives, '')
         : normalizeTextValue(item.additives, normalizeTextValue(stationPreset.additives, ''));
       stations.push({
         st: index + 1,
         screenLetter: item.screenLetter || '',
-        screenCombined: item.val || item.nombre || type || '---',
+        screenCombined: isHotHead ? 'HOT HEAD' : (item.val || item.nombre || type || '---'),
         add: additives,
         mesh: isHotHead ? 'TEFLÓN' : normalizeTextValue(item.mesh, normalizeTextValue(stationPreset.mesh || stationPreset.mesh1, '-')),
-        strokes: normalizeTextValue(item.strokes, normalizeTextValue(stationPreset.strokes, '-')),
-        angle: normalizeTextValue(item.angle, normalizeTextValue(stationPreset.angle, '-')),
-        pressure: normalizeTextValue(item.pressure, normalizeTextValue(stationPreset.pressure, '-')),
-        duro: normalizeTextValue(item.durometer, normalizeTextValue(stationPreset.durometer, '-'))
+        strokes: isHotHead ? '-' : normalizeTextValue(item.strokes, normalizeTextValue(stationPreset.strokes, '-')),
+        angle: isHotHead ? '-' : normalizeTextValue(item.angle, normalizeTextValue(stationPreset.angle, '-')),
+        pressure: isHotHead ? '-' : normalizeTextValue(item.pressure, normalizeTextValue(stationPreset.pressure, '-')),
+        duro: isHotHead ? '-' : normalizeTextValue(item.durometer, normalizeTextValue(stationPreset.durometer, '-'))
       });
     });
     return stations;
