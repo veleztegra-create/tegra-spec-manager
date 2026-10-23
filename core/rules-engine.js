@@ -283,8 +283,20 @@ window.RulesEngine = (function() {
             customer = '',
             garmentColor = '',
             inkType = 'WATER',
-            designColors = []
+            designColors = [],
+            stage = '',
+            style = '',
+            pattern = '',
+            exportedPatternName = '',
+            blankPatternName = '',
+            customerTechpackName = '',
+            customerSchematicName = '',
+            includePpfHotHead = true
         } = params;
+
+        const ppfSources = [stage, style, pattern, exportedPatternName, blankPatternName,
+            customerTechpackName, customerSchematicName].map(value => String(value || '').trim().toUpperCase());
+        const isPpf = includePpfHotHead !== false && ppfSources.some(value => value.includes('PPF'));
 
         console.log(`⚙️ RulesEngine v8.3: Generando secuencia`);
         console.log(`   Cliente: ${customer || 'N/A'}`);
@@ -543,8 +555,14 @@ window.RulesEngine = (function() {
             : steps;
 
         const finalSequence = window.SequenceBuilder?.buildSequence
-            ? window.SequenceBuilder.buildSequence(normalizedLayers)
+            ? window.SequenceBuilder.buildSequence(normalizedLayers, { isPpf })
             : normalizedLayers;
+
+        if (isPpf && !window.SequenceBuilder?.buildSequence && finalSequence.length > 1) {
+            finalSequence.splice(3, 0,
+                { tipo: 'HOT_HEAD', stationType: 'HOT_HEAD', screenLetter: '', nombre: 'HOT HEAD', mesh: 'TEFLÓN', additives: '' },
+                { tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
+        }
 
         console.log(`🧠 Capas crudas: ${steps.length} · Capas normalizadas: ${normalizedLayers.length}`);
         console.log(`✅ Secuencia generada con ${finalSequence.length} pasos`);
