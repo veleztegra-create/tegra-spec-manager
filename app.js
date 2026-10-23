@@ -1179,7 +1179,7 @@ function renderPlacementHTML(placement) {
                         <select class="form-control placement-ink-type"
                                 data-placement-id="${placement.id}"
                                 onchange="updatePlacementInkType(${placement.id}, this.value)">
-                            <option value="WATER" ${placement.inkType === 'WATER' ? 'selected' : ''}>Water-base</option>
+                            <option value="WATER" ${placement.inkType === 'WATER' ? 'selected' : ''}>Waterbase</option>
                             <option value="PLASTISOL" ${placement.inkType === 'PLASTISOL' ? 'selected' : ''}>Plastisol</option>
                             <option value="SILICONE" ${placement.inkType === 'SILICONE' ? 'selected' : ''}>Silicone</option>
                         </select>
@@ -1448,18 +1448,18 @@ function updatePlacementInkType(placementId, inkType) {
     if (tempField) {
         tempField.value = preset.temp;
         tempField.setAttribute('readonly', true);
-        tempField.title = `Temperatura para tinta ${inkType}`;
+        tempField.title = `Temperatura para tinta ${inkType === 'WATER' ? 'Waterbase' : inkType}`;
     }
 
     if (timeField) {
         timeField.value = preset.time;
         timeField.setAttribute('readonly', true);
-        timeField.title = `Tiempo de curado para tinta ${inkType}`;
+        timeField.title = `Tiempo de curado para tinta ${inkType === 'WATER' ? 'Waterbase' : inkType}`;
     }
 
     updateDefaultParameters(placementId, inkType);
     updatePlacementStations(placementId);
-    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
+    showStatus(`✅ Tinta: ${inkType === 'WATER' ? 'Waterbase' : inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
 }
 
 function updateDefaultParameters(placementId, inkType) {
