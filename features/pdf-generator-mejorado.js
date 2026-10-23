@@ -265,7 +265,9 @@
           <strong style="font-size:1.08rem;line-height:1.25;">${esc(data.stageDate || '---')}</strong>
           <span>Exported Pattern: ${esc(data.exportedPatternName || '---')}</span>
           <span>Blank Pattern for Print: ${esc(data.blankPatternName || '---')}</span>
-          <span style="margin-top:3px;">Customer Resources: ${esc([data.customerSchematicName, data.customerTechpackName].filter(Boolean).join(' | ') || '---')}</span>
+          <span style="margin-top:3px;">Customer Resources:</span>
+          <span>${esc(data.customerSchematicName || '---')}</span>
+          <span>${esc(data.customerTechpackName || '---')}</span>
         </div>
       </div>`;
     const placementPatternPiecesHtml = placementPatternPieces.length
@@ -284,12 +286,12 @@
               ${sizeNotesHtml}
             </div>
             <div class="detail-row"><span class="detail-label">Talla Base</span><span class="detail-value">${esc(placement.baseSize || data.baseSize || '---')}</span></div>
-            ${placementPatternMetaHtml}
-            ${placementPatternPiecesHtml}
             <div class="detail-row" style="display:flex;gap:12px;flex-wrap:wrap;font-size:.78rem;color:#555;">
               <span>Tinta: ${esc(placement.inkType || 'WATER')}</span>
               <span>Especialidades: ${esc(placement.specialties || '—')}</span>
             </div>
+            ${placementPatternMetaHtml}
+            ${placementPatternPiecesHtml}
           </div>
         </div>
 
