@@ -558,10 +558,20 @@ window.RulesEngine = (function() {
             ? window.SequenceBuilder.buildSequence(normalizedLayers, { isPpf })
             : normalizedLayers;
 
-        if (isPpf && !window.SequenceBuilder?.buildSequence && finalSequence.length > 1) {
-            finalSequence.splice(3, 0,
-                { tipo: 'HOT_HEAD', stationType: 'HOT_HEAD', screenLetter: '', nombre: 'HOT HEAD', mesh: 'TEFLÓN', additives: '' },
-                { tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
+        if (isPpf && !window.SequenceBuilder?.buildSequence && finalSequence.length > 0) {
+            const withProcesses = [];
+            finalSequence.forEach((step, index) => {
+                withProcesses.push(step);
+                if (index < finalSequence.length - 1 || index === 0) {
+                    withProcesses.push({ tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' });
+                    withProcesses.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
+                }
+                if (index === 0) {
+                    withProcesses.push({ tipo: 'HOT_HEAD', stationType: 'HOT_HEAD', screenLetter: '', nombre: 'HOT HEAD', mesh: 'TEFLÓN', additives: '' });
+                    withProcesses.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
+                }
+            });
+            finalSequence.splice(0, finalSequence.length, ...withProcesses);
         }
 
         console.log(`🧠 Capas crudas: ${steps.length} · Capas normalizadas: ${normalizedLayers.length}`);
