@@ -285,6 +285,7 @@ window.RulesEngine = (function() {
             inkType = 'WATER',
             designColors = [],
             stage = '',
+            fabric = '',
             style = '',
             pattern = '',
             exportedPatternName = '',
@@ -294,7 +295,7 @@ window.RulesEngine = (function() {
             includePpfHotHead = true
         } = params;
 
-        const ppfSources = [stage, style, pattern, exportedPatternName, blankPatternName,
+        const ppfSources = [stage, fabric, style, pattern, exportedPatternName, blankPatternName,
             customerTechpackName, customerSchematicName].map(value => String(value || '').trim().toUpperCase());
         const isPpf = includePpfHotHead !== false && ppfSources.some(value => value.includes('PPF'));
 
