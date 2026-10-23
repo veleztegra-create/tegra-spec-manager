@@ -3107,7 +3107,25 @@ function renderPlacementStationsTable(placementId, data) {
     sequence.forEach((item, idx) => {
         const type = String(item.type || item.tipo || '').toUpperCase();
         const isProcess = type === 'FLASH' || type === 'COOL';
-        const rowClass = isProcess ? ' class="flash-row"' : '';
+        const rowClass = isProcess || type === 'HOT_HEAD' ? ' class="flash-row"' : '';
+
+        if (type === 'HOT_HEAD') {
+            html += `
+                <tr${rowClass}>
+                    <td><strong>${idx + 1}</strong></td>
+                    <td></td>
+                    <td><strong>HOT HEAD</strong></td>
+                    <td></td>
+                    <td><strong>TEFLÓN</strong></td>
+                    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    <td class="no-print">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementSequenceItem(${placementId}, ${idx})" title="Eliminar paso">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            return;
+        }
 
         if (isProcess) {
             html += `
