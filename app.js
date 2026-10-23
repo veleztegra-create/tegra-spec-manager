@@ -548,7 +548,7 @@ function handleGearForSportLogic() {
 
     const styleInput = document.getElementById('style');
     const poInput = document.getElementById('po');
-    const searchTerm = (styleInput?.value || '') || (poInput?.value || '');
+    const searchTerm = ((styleInput?.value || '') || (poInput?.value || '')).replace(/^PPF[-_\s]+/i, '');
 
     if (window.SchoolsConfig) {
         const schoolData = window.SchoolsConfig.detectSchoolFromStyle(searchTerm);
