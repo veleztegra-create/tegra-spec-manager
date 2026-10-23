@@ -100,7 +100,7 @@
         const unit = unitMatch ? (unitMatch[1].toLowerCase().startsWith('c') ? 'cm' : 'in') : 'in';
         const offset = unit === 'cm' ? 0.3 : 0.1181; // 3 mm en cm o pulgadas
         const result = formatOffsetValue(value, offset);
-        return result === '--' ? result : result + (unit === 'in' ? ' in' : ' cm');
+        return result === '--' ? result : result + (unit === 'in' ? '"' : ' cm');
       };
       notes.push(`+3 mm (QRS PPF): ${addThreeMm(width)} x ${addThreeMm(height)}`);
     }
@@ -260,14 +260,12 @@
     const patternStage = [data.sampleType, placement.baseSize || data.baseSize].filter(Boolean).join(' / ') || '---';
     const placementPatternMetaHtml = `
       <div class="detail-row placement-pattern-meta" style="display:block;">
-        <div class="detail-value" style="display:flex;flex-direction:column;gap:4px;">
-          <strong>${esc(patternStage)}</strong>
-          <strong>${esc(data.stageDate || '---')}</strong>
+        <div class="detail-value" style="display:flex;flex-direction:column;gap:5px;">
+          <strong style="font-size:1.12rem;line-height:1.25;">${esc(patternStage)}</strong>
+          <strong style="font-size:1.08rem;line-height:1.25;">${esc(data.stageDate || '---')}</strong>
           <span>Exported Pattern: ${esc(data.exportedPatternName || '---')}</span>
           <span>Blank Pattern for Print: ${esc(data.blankPatternName || '---')}</span>
-          <strong style="margin-top:3px;">Customer Resources:</strong>
-          <span>${esc(data.customerSchematicName || '---')}</span>
-          <span>${esc(data.customerTechpackName || '---')}</span>
+          <span style="margin-top:3px;">Customer Resources: ${esc([data.customerSchematicName, data.customerTechpackName].filter(Boolean).join(' | ') || '---')}</span>
         </div>
       </div>`;
     const placementPatternPiecesHtml = placementPatternPieces.length
@@ -280,13 +278,18 @@
         <div class="placement-content">
           <div><div class="placement-image-container"><span class="placement-badge">${title}</span><img src="${esc(imageData)}" class="placement-image" alt="${title}"></div><div class="placement-location-note"><strong>Ubicación:</strong> ${esc(placement.placementDetails || '---')}</div></div>
           <div class="placement-details-panel">
-            <div class="detail-row"><span class="detail-label">Tipo de Tinta</span><span class="detail-value highlight">${esc(placement.inkType || 'WATER')}</span></div>
-            <div class="detail-row"><span class="detail-label">Dimensiones</span><span class="detail-value">${esc(`${placement.width || '--'} x ${placement.height || '--'} in`)}</span></div>
-            <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${esc(placement.specialties || '—')}</span></div>
+            <div class="detail-row" style="display:block;">
+              <div class="detail-label" style="margin-bottom:3px;">Dimensiones</div>
+              <div class="detail-value" style="font-size:1.04rem;font-weight:600;">${esc(`${placement.width || '--'}" x ${placement.height || '--'}"`)}</div>
+              ${sizeNotesHtml}
+            </div>
             <div class="detail-row"><span class="detail-label">Talla Base</span><span class="detail-value">${esc(placement.baseSize || data.baseSize || '---')}</span></div>
             ${placementPatternMetaHtml}
             ${placementPatternPiecesHtml}
-            ${sizeNotesHtml}
+            <div class="detail-row" style="display:flex;gap:12px;flex-wrap:wrap;font-size:.78rem;color:#555;">
+              <span>Tinta: ${esc(placement.inkType || 'WATER')}</span>
+              <span>Especialidades: ${esc(placement.specialties || '—')}</span>
+            </div>
           </div>
         </div>
 
