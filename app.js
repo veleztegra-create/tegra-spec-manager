@@ -787,7 +787,17 @@ window.generarConAsistente = async function (placementId) {
             customer: customer,
             garmentColor: garmentColor,
             inkType: inkType,
-            designColors: designColors
+            designColors: designColors,
+            stage: document.getElementById('sample-type')?.value || '',
+            style: document.getElementById('style')?.value || '',
+            pattern: document.getElementById('exported-pattern-name')?.value || '',
+            exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
+            blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
+            customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
+            customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
+            includePpfHotHead: placements.find(p => (p.printColors || []).some(c =>
+                (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
+            )) === placement
         });
 
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
@@ -1960,7 +1970,17 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     const inkType = placement.inkType || 'WATER';
 
     const sequence = window.RulesEngine.generarSecuencia({
-        customer, garmentColor, inkType, designColors
+        customer, garmentColor, inkType, designColors,
+            stage: document.getElementById('sample-type')?.value || '',
+            style: document.getElementById('style')?.value || '',
+            pattern: document.getElementById('exported-pattern-name')?.value || '',
+            exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
+            blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
+            customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
+            customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
+            includePpfHotHead: placements.find(p => (p.printColors || []).some(c =>
+                (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
+            )) === placement
     });
 
     placement.sequence = sequence.map((step, index) => ({
@@ -2814,6 +2834,23 @@ function updatePlacementStations(placementId, returnOnly = false) {
                 add: item.additives || ''
             });
             continue; // ← IMPORTANTE: No añadir FLASH/COOL adicional
+        }
+
+        if (String(item.type || item.tipo || '').toUpperCase() === 'HOT_HEAD') {
+            stationsData.push({
+                st: stNum++,
+                screenLetter: '',
+                screenCombined: 'HOT HEAD',
+                mesh: 'TEFLÓN',
+                ink: '-',
+                strokes: '-',
+                duro: '-',
+                angle: '-',
+                pressure: '-',
+                speed: '-',
+                add: ''
+            });
+            continue;
         }
 
         // =========================================
