@@ -44,7 +44,7 @@
     return {
       blocker: { mesh1: '122/55', additives: 'N/A' },
       white: { mesh1: '198/40', additives: 'N/A' },
-      color: { mesh: '157/48', durometer: '70', angle: '15', strokes: '2', pressure: '40', speed: '35', additives: '3% cross-linker 500 · 1.5% antitack' }
+      color: { mesh: '157/48', durometer: '70', angle: '15', strokes: '2', pressure: '40', speed: '35', additives: '' }
     };
   }
 
@@ -160,11 +160,16 @@
         ? 'blocker'
         : (type.includes('WHITE') || type.includes('WHITE_BASE') ? 'white' : 'color');
       const stationPreset = preset?.[presetKey] || preset?.color || {};
+      // FLASH y COOL son pasos de proceso: nunca deben heredar los aditivos de COLOR.
+      const isProcessStep = type === 'FLASH' || type === 'COOL';
+      const additives = isProcessStep
+        ? normalizeTextValue(item.additives, '')
+        : normalizeTextValue(item.additives, normalizeTextValue(stationPreset.additives, ''));
       stations.push({
         st: index + 1,
         screenLetter: item.screenLetter || '',
         screenCombined: item.val || item.nombre || type || '---',
-        add: normalizeTextValue(item.additives, normalizeTextValue(stationPreset.additives, '')),
+        add: additives,
         mesh: normalizeTextValue(item.mesh, normalizeTextValue(stationPreset.mesh || stationPreset.mesh1, '-')),
         strokes: normalizeTextValue(item.strokes, normalizeTextValue(stationPreset.strokes, '-')),
         angle: normalizeTextValue(item.angle, normalizeTextValue(stationPreset.angle, '-')),
