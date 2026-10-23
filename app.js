@@ -789,6 +789,7 @@ window.generarConAsistente = async function (placementId) {
             inkType: inkType,
             designColors: designColors,
             stage: document.getElementById('sample-type')?.value || '',
+            fabric: placement.fabric || document.getElementById('fabric')?.value || '',
             style: document.getElementById('style')?.value || '',
             pattern: document.getElementById('pattern')?.value || '',
             exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
@@ -1972,6 +1973,7 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     const sequence = window.RulesEngine.generarSecuencia({
         customer, garmentColor, inkType, designColors,
             stage: document.getElementById('sample-type')?.value || '',
+            fabric: placement.fabric || document.getElementById('fabric')?.value || '',
             style: document.getElementById('style')?.value || '',
             pattern: document.getElementById('pattern')?.value || '',
             exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
