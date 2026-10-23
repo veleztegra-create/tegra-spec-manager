@@ -162,6 +162,7 @@
       const stationPreset = preset?.[presetKey] || preset?.color || {};
       // FLASH y COOL son pasos de proceso: nunca deben heredar los aditivos de COLOR.
       const isProcessStep = type === 'FLASH' || type === 'COOL';
+      const isHotHead = type === 'HOT_HEAD';
       const additives = isProcessStep
         ? normalizeTextValue(item.additives, '')
         : normalizeTextValue(item.additives, normalizeTextValue(stationPreset.additives, ''));
@@ -170,7 +171,7 @@
         screenLetter: item.screenLetter || '',
         screenCombined: item.val || item.nombre || type || '---',
         add: additives,
-        mesh: normalizeTextValue(item.mesh, normalizeTextValue(stationPreset.mesh || stationPreset.mesh1, '-')),
+        mesh: isHotHead ? 'TEFLÓN' : normalizeTextValue(item.mesh, normalizeTextValue(stationPreset.mesh || stationPreset.mesh1, '-')),
         strokes: normalizeTextValue(item.strokes, normalizeTextValue(stationPreset.strokes, '-')),
         angle: normalizeTextValue(item.angle, normalizeTextValue(stationPreset.angle, '-')),
         pressure: normalizeTextValue(item.pressure, normalizeTextValue(stationPreset.pressure, '-')),
