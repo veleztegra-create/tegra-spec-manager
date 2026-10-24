@@ -2064,7 +2064,7 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
 
     const sequence = window.RulesEngine.generarSecuencia({
         customer, garmentColor, inkType, designColors,
-            stage: document.getElementById('sample-type')?.value || '',
+            stage: document.getElementById('sample-type')?.value || getStoredGeneralDataValue('sampleType', 'sample', 'stage'),
             fabric: placement.fabric || document.getElementById('fabric')?.value || '',
             style: document.getElementById('style')?.value || '',
             pattern: document.getElementById('pattern')?.value || '',
