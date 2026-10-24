@@ -4,7 +4,7 @@
         if (!style) return '';
 
         try {
-            const styleStr = style.toString().toUpperCase().trim();
+            const styleStr = style.toString().toUpperCase().trim().replace(/^PPF[-_\s]+/, '');
             const customerStr = String(customer || '').toUpperCase().trim();
 
             // Fanatics NFL jersey convention (ej: 67NM / 67NW, 31NM / 31NW)

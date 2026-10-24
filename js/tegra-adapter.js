@@ -287,6 +287,18 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            // El botón existente es la única vía de carga del Tech Pack.
+            // Reflejar su nombre en la ficha, sin pedir al usuario que lo seleccione dos veces.
+            const techPackName = document.getElementById('customer-techpack-name');
+            if (techPackName) {
+                techPackName.value = file.name;
+                techPackName.dispatchEvent(new Event('input', { bubbles: true }));
+                techPackName.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (window.Store?.state?.generalData) {
+                window.Store.state.generalData.customerTechpackName = file.name;
+            }
+
             showStatus('📄 Procesando Tech Pack...', 'info');
 
             try {

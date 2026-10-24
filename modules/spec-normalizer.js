@@ -1,7 +1,7 @@
 // spec-normalizer.js - compatibility boundary for legacy Spec documents
 (function (global) {
     const PRINT_COLOR_TYPES = new Set(['COLOR', 'METALLIC']);
-    const KNOWN_PRODUCTION_TYPES = new Set(['WHITE_BASE', 'BLOCKER', 'FLASH', 'COOL']);
+    const KNOWN_PRODUCTION_TYPES = new Set(['WHITE_BASE', 'BLOCKER', 'FLASH', 'COOL', 'HOT_HEAD']);
 
     function normalizedType(item) {
         return String(item?.type || item?.tipo || '').trim().toUpperCase();

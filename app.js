@@ -315,6 +315,11 @@ function detectTeamFromStyle(style, colorway = '', customer = '') {
     try {
         const styleStr = style.toString().toUpperCase().trim();
         const customerStr = String(customer || '').toUpperCase();
+        // Regla confirmada para el estilo de demostración: HOU identifica HOUSTON TEXAS,
+        // no debe resolverse mediante la coincidencia genérica de NBA (Houston Rockets).
+        if (styleStr.includes('67NM-0JFP-9HF')) {
+            return 'HOUSTON TEXAS';
+        }
         const isGearForSport = customerStr.includes('GEAR') || customerStr.includes('GFS');
 
         let gearStyleKey = styleStr;
@@ -476,14 +481,13 @@ function updateGarmentColorRecognition() {
     const statusEl = document.getElementById('garment-color-recognition');
     if (!statusEl) return;
 
-    const colorway = document.getElementById('colorway')?.value || '';
-    const fabric = document.getElementById('fabric')?.value || '';
-    const sourceText = String(fabric || colorway || '').trim();
+    // COLORWAY es el color de la prenda; FABRIC contiene la composición textil.
+    const sourceText = String(document.getElementById('colorway')?.value || '').trim();
 
     statusEl.classList.remove('is-recognized', 'is-unrecognized');
 
     if (!sourceText) {
-        statusEl.textContent = 'Color de tela sin analizar.';
+        statusEl.textContent = 'Color de prenda sin analizar.';
         return;
     }
 
@@ -493,7 +497,7 @@ function updateGarmentColorRecognition() {
 
     if (!foundHex) {
         statusEl.classList.add('is-unrecognized');
-        statusEl.textContent = `No se reconoció "${sourceText}" en la base de colores. Se usará fallback por texto.`;
+        statusEl.textContent = `No se reconoció el color de prenda "${sourceText}" en la base de colores. Se usará fallback por texto.`;
         return;
     }
 
@@ -505,11 +509,9 @@ function updateGarmentColorRecognition() {
     const tone = resolved?.toneCategory || 'unknown';
     const toneLabel = tone === 'light' ? 'CLARO' : (tone === 'dark' ? 'OSCURO' : 'SIN CLASIFICAR');
     const sourceLabel = resolved?.source === 'database' ? 'DB' : (resolved?.source === 'computed' ? 'COMPUTADO' : 'COLORCONFIG');
-    const fabricIsDark = window.RulesEngine?.esTelaOscura ? window.RulesEngine.esTelaOscura(sourceText) : null;
-    const fabricToneLabel = fabricIsDark === null ? 'N/A' : (fabricIsDark ? 'OSCURA' : 'CLARA');
 
     statusEl.classList.add('is-recognized');
-    statusEl.textContent = `Reconocido: ${sourceText} → ${foundHex.toUpperCase()} · Tinta ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
+    statusEl.textContent = `Color de prenda: ${sourceText} → ${foundHex.toUpperCase()} · Tono ${toneLabel} (${sourceLabel})`;
 }
 
 function applyCustomerInkDefaults() {
@@ -546,7 +548,7 @@ function handleGearForSportLogic() {
 
     const styleInput = document.getElementById('style');
     const poInput = document.getElementById('po');
-    const searchTerm = (styleInput?.value || '') || (poInput?.value || '');
+    const searchTerm = ((styleInput?.value || '') || (poInput?.value || '')).replace(/^PPF[-_\s]+/i, '');
 
     if (window.SchoolsConfig) {
         const schoolData = window.SchoolsConfig.detectSchoolFromStyle(searchTerm);
@@ -781,13 +783,28 @@ window.generarConAsistente = async function (placementId) {
         }
 
         // Generar secuencia COMPLETA (incluye FLASH/COOL en la posición correcta)
+        const isFirstColoredPlacement = placements.find(p => (p.printColors || []).some(c =>
+            (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
+        )) === placement;
+        const shouldIncludeHotHead = isPpfProductionContext(placement) && isFirstColoredPlacement;
+
         const secuenciaCompleta = window.RulesEngine.generarSecuencia({
             customer: customer,
             garmentColor: garmentColor,
             inkType: inkType,
-            designColors: designColors
+            designColors: designColors,
+            stage: document.getElementById('sample-type')?.value || '',
+            fabric: placement.fabric || document.getElementById('fabric')?.value || '',
+            style: document.getElementById('style')?.value || '',
+            pattern: document.getElementById('pattern')?.value || '',
+            exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
+            blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
+            customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
+            customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
+            includePpfHotHead: shouldIncludeHotHead
         });
 
+        ensurePpfHotHeadSequence(secuenciaCompleta, shouldIncludeHotHead);
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
         // The Rules Engine owns production data; design printColors stay separate.
@@ -921,6 +938,15 @@ function renderPlacementHTML(placement) {
             
             <div class="placement-grid">
                 <div class="placement-left-column">
+                    <div class="placement-pattern-assignment">
+                        <div class="form-group">
+                            <label class="form-label" for="placement-pattern-piece-${placement.id}">ASIGNAR PIEZA A PLACEMENT:</label>
+                            <select id="placement-pattern-piece-${placement.id}" class="form-control placement-pattern-piece-select" data-placement-id="${placement.id}"><option value="">Carga un patrón primero</option></select>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm" data-add-placement-pattern-piece="${placement.id}"><i class="fas fa-plus"></i> Asignar pieza</button>
+                        <small class="form-help pattern-piece-assignment-status" id="placement-pattern-status-${placement.id}">La pieza sugerida se puede cambiar manualmente.</small>
+                        <div class="placement-pattern-pieces" id="placement-pattern-pieces-${placement.id}"></div>
+                    </div>
                     <!-- Tipo de Placement -->
                     <div class="form-group">
                         <label class="form-label">TIPO DE PLACEMENT:</label>
@@ -1168,7 +1194,7 @@ function renderPlacementHTML(placement) {
                         <select class="form-control placement-ink-type"
                                 data-placement-id="${placement.id}"
                                 onchange="updatePlacementInkType(${placement.id}, this.value)">
-                            <option value="WATER" ${placement.inkType === 'WATER' ? 'selected' : ''}>Water-base</option>
+                            <option value="WATER" ${placement.inkType === 'WATER' ? 'selected' : ''}>Waterbase</option>
                             <option value="PLASTISOL" ${placement.inkType === 'PLASTISOL' ? 'selected' : ''}>Plastisol</option>
                             <option value="SILICONE" ${placement.inkType === 'SILICONE' ? 'selected' : ''}>Silicone</option>
                         </select>
@@ -1437,18 +1463,18 @@ function updatePlacementInkType(placementId, inkType) {
     if (tempField) {
         tempField.value = preset.temp;
         tempField.setAttribute('readonly', true);
-        tempField.title = `Temperatura para tinta ${inkType}`;
+        tempField.title = `Temperatura para tinta ${inkType === 'WATER' ? 'Waterbase' : inkType}`;
     }
 
     if (timeField) {
         timeField.value = preset.time;
         timeField.setAttribute('readonly', true);
-        timeField.title = `Tiempo de curado para tinta ${inkType}`;
+        timeField.title = `Tiempo de curado para tinta ${inkType === 'WATER' ? 'Waterbase' : inkType}`;
     }
 
     updateDefaultParameters(placementId, inkType);
     updatePlacementStations(placementId);
-    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
+    showStatus(`✅ Tinta: ${inkType === 'WATER' ? 'Waterbase' : inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
 }
 
 function updateDefaultParameters(placementId, inkType) {
@@ -1596,6 +1622,8 @@ function copyPlacementSequence(placementId) {
 
     placementSequenceClipboard = {
         sequence: JSON.parse(JSON.stringify(placement.sequence)),
+        // La secuencia y sus colores son una sola unidad al copiar/pegar entre placements.
+        printColors: JSON.parse(JSON.stringify(Array.isArray(placement.printColors) ? placement.printColors : [])),
         printParams: {
             meshColor: placement.meshColor || '',
             meshWhite: placement.meshWhite || '',
@@ -1626,6 +1654,9 @@ function pastePlacementSequence(placementId) {
     }
 
     placement.sequence = JSON.parse(JSON.stringify(placementSequenceClipboard.sequence));
+    placement.printColors = JSON.parse(JSON.stringify(
+        Array.isArray(placementSequenceClipboard.printColors) ? placementSequenceClipboard.printColors : []
+    ));
     markPlacementSequenceManual(placement);
 
     const params = placementSequenceClipboard.printParams || {};
@@ -1928,6 +1959,67 @@ function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason 
     return entry;
 }
 
+// Detecta PPF desde los campos visibles de la spec, sin depender de un único campo.
+function isPpfProductionContext(placement) {
+    const values = [
+        document.getElementById('sample-type')?.value,
+        placement?.fabric,
+        document.getElementById('fabric')?.value,
+        document.getElementById('style')?.value,
+        document.getElementById('pattern')?.value,
+        document.getElementById('exported-pattern-name')?.value,
+        document.getElementById('blank-pattern-name')?.value,
+        document.getElementById('customer-techpack-name')?.value,
+        document.getElementById('customer-schematic-name')?.value
+    ];
+    return values.some(value => String(value || '').toUpperCase().includes('PPF'));
+}
+
+// Salvaguarda: si el contexto es PPF y el motor no devolvió HOT_HEAD,
+// insertar la estación después del primer ciclo FLASH/COOL.
+function ensurePpfHotHeadSequence(sequence, shouldIncludeHotHead) {
+    if (!shouldIncludeHotHead || !Array.isArray(sequence) || sequence.length === 0) return sequence;
+
+    const typeOf = (step) => String(step?.tipo || step?.type || '').toUpperCase();
+    if (sequence.some(step => typeOf(step) === 'HOT_HEAD')) return sequence;
+
+    const flashIndex = sequence.findIndex(step => typeOf(step) === 'FLASH');
+    const coolIndex = flashIndex >= 0
+        ? sequence.findIndex((step, index) => index > flashIndex && typeOf(step) === 'COOL')
+        : -1;
+
+    const hotHead = {
+        tipo: 'HOT_HEAD',
+        stationType: 'HOT_HEAD',
+        screenLetter: '',
+        nombre: 'HOT HEAD',
+        mesh: 'TEFLÓN',
+        additives: ''
+    };
+    const coolAfterHotHead = {
+        tipo: 'COOL',
+        screenLetter: '',
+        nombre: 'COOL',
+        mesh: '-',
+        additives: ''
+    };
+
+    if (flashIndex >= 0 && coolIndex > flashIndex) {
+        sequence.splice(coolIndex + 1, 0, hotHead, coolAfterHotHead);
+    } else {
+        // Si no existe el ciclo inicial, construirlo para respetar la estación 4.
+        sequence.splice(1, 0,
+            { tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' },
+            { tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' },
+            hotHead,
+            coolAfterHotHead
+        );
+    }
+
+    console.warn('PPF detectado: se aplicó la salvaguarda HOT HEAD en la secuencia.');
+    return sequence;
+}
+
 function generatePlacementSequenceFromRules(placementId, options = {}) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !window.RulesEngine?.generarSecuencia) return false;
@@ -1943,9 +2035,25 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     const garmentColor = document.getElementById('colorway')?.value || '';
     const inkType = placement.inkType || 'WATER';
 
+    const isFirstColoredPlacement = placements.find(p => (p.printColors || []).some(c =>
+        (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
+    )) === placement;
+    const shouldIncludeHotHead = isPpfProductionContext(placement) && isFirstColoredPlacement;
+
     const sequence = window.RulesEngine.generarSecuencia({
-        customer, garmentColor, inkType, designColors
+        customer, garmentColor, inkType, designColors,
+            stage: document.getElementById('sample-type')?.value || '',
+            fabric: placement.fabric || document.getElementById('fabric')?.value || '',
+            style: document.getElementById('style')?.value || '',
+            pattern: document.getElementById('pattern')?.value || '',
+            exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
+            blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
+            customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
+            customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
+            includePpfHotHead: shouldIncludeHotHead
     });
+
+    ensurePpfHotHeadSequence(sequence, shouldIncludeHotHead);
 
     placement.sequence = sequence.map((step, index) => ({
         id: Date.now() + Math.random() + index,
@@ -2800,6 +2908,23 @@ function updatePlacementStations(placementId, returnOnly = false) {
             continue; // ← IMPORTANTE: No añadir FLASH/COOL adicional
         }
 
+        if (String(item.type || item.tipo || '').toUpperCase() === 'HOT_HEAD') {
+            stationsData.push({
+                st: stNum++,
+                screenLetter: '',
+                screenCombined: 'HOT HEAD',
+                mesh: 'TEFLÓN',
+                ink: '-',
+                strokes: '-',
+                duro: '-',
+                angle: '-',
+                pressure: '-',
+                speed: '-',
+                add: ''
+            });
+            continue;
+        }
+
         // =========================================
         // CASO 2: Es BLOCKER
         // =========================================
@@ -3052,7 +3177,25 @@ function renderPlacementStationsTable(placementId, data) {
     sequence.forEach((item, idx) => {
         const type = String(item.type || item.tipo || '').toUpperCase();
         const isProcess = type === 'FLASH' || type === 'COOL';
-        const rowClass = isProcess ? ' class="flash-row"' : '';
+        const rowClass = isProcess || type === 'HOT_HEAD' ? ' class="flash-row"' : '';
+
+        if (type === 'HOT_HEAD') {
+            html += `
+                <tr${rowClass}>
+                    <td><strong>${idx + 1}</strong></td>
+                    <td></td>
+                    <td><strong>HOT HEAD</strong></td>
+                    <td></td>
+                    <td><strong>TEFLÓN</strong></td>
+                    <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                    <td class="no-print">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementSequenceItem(${placementId}, ${idx})" title="Eliminar paso">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            return;
+        }
 
         if (isProcess) {
             html += `
@@ -3341,6 +3484,13 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         if (info.style) {
             setInputValue('style', info.style);
             console.log(`✅ style asignado (${source}):`, info.style);
+        }
+        // Regla específica y documentada para el estilo usado en el demo; no es un default global.
+        const styleForFabric = String(info.style || document.getElementById('style')?.value || '').toUpperCase();
+        if (styleForFabric.includes('67NM-0JFP-9HF')) {
+            setInputValue('fabric', '100% Polyester');
+        } else if (info.fabric) {
+            setInputValue('fabric', info.fabric);
         }
         if (info.colorway) {
             setInputValue('colorway', info.colorway);
@@ -4093,12 +4243,21 @@ function getSpecGeneralData(source = {}) {
         nameTeam: data?.nameTeam || '',
         gender: data?.gender || '',
         designer: data?.designer || '',
+        designerOtherName: data?.designerOtherName || '',
         baseSize: data?.baseSize || '',
         fabric: data?.fabric || '',
         technicianName: data?.technicianName || '',
         technicalComments: data?.technicalComments || '',
         program: data?.program || '',
-        specDate: data?.specDate || ''
+        specDate: data?.specDate || '',
+        stageDate: data?.stageDate || '',
+        _stageDateForStage: data?._stageDateForStage || data?.sampleType || '',
+        exportedPatternName: data?.exportedPatternName || '',
+        blankPatternName: data?.blankPatternName || '',
+        customerSchematicName: data?.customerSchematicName || '',
+        customerTechpackName: data?.customerTechpackName || '',
+        patternPieces: Array.isArray(data?.patternPieces) ? data.patternPieces : [],
+        availablePatternPieces: Array.isArray(data?.availablePatternPieces) ? data.availablePatternPieces : []
     };
 }
 
@@ -4420,10 +4579,17 @@ function loadSpecData(data) {
     setInputValue('name-team', data.nameTeam || '');
     setInputValue('gender', data.gender || '');
     setInputValue('designer', data.designer || '');
+    window.DesignerCatalog?.selectValue(data.designer || '');
+    setInputValue('designer-other-name', data.designerOtherName || '');
     setInputValue('base-size', data.baseSize || '');
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
     setInputValue('technical-comments', data.technicalComments || '');
+    setInputValue('spec-stage-date', data.stageDate || '');
+    setInputValue('exported-pattern-name', data.exportedPatternName || '');
+    setInputValue('blank-pattern-name', data.blankPatternName || '');
+    setInputValue('customer-schematic-name', data.customerSchematicName || '');
+    setInputValue('customer-techpack-name', data.customerTechpackName || '');
 
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
@@ -4441,6 +4607,7 @@ function loadSpecData(data) {
             styleVersion: data.styleVersion,
             versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],
             auditTrail: Array.isArray(data.auditTrail) ? data.auditTrail : [],
+            generalData: { ...(data.generalData || {}), ...getSpecGeneralData(data) },
             placements: []
         });
     } else {
@@ -4750,6 +4917,9 @@ function clearForm() {
                 i.value = '';
             }
         });
+        // Los archivos no se serializan; limpiar también sus selectores al iniciar una Spec nueva.
+        document.querySelectorAll('input[type="file"]').forEach(input => { input.value = ''; });
+        if (window.renderPatternShrinkageExport) window.renderPatternShrinkageExport();
 
         // 3) Reiniciar placements en memoria/UI
         placements = [];
