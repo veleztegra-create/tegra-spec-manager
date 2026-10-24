@@ -783,6 +783,11 @@ window.generarConAsistente = async function (placementId) {
         }
 
         // Generar secuencia COMPLETA (incluye FLASH/COOL en la posición correcta)
+        const isFirstColoredPlacement = placements.find(p => (p.printColors || []).some(c =>
+            (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
+        )) === placement;
+        const shouldIncludeHotHead = isPpfProductionContext(placement) && isFirstColoredPlacement;
+
         const secuenciaCompleta = window.RulesEngine.generarSecuencia({
             customer: customer,
             garmentColor: garmentColor,
@@ -796,11 +801,10 @@ window.generarConAsistente = async function (placementId) {
             blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
             customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
             customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
-            includePpfHotHead: placements.find(p => (p.printColors || []).some(c =>
-                (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
-            )) === placement
+            includePpfHotHead: shouldIncludeHotHead
         });
 
+        ensurePpfHotHeadSequence(secuenciaCompleta, shouldIncludeHotHead);
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
         // The Rules Engine owns production data; design printColors stay separate.
@@ -1955,6 +1959,67 @@ function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason 
     return entry;
 }
 
+// Detecta PPF desde los campos visibles de la spec, sin depender de un único campo.
+function isPpfProductionContext(placement) {
+    const values = [
+        document.getElementById('sample-type')?.value,
+        placement?.fabric,
+        document.getElementById('fabric')?.value,
+        document.getElementById('style')?.value,
+        document.getElementById('pattern')?.value,
+        document.getElementById('exported-pattern-name')?.value,
+        document.getElementById('blank-pattern-name')?.value,
+        document.getElementById('customer-techpack-name')?.value,
+        document.getElementById('customer-schematic-name')?.value
+    ];
+    return values.some(value => String(value || '').toUpperCase().includes('PPF'));
+}
+
+// Salvaguarda: si el contexto es PPF y el motor no devolvió HOT_HEAD,
+// insertar la estación después del primer ciclo FLASH/COOL.
+function ensurePpfHotHeadSequence(sequence, shouldIncludeHotHead) {
+    if (!shouldIncludeHotHead || !Array.isArray(sequence) || sequence.length === 0) return sequence;
+
+    const typeOf = (step) => String(step?.tipo || step?.type || '').toUpperCase();
+    if (sequence.some(step => typeOf(step) === 'HOT_HEAD')) return sequence;
+
+    const flashIndex = sequence.findIndex(step => typeOf(step) === 'FLASH');
+    const coolIndex = flashIndex >= 0
+        ? sequence.findIndex((step, index) => index > flashIndex && typeOf(step) === 'COOL')
+        : -1;
+
+    const hotHead = {
+        tipo: 'HOT_HEAD',
+        stationType: 'HOT_HEAD',
+        screenLetter: '',
+        nombre: 'HOT HEAD',
+        mesh: 'TEFLÓN',
+        additives: ''
+    };
+    const coolAfterHotHead = {
+        tipo: 'COOL',
+        screenLetter: '',
+        nombre: 'COOL',
+        mesh: '-',
+        additives: ''
+    };
+
+    if (flashIndex >= 0 && coolIndex > flashIndex) {
+        sequence.splice(coolIndex + 1, 0, hotHead, coolAfterHotHead);
+    } else {
+        // Si no existe el ciclo inicial, construirlo para respetar la estación 4.
+        sequence.splice(1, 0,
+            { tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' },
+            { tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' },
+            hotHead,
+            coolAfterHotHead
+        );
+    }
+
+    console.warn('PPF detectado: se aplicó la salvaguarda HOT HEAD en la secuencia.');
+    return sequence;
+}
+
 function generatePlacementSequenceFromRules(placementId, options = {}) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement || !window.RulesEngine?.generarSecuencia) return false;
@@ -1970,6 +2035,11 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     const garmentColor = document.getElementById('colorway')?.value || '';
     const inkType = placement.inkType || 'WATER';
 
+    const isFirstColoredPlacement = placements.find(p => (p.printColors || []).some(c =>
+        (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
+    )) === placement;
+    const shouldIncludeHotHead = isPpfProductionContext(placement) && isFirstColoredPlacement;
+
     const sequence = window.RulesEngine.generarSecuencia({
         customer, garmentColor, inkType, designColors,
             stage: document.getElementById('sample-type')?.value || '',
@@ -1980,10 +2050,10 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
             blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
             customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
             customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
-            includePpfHotHead: placements.find(p => (p.printColors || []).some(c =>
-                (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
-            )) === placement
+            includePpfHotHead: shouldIncludeHotHead
     });
+
+    ensurePpfHotHeadSequence(sequence, shouldIncludeHotHead);
 
     placement.sequence = sequence.map((step, index) => ({
         id: Date.now() + Math.random() + index,
