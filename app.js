@@ -793,7 +793,7 @@ window.generarConAsistente = async function (placementId) {
             garmentColor: garmentColor,
             inkType: inkType,
             designColors: designColors,
-            stage: document.getElementById('sample-type')?.value || '',
+            stage: document.getElementById('sample-type')?.value || getStoredGeneralDataValue('sampleType', 'sample', 'stage'),
             fabric: placement.fabric || document.getElementById('fabric')?.value || '',
             style: document.getElementById('style')?.value || '',
             pattern: document.getElementById('pattern')?.value || '',
@@ -1959,14 +1959,36 @@ function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason 
     return entry;
 }
 
-// Detecta PPF desde los campos visibles de la spec, sin depender de un único campo.
+// Lee primero los campos visibles y usa Store como respaldo cuando un <select>
+// no tenga una opción equivalente al valor importado (por ejemplo, "QRS PPF").
+function getStoredGeneralDataValue(...keys) {
+    const state = window.Store?.getState?.() || window.Store?.state || {};
+    const generalData = state.generalData || {};
+
+    for (const key of keys) {
+        const value = generalData[key] ?? state[key];
+        if (value != null && String(value).trim()) return value;
+    }
+
+    return '';
+}
+
+// Detecta PPF desde la UI y el estado importado de la spec.
 function isPpfProductionContext(placement) {
+    const state = window.Store?.getState?.() || window.Store?.state || {};
+    const generalData = state.generalData || {};
     const values = [
         document.getElementById('sample-type')?.value,
+        getStoredGeneralDataValue('sampleType', 'sample', 'stage'),
+        placement?.sampleType,
+        placement?.sample,
         placement?.fabric,
         document.getElementById('fabric')?.value,
+        generalData.fabric,
         document.getElementById('style')?.value,
+        generalData.style,
         document.getElementById('pattern')?.value,
+        generalData.pattern,
         document.getElementById('exported-pattern-name')?.value,
         document.getElementById('blank-pattern-name')?.value,
         document.getElementById('customer-techpack-name')?.value,
