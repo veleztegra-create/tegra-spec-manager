@@ -782,29 +782,19 @@ window.generarConAsistente = async function (placementId) {
             throw new Error('Motor de reglas no disponible');
         }
 
-        // Generar secuencia COMPLETA (incluye FLASH/COOL en la posición correcta)
+        // Generar secuencia base (FLASH/COOL incluidos) y luego aplicar las reglas
+        // declarativas de rules/sequence-rules.js (PPF/HOT HEAD, etc.)
         const isFirstColoredPlacement = placements.find(p => (p.printColors || []).some(c =>
             (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
         )) === placement;
-        const shouldIncludeHotHead = isPpfProductionContext(placement) && isFirstColoredPlacement;
 
-        const secuenciaCompleta = window.RulesEngine.generarSecuencia({
+        const secuenciaCompleta = applySequenceRules(placement, window.RulesEngine.generarSecuencia({
             customer: customer,
             garmentColor: garmentColor,
             inkType: inkType,
-            designColors: designColors,
-            stage: document.getElementById('sample-type')?.value || getStoredGeneralDataValue('sampleType', 'sample', 'stage'),
-            fabric: placement.fabric || document.getElementById('fabric')?.value || '',
-            style: document.getElementById('style')?.value || '',
-            pattern: document.getElementById('pattern')?.value || '',
-            exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
-            blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
-            customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
-            customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
-            includePpfHotHead: shouldIncludeHotHead
-        });
+            designColors: designColors
+        }), { customer, garmentColor, inkType, isFirstColoredPlacement });
 
-        ensurePpfHotHeadSequence(secuenciaCompleta, shouldIncludeHotHead);
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
         // The Rules Engine owns production data; design printColors stay separate.
@@ -1973,73 +1963,86 @@ function getStoredGeneralDataValue(...keys) {
     return '';
 }
 
-// Detecta PPF desde la UI y el estado importado de la spec.
-function isPpfProductionContext(placement) {
+// Reúne TODOS los textos cargados (inputs visibles, Store, SWO, placement) para que las
+// reglas de rules/sequence-rules.js puedan buscar en cualquiera de ellos.
+function buildSequenceRuleContext(placement, base = {}) {
     const state = window.Store?.getState?.() || window.Store?.state || {};
-    const generalData = state.generalData || {};
-    const values = [
-        document.getElementById('sample-type')?.value,
-        getStoredGeneralDataValue('sampleType', 'sample', 'stage'),
-        placement?.sampleType,
-        placement?.sample,
-        placement?.fabric,
-        document.getElementById('fabric')?.value,
-        generalData.fabric,
-        document.getElementById('style')?.value,
-        generalData.style,
-        document.getElementById('pattern')?.value,
-        generalData.pattern,
-        document.getElementById('exported-pattern-name')?.value,
-        document.getElementById('blank-pattern-name')?.value,
-        document.getElementById('customer-techpack-name')?.value,
-        document.getElementById('customer-schematic-name')?.value
-    ];
-    return values.some(value => String(value || '').toUpperCase().includes('PPF'));
+    const SR = window.SequenceRules;
+    const settings = SR.getSettings();
+    const textos = [];
+    const push = (campo, valor) => {
+        const t = String(valor ?? '').trim();
+        if (t) textos.push({ campo, valor: t });
+    };
+
+    [
+        'sample-type', 'style', 'pattern', 'fabric', 'po', 'name-team', 'season', 'colorway',
+        'customer', 'program', 'exported-pattern-name', 'blank-pattern-name',
+        'customer-techpack-name', 'customer-schematic-name'
+    ].forEach(id => push(`input#${id}`, document.getElementById(id)?.value));
+
+    textos.push(...SR.scanData(state.generalData, 'generalData', settings));
+    textos.push(...SR.scanData(state.styleVersion, 'styleVersion', settings));
+    if (state.styleVersion?.stage?.isPPF === true) push('styleVersion.stage.isPPF', 'PPF');
+    textos.push(...SR.scanData(placement, 'placement', settings));
+
+    return {
+        textos,
+        customer: base.customer || '',
+        garmentColor: base.garmentColor || '',
+        inkType: base.inkType || 'WATER',
+        isDarkFabric: window.RulesEngine?.esTelaOscura ? window.RulesEngine.esTelaOscura(base.garmentColor) : false,
+        isFirstColoredPlacement: Boolean(base.isFirstColoredPlacement)
+    };
 }
 
-// Salvaguarda: si el contexto es PPF y el motor no devolvió HOT_HEAD,
-// insertar la estación después del primer ciclo FLASH/COOL.
-function ensurePpfHotHeadSequence(sequence, shouldIncludeHotHead) {
-    if (!shouldIncludeHotHead || !Array.isArray(sequence) || sequence.length === 0) return sequence;
+// Aplica las reglas declarativas a una secuencia ya generada por RulesEngine.
+function applySequenceRules(placement, sequence, base = {}) {
+    if (!window.SequenceRules?.apply || !Array.isArray(sequence)) return sequence;
 
-    const typeOf = (step) => String(step?.tipo || step?.type || '').toUpperCase();
-    if (sequence.some(step => typeOf(step) === 'HOT_HEAD')) return sequence;
+    const ctx = buildSequenceRuleContext(placement, base);
+    const result = window.SequenceRules.apply(sequence, ctx);
 
-    const flashIndex = sequence.findIndex(step => typeOf(step) === 'FLASH');
-    const coolIndex = flashIndex >= 0
-        ? sequence.findIndex((step, index) => index > flashIndex && typeOf(step) === 'COOL')
-        : -1;
+    result.aplicadas.forEach(r => {
+        console.log(`🧩 SequenceRules: regla "${r.id}" aplicada. Evidencia:`, r.evidencia);
+    });
+    result.descartadas.forEach(r => {
+        console.log(`🧩 SequenceRules: regla "${r.id}" no aplicó → ${r.motivo}`);
+    });
+    return result.sequence;
+}
 
-    const hotHead = {
-        tipo: 'HOT_HEAD',
-        stationType: 'HOT_HEAD',
-        screenLetter: '',
-        nombre: 'HOT HEAD',
-        mesh: 'TEFLÓN',
-        additives: ''
-    };
-    const coolAfterHotHead = {
-        tipo: 'COOL',
-        screenLetter: '',
-        nombre: 'COOL',
-        mesh: '-',
-        additives: ''
-    };
+// Regenera las secuencias en modo AUTO (las MANUAL no se tocan nunca).
+function refreshAutoSequences() {
+    if (!Array.isArray(placements) || !window.RulesEngine?.generarSecuencia) return 0;
+    let count = 0;
+    placements.forEach(p => {
+        if (p.sequenceMode === 'MANUAL') return;
+        try {
+            if (generatePlacementSequenceFromRules(p.id, { silent: true })) {
+                updatePlacementStations(p.id);
+                updatePlacementColorsPreview(p.id);
+                count += 1;
+            }
+        } catch (error) {
+            console.warn('No se pudo refrescar la secuencia automática:', error);
+        }
+    });
+    return count;
+}
 
-    if (flashIndex >= 0 && coolIndex > flashIndex) {
-        sequence.splice(coolIndex + 1, 0, hotHead, coolAfterHotHead);
-    } else {
-        // Si no existe el ciclo inicial, construirlo para respetar la estación 4.
-        sequence.splice(1, 0,
-            { tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' },
-            { tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' },
-            hotHead,
-            coolAfterHotHead
-        );
-    }
-
-    console.warn('PPF detectado: se aplicó la salvaguarda HOT HEAD en la secuencia.');
-    return sequence;
+// Si cambia un dato que las reglas pueden leer (p. ej. Sample Type = "QRS PPF"),
+// las secuencias AUTO se recalculan para que la regla aplique sin tocar nada más.
+function setupSequenceRuleRefreshListeners() {
+    [
+        'sample-type', 'style', 'pattern', 'fabric', 'po', 'name-team', 'customer', 'colorway',
+        'exported-pattern-name', 'blank-pattern-name', 'customer-techpack-name', 'customer-schematic-name'
+    ].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.seqRulesBound === '1') return;
+        el.dataset.seqRulesBound = '1';
+        el.addEventListener('change', () => refreshAutoSequences());
+    });
 }
 
 function generatePlacementSequenceFromRules(placementId, options = {}) {
@@ -2060,22 +2063,10 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     const isFirstColoredPlacement = placements.find(p => (p.printColors || []).some(c =>
         (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
     )) === placement;
-    const shouldIncludeHotHead = isPpfProductionContext(placement) && isFirstColoredPlacement;
 
-    const sequence = window.RulesEngine.generarSecuencia({
-        customer, garmentColor, inkType, designColors,
-            stage: document.getElementById('sample-type')?.value || getStoredGeneralDataValue('sampleType', 'sample', 'stage'),
-            fabric: placement.fabric || document.getElementById('fabric')?.value || '',
-            style: document.getElementById('style')?.value || '',
-            pattern: document.getElementById('pattern')?.value || '',
-            exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
-            blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
-            customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
-            customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
-            includePpfHotHead: shouldIncludeHotHead
-    });
-
-    ensurePpfHotHeadSequence(sequence, shouldIncludeHotHead);
+    const sequence = applySequenceRules(placement, window.RulesEngine.generarSecuencia({
+        customer, garmentColor, inkType, designColors
+    }), { customer, garmentColor, inkType, isFirstColoredPlacement });
 
     placement.sequence = sequence.map((step, index) => ({
         id: Date.now() + Math.random() + index,
@@ -3562,6 +3553,10 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     } else {
         console.warn('⚠️ ExcelAutomation no disponible');
     }
+
+    // Con los datos de la SWO ya cargados, recalcular secuencias AUTO (reglas como PPF).
+    setupSequenceRuleRefreshListeners();
+    refreshAutoSequences();
 
     // --- 4. ACTUALIZAR LOGOS Y OTRAS FUNCIONES ---
     updateClientLogo();
@@ -5426,6 +5421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadSavedSpecsList({ maxRetries: 10 });
             setupPasteHandler();
             setupExcelImportHandler();
+            setupSequenceRuleRefreshListeners();
             loadThemePreference();
             bindSpecCreatorFormSafety();
             initDashboardPaletteExtractor();
