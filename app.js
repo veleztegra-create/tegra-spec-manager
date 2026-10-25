@@ -2251,6 +2251,16 @@ function addPlacementColorItem(placementId, type) {
         placement.sequence.push(item);
         markPlacementSequenceManual(placement);
     } else {
+        if (type === 'SPECIAL_EFFECT' && placement.sequenceMode !== 'MANUAL' &&
+            (!Array.isArray(placement.sequence) || placement.sequence.length === 0) &&
+            placement.printColors.some(c => ['COLOR', 'METALLIC'].includes(String(c.type || '').toUpperCase()) && String(c.val || '').trim())) {
+            try {
+                generatePlacementSequenceFromRules(placementId, { silent: true });
+            } catch (error) {
+                console.warn('No se pudo preparar la secuencia antes de agregar el efecto especial:', error);
+            }
+        }
+
         placement.printColors.push(item);
 
         if (type === 'SPECIAL_EFFECT') {
@@ -2935,7 +2945,7 @@ function updatePlacementColorsPreview(placementId) {
     const seenColors = new Set();
 
     placement.printColors.forEach(color => {
-        if (color.type === 'COLOR' || color.type === 'METALLIC') {
+        if (color.type === 'COLOR' || color.type === 'METALLIC' || color.type === 'SPECIAL_EFFECT') {
             const colorVal = (color.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
             if (colorVal && !seenColors.has(colorVal)) {
                 seenColors.add(colorVal);
