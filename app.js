@@ -1218,8 +1218,17 @@ function renderPlacementHTML(placement) {
                                 <button type="button" class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
                                     <i class="fas fa-plus"></i> Color
                                 </button>
-                                <button type="button" class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')">
-                                    <i class="fas fa-star"></i> Metálico
+                                <button type="button" class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'SPECIAL_EFFECT')">
+                                    <i class="fas fa-wand-magic-sparkles"></i> Special Effect
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'COOL')">
+                                    <i class="fas fa-snowflake"></i> Cool
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'FLASH')">
+                                    <i class="fas fa-bolt"></i> FLASH
+                                </button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'HOT_HEAD')">
+                                    <i class="fas fa-temperature-high"></i> HOT HEAD
                                 </button>
                             </div>
                             <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
@@ -2109,6 +2118,89 @@ function syncPlacementSequenceWithColors(placement, force = false) {
     if (!Array.isArray(placement.sequence)) placement.sequence = [];
 }
 
+function getNextSpecialEffectLetter(placement) {
+    const used = new Set();
+    const collect = (items) => (items || []).forEach((item) => {
+        const letter = String(item.screenLetter || '').trim().toUpperCase();
+        if (/^[A-Z]$/.test(letter)) used.add(letter);
+    });
+
+    collect(placement?.printColors);
+    collect(placement?.sequence);
+
+    // Los efectos especiales usan letras desde Z hacia atrás y no pisan letras ocupadas.
+    for (const letter of 'ZYXWVUTSRQPONMLKJIHGFEDCBA') {
+        if (!used.has(letter)) return letter;
+    }
+    showStatus('⚠️ Ya no quedan letras disponibles para otro efecto especial.', 'warning');
+    return '';
+}
+
+function addManualProductionStation(placementId, stationType) {
+    if (!guardSpecSequenceEdit()) return;
+
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+
+    const type = String(stationType || '').toUpperCase();
+    if (!['COOL', 'FLASH', 'HOT_HEAD'].includes(type)) return;
+    if (!Array.isArray(placement.sequence)) placement.sequence = [];
+
+    // Si todavía no hay secuencia, intenta conservar la propuesta automática existente.
+    if (placement.sequence.length === 0 && placement.printColors?.some(c =>
+        ['COLOR', 'METALLIC', 'SPECIAL_EFFECT'].includes(String(c.type || '').toUpperCase()) &&
+        String(c.val || '').trim()
+    )) {
+        try {
+            generatePlacementSequenceFromRules(placementId, { silent: true });
+        } catch (error) {
+            console.warn('No se pudo preparar la secuencia antes de editar estaciones:', error);
+        }
+    }
+
+    const step = {
+        id: Date.now() + Math.random(),
+        type,
+        screenLetter: '',
+        val: type === 'HOT_HEAD' ? 'HOT HEAD' : type,
+        mesh: type === 'HOT_HEAD' ? 'TEFLÓN' : '-',
+        additives: ''
+    };
+    const sequence = placement.sequence;
+
+    if (type === 'HOT_HEAD') {
+        // Posición habitual: después del primer ciclo FLASH/COOL.
+        const firstFlash = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'FLASH');
+        const firstCoolAfterFlash = firstFlash >= 0
+            ? sequence.findIndex((item, index) => index > firstFlash && String(item.type || item.tipo || '').toUpperCase() === 'COOL')
+            : -1;
+        if (firstCoolAfterFlash >= 0) sequence.splice(firstCoolAfterFlash + 1, 0, step);
+        else sequence.push(step);
+    } else if (type === 'COOL') {
+        const hotHeadIndex = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'HOT_HEAD');
+        if (hotHeadIndex >= 0 &&
+            String(sequence[hotHeadIndex + 1]?.type || sequence[hotHeadIndex + 1]?.tipo || '').toUpperCase() !== 'COOL') {
+            sequence.splice(hotHeadIndex + 1, 0, step);
+        } else {
+            const firstFlash = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'FLASH');
+            const coolAfterFlash = firstFlash >= 0
+                ? sequence.findIndex((item, index) => index > firstFlash && String(item.type || item.tipo || '').toUpperCase() === 'COOL')
+                : -1;
+            if (firstFlash >= 0 && coolAfterFlash < 0) sequence.splice(firstFlash + 1, 0, step);
+            else sequence.push(step);
+        }
+    } else {
+        const firstCool = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'COOL');
+        if (firstCool >= 0) sequence.splice(firstCool, 0, step);
+        else sequence.push(step);
+    }
+
+    markPlacementSequenceManual(placement);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    console.info(`Estación manual agregada: ${type}`, { placementId, sequence: placement.sequence });
+}
+
 function addPlacementColorItem(placementId, type) {
     if (!guardSpecSequenceEdit()) return;
 
@@ -2131,6 +2223,10 @@ function addPlacementColorItem(placementId, type) {
     } else if (type === 'WHITE_BASE') {
         initialLetter = 'B';
         initialVal = preset.white?.name || 'AQUAFLEX V2 WHITE';
+    } else if (type === 'SPECIAL_EFFECT') {
+        initialLetter = getNextSpecialEffectLetter(placement);
+        initialVal = 'GEL';
+        if (!initialLetter) return;
     } else if (type === 'METALLIC') {
         const colorItems = placement.printColors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
         initialLetter = String(colorItems.length + 1);
@@ -2143,11 +2239,11 @@ function addPlacementColorItem(placementId, type) {
     const colorId = Date.now() + Math.random();
     const item = {
         id: colorId,
-        type: type,
+        type,
         screenLetter: initialLetter,
         val: initialVal,
-        mesh: null,
-        additives: null
+        mesh: type === 'SPECIAL_EFFECT' ? '' : null,
+        additives: ''
     };
 
     if (type === 'WHITE_BASE' || type === 'BLOCKER' || type === 'FLASH' || type === 'COOL') {
@@ -2157,20 +2253,29 @@ function addPlacementColorItem(placementId, type) {
     } else {
         placement.printColors.push(item);
 
-        if (placement.sequenceMode === 'MANUAL') {
-            // Manual mode: keep the existing production route intact and add
-            // the newly requested print color as one explicit production screen.
+        if (type === 'SPECIAL_EFFECT') {
+            // El efecto especial queda como pantalla explícita y no se pierde al recalcular.
             placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
             placement.sequence.push({
                 id: colorId,
-                type: type,
+                type: 'SPECIAL_EFFECT',
+                screenLetter: initialLetter,
+                val: initialVal,
+                mesh: '',
+                additives: ''
+            });
+            markPlacementSequenceManual(placement);
+        } else if (placement.sequenceMode === 'MANUAL') {
+            placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+            placement.sequence.push({
+                id: colorId,
+                type,
                 screenLetter: initialLetter,
                 val: initialVal || '---',
                 mesh: '',
                 additives: ''
             });
         } else {
-            // Automatic mode: recalculate the full route from the Rules Engine.
             try {
                 const generated = generatePlacementSequenceFromRules(placementId, { silent: true });
                 if (generated) {
@@ -2187,7 +2292,6 @@ function addPlacementColorItem(placementId, type) {
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
-
     checkForSpecialtiesInColors(placementId);
 }
 
@@ -2261,6 +2365,9 @@ function renderPlacementColors(placementId) {
         } else if (color.type === 'METALLIC') {
             badgeClass = 'badge-warning';
             label = 'METÁLICO';
+        } else if (color.type === 'SPECIAL_EFFECT') {
+            badgeClass = 'badge-warning';
+            label = 'SPECIAL EFFECT';
         }
 
         const div = document.createElement('div');
@@ -2468,7 +2575,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
         // screen(s) associated with this print color when a clear match exists.
         (placement.sequence || []).forEach((step) => {
             const type = String(step.type || step.tipo || '').toUpperCase();
-            if ((type === 'COLOR' || type === 'METALLIC') &&
+            if ((type === 'COLOR' || type === 'METALLIC' || type === 'SPECIAL_EFFECT') &&
                 String(step.screenLetter || '') === String(color.screenLetter || '')) {
                 step.val = value;
             }
@@ -2505,7 +2612,7 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
     if (placement.sequenceMode === 'MANUAL') {
         (placement.sequence || []).forEach((step) => {
             const type = String(step.type || step.tipo || '').toUpperCase();
-            if ((type === 'COLOR' || type === 'METALLIC') &&
+            if ((type === 'COLOR' || type === 'METALLIC' || type === 'SPECIAL_EFFECT') &&
                 String(step.val || '') === String(color.val || '')) {
                 step.screenLetter = color.screenLetter;
             }
@@ -2537,7 +2644,7 @@ function updatePlacementColorMesh(placementId, colorId, value) {
     if (placement.sequenceMode === 'MANUAL') {
         (placement.sequence || []).forEach((step) => {
             const type = String(step.type || step.tipo || '').toUpperCase();
-            if ((type === 'COLOR' || type === 'METALLIC') &&
+            if ((type === 'COLOR' || type === 'METALLIC' || type === 'SPECIAL_EFFECT') &&
                 String(step.screenLetter || '') === String(color.screenLetter || '')) {
                 step.mesh = value;
             }
@@ -2571,7 +2678,7 @@ function removePlacementColorItem(placementId, colorId) {
         const letter = String(color.screenLetter || '');
         placement.sequence = (placement.sequence || []).filter((step) => {
             const type = String(step.type || step.tipo || '').toUpperCase();
-            if (type !== 'COLOR' && type !== 'METALLIC') return true;
+            if (type !== 'COLOR' && type !== 'METALLIC' && type !== 'SPECIAL_EFFECT') return true;
             return String(step.screenLetter || '') !== letter;
         });
         markPlacementSequenceManual(placement);
@@ -2892,6 +2999,8 @@ function updatePlacementStations(placementId, returnOnly = false) {
         // CASO 1: Es FLASH o COOL (ya están en la secuencia)
         // =========================================
         if (item.type === 'FLASH' || item.type === 'COOL') {
+            const isFirstCool = item.type === 'COOL' &&
+                !stationsData.some(station => station.screenCombined === 'COOL');
             stationsData.push({
                 st: stNum++,
                 screenLetter: '',
@@ -2903,7 +3012,7 @@ function updatePlacementStations(placementId, returnOnly = false) {
                 angle: '-',
                 pressure: '-',
                 speed: '-',
-                add: item.additives || ''
+                add: item.additives || (isFirstCool ? 'PLANCHADOR' : '')
             });
             continue; // ← IMPORTANTE: No añadir FLASH/COOL adicional
         }
@@ -2954,7 +3063,14 @@ function updatePlacementStations(placementId, returnOnly = false) {
             add = item.additives || '3% cross linker 500 · 3% Binder Flex';
         }
         // =========================================
-        // CASO 5: Es COLOR
+        // CASO 5: Es SPECIAL EFFECT (por ejemplo GEL)
+        // =========================================
+        else if (String(item.type || item.tipo || '').toUpperCase() === 'SPECIAL_EFFECT') {
+            mesh = item.mesh || placement.meshColor || preset.color.mesh;
+            add = item.additives || '';
+        }
+        // =========================================
+        // CASO 6: Es COLOR
         // =========================================
         else {
             mesh = item.mesh || placement.meshColor || preset.color.mesh;
