@@ -243,6 +243,8 @@ function showTab(tabName) {
         window.ProductionConditionsUI.initialize();
     }
     if (tabName === 'spec-creator') {
+        window.ProductionAlertsUI?.initialize();
+        window.ProductionAlertsUI?.render();
         if (placements.length === 0 && document.getElementById('placements-container')) {
             initializePlacements();
         }
@@ -783,10 +785,6 @@ window.generarConAsistente = async function (placementId) {
         }
 
         // Generar secuencia COMPLETA (incluye FLASH/COOL en la posición correcta)
-        const isFirstColoredPlacement = placements.find(p => (p.printColors || []).some(c =>
-            (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
-        )) === placement;
-        const shouldIncludeHotHead = isPpfProductionContext(placement) && isFirstColoredPlacement;
 
         const secuenciaCompleta = window.RulesEngine.generarSecuencia({
             customer: customer,
@@ -801,10 +799,9 @@ window.generarConAsistente = async function (placementId) {
             blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
             customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
             customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
-            includePpfHotHead: shouldIncludeHotHead
+            includePpfHotHead: false
         });
 
-        ensurePpfHotHeadSequence(secuenciaCompleta, shouldIncludeHotHead);
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
         // The Rules Engine owns production data; design printColors stay separate.
@@ -1966,146 +1963,6 @@ function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason 
         : [entry];
 
     return entry;
-}
-
-// Detecta PPF desde los campos visibles de la spec, sin depender de un único campo.
-function isPpfProductionContext(placement) {
-    const values = [
-        document.getElementById('sample-type')?.value,
-        placement?.fabric,
-        document.getElementById('fabric')?.value,
-        document.getElementById('style')?.value,
-        document.getElementById('pattern')?.value,
-        document.getElementById('exported-pattern-name')?.value,
-        document.getElementById('blank-pattern-name')?.value,
-        document.getElementById('customer-techpack-name')?.value,
-        document.getElementById('customer-schematic-name')?.value
-    ];
-    return values.some(value => String(value || '').toUpperCase().includes('PPF'));
-}
-
-// Salvaguarda: si el contexto es PPF y el motor no devolvió HOT_HEAD,
-// insertar la estación después del primer ciclo FLASH/COOL.
-function ensurePpfHotHeadSequence(sequence, shouldIncludeHotHead) {
-    if (!shouldIncludeHotHead || !Array.isArray(sequence) || sequence.length === 0) return sequence;
-
-    const typeOf = (step) => String(step?.tipo || step?.type || '').toUpperCase();
-    if (sequence.some(step => typeOf(step) === 'HOT_HEAD')) return sequence;
-
-    const flashIndex = sequence.findIndex(step => typeOf(step) === 'FLASH');
-    const coolIndex = flashIndex >= 0
-        ? sequence.findIndex((step, index) => index > flashIndex && typeOf(step) === 'COOL')
-        : -1;
-
-    const hotHead = {
-        tipo: 'HOT_HEAD',
-        stationType: 'HOT_HEAD',
-        screenLetter: '',
-        nombre: 'HOT HEAD',
-        mesh: 'TEFLÓN',
-        additives: ''
-    };
-    const coolAfterHotHead = {
-        tipo: 'COOL',
-        screenLetter: '',
-        nombre: 'COOL',
-        mesh: '-',
-        additives: ''
-    };
-
-    if (flashIndex >= 0 && coolIndex > flashIndex) {
-        sequence.splice(coolIndex + 1, 0, hotHead, coolAfterHotHead);
-    } else {
-        // Si no existe el ciclo inicial, construirlo para respetar la estación 4.
-        sequence.splice(1, 0,
-            { tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' },
-            { tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' },
-            hotHead,
-            coolAfterHotHead
-        );
-    }
-
-    console.warn('PPF detectado: se aplicó la salvaguarda HOT HEAD en la secuencia.');
-    return sequence;
-}
-
-function generatePlacementSequenceFromRules(placementId, options = {}) {
-    const placement = placements.find(p => String(p.id) === String(placementId));
-    if (!placement || !window.RulesEngine?.generarSecuencia) return false;
-
-    const designColors = (placement.printColors || [])
-        .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
-        .map(c => ({ id: c.id, val: c.val }))
-        .filter(c => String(c.val || '').trim());
-
-    if (designColors.length === 0) return false;
-
-    const customer = document.getElementById('customer')?.value || '';
-    const garmentColor = document.getElementById('colorway')?.value || '';
-    const inkType = placement.inkType || 'WATER';
-
-    const isFirstColoredPlacement = placements.find(p => (p.printColors || []).some(c =>
-        (c.type === 'COLOR' || c.type === 'METALLIC') && String(c.val || '').trim()
-    )) === placement;
-    const shouldIncludeHotHead = isPpfProductionContext(placement) && isFirstColoredPlacement;
-
-    const sequence = window.RulesEngine.generarSecuencia({
-        customer, garmentColor, inkType, designColors,
-            stage: document.getElementById('sample-type')?.value || '',
-            fabric: placement.fabric || document.getElementById('fabric')?.value || '',
-            style: document.getElementById('style')?.value || '',
-            pattern: document.getElementById('pattern')?.value || '',
-            exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
-            blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
-            customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
-            customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
-            includePpfHotHead: shouldIncludeHotHead
-    });
-
-    ensurePpfHotHeadSequence(sequence, shouldIncludeHotHead);
-
-    placement.sequence = sequence.map((step, index) => ({
-        id: Date.now() + Math.random() + index,
-        type: step.tipo,
-        screenLetter: step.screenLetter || '',
-        val: step.nombre || '---',
-        mesh: step.mesh || '',
-        additives: step.additives || ''
-    }));
-    placement.sequenceMode = 'AUTO';
-
-    const curing = window.RulesEngine.getCuringConditions
-        ? window.RulesEngine.getCuringConditions(inkType, customer)
-        : {};
-    placement.curing = {
-        temperature: curing.temperature ?? curing.temperatura ?? placement.temp ?? '',
-        time: curing.time ?? curing.tiempo ?? placement.time ?? ''
-    };
-    placement.temp = placement.curing.temperature;
-    placement.time = placement.curing.time;
-
-    if (!options.silent) {
-        updatePlacementStations(placementId);
-        updatePlacementColorsPreview(placementId);
-    }
-    return true;
-}
-
-function maybeGenerateInitialPlacementSequence(placementId) {
-    const placement = placements.find(p => String(p.id) === String(placementId));
-    if (!placement) return;
-    if (!Array.isArray(placement.sequence)) placement.sequence = [];
-    if (placement.sequence.length > 0 || placement.sequenceMode === 'MANUAL') return;
-
-    try {
-        const generated = generatePlacementSequenceFromRules(placementId, { silent: true });
-        if (generated) {
-            updatePlacementStations(placementId);
-            updatePlacementColorsPreview(placementId);
-        }
-    } catch (error) {
-        console.warn('No se pudo generar la secuencia inicial automáticamente:', error);
-    }
 }
 
 // =====================================================
