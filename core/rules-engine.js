@@ -1,5 +1,5 @@
 // =====================================================
-// rules-engine.js - Versión 8.3 - JERARQUÍA CORREGIDA
+// rules-engine.js - Versión 8.4 - secuencia base (las excepciones como PPF viven en rules/sequence-rules.js)
 // =====================================================
 
 window.RulesEngine = (function() {
@@ -291,13 +291,8 @@ window.RulesEngine = (function() {
             exportedPatternName = '',
             blankPatternName = '',
             customerTechpackName = '',
-            customerSchematicName = '',
-            includePpfHotHead = true
+            customerSchematicName = ''
         } = params;
-
-        const ppfSources = [stage, fabric, style, pattern, exportedPatternName, blankPatternName,
-            customerTechpackName, customerSchematicName].map(value => String(value || '').trim().toUpperCase());
-        const isPpf = includePpfHotHead !== false && ppfSources.some(value => value.includes('PPF'));
 
         console.log(`⚙️ RulesEngine v8.3: Generando secuencia`);
         console.log(`   Cliente: ${customer || 'N/A'}`);
@@ -556,24 +551,8 @@ window.RulesEngine = (function() {
             : steps;
 
         const finalSequence = window.SequenceBuilder?.buildSequence
-            ? window.SequenceBuilder.buildSequence(normalizedLayers, { isPpf })
+            ? window.SequenceBuilder.buildSequence(normalizedLayers)
             : normalizedLayers;
-
-        if (isPpf && !window.SequenceBuilder?.buildSequence && finalSequence.length > 0) {
-            const withProcesses = [];
-            finalSequence.forEach((step, index) => {
-                withProcesses.push(step);
-                if (index < finalSequence.length - 1 || index === 0) {
-                    withProcesses.push({ tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' });
-                    withProcesses.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
-                }
-                if (index === 0) {
-                    withProcesses.push({ tipo: 'HOT_HEAD', stationType: 'HOT_HEAD', screenLetter: '', nombre: 'HOT HEAD', mesh: 'TEFLÓN', additives: '' });
-                    withProcesses.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
-                }
-            });
-            finalSequence.splice(0, finalSequence.length, ...withProcesses);
-        }
 
         console.log(`🧠 Capas crudas: ${steps.length} · Capas normalizadas: ${normalizedLayers.length}`);
         console.log(`✅ Secuencia generada con ${finalSequence.length} pasos`);
