@@ -1790,3 +1790,18 @@ textarea.form-control:focus {
         display: inline !important;
     }
 }
+
+
+/* Production Alerts: reglas de estilo que no pertenecen a un color. */
+.production-alerts-panel { margin: 0 0 16px; }
+.production-alert-card { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--border-light); border-left: 5px solid #d97706; border-radius: var(--radius); background: var(--bg-card); }
+.production-alert-card.is-missing { border-left-color: #dc2626; }
+.production-alert-icon { font-size: 1.25rem; color: #d97706; padding-top: 2px; }
+.production-alert-card.is-missing .production-alert-icon { color: #dc2626; }
+.production-alert-content { flex: 1; min-width: 0; }
+.production-alert-content h3 { margin: 0 0 6px; font-size: 1rem; }
+.production-alert-content p { margin: 0 0 6px; line-height: 1.45; }
+.production-alert-content .production-alert-meta { color: var(--text-secondary); font-size: .8rem; overflow-wrap: anywhere; }
+.production-alert-status { flex: 0 0 auto; font-size: .72rem; font-weight: 800; letter-spacing: .04em; border-radius: 4px; padding: 4px 7px; background: rgba(217,119,6,.14); color: #d97706; }
+.production-alert-card.is-missing .production-alert-status { background: rgba(220,38,38,.14); color: #dc2626; }
+@media (max-width: 650px) { .production-alert-card { flex-wrap: wrap; } .production-alert-status { margin-left: 35px; } }
