@@ -1965,6 +1965,79 @@ function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason 
     return entry;
 }
 
+function generatePlacementSequenceFromRules(placementId, options = {}) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement || !window.RulesEngine?.generarSecuencia) return false;
+
+    const designColors = (placement.printColors || [])
+        .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
+        .map(c => ({ id: c.id, val: c.val }))
+        .filter(c => String(c.val || '').trim());
+
+    if (designColors.length === 0) return false;
+
+    const customer = document.getElementById('customer')?.value || '';
+    const garmentColor = document.getElementById('colorway')?.value || '';
+    const inkType = placement.inkType || 'WATER';
+
+
+    const sequence = window.RulesEngine.generarSecuencia({
+        customer, garmentColor, inkType, designColors,
+            stage: document.getElementById('sample-type')?.value || '',
+            fabric: placement.fabric || document.getElementById('fabric')?.value || '',
+            style: document.getElementById('style')?.value || '',
+            pattern: document.getElementById('pattern')?.value || '',
+            exportedPatternName: document.getElementById('exported-pattern-name')?.value || '',
+            blankPatternName: document.getElementById('blank-pattern-name')?.value || '',
+            customerTechpackName: document.getElementById('customer-techpack-name')?.value || '',
+            customerSchematicName: document.getElementById('customer-schematic-name')?.value || '',
+            includePpfHotHead: false
+    });
+
+    placement.sequence = sequence.map((step, index) => ({
+        id: Date.now() + Math.random() + index,
+        type: step.tipo,
+        screenLetter: step.screenLetter || '',
+        val: step.nombre || '---',
+        mesh: step.mesh || '',
+        additives: step.additives || ''
+    }));
+    placement.sequenceMode = 'AUTO';
+
+    const curing = window.RulesEngine.getCuringConditions
+        ? window.RulesEngine.getCuringConditions(inkType, customer)
+        : {};
+    placement.curing = {
+        temperature: curing.temperature ?? curing.temperatura ?? placement.temp ?? '',
+        time: curing.time ?? curing.tiempo ?? placement.time ?? ''
+    };
+    placement.temp = placement.curing.temperature;
+    placement.time = placement.curing.time;
+
+    if (!options.silent) {
+        updatePlacementStations(placementId);
+        updatePlacementColorsPreview(placementId);
+    }
+    return true;
+}
+
+function maybeGenerateInitialPlacementSequence(placementId) {
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+    if (!Array.isArray(placement.sequence)) placement.sequence = [];
+    if (placement.sequence.length > 0 || placement.sequenceMode === 'MANUAL') return;
+
+    try {
+        const generated = generatePlacementSequenceFromRules(placementId, { silent: true });
+        if (generated) {
+            updatePlacementStations(placementId);
+            updatePlacementColorsPreview(placementId);
+        }
+    } catch (error) {
+        console.warn('No se pudo generar la secuencia inicial automáticamente:', error);
+    }
+}
+
 // =====================================================
 // FUNCIONES PARA COLORES DE PLACEMENTS
 // =====================================================
