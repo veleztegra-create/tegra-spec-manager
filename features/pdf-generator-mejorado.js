@@ -415,26 +415,6 @@
     `;
   }
 
-  function buildProductionAlertsSection(alerts) {
-    if (!Array.isArray(alerts) || alerts.length === 0) return '';
-    return '<section class="production-alerts-section">' +
-      '<h2 class="section-title">Production Alerts</h2>' +
-      alerts.map(alert => {
-        const missing = alert.status === 'MISSING';
-        const sources = (alert.sources || []).map(source =>
-          esc(source.label + ': ' + source.value)
-        ).join(' · ');
-        const placements = Array.isArray(alert.placements) && alert.placements.length
-          ? '<p class="production-alert-meta">HOT HEAD encontrado en: ' + esc(alert.placements.join(', ')) + '</p>'
-          : '';
-        return '<article class="production-alert-item ' + (missing ? 'is-missing' : 'is-review') + '">' +
-          '<div class="production-alert-heading">' + esc(alert.title) + '</div>' +
-          '<p>' + esc(alert.message) + '</p>' + placements +
-          '<p class="production-alert-meta">Detectado en: ' + sources + '</p>' +
-          '</article>';
-      }).join('') +
-      '</section>';
-  }
 
   function generateSpecHTMLDocument(data) {
     const placements = Array.isArray(data?.placements) && data.placements.length ? data.placements : [{}];
@@ -444,8 +424,6 @@
 
     const placementSections = placements.map((p, i) => buildPlacementHtml(p, i, placements.length, data)).join('');
     const colorLabSection = buildColorLabLabelsSection(data);
-    const productionAlerts = window.ProductionAlerts?.evaluate(data) || [];
-    const productionAlertsSection = buildProductionAlertsSection(productionAlerts);
 
 
     return `<!DOCTYPE html>
@@ -465,7 +443,6 @@
     .spec-pattern-meta{padding:12px 20px;background:#fff;border-bottom:2px solid var(--tegra-red);font-family:var(--font-body);line-height:1.3;overflow-wrap:anywhere;}.spec-pattern-stage,.spec-pattern-date{font-size:14px;font-weight:700;margin-bottom:3px;}.spec-pattern-file,.spec-pattern-resource{font-size:12px;margin-bottom:3px;}.spec-pattern-resource-title{font-size:12px;font-weight:700;margin-top:4px;}.spec-pattern-pieces{margin-top:6px;font-size:13px;display:flex;flex-direction:column;gap:2px;}.spec-pattern-empty{font-size:12px;color:var(--text-muted);}     .colors-section{margin-top:12px;padding:10px;background:#fff;border:1px solid var(--border-light);border-radius:6px;} .sub-title{font-family:var(--font-condensed);font-size:.72rem;text-transform:uppercase;color:var(--text-muted);} .colors-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;} .color-swatch{display:flex;align-items:center;gap:7px;background:var(--tegra-gray-light);padding:7px 10px;border-radius:4px;border:1px solid var(--border-light);} .color-box{width:22px;height:22px;border-radius:3px;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.2);} .color-number{font-family:var(--font-condensed);font-weight:700;font-size:.72rem;color:var(--tegra-red);} .color-name{font-size:.62rem;color:var(--text-muted);}
     .sequence-section{margin-top:12px;} .sequence-header{background:var(--tegra-red);color:#fff;padding:7px 12px;font-family:var(--font-display);font-size:.76rem;text-transform:uppercase;} .sequence-table{width:100%;border-collapse:collapse;font-size:.68rem;} .sequence-table th{background:var(--tegra-gray-dark);color:#fff;padding:7px 5px;text-align:left;font-family:var(--font-condensed);font-size:.56rem;text-transform:uppercase;} .sequence-table td{padding:5px;border-bottom:1px solid var(--border-light);} .station-number{font-family:var(--font-display);font-size:.8rem;color:var(--tegra-red);text-align:center;} .screen-letter{font-weight:700;color:var(--tegra-red);} .ink-name{font-weight:600;} .additives{font-size:.62rem;color:var(--text-muted);font-style:italic;} .flash-row{background:#f5f5f5 !important;font-style:italic;color:var(--text-muted);} 
     .curing-section{margin-top:15px;background:linear-gradient(135deg,var(--tegra-gray-light) 0%,#e8e8e8 100%);border-radius:6px;padding:12px;border-left:3px solid var(--tegra-red);} .curing-title{font-family:var(--font-display);font-size:.85rem;color:var(--tegra-red);margin-bottom:10px;} .curing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;} .curing-item{text-align:center;} .curing-label{font-size:.7rem;text-transform:uppercase;color:var(--text-muted);} .curing-value{font-family:var(--font-display);font-size:1.2rem;font-weight:700;} .curing-value.small{font-size:1rem;}
-    .production-alerts-section{padding:14px 20px 4px;border-top:3px solid #d97706;background:#fffaf0;break-inside:avoid;page-break-inside:avoid;} .production-alerts-section .section-title{margin-bottom:10px;} .production-alert-item{border:1px solid #e7c98d;border-left:4px solid #d97706;border-radius:5px;padding:9px 11px;margin-bottom:8px;color:#333;font-size:.75rem;} .production-alert-item.is-missing{border-left-color:#dc2626;border-color:#e8b4b4;background:#fff7f7;} .production-alert-heading{font-weight:700;font-size:.85rem;margin-bottom:5px;} .production-alert-item p{margin:4px 0;line-height:1.4;} .production-alert-meta{font-size:.67rem;color:#666;overflow-wrap:anywhere;}
         .spec-footer{background:var(--tegra-gray-dark);color:#fff;padding:10px 20px;display:flex;justify-content:space-between;font-size:.75rem;margin-top:20px;} .footer-center{font-family:var(--font-display);font-weight:700;letter-spacing:1px;}
     .color-lab-labels-section{padding:18px 20px;border-top:3px solid var(--tegra-red);background:#fafafa;} .labels-page{margin-top:10px;padding:8px 0 4px 0;} .labels-page + .labels-page{border-top:1px dashed #bbb;padding-top:14px;} .labels-page-head{font-family:var(--font-condensed);font-size:.8rem;text-transform:uppercase;color:#333;letter-spacing:.06em;margin-bottom:8px;} .labels-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;} .lab-label-card{border:1px solid var(--border-light);border-left:4px solid var(--tegra-red);border-radius:6px;background:#fff;padding:8px;min-height:220px;} .lab-label-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;} .lab-label-meta{display:flex;flex-direction:column;gap:4px;font-size:.64rem;font-weight:700;text-transform:uppercase;color:#444;} .lab-warning-corner{width:100%;height:auto;max-height:96px;object-fit:contain;border:1px solid #ddd;border-radius:4px;} .lab-label-card header{display:flex;gap:8px;align-items:center;margin:8px 0;} .lab-color-chip{width:30px;height:30px;border-radius:6px;border:1px solid #bbb;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);} .lab-label-card h4{font-family:var(--font-display);font-size:1rem;line-height:1.1;} .lab-label-card p{font-size:.7rem;color:#555;text-transform:uppercase;letter-spacing:.05em;} .lab-ingredients{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;} .lab-ingredients li{display:flex;justify-content:space-between;font-size:.72rem;border-bottom:1px dashed #eee;padding-bottom:2px;} .lab-mini-pills{margin-top:8px;font-size:.62rem;color:#444;} .lab-additives-title{font-weight:700;margin-bottom:3px;} .lab-additives-lines{display:flex;flex-direction:column;gap:2px;}
     @page{size:letter;margin:8mm;} @media print{body{padding:0;background:#fff;} .mockup-container{width:auto;box-shadow:none;border-radius:0;} .placement-section{padding:14px;} .placement-header-bar{margin:-14px -14px 10px -14px;} .detail-row{padding:4px 0;} .spec-header,.info-section,.placement-header-bar,.sequence-header,.curing-section{break-inside:avoid;page-break-inside:avoid;} .sequence-table thead{display:table-header-group;} .sequence-table tr{break-inside:avoid;page-break-inside:avoid;} .labels-page{break-after:page;} .labels-page:last-child{break-after:auto;} .lab-label-card{page-break-inside:avoid;min-height:160px;}}
@@ -497,7 +474,6 @@
       </div>
     </section>
 
-    ${productionAlertsSection}
     ${placementSections}
     ${colorLabSection}
   </div>
