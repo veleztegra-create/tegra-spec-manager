@@ -804,8 +804,10 @@ window.generarConAsistente = async function (placementId) {
 
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
-        // The Rules Engine owns production data; design printColors stay separate.
-        placement.sequence = secuenciaCompleta.map((paso, index) => ({
+        // Build the rule-based sequence first, then preserve manually added special-effect screens.
+        // RulesEngine only receives COLOR/METALLIC inputs, so replacing placement.sequence directly
+        // would silently delete GEL and other SPECIAL_EFFECT items from the production sequence.
+        const generatedSequence = secuenciaCompleta.map((paso, index) => ({
             id: Date.now() + Math.random() + index,
             type: paso.tipo,
             screenLetter: paso.screenLetter || '',
@@ -813,7 +815,30 @@ window.generarConAsistente = async function (placementId) {
             mesh: paso.mesh || '',
             additives: paso.additives || ''
         }));
-        placement.sequenceMode = 'AUTO';
+
+        const manualSpecialEffects = (placement.printColors || [])
+            .filter(color => String(color.type || '').toUpperCase() === 'SPECIAL_EFFECT' &&
+                String(color.val || '').trim());
+
+        for (const effect of manualSpecialEffects) {
+            // Special effects need a FLASH -> COOL cycle immediately before their screen.
+            // Keep the effect itself as the final print step when it was added at the end.
+            generatedSequence.push(
+                { id: Date.now() + Math.random(), type: 'FLASH', screenLetter: '', val: 'FLASH', mesh: '-', additives: '' },
+                { id: Date.now() + Math.random(), type: 'COOL', screenLetter: '', val: 'COOL', mesh: '-', additives: '' },
+                {
+                    id: effect.id,
+                    type: 'SPECIAL_EFFECT',
+                    screenLetter: effect.screenLetter || '',
+                    val: effect.val || 'GEL',
+                    mesh: effect.mesh || '',
+                    additives: effect.additives || ''
+                }
+            );
+        }
+
+        placement.sequence = generatedSequence;
+        placement.sequenceMode = manualSpecialEffects.length > 0 ? 'MANUAL' : 'AUTO';
 
         // =============================================
         // 4. ACTUALIZAR CONDICIONES DE CURADO
