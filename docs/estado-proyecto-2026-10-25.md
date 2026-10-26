@@ -86,3 +86,60 @@ Leer este documento primero y luego abrir:
 3. [El ajuste de final de secuencia](https://github.com/veleztegra-create/tegra-spec-manager/commit/1e6e84cfeaa0cb14d266045cdf07bb9cd4b9d8f8).
 
 **Instrucción para retomar:** primero validar la eliminación de Production Alerts solo en el HTML/PDF; después terminar las pruebas de FLASH/COOL/GEL, especialmente GEL colocado entre dos colores. No reorganizar ni fusionar ramas sin revisar el estado actual de Git.
+
+
+## 6. Ajustes nuevos — 25 de octubre de 2026 (segunda sesión)
+
+Estos cambios se realizaron en la misma rama de trabajo y no en `main`.
+
+### A. Dimensiones de arte: sin tamaño predeterminado
+
+**Problema:** los placements vacíos recibían dimensiones de reserva `15.34 x 12`, lo que podía parecer un tamaño real aunque nadie lo hubiera introducido.
+
+**Cambio:**
+- `extractDimensions()` devuelve ancho y alto vacíos cuando no encuentra medidas; ya no asigna `15.34` y `12`.
+- El placement nuevo ya no guarda `SIZE: (W) ## X (H) ##` como valor inicial.
+- Si ambos campos están vacíos, `placement.dimensions` queda vacío en lugar de guardar marcadores `##`.
+- En la Spec exportada, si no hay ancho ni alto, el valor de dimensiones queda visualmente en blanco en vez de mostrar `--" x --"`.
+- Se conservan los analizadores de medidas pegadas y el cálculo separado de reglas como `+3 mm (QRS PPF)`; ese cálculo debe validarse con una Spec real para confirmar que sigue apareciendo cuando hay medidas reales.
+
+### B. Composición de tela al cargar un Tech Pack PDF
+
+**Problema encontrado en código:** el extractor `NikeTechPackExtractor.extractFabrics()` buscaba principalmente nombres Knit/GSM y no generaba la propiedad `composicion` que el adaptador espera para llenar el campo Fabric. Por eso el adaptador podía no tener nada que asignar.
+
+**Cambio:**
+- Se amplió la detección para buscar fibras como Polyester, Cotton, Nylon, Spandex/Elastane, Rayon/Viscose, Wool, Acrylic, Linen y Silk.
+- Cuando el texto del PDF incluye porcentajes explícitos, se conserva el texto detectado sin inventar porcentajes.
+- Se intenta tolerar que la extracción de PDF divida el porcentaje y el nombre de fibra en líneas contiguas.
+- Se mantiene la detección anterior de Knit/GSM como detalle adicional.
+- Se agregó `tests/techpack-fabric-extractor.test.js` con casos de Polyester, mezclas Polyester/Cotton y texto separado entre líneas.
+
+**Pendiente de validar:** no se ejecutaron las pruebas en un entorno Node en esta sesión y falta probar el Tech Pack real que reportó el usuario. La extracción depende del texto que PDF.js logre recuperar; revisar la consola y los datos extraídos si ese archivo presenta una estructura distinta.
+
+### C. Logo de cliente NCAA
+
+**Problema:** `updateClientLogo()` apuntaba el cliente NCAA al logo de Puma, aunque el archivo `logos/ncaa.png` existe en la rama.
+
+**Cambio:**
+- La selección NCAA ahora usa `window.LogoConfig.NCAA` con fallback al asset `logos/ncaa.png` de la rama actual.
+- `config/config-logos.js` actualiza la URL NCAA a ese mismo asset.
+- La rama ADIDAS ahora usa la entrada ADIDAS de `LogoConfig`, en vez de apuntar erróneamente al archivo NCAA.
+
+### Commits de esta sesión
+
+- [`65f3db5d`](https://github.com/veleztegra-create/tegra-spec-manager/commit/65f3db5d443a66cc15350cfa933eb3788380fa90) — dimensiones sin valores predeterminados y selección de logo en la app.
+- [`4c9f2818`](https://github.com/veleztegra-create/tegra-spec-manager/commit/4c9f28188ecf5c8d9978b608ddf0e1bf34d7c34b) — extracción de composición de tela.
+- [`357a1666`](https://github.com/veleztegra-create/tegra-spec-manager/commit/357a1666bb0b29c2cd5ee4e622e1be30672213bf) — URL del logo NCAA en configuración.
+- [`76d0d9ee`](https://github.com/veleztegra-create/tegra-spec-manager/commit/76d0d9eee30bcdf6cae6d681d0370f2a1b9a7590) — corrección del reconocimiento de la sección Bill of Materials.
+- [`f96740ff`](https://github.com/veleztegra-create/tegra-spec-manager/commit/f96740ff4f92ee35b7ef8b3335990f556b1a6430) — dimensiones vacías en el HTML/PDF exportado.
+- [`c021cf02`](https://github.com/veleztegra-create/tegra-spec-manager/commit/c021cf024aaf15719275eea4df52adfb8b7a5b21) — pruebas para la extracción de composición.
+
+### Próxima validación recomendada
+
+1. Crear un placement sin dimensiones y comprobar que los dos campos se ven vacíos.
+2. Pegar `FRONT SIZE: 10.7” W X 10.74” H`; confirmar que las casillas quedan con los valores `10.7in` y `10.74in`, sin copiar las palabras FRONT SIZE/W/H.
+3. Con medidas válidas, verificar la salida de dimensiones base y el cálculo `+3 mm (QRS PPF)` cuando corresponda.
+4. Exportar una Spec sin dimensiones y confirmar que no muestra marcadores ni tamaño ficticio; exportar otra con dimensiones para verificar el formato esperado.
+5. Cargar el Tech Pack PDF real que falló y confirmar el valor de Fabric en la interfaz y en los datos de consola.
+6. Seleccionar NCAA y verificar el logo tanto en la aplicación como en la Spec exportada; comprobar que Adidas sigue mostrando su propio logo.
+7. Ejecutar `node --test tests/techpack-fabric-extractor.test.js` en un entorno Node compatible y registrar el resultado.
