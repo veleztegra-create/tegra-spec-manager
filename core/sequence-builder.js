@@ -24,17 +24,17 @@ window.SequenceBuilder = (function () {
     const sequence = [];
     expanded.forEach((step, index) => {
       sequence.push(step);
-      if (index < expanded.length - 1) {
-        sequence.push({ tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' });
-        sequence.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
-      }
+
+      // Cada pase de impresión necesita su ciclo automático FLASH → COOL,
+      // incluido el último color (por ejemplo, ROYAL). Las estaciones manuales
+      // se añaden por separado en app.js y no forman parte de estas capas.
+      sequence.push({ tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' });
+      sequence.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
 
       if (isPpf && index === 0) {
-        // Even a one-screen sequence must include the first Flash/Cool cycle.
-        if (index >= expanded.length - 1) {
-          sequence.push({ tipo: 'FLASH', screenLetter: '', nombre: 'FLASH', mesh: '-', additives: '' });
-          sequence.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
-        }
+        // HOT HEAD se inserta después del primer ciclo automático y conserva
+        // su estación COOL posterior, sin duplicar el primer FLASH/COOL
+        // cuando la secuencia contiene una sola capa.
         sequence.push({ tipo: 'HOT_HEAD', stationType: 'HOT_HEAD', screenLetter: '', nombre: 'HOT HEAD', mesh: 'TEFLÓN', additives: '' });
         sequence.push({ tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' });
       }
