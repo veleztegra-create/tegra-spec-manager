@@ -10,7 +10,8 @@ function buildSequence(layers, options = {}) {
   vm.runInNewContext(source, { window });
   return window.SequenceBuilder.buildSequence(layers, options).map(step => ({
     type: step.tipo,
-    name: step.nombre
+    name: step.nombre,
+    mesh: step.mesh
   }));
 }
 
@@ -35,5 +36,5 @@ test('preserves a separate HOT HEAD and its following COOL for PPF', () => {
     'COLOR', 'FLASH', 'COOL', 'HOT_HEAD', 'COOL'
   ]);
   assert.equal(sequence[3].name, 'HOT HEAD');
-  assert.equal(sequence[3].mesh, undefined);
+  assert.equal(sequence[3].mesh, 'TEFLÓN');
 });
