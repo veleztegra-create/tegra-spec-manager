@@ -295,7 +295,7 @@
           <div class="placement-details-panel">
             <div class="detail-row" style="display:block;">
               <div class="detail-label" style="margin-bottom:3px;">Dimensiones</div>
-              <div class="detail-value" style="font-size:1.04rem;font-weight:600;">${esc(`${placement.width || '--'}" x ${placement.height || '--'}"`)}</div>
+              <div class="detail-value" style="font-size:1.04rem;font-weight:600;">${esc((placement.width || placement.height) ? `${placement.width || ''}${placement.width ? '"' : ''} x ${placement.height || ''}${placement.height ? '"' : ''}` : '')}</div>
               ${sizeNotesHtml}
             </div>
             <div class="detail-row"><span class="detail-label">Talla Base</span><span class="detail-value">${esc(placement.baseSize || data.baseSize || '---')}</span></div>
