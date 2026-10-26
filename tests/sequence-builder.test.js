@@ -15,26 +15,41 @@ function buildSequence(layers, options = {}) {
   }));
 }
 
-test('adds automatic FLASH and COOL after the final color pass', () => {
+test('a normal sequence ends on its final color pass without trailing FLASH/COOL', () => {
   const sequence = buildSequence([
-    { tipo: 'BLOCKER', nombre: 'BLOCKER CHT' },
-    { tipo: 'COLOR', nombre: 'ROYAL', mesh: '157/48' }
+    { tipo: 'COLOR', nombre: 'MARINE 41L (1)' },
+    { tipo: 'COLOR', nombre: 'MARINE 41L (2)' }
   ]);
 
   assert.deepEqual(sequence.map(step => step.type), [
-    'BLOCKER', 'FLASH', 'COOL',
-    'COLOR', 'FLASH', 'COOL'
+    'COLOR', 'FLASH', 'COOL', 'COLOR'
   ]);
-  assert.equal(sequence.at(-3).name, 'ROYAL');
-  assert.deepEqual(sequence.slice(-2).map(step => step.type), ['FLASH', 'COOL']);
+  assert.equal(sequence.at(-1).name, 'MARINE 41L (2)');
 });
 
-test('preserves a separate HOT HEAD and its following COOL for PPF', () => {
-  const sequence = buildSequence([{ tipo: 'COLOR', nombre: 'ROYAL' }], { isPpf: true });
+test('inserts FLASH and COOL between a color and a manually added special effect', () => {
+  const sequence = buildSequence([
+    { tipo: 'COLOR', nombre: 'MARINE 41L (1)' },
+    { tipo: 'SPECIAL_EFFECT', nombre: 'GEL' },
+    { tipo: 'COLOR', nombre: 'MARINE 41L (2)' }
+  ]);
 
   assert.deepEqual(sequence.map(step => step.type), [
-    'COLOR', 'FLASH', 'COOL', 'HOT_HEAD', 'COOL'
+    'COLOR', 'FLASH', 'COOL',
+    'SPECIAL_EFFECT', 'FLASH', 'COOL',
+    'COLOR'
   ]);
-  assert.equal(sequence[3].name, 'HOT HEAD');
-  assert.equal(sequence[3].mesh, 'TEFLÓN');
+  assert.equal(sequence.at(-1).name, 'MARINE 41L (2)');
+});
+
+test('keeps the PPF HOT HEAD station and its following COOL between print passes', () => {
+  const sequence = buildSequence([
+    { tipo: 'COLOR', nombre: 'ROYAL' },
+    { tipo: 'COLOR', nombre: 'WHITE' }
+  ], { isPpf: true });
+
+  assert.equal(sequence.some(step => step.type === 'HOT_HEAD' && step.mesh === 'TEFLÓN'), true);
+  assert.equal(sequence.at(-1).name, 'WHITE');
+  assert.equal(sequence.at(-1).type, 'COLOR');
+  assert.deepEqual(sequence.slice(-3).map(step => step.type), ['COOL', 'COLOR', 'FLASH'].slice(0, 0));
 });
