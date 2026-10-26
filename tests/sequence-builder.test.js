@@ -8,7 +8,7 @@ const source = await readFile(new URL('../core/sequence-builder.js', import.meta
 function buildSequence(layers, options = {}) {
   const window = {};
   vm.runInNewContext(source, { window });
-  return window.SequenceBuilder.buildSequence(layers, options).map(step => ({
+  return Array.from(window.SequenceBuilder.buildSequence(layers, options), step => ({
     type: step.tipo,
     name: step.nombre,
     mesh: step.mesh
