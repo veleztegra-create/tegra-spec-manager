@@ -346,8 +346,7 @@ class NikeTechPackExtractor {
         });
 
         // Keep the existing Knit/GSM extraction as a fallback/additional detail.
-        const bomSection = source.match(/Bill of Materials?|BOM[\s\S]*?(?=Page\s*\d+|$)/i)
-            || source.match(/Bill of Materials?[\s\S]*?(?=Page\s*\d+|$)/i);
+        const bomSection = source.match(/(?:Bill of Materials?|BOM)[\s\S]*?(?=Page\s*\d+|$)/i);
         const knitSource = bomSection ? bomSection[0] : source;
         const knitMatches = knitSource.matchAll(/Knit\s+([A-Z0-9_-]+).*?(\d+\s*gsm)/gi);
         for (const match of knitMatches) {
