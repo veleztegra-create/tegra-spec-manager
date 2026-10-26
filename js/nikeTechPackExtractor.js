@@ -297,21 +297,72 @@ class NikeTechPackExtractor {
     }
 
     extractFabrics(text) {
+        const source = String(text || '');
         const telas = [];
-        const bomSection = text.match(/Bill of Material[\s\S]*?(?=Page|$)/i);
-        
-        if (bomSection) {
-            // Buscar telas tipo Knit
-            const knitMatches = bomSection[0].matchAll(/Knit\s+([A-Z0-9]+).*?(\d+\s*gsm)/gi);
-            for (const match of knitMatches) {
+        const lines = source.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        const fiberPattern = /\b(?:polyester|polyesters|cotton|nylon|spandex|elastane|lycra|wool|rayon|viscose|modal|acrylic|polyamide|polypropylene|linen|hemp|silk|recycled polyester|organic cotton)\b/i;
+        const percentagePattern = /\b\d{1,3}\s*%/;
+        const seenCompositions = new Set();
+
+        const classifyFiber = (value) => {
+            const normalized = String(value || '').toLowerCase();
+            if (/polyester/.test(normalized)) return 'Polyester';
+            if (/cotton/.test(normalized)) return 'Cotton';
+            if (/nylon|polyamide/.test(normalized)) return 'Nylon/Polyamide';
+            if (/spandex|elastane|lycra/.test(normalized)) return 'Elastane/Spandex';
+            if (/rayon|viscose|modal/.test(normalized)) return 'Rayon/Viscose/Modal';
+            if (/wool/.test(normalized)) return 'Wool';
+            if (/acrylic/.test(normalized)) return 'Acrylic';
+            if (/linen/.test(normalized)) return 'Linen';
+            if (/silk/.test(normalized)) return 'Silk';
+            return 'Other fiber';
+        };
+
+        // La composición puede aparecer como una línea completa o partida en
+        // líneas contiguas por la extracción de texto del PDF.
+        lines.forEach((line, index) => {
+            if (!fiberPattern.test(line)) return;
+            const start = Math.max(0, index - 1);
+            const end = Math.min(lines.length, index + 2);
+            const neighborhood = lines.slice(start, end).join(' ').replace(/\s+/g, ' ').trim();
+            const candidate = percentagePattern.test(line) ? line : neighborhood;
+            const hasComposition = percentagePattern.test(candidate);
+            const hasFabricContext = /fabric|material|composition|content|shell|body|knit|jersey|textile|fiber|fibre/i.test(candidate);
+
+            // Prefer explicit fiber percentages. If the PDF only names the
+            // fiber, retain the evidence without inventing a percentage.
+            if (hasComposition || hasFabricContext || fiberPattern.test(candidate)) {
+                const composition = candidate.slice(0, 180).trim();
+                const key = composition.toLowerCase();
+                if (!seenCompositions.has(key)) {
+                    seenCompositions.add(key);
+                    telas.push({
+                        tipo: classifyFiber(composition),
+                        nombre: composition,
+                        composicion: composition
+                    });
+                }
+            }
+        });
+
+        // Keep the existing Knit/GSM extraction as a fallback/additional detail.
+        const bomSection = source.match(/Bill of Materials?|BOM[\s\S]*?(?=Page\s*\d+|$)/i)
+            || source.match(/Bill of Materials?[\s\S]*?(?=Page\s*\d+|$)/i);
+        const knitSource = bomSection ? bomSection[0] : source;
+        const knitMatches = knitSource.matchAll(/Knit\s+([A-Z0-9_-]+).*?(\d+\s*gsm)/gi);
+        for (const match of knitMatches) {
+            const key = `${match[1]} ${match[2]}`.toLowerCase();
+            if (!seenCompositions.has(key)) {
                 telas.push({
                     tipo: 'Tejido',
                     nombre: match[1],
-                    peso: match[2]
+                    peso: match[2],
+                    composicion: ''
                 });
+                seenCompositions.add(key);
             }
         }
-        
+
         return telas;
     }
 
