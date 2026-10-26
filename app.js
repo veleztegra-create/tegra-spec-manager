@@ -423,9 +423,9 @@ function updateClientLogo() {
     } else if (customer.includes('FANATICS') || customer.includes('FANATIC')) {
         logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png';
     } else if (customer.includes('ADIDAS')) {
-        logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/tegra-spec-manager/refs/heads/cLabelformulas/logos/ncaa.png';
+        logoUrl = window.LogoConfig?.ADIDAS || 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Adidas_Logo.svg/1280px-Adidas_Logo.svg.png';
     } else if (customer.includes('NCAA')) {
-        logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png';
+        logoUrl = window.LogoConfig?.NCAA || 'https://raw.githubusercontent.com/veleztegra-create/tegra-spec-manager/fix/ppf-final-flash-cool-stations/logos/ncaa.png';
     } else if (customer.includes('UNDER ARMOUR') || customer.includes('UA')) {
         logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png';
     } else if (isGFS) {
@@ -601,7 +601,7 @@ function addNewPlacement(type = null, isFirst = false) {
         printColors: [],
         sequence: [], // Secuencia completa (incluye FLASH/COOL)
         placementDetails: '#.#" FROM COLLAR SEAM',
-        dimensions: 'SIZE: (W) ## X (H) ##',
+        dimensions: '',
         temp: '320 °F',
         time: '1:40 min',
         specialties: '',
@@ -1707,7 +1707,7 @@ function pastePlacementSequence(placementId) {
 // =====================================================
 
 function extractDimensions(dimensionsText) {
-    if (!dimensionsText) return { width: '15.34', height: '12' };
+    if (!dimensionsText) return { width: '', height: '' };
 
     const patterns = [
         /SIZE:\s*\(W\)\s*([\d\.]+)\s*["']?\s*X\s*\(H\)\s*([\d\.]+)/i,
@@ -1727,7 +1727,7 @@ function extractDimensions(dimensionsText) {
         }
     }
 
-    return { width: '15.34', height: '12' };
+    return { width: '', height: '' };
 }
 
 function parseDimensionValue(rawValue) {
@@ -1856,7 +1856,7 @@ function updatePlacementDimension(placementId, type, value) {
         placement.width = width;
         placement.height = height;
 
-        placement.dimensions = `SIZE: (W) ${width || '##'} X (H) ${height || '##'}`;
+        placement.dimensions = (width || height) ? `SIZE: (W) ${width || ''} X (H) ${height || ''}` : '';
     }
 }
 
