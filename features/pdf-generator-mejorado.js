@@ -365,10 +365,18 @@
   }
 
   function generateSpecHTMLDocument(data) {
-    if (window.TegraApprovedSpecRenderer?.render) {
-      return window.TegraApprovedSpecRenderer.render(data || {});
+    if (!window.TegraApprovedSpecRenderer?.render) {
+      throw new Error('No se pudo cargar la plantilla visual aprobada.');
     }
-    throw new Error('No se pudo cargar la plantilla visual aprobada.');
+    let html = window.TegraApprovedSpecRenderer.render(data || {});
+    // Keep the existing Color Lab formula-label export available after the layout change.
+    const labels = buildColorLabLabelsSection(data || {});
+    if (labels) {
+      const labelStyles = '<style>.color-lab-labels-section{margin-top:12pt;border-top:2pt solid #a12228;padding-top:8pt}.labels-page{margin-top:8pt}.labels-page-head{font-weight:700;font-size:8pt;margin-bottom:6pt}.labels-grid{display:grid;grid-template-columns:1fr 1fr;gap:8pt}.lab-label-card{border:1px solid #999;border-left:3pt solid #a12228;padding:6pt;break-inside:avoid}.lab-label-top{display:flex;justify-content:space-between;gap:6pt}.lab-label-meta{font-size:6.5pt;display:flex;flex-direction:column}.lab-warning-corner{max-width:75pt;max-height:55pt;object-fit:contain}.lab-label-card header{display:flex;align-items:center;gap:6pt;margin:5pt 0}.lab-color-chip{width:22pt;height:22pt;border:1px solid #999}.lab-label-card h4{font-size:9pt}.lab-label-card p,.lab-ingredients li,.lab-mini-pills{font-size:7pt}.lab-ingredients{list-style:none;margin:0;padding:0}.lab-ingredients li{display:flex;justify-content:space-between;border-bottom:1px dashed #ddd}.lab-additives-title{font-weight:700}.lab-additives-lines{display:flex;flex-direction:column;gap:2pt}@media print{.labels-page{break-after:page}.labels-page:last-child{break-after:auto}}</style>';
+      html = html.replace('</head>', labelStyles + '</head>');
+      html = html.replace('</main>', labels + '</main>');
+    }
+    return html;
   }
 
   window.generateSpecHTMLDocument = generateSpecHTMLDocument;
