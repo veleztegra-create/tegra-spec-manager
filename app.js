@@ -1010,6 +1010,7 @@ function renderPlacementHTML(placement) {
                                                placeholder="Ancho"
                                                value="${placement.width || dimensions.width.replace('"', '')}"
                                                oninput="handleDimensionInput(${placement.id}, 'width', this)"
+                                               onblur="window.ScreenCategoryRules?.validateScreen(${placement.id})"
                                                onpaste="handleDimensionPaste(event, ${placement.id}, 'width')"
                                                style="width: 100px;">
                                         <span style="color: var(--text-secondary);">X</span>
@@ -1019,6 +1020,7 @@ function renderPlacementHTML(placement) {
                                                placeholder="Alto"
                                                value="${placement.height || dimensions.height.replace('"', '')}"
                                                oninput="handleDimensionInput(${placement.id}, 'height', this)"
+                                               onblur="window.ScreenCategoryRules?.validateScreen(${placement.id})"
                                                onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
                                                style="width: 100px;">
                                         <span style="color: var(--text-secondary);">&nbsp;</span>
@@ -2854,6 +2856,7 @@ function updatePlacementStations(placementId, returnOnly = false) {
     if (returnOnly) return stationsData;
 
     renderPlacementStationsTable(placementId, stationsData);
+    window.ScreenCategoryRules?.checkCategory(placement, true);
 }
 
 function escapeSequenceCellValue(value) {
@@ -4843,6 +4846,10 @@ async function exportHTML() {
 
         // ✅ IMPORTANTE: Recolectar datos ACTUALES del formulario y placements
         const data = collectData();
+        if (window.ScreenCategoryRules && !window.ScreenCategoryRules.validateBeforeExport(placements)) {
+            showStatus('⚠️ Revisa las dimensiones y la selección de pantalla antes de exportar.', 'error');
+            return;
+        }
 
         // ✅ Forzar actualización de la secuencia en los datos
         data.placements = placements.map(p => ({
@@ -4889,6 +4896,10 @@ async function exportPDF() {
         }
 
         const data = collectData();
+        if (window.ScreenCategoryRules && !window.ScreenCategoryRules.validateBeforeExport(placements)) {
+            showStatus('⚠️ Revisa las dimensiones y la selección de pantalla antes de exportar.', 'error');
+            return;
+        }
         data.placements = placements.map(p => ({
             ...p,
             printColors: p.printColors,
