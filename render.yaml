@@ -1,0 +1,6 @@
+        services:
+  - type: web
+    name: tegra-spec-manager
+    runtime: node
+    buildCommand: npm run render:build
+    startCommand: cd backend && npx prisma migrate deploy && npm start  # <-- Esto ejecuta migraciones

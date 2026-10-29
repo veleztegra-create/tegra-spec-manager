@@ -1,0 +1,16 @@
+{
+  "nombre": "Catálogo Tintas NFL",
+  "version": "1.0",
+  "inkRules": {
+    "WATER": {
+      "additives": { "color": "3% CL 500 · 5% ecofix XL" },
+      "meshes": { "color": ["157/48", "198/40"] }
+    },
+    "PLASTISOL": {
+      "additives": { "color": "1% catalyst" },
+      "meshes": { "color": ["156/64", "156/64"] }
+    }
+  },
+  "lightInkIdentifiers": ["white", "gold", "yellow", "lemon", "silver", "neon"],
+  "darkInkIdentifiers": ["black", "navy", "red", "royal", "green", "purple", "maroon"]
+}

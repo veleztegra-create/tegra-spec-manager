@@ -1,0 +1,68 @@
+<div class="color-lab-tool">
+    <div class="color-lab-header">
+        <div>
+            <h2 style="margin:0;">🎨 Color Lab</h2>
+            <p style="margin:4px 0 0 0; color:var(--text-secondary); font-size:0.85rem;">Lector de fórmulas por sistema de tinta y etiquetas de producción.</p>
+        </div>
+        <div class="color-lab-system">
+            <label for="color-lab-system-select">Sistema</label>
+            <select id="color-lab-system-select" class="form-control">
+                <option value="silicone">Silicone</option>
+                <option value="waterbase">Waterbase</option>
+                <option value="plastisol">Plastisol</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="color-lab-status" id="color-lab-status">Inicializando Color Lab...</div>
+
+    <div class="color-lab-search-row">
+        <input id="color-lab-query" class="form-control" type="text" placeholder="Buscar por código o nombre (ej. 877 C, PMS 877 C, UNIVERSITY GOLD)">
+        <button id="color-lab-search-btn" class="btn btn-primary" type="button">Buscar fórmula</button>
+    </div>
+
+    <div id="color-lab-chips" class="color-lab-chips"></div>
+
+    <div id="color-lab-result" class="color-lab-result" style="display:none;">
+        <div class="color-lab-result-head">
+            <div class="color-lab-swatch-wrap">
+                <div id="color-lab-swatch" class="color-lab-swatch"></div>
+                <div class="color-lab-code" id="color-lab-code">—</div>
+            </div>
+            <div>
+                <h3 id="color-lab-name" style="margin:0 0 6px 0;">—</h3>
+                <span id="color-lab-category" class="color-lab-category">—</span>
+            </div>
+        </div>
+
+        <div class="color-lab-grid">
+            <div>
+                <h4>Composición base</h4>
+                <table class="sequence-table" id="color-lab-ingredients"></table>
+            </div>
+            <div>
+                <h4>Aditivos W-X-Y</h4>
+                <div id="color-lab-additives" class="color-lab-additives"></div>
+            </div>
+        </div>
+
+        <div class="color-lab-comments" id="color-lab-comments">Sin comentarios técnicos.</div>
+
+        <div class="color-lab-actions">
+            <button id="color-lab-add-selected" class="btn btn-success" type="button">+ Agregar a impresión</button>
+        </div>
+    </div>
+
+    <div class="color-lab-manual-print">
+        <div class="color-lab-manual-head">
+            <h4 style="margin:0;">Etiquetas manuales seleccionadas</h4>
+            <div style="display:flex; gap:8px;">
+                <button id="color-lab-print-selected" class="btn btn-primary btn-sm" type="button" disabled>Imprimir seleccionadas</button>
+                <button id="color-lab-clear-selected" class="btn btn-outline btn-sm" type="button">Limpiar</button>
+            </div>
+        </div>
+        <div id="color-lab-selected-list" class="color-lab-selected-list">
+            <p style="margin:0; color:var(--text-secondary);">No hay fórmulas agregadas.</p>
+        </div>
+    </div>
+</div>

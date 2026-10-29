@@ -1,0 +1,46 @@
+{
+  "nombre": "Fanatics",
+  "version": "1.0",
+  "identificadores": ["FANATICS", "FANATIC"],
+  "reglas": {
+    "tinta_forzada": "WATER",
+    "bloquear_cambio_tinta": false,
+    "mallas_por_defecto": {
+      "BLOCKER": "122/55",
+      "WHITE_BASE": "198/40",
+      "COLOR": "157/48",
+      "COLOR_SEGUNDA": "198/40"
+    },
+    "aditivos_por_defecto": {
+      "COLOR": "3% CL 500 · 5% ecofix XL",
+      "BLOCKER": "N/A",
+      "WHITE_BASE": "3% CL 500"
+    },
+    "temperatura": "320 °F",
+    "tiempo": "1:40 min",
+    "requiere_flash": true,
+    "requiere_cool": true,
+    "secuencias_base": {
+      "tela_oscura": {
+        "bloqueadores": [
+          {"orden": 1, "tipo": "BLOCKER", "nombre": "BLOCKER CHT", "malla": "110"},
+          {"orden": 2, "tipo": "BLOCKER", "nombre": "BLOCKER CHT", "malla": "122"},
+          {"orden": 3, "tipo": "BLOCKER", "nombre": "BLOCKER CHT", "malla": "157"}
+        ],
+        "base_blanca": [
+          {"orden": 4, "tipo": "WHITE_BASE", "nombre": "AQUAFLEX V2", "malla": "122", "aditivos": "3% CL 500"}
+        ]
+      },
+      "tela_clara": {
+        "bloqueadores": [
+          {"orden": 1, "tipo": "WHITE_BASE", "nombre": "AQUAFLEX V2", "malla": "110"},
+          {"orden": 2, "tipo": "WHITE_BASE", "nombre": "AQUAFLEX V2", "malla": "122"},
+          {"orden": 3, "tipo": "BLOCKER", "nombre": "BLOCKER CHT", "malla": "157"}
+        ],
+        "base_blanca": [
+          {"orden": 4, "tipo": "WHITE_BASE", "nombre": "AQUAFLEX V2", "malla": "122", "aditivos": "3% CL 500"}
+        ]
+      }
+    }
+  }
+}

@@ -8,6 +8,9 @@
         </div>
     </div>
     <div class="card-body">
+        <div style="margin-bottom: 14px;" class="no-print">
+            <input type="text" id="saved-specs-search" class="form-control" placeholder="Buscar por código/style, cliente, PO o colorway..." oninput="loadSavedSpecsList()">
+        </div>
         <div id="saved-specs-list">
             <!-- Las specs guardadas se cargarán aquí dinámicamente -->
             <p style="text-align:center; color:var(--text-secondary); padding:20px;">

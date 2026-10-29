@@ -1,0 +1,83 @@
+{
+  "nombre": "Gear For Sport",
+  "version": "1.0",
+  "identificadores": ["GEAR FOR SPORT", "GEARFORSPORT", "GFS", "G.F.S.", "GEAR"],
+  "reglas": {
+    "tinta_forzada": "PLASTISOL",
+    "bloquear_cambio_tinta": true,
+    "formato_id_unico": {
+      "activo": true,
+      "patron": "{STYLE}-{CODIGO_COLOR}",
+      "ejemplo": "UM9110-PND0",
+      "extraer_codigo_color": "primeros_3_4_caracteres_antes_del_guion"
+    },
+    "mallas_por_defecto": {
+      "BLOCKER": "110/64",
+      "WHITE_BASE": "156/64",
+      "COLOR": "156/64",
+      "COLOR_SEGUNDA": "156/64"
+    },
+    "aditivos_por_defecto": {
+      "COLOR": "1% catalyst",
+      "BLOCKER": "N/A",
+      "WHITE_BASE": "N/A"
+    },
+    "temperatura": "320 °F",
+    "tiempo": "1:00 min",
+    "requiere_flash": true,
+    "requiere_cool": true,
+    "secuencias_base": {
+      "tela_oscura": {
+        "bloqueadores": [
+          {"orden": 1, "tipo": "BLOCKER", "nombre": "BARRIER BASE", "malla": "110/64"},
+          {"orden": 2, "tipo": "BLOCKER", "nombre": "BARRIER BASE", "malla": "156/64"},
+          {"orden": 3, "tipo": "BLOCKER", "nombre": "BARRIER BASE", "malla": "156/64"}
+        ],
+        "base_blanca": [
+          {"orden": 4, "tipo": "WHITE_BASE", "nombre": "TXT POLY WHITE", "malla": "156/64"}
+        ]
+      },
+      "tela_clara": {
+        "bloqueadores": [
+          {"orden": 1, "tipo": "BLOCKER", "nombre": "BARRIER BASE", "malla": "110/64"}
+        ],
+        "base_blanca": [
+          {"orden": 2, "tipo": "WHITE_BASE", "nombre": "TXT POLY WHITE", "malla": "156/64"}
+        ]
+      }
+    },
+    "equipos_especificos": {
+      "UM9110-PND0": {
+        "nombre": "Notre Dame Fighting Irish",
+        "universidad": "Notre Dame",
+        "colores_institucionales": ["#0C2340", "#C99700"],
+        "conferencia": "Independent"
+      },
+      "UM9110-PMD0": {
+        "nombre": "Maryland Terrapins",
+        "universidad": "Maryland",
+        "colores_institucionales": ["#E03A3E", "#FFD520", "#000000"],
+        "conferencia": "Big Ten"
+      },
+      "UM9110-PND1": {
+        "nombre": "Notre Dame Fighting Irish",
+        "universidad": "Notre Dame",
+        "colores_institucionales": ["#0C2340", "#C99700"],
+        "color_tela": "NAVY",
+        "conferencia": "Independent"
+      },
+      "UM9110-PWI0": {
+        "nombre": "Wisconsin Badgers",
+        "universidad": "Wisconsin",
+        "colores_institucionales": ["#C5050C", "#FFFFFF"],
+        "conferencia": "Big Ten"
+      },
+      "UY9112-PGT1": {
+        "nombre": "Georgia Tech Yellow Jackets",
+        "universidad": "Georgia Tech",
+        "colores_institucionales": ["#B3A369", "#003057"],
+        "conferencia": "ACC"
+      }
+    }
+  }
+}

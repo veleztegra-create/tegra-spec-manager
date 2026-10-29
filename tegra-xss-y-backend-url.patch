@@ -1,0 +1,208 @@
+diff -ruN -x node_modules orig/app.js b/app.js
+--- a/app.js	2026-10-17 00:25:24.503539268 +0000
++++ b/app.js	2026-10-17 00:26:08.408498906 +0000
+@@ -1281,7 +1281,7 @@
+         tab.setAttribute('data-placement-id', placement.id);
+         tab.innerHTML = `
+             <i class="fas fa-${getPlacementIcon(placement.type)}"></i>
+-            ${displayType.substring(0, 15)}${displayType.length > 15 ? '...' : ''}
++            ${escapeHtml(displayType.substring(0, 15))}${displayType.length > 15 ? '...' : ''}
+             ${placements.length > 1 ? `<span class="remove-tab" onclick="removePlacement(${placement.id})">&times;</span>` : ''}
+         `;
+ 
+@@ -1402,19 +1402,19 @@
+         const titleText = titleElement.textContent;
+ 
+         if (titleText.includes('Colores para')) {
+-            titleElement.innerHTML = `<i class="fas fa-palette"></i> Colores para ${displayType}`;
++            titleElement.innerHTML = `<i class="fas fa-palette"></i> Colores para ${escapeHtml(displayType)}`;
+         }
+         else if (titleText.includes('Imagen para')) {
+-            titleElement.innerHTML = `<i class="fas fa-image"></i> Imagen para ${displayType}`;
++            titleElement.innerHTML = `<i class="fas fa-image"></i> Imagen para ${escapeHtml(displayType)}`;
+         }
+         else if (titleText.includes('Condiciones para')) {
+-            titleElement.innerHTML = `<i class="fas fa-print"></i> Condiciones para ${displayType}`;
++            titleElement.innerHTML = `<i class="fas fa-print"></i> Condiciones para ${escapeHtml(displayType)}`;
+         }
+     });
+ 
+     const sequenceTitle = section.querySelector('h4');
+     if (sequenceTitle && sequenceTitle.textContent.includes('Secuencia de')) {
+-        sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${displayType}`;
++        sequenceTitle.innerHTML = `<i class="fas fa-list-ol"></i> Secuencia de ${escapeHtml(displayType)}`;
+     }
+ 
+     updatePlacementsTabs();
+@@ -2167,7 +2167,7 @@
+             <span class="badge ${badgeClass}">${label}</span>
+             <input type="text" 
+                    style="width: 60px; text-align: center; font-weight: bold;" 
+-                   value="${color.screenLetter}" 
++                   value="${escapeHtml(color.screenLetter)}" 
+                    class="form-control placement-screen-letter"
+                    data-color-id="${color.id}"
+                    data-placement-id="${placementId}"
+@@ -2179,13 +2179,13 @@
+                    data-color-id="${color.id}"
+                    data-placement-id="${placementId}"
+                    placeholder="Nombre de la tinta..." 
+-                   value="${color.val}"
++                   value="${escapeHtml(color.val)}"
+                    oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)"
+                    ondblclick="this.select()">
+             <input type="text"
+                    style="width: 82px; text-align:center;"
+                    class="form-control placement-mesh-line"
+-                   value="${color.mesh || ''}"
++                   value="${escapeHtml(color.mesh || '')}"
+                    placeholder="Malla"
+                    title="Malla por tinta"
+                    oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)"
+@@ -4068,7 +4068,9 @@
+ window.downloadPaletteJsonFromDashboard = downloadPaletteJsonFromDashboard;
+ window.focusPasteForPaletteFromDashboard = focusPasteForPaletteFromDashboard;
+ window.editPaletteExtractedName = editPaletteExtractedName;
+-const REMOTE_SPECS_API_BASE = String(window.TEGRA_BACKEND_URL || 'https://tegra-spec-manager.onrender.com').replace(/\/+$/, '');
++// Backend remoto desactivado por defecto (el servicio de Render ya no existe).
++// Para activarlo, define window.TEGRA_BACKEND_URL = 'https://tu-servidor' antes de cargar app.js.
++const REMOTE_SPECS_API_BASE = String(window.TEGRA_BACKEND_URL || '').replace(/\/+$/, '');
+ const REMOTE_SPECS_API_URL = REMOTE_SPECS_API_BASE ? `${REMOTE_SPECS_API_BASE}/api/specs` : '';
+ let savedSpecsCache = null;
+ let savedSpecsCacheMode = 'local';
+@@ -4275,8 +4277,8 @@
+     return `
+         <div style="padding:15px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; transition: var(--transition); gap: 10px;">
+             <div style="flex: 1; min-width: 0;">
+-                <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
+-                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | Colorway: ${data.colorway || 'N/A'} | PO: ${data.po || 'N/A'}</div>
++                <div style="font-weight: 700; color: var(--primary);">${escapeHtml(data.style || 'N/A')}</div>
++                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cliente: ${escapeHtml(data.customer || 'N/A')} | Colorway: ${escapeHtml(data.colorway || 'N/A')} | PO: ${escapeHtml(data.po || 'N/A')}</div>
+                 <div style="font-size: 0.75rem; color: var(--text-muted);">Guardado: ${new Date(record.savedAt || 0).toLocaleDateString('es-ES')} · ${record.source === 'remote' ? 'Render' : 'Este navegador'}</div>
+             </div>
+             <div style="display: flex; gap: 8px; flex-shrink: 0;">
+@@ -4297,7 +4299,7 @@
+         const lastRecord = specs[0] || null;
+         const todaySpecsEl = document.getElementById('today-specs');
+         if (lastRecord && todaySpecsEl) {
+-            const safeStyle = (lastRecord.data?.style || 'Sin nombre').replace(/"/g, '&quot;');
++            const safeStyle = escapeHtml(lastRecord.data?.style || 'Sin nombre');
+             todaySpecsEl.innerHTML = `
+                 <div style="font-size:0.9rem; color:var(--text-secondary);">Última Spec:</div>
+                 <button type="button" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(lastRecord.key)}'))" title="Abrir para seguir editando"
+@@ -4382,7 +4384,7 @@
+         list.innerHTML = `
+             <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                 <i class="fas fa-search" style="margin-right: 6px;"></i>
+-                No se encontraron specs para <strong>${query}</strong>
++                No se encontraron specs para <strong>${escapeHtml(query)}</strong>
+             </p>
+         `;
+     }
+@@ -5351,8 +5353,8 @@
+         resultsHtml += `
+             <div style="padding:12px; border-bottom:1px solid var(--border-dark); display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                 <div style="flex:1; min-width:0;">
+-                    <div style="font-weight: 700; color: var(--primary);">${data.style || 'N/A'}</div>
+-                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${data.customer || 'N/A'} | PO: ${data.po || 'N/A'} | ${record.source === 'remote' ? 'Render' : 'Local'}</div>
++                    <div style="font-weight: 700; color: var(--primary);">${escapeHtml(data.style || 'N/A')}</div>
++                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Cliente: ${escapeHtml(data.customer || 'N/A')} | PO: ${escapeHtml(data.po || 'N/A')} | ${record.source === 'remote' ? 'Render' : 'Local'}</div>
+                 </div>
+                 <div style="display: flex; gap: 5px; flex-shrink:0;">
+                     <button class="btn btn-primary btn-sm" onclick="loadSpec(decodeURIComponent('${encodeURIComponent(record.key)}'))" title="Abrir para editar"><i class="fas fa-edit"></i></button>
+@@ -5366,7 +5368,7 @@
+         resultsDiv.innerHTML = `
+             <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                 <i class="fas fa-search" style="margin-right: 6px;"></i>
+-                No se encontraron specs para <strong>${query}</strong>
++                No se encontraron specs para <strong>${escapeHtml(query)}</strong>
+             </p>
+         `;
+     } else {
+diff -ruN -x node_modules orig/index.html b/index.html
+--- a/index.html	2026-10-17 00:25:24.505162179 +0000
++++ b/index.html	2026-10-17 00:25:35.622728537 +0000
+@@ -48,6 +48,7 @@
+     <!-- MÓDULOS BASE -->
+     <!-- ========================================= -->
+     <script src="modules/utils.js"></script>
++    <script src="modules/html-utils.js"></script>
+     <script src="modules/state-manager.js"></script>
+     <script src="modules/error-handler.js"></script>
+     <script src="modules/validators.js"></script>
+diff -ruN -x node_modules orig/modules/html-utils.js b/modules/html-utils.js
+--- a/modules/html-utils.js	1970-01-01 00:00:00.000000000 +0000
++++ b/modules/html-utils.js	2026-10-17 00:26:08.113993801 +0000
+@@ -0,0 +1,23 @@
++/**
++ * Utilidades para insertar texto de forma segura en HTML.
++ *
++ * Úsalo siempre que un dato de usuario, de un JSON/Excel importado o de una API
++ * se interpole dentro de una plantilla que va a `innerHTML`, ya sea como
++ * contenido de texto o dentro de un atributo (value="...", title="...").
++ *
++ * Escapa & < > " ' — suficiente para ambos contextos.
++ * No sirve dentro de <script>, de handlers inline (onclick="...") ni de URLs.
++ */
++(function (root) {
++    'use strict';
++
++    var ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
++
++    function escapeHtml(value) {
++        return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
++            return ENTITIES[ch];
++        });
++    }
++
++    root.escapeHtml = escapeHtml;
++})(window);
+diff -ruN -x node_modules orig/tests/html-utils.test.js b/tests/html-utils.test.js
+--- a/tests/html-utils.test.js	1970-01-01 00:00:00.000000000 +0000
++++ b/tests/html-utils.test.js	2026-10-17 00:26:16.483583002 +0000
+@@ -0,0 +1,45 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import path from 'node:path';
++import vm from 'node:vm';
++import { fileURLToPath } from 'node:url';
++
++const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
++// html-utils.js es un script clásico de navegador: lo cargamos con window simulado.
++const browser = { window: {} };
++vm.runInNewContext(fs.readFileSync(path.join(root, 'modules', 'html-utils.js'), 'utf8'), browser);
++const escapeHtml = browser.window.escapeHtml;
++
++test('escapeHtml escapa los 5 caracteres peligrosos', () => {
++  assert.equal(escapeHtml(`<a href="x" onclick='y'>&</a>`),
++    '&lt;a href=&quot;x&quot; onclick=&#39;y&#39;&gt;&amp;&lt;/a&gt;');
++});
++
++test('escapeHtml tolera null, undefined y números', () => {
++  assert.equal(escapeHtml(null), '');
++  assert.equal(escapeHtml(undefined), '');
++  assert.equal(escapeHtml(0), '0');
++});
++
++test('escapeHtml evita salir de un atributo value="..."', () => {
++  const html = `<input value="${escapeHtml('x" autofocus onfocus="alert(1)')}">`;
++  // Solo deben quedar las 2 comillas que abren y cierran value="..."; el resto va como &quot;.
++  assert.equal(html.match(/"/g).length, 2);
++});
++
++test('renderSavedSpecListItem (app.js) no deja pasar HTML en los campos de la spec', () => {
++  const src = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
++  const start = src.indexOf('function renderSavedSpecListItem');
++  assert.ok(start >= 0, 'no se encontró renderSavedSpecListItem');
++  const end = src.indexOf('\n}\n', start) + 2;
++  const ctx = vm.createContext({ escapeHtml, encodeURIComponent, Date });
++  vm.runInContext(src.slice(start, end), ctx);
++  const evil = '<img src=x onerror=alert(1)>';
++  const html = ctx.renderSavedSpecListItem({
++    key: 'k1', savedAt: 0, source: 'local',
++    data: { style: evil, customer: evil, colorway: evil, po: evil }
++  });
++  assert.ok(!html.includes('<img'), 'quedó una etiqueta <img> sin escapar');
++  assert.ok(html.includes('&lt;img'));
++});

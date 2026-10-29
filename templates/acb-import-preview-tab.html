@@ -1,0 +1,57 @@
+<section class="acb-import-shell">
+  <div class="card">
+    <div class="card-body">
+      <div class="acb-import-head">
+        <div>
+          <h2>Biblioteca ACB</h2>
+          <p class="acb-import-muted">Guarda varias bibliotecas Adobe Color Book (por ejemplo, Nike y NFL), cambia cuál está activa y consulta sus colores en tus especificaciones. Se guardan solo en este navegador; no modifican las reglas de producción.</p>
+        </div>
+        <span class="acb-import-badge">IMPORTACIÓN · VISTA PREVIA</span>
+      </div>
+      <div class="acb-import-controls" style="margin-top:14px">
+        <input id="acb-file-input" class="acb-import-file" type="file" accept=".acb,application/octet-stream">
+        <label for="acb-saved-libraries">Biblioteca activa</label>
+        <select id="acb-saved-libraries" class="form-control" aria-label="Seleccionar biblioteca ACB guardada">
+          <option value="">No hay bibliotecas guardadas</option>
+        </select>
+        <button id="acb-delete-current-library" class="btn" type="button" disabled>Eliminar esta biblioteca</button>
+        <button id="acb-export-preview" class="btn btn-primary" type="button" disabled>Exportar vista previa JSON</button>
+        <button id="acb-clear-saved-library" class="btn" type="button">Eliminar todas las bibliotecas</button>
+      </div>
+      <p id="acb-import-message" class="acb-import-message" role="status" aria-live="polite" style="margin-top:12px">Selecciona un archivo .ACB. El archivo se procesa localmente y la biblioteca puede restaurarse al volver a abrir la aplicación en este mismo navegador.</p>
+    </div>
+  </div>
+  <div id="acb-import-results" hidden>
+    <div class="acb-import-summary">
+      <div class="acb-import-stat"><small>Libro</small><strong id="acb-stat-title">—</strong></div>
+      <div class="acb-import-stat"><small>Colores leídos</small><strong id="acb-stat-count">0</strong></div>
+      <div class="acb-import-stat"><small>Posibles duplicados</small><strong id="acb-stat-duplicates">0</strong></div>
+      <div class="acb-import-stat"><small>Modelo</small><strong id="acb-stat-model">—</strong></div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3 style="margin-top:0">Datos del archivo</h3>
+        <div id="acb-book-details" class="acb-import-muted"></div>
+        <div class="acb-import-controls" style="margin-top:14px">
+          <label for="acb-color-search">Buscar por nombre, código o HEX</label>
+          <input id="acb-color-search" class="form-control" type="search" placeholder="Ej. University Gold o C00047">
+          <button id="acb-clear-search" class="btn" type="button">Limpiar</button>
+        </div>
+        <p id="acb-table-summary" class="acb-import-muted" style="margin:12px 0 8px"></p>
+        <div class="acb-import-table-wrap">
+          <table class="acb-import-table">
+            <thead><tr><th>#</th><th>Muestra</th><th>Nombre</th><th>Código</th><th>RGB</th><th>HEX</th><th>Revisión</th></tr></thead>
+            <tbody id="acb-color-rows"></tbody>
+          </table>
+        </div>
+        <div class="acb-import-footer" style="margin-top:12px">
+          <span id="acb-page-info" class="acb-import-muted"></span>
+          <button id="acb-show-more" class="btn" type="button" hidden>Mostrar siguientes</button>
+        </div>
+      </div>
+    </div>
+    <div class="acb-import-message warning">
+      <strong>Importante:</strong> el ACB no define por sí solo tipo de tinta, blocker, base blanca, malla ni curado. Esos datos no se deducen del tono y no se asignarán en esta vista previa.
+    </div>
+  </div>
+</section>
