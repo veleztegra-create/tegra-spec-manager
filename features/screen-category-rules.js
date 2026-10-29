@@ -53,15 +53,6 @@
     const { width, height } = getDimensions(placement);
     if (width === null || height === null) return true;
 
-    // Width over 15 inches always takes priority and requires JUMBO.
-    if (width > 15 && placement.screenSizeKey !== 'JUMBO') {
-      return askScreen(
-        placement,
-        'JUMBO',
-        `El arte mide ${width}\" de ancho y supera el límite de 15\" de MEDIANO y GRANDE. ¿Deseas usar la pantalla JUMBO 25.5X41.3 para producción?`
-      );
-    }
-
     if (width > LIMITS.JUMBO.width || height > LIMITS.JUMBO.height) {
       placement.screenSize = '';
       placement.screenSizeKey = '';
@@ -70,7 +61,16 @@
       return false;
     }
 
-    if (height > LIMITS.GRANDE.height && placement.screenSizeKey !== 'JUMBO') {
+
+
+    // Width over 15 inches always takes priority and requires JUMBO.
+    if (width > 15 && placement.screenSizeKey !== 'JUMBO') {
+      return askScreen(
+        placement,
+        'JUMBO',
+        `El arte mide ${width}\" de ancho y supera el límite de 15\" de MEDIANO y GRANDE. ¿Deseas usar la pantalla JUMBO 25.5X41.3 para producción?`
+      );
+    }    if (height > LIMITS.GRANDE.height && placement.screenSizeKey !== 'JUMBO') {
       return askScreen(
         placement,
         'JUMBO',
