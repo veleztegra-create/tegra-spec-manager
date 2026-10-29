@@ -244,6 +244,8 @@
           <div class="placement-details-panel">
             <div class="detail-row"><span class="detail-label">Tipo de Tinta</span><span class="detail-value highlight">${esc(placement.inkType || 'WATER')}</span></div>
             <div class="detail-row"><span class="detail-label">Dimensiones</span><span class="detail-value">${esc(`${placement.width || '--'} x ${placement.height || '--'}`)}</span></div>
+            <div class="detail-row"><span class="detail-label">PANTALLA / SCREEN</span><span class="detail-value">${esc(placement.screenSize || 'PENDIENTE')}</span></div>
+            <div class="detail-row"><span class="detail-label">CATEGORÍA / CATEGORY</span><span class="detail-value" style="${placement.category7Accepted ? 'color:#D71920;font-weight:800;' : ''}">${esc(placement.category7Accepted ? `7 (ESTACIONES ${placement.category7Stations || (placement.sequence || []).length})` : '---')}</span></div>
             <div class="detail-row"><span class="detail-label">Ubicación</span><span class="detail-value">${esc(placement.placementDetails || '---')}</span></div>
             <div class="detail-row"><span class="detail-label">Especialidades</span><span class="detail-value">${esc(placement.specialties || '—')}</span></div>
             <div class="detail-row"><span class="detail-label">Talla Base</span><span class="detail-value">${esc(placement.baseSize || data.baseSize || '---')}</span></div>
