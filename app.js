@@ -4101,7 +4101,16 @@ function getSpecGeneralData(source = {}) {
         technicianName: data?.technicianName || '',
         technicalComments: data?.technicalComments || '',
         program: data?.program || '',
-        specDate: data?.specDate || ''
+        specDate: data?.specDate || '',
+        designerOtherName: data?.designerOtherName || '',
+        stageDate: data?.stageDate || '',
+        _stageDateForStage: data?._stageDateForStage || data?.sampleType || '',
+        exportedPatternName: data?.exportedPatternName || '',
+        blankPatternName: data?.blankPatternName || '',
+        customerSchematicName: data?.customerSchematicName || '',
+        customerTechpackName: data?.customerTechpackName || '',
+        patternPieces: Array.isArray(data?.patternPieces) ? data.patternPieces : [],
+        availablePatternPieces: Array.isArray(data?.availablePatternPieces) ? data.availablePatternPieces : []
     };
 }
 
@@ -4427,6 +4436,12 @@ function loadSpecData(data) {
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
     setInputValue('technical-comments', data.technicalComments || '');
+    setInputValue('designer-other-name', data.designerOtherName || '');
+    setInputValue('spec-stage-date', data.stageDate || '');
+    setInputValue('exported-pattern-name', data.exportedPatternName || '');
+    setInputValue('blank-pattern-name', data.blankPatternName || '');
+    setInputValue('customer-schematic-name', data.customerSchematicName || '');
+    setInputValue('customer-techpack-name', data.customerTechpackName || '');
 
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
