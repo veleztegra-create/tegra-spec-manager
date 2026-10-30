@@ -121,7 +121,10 @@
     function initialize() {
         document.addEventListener("input", render);
         document.addEventListener("change", render);
-        const observer = new MutationObserver(render);
+        const observer = new MutationObserver(records => {
+            const panel = document.getElementById("production-alerts-panel");
+            if (records.some(record => !panel || !panel.contains(record.target))) render();
+        });
         observer.observe(document.body, { childList: true, subtree: true, characterData: true });
         render();
     }
