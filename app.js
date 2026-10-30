@@ -1192,6 +1192,9 @@ function renderPlacementHTML(placement) {
                                 <button type="button" class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
                                     <i class="fas fa-plus"></i> Color
                                 </button>
+                                <button type="button" class="btn btn-warning btn-sm" onclick="openSpecialEffectsCatalog(${placement.id})">
+                                    <i class="fas fa-layer-group"></i> Special Effects
+                                </button>
                             </div>
                             <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
                         </div>
@@ -1208,7 +1211,6 @@ function renderPlacementHTML(placement) {
                             <i class="fas fa-paste"></i> Pegar Secuencia
                         </button>
                     
-                        <button type="button" class="btn btn-warning btn-sm" onclick="openSpecialEffectsCatalog(${placement.id})"><i class="fas fa-layer-group"></i> Special Effects</button>
                         <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'FLASH')">+ FLASH</button>
                         <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'COOL')">+ COOL</button>
                         <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'HOT_HEAD')">+ HOT HEAD</button>

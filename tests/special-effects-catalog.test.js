@@ -16,3 +16,15 @@ test('effect letters descend consecutively and ignore blocker/base letters', () 
     assert.equal(api.nextLetter(['A', 'B', 'Z']), 'Y');
     assert.equal(api.nextLetter(['Z', 'Y']), 'X');
 });
+
+test('appending special effects keeps existing color rows exactly once and in order', () => {
+    const base = [
+        { id: 'black', type: 'COLOR', screenLetter: '1', val: 'BLACK' },
+        { id: 'red', type: 'COLOR', screenLetter: '2', val: 'RED' }
+    ];
+    const effect = { id: 'effect', type: 'SPECIAL_EFFECT', screenLetter: 'Z', val: 'EPIC ULTRA GOLD SHIMMER' };
+    const sequence = load().appendToSequence(base, [effect], (() => { let id = 0; return () => ++id; })());
+    const colors = sequence.filter(step => step.type === 'COLOR');
+    assert.deepEqual(Array.from(colors, step => step.id), ['black', 'red']);
+    assert.deepEqual(Array.from(colors, step => step.val), ['BLACK', 'RED']);
+});
