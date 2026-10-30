@@ -57,10 +57,13 @@
             const index = item.sequence.findIndex(isHotHead);
             const before = item.sequence.slice(0, index);
             const after = item.sequence.slice(index + 1);
-            const hasFlashCoolBefore = before.some(step => String(step.type || step.tipo || "").toUpperCase() === "FLASH") &&
-                before.some(step => String(step.type || step.tipo || "").toUpperCase() === "COOL");
+            const flashIndex = before.findIndex(step => String(step.type || step.tipo || "").toUpperCase() === "FLASH");
+            const coolIndex = flashIndex >= 0
+                ? before.findIndex((step, position) => position > flashIndex &&
+                    String(step.type || step.tipo || "").toUpperCase() === "COOL")
+                : -1;
             const hasCoolAfter = after.some(step => String(step.type || step.tipo || "").toUpperCase() === "COOL");
-            return !hasFlashCoolBefore || !hasCoolAfter;
+            return flashIndex < 0 || coolIndex < 0 || !hasCoolAfter;
         });
 
         return [{
