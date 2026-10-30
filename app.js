@@ -763,11 +763,14 @@ window.generarConAsistente = async function (placementId) {
 
         // Obtener SOLO los colores del diseño (los que el usuario agregó manualmente)
         const designColors = placement.printColors.filter(c =>
-            c.type === 'COLOR' || c.type === 'METALLIC'
+            ['COLOR', 'METALLIC'].includes(String(c.type || '').toUpperCase())
         ).map(c => ({ id: c.id, val: c.val }));
+        const specialEffects = placement.printColors.filter(c =>
+            String(c.type || '').toUpperCase() === 'SPECIAL_EFFECT'
+        );
 
-        if (designColors.length === 0) {
-            showStatus('⚠️ No hay colores de diseño para generar secuencia', 'warning');
+        if (designColors.length === 0 && specialEffects.length === 0) {
+            showStatus('⚠️ Agrega colores o efectos especiales antes de generar la secuencia', 'warning');
             return;
         }
 
@@ -776,17 +779,18 @@ window.generarConAsistente = async function (placementId) {
         // =============================================
         // 2. CONSULTAR AL MOTOR DE REGLAS
         // =============================================
-        if (!window.RulesEngine) {
+        if (designColors.length > 0 && !window.RulesEngine?.generarSecuencia) {
             throw new Error('Motor de reglas no disponible');
         }
 
-        // Generar secuencia COMPLETA (incluye FLASH/COOL en la posición correcta)
-        const secuenciaCompleta = window.RulesEngine.generarSecuencia({
-            customer: customer,
-            garmentColor: garmentColor,
-            inkType: inkType,
-            designColors: designColors
-        });
+        const secuenciaCompleta = designColors.length > 0
+            ? window.RulesEngine.generarSecuencia({
+                customer: customer,
+                garmentColor: garmentColor,
+                inkType: inkType,
+                designColors: designColors
+            })
+            : [];
 
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
@@ -799,6 +803,7 @@ window.generarConAsistente = async function (placementId) {
             mesh: paso.mesh || '',
             additives: paso.additives || ''
         }));
+        placement.sequence = window.SpecialEffectsCatalog.appendToSequence(placement.sequence, specialEffects);
         placement.sequenceMode = 'AUTO';
 
         // =============================================
@@ -1187,9 +1192,6 @@ function renderPlacementHTML(placement) {
                                 <button type="button" class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
                                     <i class="fas fa-plus"></i> Color
                                 </button>
-                                <button type="button" class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')">
-                                    <i class="fas fa-star"></i> Metálico
-                                </button>
                             </div>
                             <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
                         </div>
@@ -1206,7 +1208,7 @@ function renderPlacementHTML(placement) {
                             <i class="fas fa-paste"></i> Pegar Secuencia
                         </button>
                     
-                        <button class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'SPECIAL_EFFECT')"><i class="fas fa-layer-group"></i> GEL</button>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="openSpecialEffectsCatalog(${placement.id})"><i class="fas fa-layer-group"></i> Special Effects</button>
                         <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'FLASH')">+ FLASH</button>
                         <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'COOL')">+ COOL</button>
                         <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'HOT_HEAD')">+ HOT HEAD</button>
@@ -1423,7 +1425,22 @@ function updateAllPlacementTitles(placementId) {
 function updatePlacementInkType(placementId, inkType) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
-
+    const previousInkType = placement.inkType || 'WATER';
+    const nextInkKey = window.SpecialEffectsCatalog.normalizeInkType(inkType);
+    const incompatibleEffects = (placement.printColors || []).filter(item =>
+        String(item.type || '').toUpperCase() === 'SPECIAL_EFFECT' &&
+        window.SpecialEffectsCatalog.normalizeInkType(item.inkType || item.specialEffect?.inkType || previousInkType) !== nextInkKey
+    );
+    if (incompatibleEffects.length) {
+        if (!window.confirm('Cambiar el tipo de tinta eliminará los efectos especiales seleccionados para el sistema anterior. ¿Deseas continuar?')) {
+            const select = document.querySelector(`.placement-ink-type[data-placement-id="${placementId}"]`);
+            if (select) select.value = previousInkType;
+            return;
+        }
+        const removedIds = new Set(incompatibleEffects.map(item => String(item.id)));
+        placement.printColors = placement.printColors.filter(item => !removedIds.has(String(item.id)));
+        if (placement.sequenceMode === 'MANUAL') placement.sequence = (placement.sequence || []).filter(step => !removedIds.has(String(step.specialEffectId || '')));
+    }
     placement.inkType = inkType;
 
     const preset = getInkPresetSafe(inkType);
@@ -1447,8 +1464,11 @@ function updatePlacementInkType(placementId, inkType) {
     }
 
     updateDefaultParameters(placementId, inkType);
+    if (placement.sequenceMode !== 'MANUAL') generatePlacementSequenceFromRules(placementId, { silent: true });
+    renderPlacementColors(placementId);
     updatePlacementStations(placementId);
-    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
+    updatePlacementColorsPreview(placementId);
+    showStatus(incompatibleEffects.length ? `Tinta actualizada. Se retiraron ${incompatibleEffects.length} efecto(s) incompatibles.` : `✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`, incompatibleEffects.length ? 'warning' : 'success');
 }
 
 function updateDefaultParameters(placementId, inkType) {
@@ -1930,32 +1950,27 @@ function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason 
 
 function generatePlacementSequenceFromRules(placementId, options = {}) {
     const placement = placements.find(p => String(p.id) === String(placementId));
-    if (!placement || !window.RulesEngine?.generarSecuencia) return false;
+    if (!placement) return false;
     if (placement.sequenceMode === 'MANUAL' && options.force !== true) return false;
-    const designColors = (placement.printColors || [])
-        .filter(c => ['COLOR', 'METALLIC'].includes(String(c.type || '').toUpperCase()))
-        .map(c => ({ id: c.id, val: c.val }))
-        .filter(c => String(c.val || '').trim());
-    if (!designColors.length) return false;
+    const designColors = (placement.printColors || []).filter(c => ['COLOR','METALLIC'].includes(String(c.type||'').toUpperCase())).map(c=>({id:c.id,val:c.val})).filter(c=>String(c.val||'').trim());
+    const specialEffects = (placement.printColors || []).filter(c=>String(c.type||'').toUpperCase()==='SPECIAL_EFFECT');
+    if (!designColors.length && !specialEffects.length) return false;
+    if (designColors.length && !window.RulesEngine?.generarSecuencia) return false;
     const read = id => document.getElementById(id)?.value || '';
     const customer = read('customer');
     const garmentColor = read('colorway');
     const inkType = placement.inkType || 'WATER';
     // PPF se detecta para alertas; HOT HEAD nunca se inserta automáticamente.
-    const sequence = window.RulesEngine.generarSecuencia({
+    const sequence = designColors.length ? window.RulesEngine.generarSecuencia({
         customer, garmentColor, inkType, designColors,
         stage: read('sample-type'), fabric: read('fabric'), style: read('style'),
         pattern: read('pattern'), exportedPatternName: read('exported-pattern-name'),
         blankPatternName: read('blank-pattern-name'),
         customerTechpackName: read('customer-techpack-name'),
-        customerSchematicName: read('customer-schematic-name'),
-        includePpfHotHead: false
-    });
-    placement.sequence = sequence.map((step, index) => ({
-        id: Date.now() + Math.random() + index, type: step.tipo,
-        screenLetter: step.screenLetter || '', val: step.nombre || '---',
-        mesh: step.mesh || '', additives: step.additives || ''
-    }));
+        customerSchematicName: read('customer-schematic-name'), includePpfHotHead: false
+    }) : [];
+    placement.sequence = sequence.map((step,index)=>({id:Date.now()+Math.random()+index,type:step.tipo,screenLetter:step.screenLetter||'',val:step.nombre||'---',mesh:step.mesh||'',additives:step.additives||''}));
+    placement.sequence = window.SpecialEffectsCatalog.appendToSequence(placement.sequence,specialEffects);
     placement.sequenceMode = 'AUTO';
 
     const curing = window.RulesEngine.getCuringConditions
@@ -2011,6 +2026,68 @@ function getNextSpecialEffectLetter(placement) {
     for (const letter of 'ZYXWVUTSRQPONMLKJIHGFEDCBA') if (!used.has(letter)) return letter;
     showStatus('No quedan letras disponibles para otro efecto especial.', 'warning');
     return '';
+}
+
+
+let specialEffectsCatalogPromise = null;
+function loadSpecialEffectsCatalog() {
+    if (!specialEffectsCatalogPromise) {
+        specialEffectsCatalogPromise = fetch('config/EFECTOS%20ESPECIALES.json')
+            .then(response => { if (!response.ok) throw new Error('No se pudo cargar el catálogo.'); return response.json(); })
+            .catch(error => { specialEffectsCatalogPromise = null; throw error; });
+    }
+    return specialEffectsCatalogPromise;
+}
+async function openSpecialEffectsCatalog(placementId) {
+    if (!guardSpecSequenceEdit()) return;
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+    try {
+        const catalog = await loadSpecialEffectsCatalog();
+        const categories = window.SpecialEffectsCatalog.getOptions(catalog, placement.inkType || 'WATER');
+        if (!categories.length) { showStatus('No hay efectos especiales para este tipo de tinta.', 'warning'); return; }
+        document.getElementById('special-effects-modal')?.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'special-effects-modal';
+        overlay.className = 'special-effects-modal-overlay';
+        overlay.innerHTML = `
+            <section class="special-effects-modal" role="dialog" aria-modal="true" aria-labelledby="special-effects-title">
+                <header class="special-effects-modal-header">
+                    <div><h3 id="special-effects-title">Special Effects</h3><p>Catálogo filtrado para tinta ${escapeHtml(placement.inkType || 'WATER')}</p></div>
+                    <button type="button" class="btn btn-outline btn-sm" data-close-special-effects aria-label="Cerrar">✕</button>
+                </header>
+                <div class="form-group"><label class="form-label" for="special-effects-category">CATEGORÍA</label>
+                    <select id="special-effects-category" class="form-control">${categories.map((c,i)=>`<option value="${i}">${escapeHtml(c.category)}</option>`).join('')}</select>
+                </div>
+                <div id="special-effects-options" class="special-effects-options"></div>
+                <footer class="special-effects-modal-footer"><small>El efecto se agrega como una sola tinta de impresión con dos pasadas.</small><button type="button" class="btn btn-outline" data-close-special-effects>Cancelar</button></footer>
+            </section>`;
+        const list=overlay.querySelector('#special-effects-options'), select=overlay.querySelector('#special-effects-category');
+        const render=()=>{const group=categories[Number(select.value)]||categories[0];list.innerHTML=group.items.map((effect,i)=>{
+            const formula=(effect.components||[]).map(c=>`${escapeHtml(c.producto)} ${Number(c.porcentaje)}%`).join(' + ');
+            return `<button type="button" class="special-effects-option" data-effect-index="${i}"><span><strong>${escapeHtml(effect.label||effect.producto)}</strong><small class="special-effects-option-detail">${formula||escapeHtml(group.category)}</small></span><i class="fas fa-plus"></i></button>`;
+        }).join('');};
+        const close=()=>{overlay.remove();document.removeEventListener('keydown',onKey);};
+        const onKey=e=>{if(e.key==='Escape')close();};
+        select.addEventListener('change',render);
+        list.addEventListener('click',e=>{const button=e.target.closest('[data-effect-index]');if(!button)return;const group=categories[Number(select.value)]||categories[0];const effect=group.items[Number(button.dataset.effectIndex)];if(effect){addCatalogSpecialEffect(placementId,effect);close();}});
+        overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-close-special-effects]'))close();});
+        document.addEventListener('keydown',onKey);document.body.appendChild(overlay);render();
+    } catch(error){console.error('Error cargando Special Effects:',error);showStatus('No fue posible abrir el catálogo de efectos especiales.','error');}
+}
+function addCatalogSpecialEffect(placementId, catalogEffect) {
+    if (!guardSpecSequenceEdit()) return;
+    const placement=placements.find(p=>String(p.id)===String(placementId));
+    if(!placement||!catalogEffect)return;
+    const screenLetter=getNextSpecialEffectLetter(placement);if(!screenLetter)return;
+    const effectData={...catalogEffect,inkType:window.SpecialEffectsCatalog.normalizeInkType(placement.inkType||'WATER'),components:Array.isArray(catalogEffect.components)?catalogEffect.components.map(c=>({...c})):[]};
+    const colorId=Date.now()+Math.random();
+    const item={id:colorId,type:'SPECIAL_EFFECT',screenLetter,val:catalogEffect.producto,inkType:placement.inkType||'WATER',specialEffect:effectData,mesh:'',additives:''};
+    placement.printColors.push(item);
+    if(placement.sequenceMode==='MANUAL'){placement.sequence=window.SpecialEffectsCatalog.appendToSequence(placement.sequence||[],[item]);markPlacementSequenceManual(placement);}
+    else generatePlacementSequenceFromRules(placementId,{silent:true});
+    renderPlacementColors(placementId);updatePlacementStations(placementId);updatePlacementColorsPreview(placementId);window.ProductionAlertsUI?.render();
+    showStatus(`Efecto ${catalogEffect.label||catalogEffect.producto} agregado con pantalla ${screenLetter} y dos pasadas.`,'success');
 }
 
 function addManualProductionStation(placementId, stationType) {
@@ -2257,9 +2334,11 @@ function renderPlacementColors(placementId) {
                    data-placement-id="${placementId}"
                    placeholder="Nombre de la tinta..." 
                    value="${escapeHtml(color.val)}"
+                   ${color.type === 'SPECIAL_EFFECT' ? 'readonly title="Producto seleccionado desde el catálogo"' : ''}
                    oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)"
                    onkeydown="if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); this.blur(); }"
                    ondblclick="this.select()">
+            ${color.type === 'SPECIAL_EFFECT' && color.specialEffect?.formulation ? `<small class="special-effect-formula">Formulación: ${escapeHtml(color.specialEffect.formulation)} · ${(color.specialEffect.components || []).map(component => `${escapeHtml(component.producto)} ${Number(component.porcentaje)}%`).join(' + ')}</small>` : ''}
             <input type="text"
                    style="width: 82px; text-align:center;"
                    class="form-control placement-mesh-line"
@@ -2405,6 +2484,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
         delete color.hex;
         delete color.rgb;
     }
+    if (String(color.type || '').toUpperCase() === 'SPECIAL_EFFECT') { showStatus('El producto de un efecto especial se cambia desde el catálogo.', 'warning'); return; }
     color.val = value;
 
     // Auto-link only an unambiguous exact name match. Never infer a color from
@@ -2477,6 +2557,8 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
             if ((type === 'COLOR' || type === 'METALLIC') &&
                 String(step.val || '') === String(color.val || '')) {
                 step.screenLetter = color.screenLetter;
+            } else if (type === 'SPECIAL_EFFECT' && String(step.specialEffectId || '') === String(color.id)) {
+                step.screenLetter = color.screenLetter;
             }
         });
         markPlacementSequenceManual(placement);
@@ -2509,6 +2591,8 @@ function updatePlacementColorMesh(placementId, colorId, value) {
             if ((type === 'COLOR' || type === 'METALLIC') &&
                 String(step.screenLetter || '') === String(color.screenLetter || '')) {
                 step.mesh = value;
+            } else if (type === 'SPECIAL_EFFECT' && String(step.specialEffectId || '') === String(color.id)) {
+                step.mesh = value;
             }
         });
         markPlacementSequenceManual(placement);
@@ -2540,6 +2624,7 @@ function removePlacementColorItem(placementId, colorId) {
         const letter = String(color.screenLetter || '');
         placement.sequence = (placement.sequence || []).filter((step) => {
             const type = String(step.type || step.tipo || '').toUpperCase();
+            if (type === 'SPECIAL_EFFECT') return String(step.specialEffectId || '') !== String(color.id);
             if (type !== 'COLOR' && type !== 'METALLIC') return true;
             return String(step.screenLetter || '') !== letter;
         });
@@ -2794,27 +2879,16 @@ function updatePlacementColorsPreview(placementId) {
     if (!container) return;
 
     const uniqueColors = [];
+    const uniqueEffects = [];
     const seenColors = new Set();
-
     placement.printColors.forEach(color => {
         if (color.type === 'COLOR' || color.type === 'METALLIC') {
             const colorVal = (color.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
-            if (colorVal && !seenColors.has(colorVal)) {
-                seenColors.add(colorVal);
-                uniqueColors.push({
-                    val: colorVal,
-                    screenLetter: color.screenLetter
-                });
-            }
-        }
+            if (colorVal && !seenColors.has(colorVal)) { seenColors.add(colorVal); uniqueColors.push({ val: colorVal, screenLetter: color.screenLetter }); }
+        } else if (String(color.type || '').toUpperCase() === 'SPECIAL_EFFECT') uniqueEffects.push(color);
     });
-
-    if (uniqueColors.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
-
-    let html = '<div><strong>Leyenda de Colores:</strong></div><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px;">';
+    if (uniqueColors.length === 0 && uniqueEffects.length === 0) { container.innerHTML = ''; return; }
+    let html = '<div><strong>Leyenda de Colores y Efectos:</strong></div><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px;">';
 
     uniqueColors.forEach(color => {
         const colorHex = getColorHex(color.val) || '#cccccc';
@@ -2826,6 +2900,12 @@ function updatePlacementColorsPreview(placementId) {
         `;
     });
 
+    uniqueEffects.forEach(effect => {
+        const formula = effect.specialEffect?.formulation
+            ? ` · ${escapeHtml(effect.specialEffect.formulation)}: ${(effect.specialEffect.components || []).map(component => `${escapeHtml(component.producto)} ${Number(component.porcentaje)}%`).join(' + ')}`
+            : '';
+        html += `<div class="color-legend-item" style="display:flex;align-items:center;margin-bottom:5px;"><span style="font-size:11px;">${escapeHtml(effect.screenLetter)}: ${escapeHtml(effect.val)}${formula}</span></div>`;
+    });
     html += '</div>';
     container.innerHTML = html;
 }
