@@ -742,6 +742,10 @@ if (typeof window.errorHandler === 'undefined') {
 
 window.generarConAsistente = async function (placementId) {
     const placement = placements.find(p => String(p.id) === String(placementId));
+    if (placement?.sequenceMode === 'MANUAL') {
+        showStatus('Esta secuencia contiene ajustes manuales. No se sobrescribió; elimina o reordena los pasos desde la tabla.', 'warning');
+        return;
+    }
     if (!placement) {
         showStatus('❌ Placement no encontrado', 'error');
         return;
