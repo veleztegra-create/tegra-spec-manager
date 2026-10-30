@@ -1775,3 +1775,21 @@ textarea.form-control:focus {
     opacity: .55;
     cursor: not-allowed;
 }
+
+
+/* PPF / HOT HEAD semimanual production alerts */
+.production-alerts-panel { margin: 0 0 16px; }
+.production-alerts-panel[hidden] { display: none !important; }
+.production-alert-card {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid rgba(211, 158, 0, .55);
+    border-left: 4px solid #d39e00;
+    border-radius: 8px;
+    background: rgba(211, 158, 0, .09);
+}
+.production-alert-content { min-width: 0; }
+.production-alert-content h3 { margin: 0 0 6px; color: var(--text-primary); font-size: .95rem; }
+.production-alert-content p { margin: 0; color: var(--text-secondary); font-size: .86rem; line-height: 1.45; }
+.production-alert-content .production-alert-meta { margin-top: 7px; font-size: .75rem; overflow-wrap: anywhere; }
