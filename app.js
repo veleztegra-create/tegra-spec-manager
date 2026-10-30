@@ -478,12 +478,12 @@ function updateGarmentColorRecognition() {
 
     const colorway = document.getElementById('colorway')?.value || '';
     const fabric = document.getElementById('fabric')?.value || '';
-    const sourceText = String(fabric || colorway || '').trim();
+    const sourceText = String(colorway || '').trim();
 
     statusEl.classList.remove('is-recognized', 'is-unrecognized');
 
     if (!sourceText) {
-        statusEl.textContent = 'Color de tela sin analizar.';
+        statusEl.textContent = 'Colorway sin analizar.';
         return;
     }
 
@@ -493,7 +493,7 @@ function updateGarmentColorRecognition() {
 
     if (!foundHex) {
         statusEl.classList.add('is-unrecognized');
-        statusEl.textContent = `No se reconoció "${sourceText}" en la base de colores. Se usará fallback por texto.`;
+        statusEl.textContent = `No se reconoció el colorway "${sourceText}" en la base de colores. Se usará fallback por texto.`;
         return;
     }
 
@@ -509,7 +509,7 @@ function updateGarmentColorRecognition() {
     const fabricToneLabel = fabricIsDark === null ? 'N/A' : (fabricIsDark ? 'OSCURA' : 'CLARA');
 
     statusEl.classList.add('is-recognized');
-    statusEl.textContent = `Reconocido: ${sourceText} → ${foundHex.toUpperCase()} · Tinta ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
+    statusEl.textContent = `Colorway reconocido: ${sourceText} → ${foundHex.toUpperCase()} · Tinta ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
 }
 
 function applyCustomerInkDefaults() {
@@ -596,8 +596,8 @@ function addNewPlacement(type = null, isFirst = false) {
         imageData: null,
         printColors: [],
         sequence: [], // Secuencia completa (incluye FLASH/COOL)
-        placementDetails: '#.#" FROM COLLAR SEAM',
-        dimensions: 'SIZE: (W) ## X (H) ##',
+        placementDetails: '',
+        dimensions: '',
         temp: '320 °F',
         time: '1:40 min',
         specialties: '',
@@ -991,14 +991,7 @@ function renderPlacementHTML(placement) {
                         </div>
                         <div class="card-body">
                             <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">DETALLES DE UBICACIÓN:</label>
-                                    <input type="text" 
-                                           id="placement-details-${placement.id}"
-                                           class="form-control placement-details"
-                                           value="${placement.placementDetails}"
-                                           oninput="updatePlacementField(${placement.id}, 'placementDetails', this.value)">
-                                </div>
+
                                 
                                 <!-- Dimensiones separadas -->
                                 <div class="form-group">
