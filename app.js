@@ -2885,7 +2885,14 @@ function updatePlacementStations(placementId, returnOnly = false) {
             add = item.additives || '3% cross linker 500 · 3% Binder Flex';
         }
         // =========================================
-        // CASO 5: Es COLOR
+        // CASO 5: Es SPECIAL EFFECT (por ejemplo GEL)
+        // =========================================
+        else if (String(item.type || item.tipo || '').toUpperCase() === 'SPECIAL_EFFECT') {
+            mesh = item.mesh || placement.meshColor || preset.color.mesh;
+            add = item.additives || '';
+        }
+        // =========================================
+        // CASO 6: Es COLOR
         // =========================================
         else {
             mesh = item.mesh || placement.meshColor || preset.color.mesh;
