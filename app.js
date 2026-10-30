@@ -476,24 +476,22 @@ function updateGarmentColorRecognition() {
     const statusEl = document.getElementById('garment-color-recognition');
     if (!statusEl) return;
 
-    const colorway = document.getElementById('colorway')?.value || '';
-    const fabric = document.getElementById('fabric')?.value || '';
-    const sourceText = String(colorway || '').trim();
-
+    const colorway = String(document.getElementById('colorway')?.value || '').trim();
     statusEl.classList.remove('is-recognized', 'is-unrecognized');
+    statusEl.replaceChildren();
 
-    if (!sourceText) {
+    if (!colorway) {
         statusEl.textContent = 'Colorway sin analizar.';
         return;
     }
 
     const foundHex = window.ColorConfig?.findColorHex
-        ? window.ColorConfig.findColorHex(sourceText)
+        ? window.ColorConfig.findColorHex(colorway)
         : null;
 
     if (!foundHex) {
         statusEl.classList.add('is-unrecognized');
-        statusEl.textContent = `No se reconoció el colorway "${sourceText}" en la base de colores. Se usará fallback por texto.`;
+        statusEl.textContent = `No se reconoció el colorway "${colorway}" en la base de colores.`;
         return;
     }
 
@@ -501,15 +499,17 @@ function updateGarmentColorRecognition() {
     const resolved = window.ColorEngine?.resolveColor
         ? window.ColorEngine.resolveColor({ hex: foundHex, rgb })
         : null;
-
-    const tone = resolved?.toneCategory || 'unknown';
-    const toneLabel = tone === 'light' ? 'CLARO' : (tone === 'dark' ? 'OSCURO' : 'SIN CLASIFICAR');
-    const sourceLabel = resolved?.source === 'database' ? 'DB' : (resolved?.source === 'computed' ? 'COMPUTADO' : 'COLORCONFIG');
-    const fabricIsDark = window.RulesEngine?.esTelaOscura ? window.RulesEngine.esTelaOscura(sourceText) : null;
-    const fabricToneLabel = fabricIsDark === null ? 'N/A' : (fabricIsDark ? 'OSCURA' : 'CLARA');
+    const fabricIsDark = window.RulesEngine?.esTelaOscura
+        ? window.RulesEngine.esTelaOscura(colorway)
+        : null;
+    const fabricToneLabel = fabricIsDark === null ? 'SIN CLASIFICAR' : (fabricIsDark ? 'TELA OSCURA' : 'TELA CLARA');
 
     statusEl.classList.add('is-recognized');
-    statusEl.textContent = `Colorway reconocido: ${sourceText} → ${foundHex.toUpperCase()} · Tinta ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
+    const label = document.createElement('span');
+    label.textContent = `${colorway} → ${String(foundHex).toUpperCase()}   ${fabricToneLabel}`;
+    statusEl.appendChild(label);
+
+    statusEl.dataset.colorwayHex = String(foundHex).toUpperCase();
 }
 
 function applyCustomerInkDefaults() {
