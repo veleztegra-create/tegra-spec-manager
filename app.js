@@ -1201,7 +1201,12 @@ function renderPlacementHTML(placement) {
                         <button class="btn btn-outline btn-sm" onclick="pastePlacementSequence(${placement.id})">
                             <i class="fas fa-paste"></i> Pegar Secuencia
                         </button>
-                    </div>
+                    
+                        <button class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'SPECIAL_EFFECT')"><i class="fas fa-layer-group"></i> GEL</button>
+                        <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'FLASH')">+ FLASH</button>
+                        <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'COOL')">+ COOL</button>
+                        <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'HOT_HEAD')">+ HOT HEAD</button>
+</div>
                     
                     <!-- Instrucciones Especiales -->
                     <div class="form-group">
@@ -2032,10 +2037,19 @@ function addManualProductionStation(placementId, stationType) {
     };
     const sequence = placement.sequence;
     if (type === 'HOT_HEAD') {
-        const flash = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'FLASH');
-        const cool = flash >= 0 ? sequence.findIndex((item, index) =>
+        let flash = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'FLASH');
+        let cool = flash >= 0 ? sequence.findIndex((item, index) =>
             index > flash && String(item.type || item.tipo || '').toUpperCase() === 'COOL') : -1;
-        const insertAt = cool >= 0 ? cool + 1 : sequence.length;
+        // En placements de una sola pantalla no existe ciclo intermedio.
+        if (flash < 0 || cool < 0) {
+            sequence.push(
+                { id: Date.now() + Math.random(), type: 'FLASH', screenLetter: '', val: 'FLASH', mesh: '-', additives: '' },
+                { id: Date.now() + Math.random(), type: 'COOL', screenLetter: '', val: 'COOL', mesh: '-', additives: '' }
+            );
+            flash = sequence.length - 2;
+            cool = sequence.length - 1;
+        }
+        const insertAt = cool + 1;
         sequence.splice(insertAt, 0, step);
         if (String(sequence[insertAt + 1]?.type || sequence[insertAt + 1]?.tipo || '').toUpperCase() !== 'COOL') {
             sequence.splice(insertAt + 1, 0, {
@@ -2197,6 +2211,9 @@ function renderPlacementColors(placementId) {
         } else if (color.type === 'METALLIC') {
             badgeClass = 'badge-warning';
             label = 'METÁLICO';
+        } else if (color.type === 'SPECIAL_EFFECT') {
+            badgeClass = 'badge-warning';
+            label = 'EFECTO ESPECIAL';
         }
 
         const div = document.createElement('div');
