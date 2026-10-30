@@ -495,10 +495,6 @@ function updateGarmentColorRecognition() {
         return;
     }
 
-    const rgb = hexToRgbSafe(foundHex);
-    const resolved = window.ColorEngine?.resolveColor
-        ? window.ColorEngine.resolveColor({ hex: foundHex, rgb })
-        : null;
     const fabricIsDark = window.RulesEngine?.esTelaOscura
         ? window.RulesEngine.esTelaOscura(colorway)
         : null;
