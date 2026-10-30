@@ -3132,18 +3132,18 @@ function renderPlacementStationsTable(placementId, data) {
         if (isProcess) {
             const processName = type === 'HOT_HEAD' ? 'HOT HEAD' : (item.val || type);
             const processMesh = type === 'HOT_HEAD' ? 'TEFLÓN' : '-';
-            html += \`
-                <tr\${rowClass}>
-                    <td><strong>\${idx + 1}</strong></td><td></td>
-                    <td><strong>\${escapeSequenceCellValue(processName)}</strong></td>
-                    <td>\${escapeSequenceCellValue(item.additives || '')}</td><td>\${processMesh}</td>
+            html += `
+                <tr${rowClass}>
+                    <td><strong>${idx + 1}</strong></td><td></td>
+                    <td><strong>${escapeSequenceCellValue(processName)}</strong></td>
+                    <td>${escapeSequenceCellValue(item.additives || '')}</td><td>${processMesh}</td>
                     <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
                     <td class="no-print" style="white-space:nowrap;">
-                        <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementSequenceItem(\${placementId}, \${idx}, -1)" title="Subir"><i class="fas fa-arrow-up"></i></button>
-                        <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementSequenceItem(\${placementId}, \${idx}, 1)" title="Bajar"><i class="fas fa-arrow-down"></i></button>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementSequenceItem(\${placementId}, \${idx})" title="Eliminar paso"><i class="fas fa-times"></i></button>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementSequenceItem(${placementId}, ${idx}, -1)" title="Subir"><i class="fas fa-arrow-up"></i></button>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementSequenceItem(${placementId}, ${idx}, 1)" title="Bajar"><i class="fas fa-arrow-down"></i></button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementSequenceItem(${placementId}, ${idx})" title="Eliminar paso"><i class="fas fa-times"></i></button>
                     </td>
-                </tr>\`;
+                </tr>`;
             return;
         }
 
