@@ -2040,6 +2040,13 @@ function addManualProductionStation(placementId, stationType) {
         mesh: type === 'HOT_HEAD' ? 'TEFLÓN' : '-', additives: ''
     };
     const sequence = placement.sequence;
+    const sequenceBefore = sequence.map(item => ({ ...item }));
+    if (type === 'HOT_HEAD' && !sequence.some(item =>
+        ['COLOR', 'METALLIC', 'SPECIAL_EFFECT', 'BLOCKER', 'WHITE_BASE'].includes(String(item.type || item.tipo || '').toUpperCase())
+    )) {
+        showStatus('Agrega primero una pantalla de impresión antes de insertar HOT HEAD.', 'warning');
+        return;
+    }
     if (type === 'HOT_HEAD') {
         let flash = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'FLASH');
         let cool = flash >= 0 ? sequence.findIndex((item, index) =>
@@ -2072,7 +2079,8 @@ function addManualProductionStation(placementId, stationType) {
     }
     recordSpecSequenceChange({
         placement, path: 'placements[' + placementId + '].sequence',
-        oldValue: null, newValue: { ...step }, reason: 'Estación ' + type + ' agregada manualmente', action: 'ADD'
+        oldValue: sequenceBefore, newValue: placement.sequence.map(item => ({ ...item })),
+        reason: 'Estación ' + type + ' agregada manualmente', action: 'ADD'
     });
     markPlacementSequenceManual(placement);
     updatePlacementStations(placementId);
