@@ -6,6 +6,11 @@ window.SpecialEffectsCatalog = (function () {
         if(['SILICON','SILICONE'].includes(value))return 'SILICONE';
         return value;
     }
+    function nextLetter(usedLetters = []) {
+        const used = new Set(Array.from(usedLetters, letter => String(letter || '').trim().toUpperCase()));
+        return 'ZYXWVUTSRQPONMLKJIHGFEDCBA'.split('').find(letter => !used.has(letter)) || '';
+    }
+
     function catalogInkKey(inkType) {
         const value=normalizeInkType(inkType);
         return value==='WATER'?'BASE AGUA':value==='SILICONE'?'SILICON':value;
@@ -41,5 +46,5 @@ window.SpecialEffectsCatalog = (function () {
         });
         return sequence;
     }
-    return {normalizeInkType,getOptions,appendToSequence};
+    return {normalizeInkType,nextLetter,getOptions,appendToSequence};
 })();

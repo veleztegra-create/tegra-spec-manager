@@ -2018,12 +2018,13 @@ function syncPlacementSequenceWithColors(placement, force = false) {
 }
 
 function getNextSpecialEffectLetter(placement) {
-    const used = new Set();
-    [...(placement?.printColors || []), ...(placement?.sequence || [])].forEach(item => {
-        const letter = String(item.screenLetter || '').trim().toUpperCase();
-        if (/^[A-Z]$/.test(letter)) used.add(letter);
-    });
-    for (const letter of 'ZYXWVUTSRQPONMLKJIHGFEDCBA') if (!used.has(letter)) return letter;
+    const effectItems = [
+        ...(placement?.printColors || []).filter(item => String(item.type || '').toUpperCase() === 'SPECIAL_EFFECT'),
+        ...(placement?.sequence || []).filter(item => String(item.type || item.tipo || '').toUpperCase() === 'SPECIAL_EFFECT')
+    ];
+    const usedLetters = effectItems.map(item => String(item.screenLetter || '').trim().toUpperCase());
+    const nextLetter = window.SpecialEffectsCatalog.nextLetter(usedLetters);
+    if (nextLetter) return nextLetter;
     showStatus('No quedan letras disponibles para otro efecto especial.', 'warning');
     return '';
 }
@@ -2087,6 +2088,7 @@ function addCatalogSpecialEffect(placementId, catalogEffect) {
     if(placement.sequenceMode==='MANUAL'){placement.sequence=window.SpecialEffectsCatalog.appendToSequence(placement.sequence||[],[item]);markPlacementSequenceManual(placement);}
     else generatePlacementSequenceFromRules(placementId,{silent:true});
     renderPlacementColors(placementId);updatePlacementStations(placementId);updatePlacementColorsPreview(placementId);window.ProductionAlertsUI?.render();
+    checkForSpecialtiesInColors(placementId);
     showStatus(`Efecto ${catalogEffect.label||catalogEffect.producto} agregado con pantalla ${screenLetter} y dos pasadas.`,'success');
 }
 

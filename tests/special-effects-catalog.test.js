@@ -9,3 +9,10 @@ test('normalizes WATER/BASE AGUA and SILICONE/SILICON catalog keys',()=>{const a
 test('groups the three silicone shiny formulations as one effect with two 50 percent components',()=>{const groups=load().getOptions(catalog,'SILICONE');const shiny=groups.find(group=>group.category==='EFECTO DE BRILLO').items;assert.equal(shiny.length,3);assert.deepEqual(Array.from(shiny,item=>item.formulation),['LIBRA CLEAR','CHT ALPATEC 30194','IMS CLEAR']);shiny.forEach(item=>{assert.equal(item.producto,'SHINY SILICONE');assert.deepEqual(Array.from(item.components,c=>c.porcentaje),[50,50]);});});
 test('creates two same-letter effect passes with FLASH and COOL between them',()=>{const api=load();let id=0;const effect={id:'effect-1',type:'SPECIAL_EFFECT',screenLetter:'Z',val:'SHINY SILICONE',specialEffect:{producto:'SHINY SILICONE',formulation:'LIBRA CLEAR',components:[{producto:'LIBRA CLEAR PART-A',porcentaje:50},{producto:'LIBRA CLEAR PART-B',porcentaje:50}]}};const sequence=api.appendToSequence([{type:'COLOR',val:'BLACK'}],[effect],()=>++id);assert.deepEqual(Array.from(sequence,step=>step.type),['COLOR','FLASH','COOL','SPECIAL_EFFECT','FLASH','COOL','SPECIAL_EFFECT']);const passes=sequence.filter(step=>step.type==='SPECIAL_EFFECT');assert.deepEqual(Array.from(passes,step=>step.screenLetter),['Z','Z']);assert.deepEqual(Array.from(passes,step=>step.val),['SHINY SILICONE','SHINY SILICONE']);assert.deepEqual(Array.from(passes,step=>step.pass),[1,2]);assert.equal(passes[0].specialEffect.components.length,2);});
 test('supports an effect-only placement without a leading flash',()=>{const sequence=load().appendToSequence([],[{id:'e',type:'SPECIAL_EFFECT',screenLetter:'Z',val:'EPIC ULTRA GOLD SHIMMER'}],()=>1);assert.deepEqual(Array.from(sequence,step=>step.type),['SPECIAL_EFFECT','FLASH','COOL','SPECIAL_EFFECT']);});
+
+test('effect letters descend consecutively and ignore blocker/base letters', () => {
+    const api = load();
+    assert.equal(api.nextLetter(['A', 'B']), 'Z');
+    assert.equal(api.nextLetter(['A', 'B', 'Z']), 'Y');
+    assert.equal(api.nextLetter(['Z', 'Y']), 'X');
+});
