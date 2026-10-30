@@ -2093,6 +2093,10 @@ function addPlacementColorItem(placementId, type) {
     if (!guardSpecSequenceEdit()) return;
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
+    if (String(type || '').toUpperCase() === 'SPECIAL_EFFECT') {
+        showStatus('Selecciona los efectos desde el catálogo Special Effects.', 'warning');
+        return;
+    }
     let initialLetter = '';
     let initialVal = '';
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
@@ -2901,7 +2905,9 @@ function updatePlacementStations(placementId, returnOnly = false) {
         // =========================================
         else if (String(item.type || item.tipo || '').toUpperCase() === 'SPECIAL_EFFECT') {
             mesh = item.mesh || placement.meshColor || preset.color.mesh;
-            add = item.additives || '';
+            add = item.specialEffect?.formulation
+                ? `${item.specialEffect.formulation}: ${(item.specialEffect.components || []).map(component => `${component.producto} ${Number(component.porcentaje)}%`).join(' + ')}`
+                : (item.additives || '');
         }
         // =========================================
         // CASO 6: Es COLOR
