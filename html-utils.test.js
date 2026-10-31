@@ -73,6 +73,10 @@ test('la tecla Enter en el campo Pantone no se propaga ni ejecuta la acción pre
 test('el generador de la spec rechaza imageData no válido y escapa src', () => {
   const generatorContext = { window: {} };
   vm.runInNewContext(
+    fs.readFileSync(path.join(root, 'features', 'approved-spec-renderer.js'), 'utf8'),
+    generatorContext
+  );
+  vm.runInNewContext(
     fs.readFileSync(path.join(root, 'features', 'pdf-generator-mejorado.js'), 'utf8'),
     generatorContext
   );
@@ -85,8 +89,8 @@ test('el generador de la spec rechaza imageData no válido y escapa src', () => 
     placements: [{ title: 'BACK', imageData: malicious }]
   });
   assert.ok(!maliciousHtml.includes('onerror="alert(1)"'), 'no debe permitir atributos inyectados');
-  assert.ok(maliciousHtml.includes('https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT'),
-    'un imageData inválido debe usar el placeholder seguro');
+  assert.ok(!maliciousHtml.includes('data:image/png;base64,AAAA"'), 'no debe conservar una data URI manipulada');
+  assert.ok(maliciousHtml.includes('[ARTWORK / ARTE]'), 'una imagen inválida debe mostrar el placeholder visual aprobado');
 
   const validHtml = generate({
     style: 'TEST',
