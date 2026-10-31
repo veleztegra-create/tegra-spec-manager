@@ -612,7 +612,9 @@ function addNewPlacement(type = null, isFirst = false) {
         width: '',
         height: '',
         baseSize: '',
-        fabric: ''
+        fabric: '',
+        patternPieces: [],
+        patternPieceSelection: ''
     };
 
     if (!isFirst) {
@@ -960,6 +962,35 @@ function renderPlacementHTML(placement) {
                         </small>
                     </div>
                     
+                    <!-- Piezas y encogimientos del patrón asignados a este placement -->
+                    <div class="card placement-pattern-assignment">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-ruler-combined"></i> Piezas y encogimientos
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label" for="placement-pattern-piece-select-${placement.id}">PIEZA DEL PATRÓN:</label>
+                                <select id="placement-pattern-piece-select-${placement.id}"
+                                        class="form-control placement-pattern-piece-select"
+                                        data-placement-id="${placement.id}">
+                                    <option value="">Carga un patrón primero</option>
+                                </select>
+                                <small id="placement-pattern-status-${placement.id}" class="form-help pattern-piece-assignment-status">
+                                    Carga un patrón para ver las piezas disponibles.
+                                </small>
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm"
+                                    data-add-placement-pattern-piece="${placement.id}">
+                                <i class="fas fa-plus"></i> Asignar pieza
+                            </button>
+                            <div id="placement-pattern-pieces-${placement.id}" class="pattern-shrinkage-export">
+                                <p class="pattern-shrinkage-empty">Sin piezas asignadas.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Imagen de Referencia -->
                     <div class="card">
                         <div class="card-header">
