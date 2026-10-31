@@ -11,8 +11,8 @@ test('automatic variants are limited to Front and Back', () => {
 test('PPF adds 3 mm to the original width and height', () => {
   const [size] = rules.getAutomaticSizes({ type: 'FRONT', width: '14.6', height: '12' }, { fabric: 'PPF' });
   assert.equal(size.label, 'PPF +3 mm');
-  assert.equal(size.width, '14.72');
-  assert.equal(size.height, '12.12');
+  assert.equal(size.width, '14.718');
+  assert.equal(size.height, '12.118');
 });
 
 test('Twill generates 101% and 101% plus 4 mm from the original', () => {
@@ -37,4 +37,15 @@ test('NCAA normal uses 2.5%, NCAA Silicone uses only 1%', () => {
 test('manual sizes are retained on the placement', () => {
   const custom = [{ id: 'one', label: '95%', width: '12', height: '8' }];
   assert.deepEqual(rules.getManualSizes({ additionalArtworkSizes: custom }), custom);
+});
+
+test('PPF calculated size can be manually overridden', () => {
+  const [size] = rules.getAutomaticSizes({
+    type: 'FRONT',
+    width: '14.6',
+    height: '12',
+    automaticArtworkSizeOverrides: { PPF_PLUS_3MM: { width: '15.125', height: '12.250' } }
+  }, { fabric: 'PPF' });
+  assert.equal(size.width, '15.125');
+  assert.equal(size.height, '12.250');
 });
