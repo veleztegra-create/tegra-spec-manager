@@ -1386,6 +1386,7 @@ function updatePlacementType(placementId, type) {
         }
 
         updateAllPlacementTitles(placementId);
+        renderArtworkSizesUI(placementId);
         showStatus(`✅ Tipo de placement cambiado a ${type}`);
     }
 }
@@ -1476,6 +1477,7 @@ function updatePlacementInkType(placementId, inkType) {
         if (placement.sequenceMode === 'MANUAL') placement.sequence = (placement.sequence || []).filter(step => !removedIds.has(String(step.specialEffectId || '')));
     }
     placement.inkType = inkType;
+    renderArtworkSizesUI(placementId);
 
     const preset = getInkPresetSafe(inkType);
 
