@@ -4648,6 +4648,12 @@ function loadSpecData(data) {
 
         Store.replaceState({
             ...Store.getState(),
+            // Restore the complete saved general data, including the detected
+            // pattern-piece catalog and shrinkages, when reopening a Spec.
+            generalData: {
+                ...(Store.getState().generalData || {}),
+                ...getSpecGeneralData(data)
+            },
             specLifecycle: loadedLifecycle,
             styleVersion: data.styleVersion,
             versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],
