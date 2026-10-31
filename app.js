@@ -1056,7 +1056,7 @@ function renderPlacementHTML(placement) {
                                     </div>
                                 </div>
                                 
-                                <!-- Campos de temperatura y tiempo -->
+                                <div class="artwork-sizes-editor" id="artwork-sizes-editor-${placement.id}" style="margin-top:10px;padding:10px;border:1px solid var(--border-color, #555);border-radius:8px;"><div style="font-weight:700;margin-bottom:6px;">TAMAÑOS DE ARTE</div><div id="artwork-sizes-list-${placement.id}"></div></div><!-- Campos de temperatura y tiempo -->
                                 <div class="form-group">
                                     <label class="form-label">TEMPERATURA:</label>
                                     <input type="text" 
@@ -1277,6 +1277,7 @@ function renderPlacementHTML(placement) {
 
     container.innerHTML += sectionHTML;
 
+    renderArtworkSizesUI(placement.id);
     renderPlacementColors(placement.id);
 
     // Usar la secuencia guardada; si no existe, generar la ruta inicial automáticamente.
@@ -1848,7 +1849,91 @@ function updatePlacementDimension(placementId, type, value) {
         placement.height = height;
 
         placement.dimensions = `SIZE: (W) ${width || '##'} X (H) ${height || '##'}`;
+        renderArtworkSizesUI(placementId);
     }
+}
+
+
+function getArtworkSizingContext() {
+    return window.Store?.getState?.()?.generalData || window.Store?.state?.generalData || {};
+}
+
+function escapeArtworkSizeText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
+    });
+}
+
+function renderArtworkSizesUI(placementId) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    const list = document.getElementById('artwork-sizes-list-' + placementId);
+    if (!placement || !list) return;
+
+    const context = getArtworkSizingContext();
+    const automatic = window.ArtworkSizingRules ? window.ArtworkSizingRules.getAutomaticSizes(placement, context) : [];
+    const manual = window.ArtworkSizingRules ? window.ArtworkSizingRules.getManualSizes(placement) : [];
+    const hasOriginal = Number.parseFloat(placement.width) > 0 && Number.parseFloat(placement.height) > 0;
+
+    if (!hasOriginal) {
+        list.innerHTML = '<small style="color:var(--text-secondary);">Introduce primero el tamaño original 100%.</small>';
+        return;
+    }
+
+    let html = '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 8px;background:var(--surface-secondary, rgba(127,127,127,.12));border-radius:6px;margin-bottom:6px;"><strong>100% · Original</strong><strong>' +
+        escapeArtworkSizeText(placement.width) + ' × ' + escapeArtworkSizeText(placement.height) + '&quot;</strong></div>';
+
+    if (automatic.length) {
+        html += automatic.map(function (size) {
+            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border-color, #555);"><span>' +
+                escapeArtworkSizeText(size.label) + '</span><strong>' + escapeArtworkSizeText(size.width) + ' × ' +
+                escapeArtworkSizeText(size.height) + '&quot;</strong></div>';
+        }).join('');
+    } else {
+        html += manual.map(function (size) {
+            const id = JSON.stringify(String(size.id));
+            return '<div style="display:grid;grid-template-columns:1.1fr 1fr 1fr auto;gap:6px;align-items:center;margin-top:7px;">' +
+                '<input class="form-control" type="text" placeholder="Nombre (ej. 95%)" value="' + escapeArtworkSizeText(size.label || '') +
+                '" oninput="updateAdditionalArtworkSize(' + placementId + ', ' + id + ', \'label\', this.value)">' +
+                '<input class="form-control" type="number" step="0.01" placeholder="Ancho" value="' + escapeArtworkSizeText(size.width || '') +
+                '" oninput="updateAdditionalArtworkSize(' + placementId + ', ' + id + ', \'width\', this.value)">' +
+                '<input class="form-control" type="number" step="0.01" placeholder="Alto" value="' + escapeArtworkSizeText(size.height || '') +
+                '" oninput="updateAdditionalArtworkSize(' + placementId + ', ' + id + ', \'height\', this.value)">' +
+                '<button type="button" class="btn btn-outline btn-sm" title="Eliminar tamaño" onclick="removeAdditionalArtworkSize(' + placementId + ', ' + id + ')">×</button></div>';
+        }).join('');
+        html += '<button type="button" class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="addAdditionalArtworkSize(' + placementId + ')"><i class="fas fa-plus"></i> Agregar tamaño</button>';
+    }
+    list.innerHTML = html;
+}
+
+function addAdditionalArtworkSize(placementId) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    if (!placement) return;
+    placement.additionalArtworkSizes = Array.isArray(placement.additionalArtworkSizes) ? placement.additionalArtworkSizes : [];
+    placement.additionalArtworkSizes.push({
+        id: 'size-' + Date.now() + '-' + placement.additionalArtworkSizes.length,
+        label: '',
+        width: '',
+        height: ''
+    });
+    renderArtworkSizesUI(placementId);
+}
+
+function updateAdditionalArtworkSize(placementId, sizeId, field, value) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    const size = placement && Array.isArray(placement.additionalArtworkSizes)
+        ? placement.additionalArtworkSizes.find(function (item) { return String(item.id) === String(sizeId); })
+        : null;
+    if (!size || !['label', 'width', 'height'].includes(field)) return;
+    size[field] = value;
+}
+
+function removeAdditionalArtworkSize(placementId, sizeId) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    if (!placement) return;
+    placement.additionalArtworkSizes = (placement.additionalArtworkSizes || []).filter(function (item) {
+        return String(item.id) !== String(sizeId);
+    });
+    renderArtworkSizesUI(placementId);
 }
 
 function markPlacementSequenceManual(placement) {
