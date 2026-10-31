@@ -889,6 +889,23 @@ function renderPlacementHTML(placement) {
 
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
 
+    // Persistir los parámetros predeterminados en el placement.
+    // Antes solo se mostraban como fallback visual en los inputs y no
+    // llegaban al modelo de datos usado por la Spec HTML/PDF.
+    const printParamDefaults = {
+        durometer: preset.color.durometer || '70',
+        strokes: preset.color.strokes || '2',
+        angle: preset.color.angle || '15',
+        pressure: preset.color.pressure || '40',
+        speed: preset.color.speed || '35'
+    };
+
+    Object.entries(printParamDefaults).forEach(([param, defaultValue]) => {
+        if (placement[param] === undefined || placement[param] === null || String(placement[param]).trim() === '') {
+            placement[param] = String(defaultValue);
+        }
+    });
+
     const defaultMeshColor = preset.color.mesh || '157/48';
     const defaultMeshWhite = preset.white.mesh1 || '198/40';
     const defaultMeshBlocker = preset.blocker.mesh1 || '122/55';
