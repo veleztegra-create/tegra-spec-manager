@@ -1884,13 +1884,19 @@ function renderArtworkSizesUI(placementId) {
 
     if (automatic.length) {
         html += automatic.map(function (size) {
+            if (size.rule === 'PPF_PLUS_3MM') {
+                return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border-color, #555);"><strong>' +
+                    escapeArtworkSizeText(size.label) + '</strong><input class="form-control" type="number" step="0.001" aria-label="Ancho PPF +3 mm" value="' + escapeArtworkSizeText(size.width) +
+                    '" oninput="updateAutomaticArtworkSize(' + placementId + ', \'PPF_PLUS_3MM\', \'width\', this.value)"><input class="form-control" type="number" step="0.001" aria-label="Alto PPF +3 mm" value="' +
+                    escapeArtworkSizeText(size.height) + '" oninput="updateAutomaticArtworkSize(' + placementId + ', \'PPF_PLUS_3MM\', \'height\', this.value)"></div>';
+            }
             return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border-color, #555);"><span>' +
                 escapeArtworkSizeText(size.label) + '</span><strong>' + escapeArtworkSizeText(size.width) + ' × ' +
                 escapeArtworkSizeText(size.height) + '&quot;</strong></div>';
         }).join('');
     } else {
         html += manual.map(function (size) {
-            const id = JSON.stringify(String(size.id));
+            const id = "'" + String(size.id).replace(/'/g, '') + "'";
             return '<div style="display:grid;grid-template-columns:1.1fr 1fr 1fr auto;gap:6px;align-items:center;margin-top:7px;">' +
                 '<input class="form-control" type="text" placeholder="Nombre (ej. 95%)" value="' + escapeArtworkSizeText(size.label || '') +
                 '" oninput="updateAdditionalArtworkSize(' + placementId + ', ' + id + ', \'label\', this.value)">' +
@@ -1903,6 +1909,14 @@ function renderArtworkSizesUI(placementId) {
         html += '<button type="button" class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="addAdditionalArtworkSize(' + placementId + ')"><i class="fas fa-plus"></i> Agregar tamaño</button>';
     }
     list.innerHTML = html;
+}
+
+function updateAutomaticArtworkSize(placementId, rule, field, value) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    if (!placement || rule !== 'PPF_PLUS_3MM' || !['width', 'height'].includes(field)) return;
+    placement.automaticArtworkSizeOverrides = placement.automaticArtworkSizeOverrides || {};
+    placement.automaticArtworkSizeOverrides[rule] = placement.automaticArtworkSizeOverrides[rule] || {};
+    placement.automaticArtworkSizeOverrides[rule][field] = value;
 }
 
 function addAdditionalArtworkSize(placementId) {
