@@ -476,40 +476,36 @@ function updateGarmentColorRecognition() {
     const statusEl = document.getElementById('garment-color-recognition');
     if (!statusEl) return;
 
-    const colorway = document.getElementById('colorway')?.value || '';
-    const fabric = document.getElementById('fabric')?.value || '';
-    const sourceText = String(fabric || colorway || '').trim();
-
+    const colorway = String(document.getElementById('colorway')?.value || '').trim();
     statusEl.classList.remove('is-recognized', 'is-unrecognized');
+    statusEl.replaceChildren();
 
-    if (!sourceText) {
-        statusEl.textContent = 'Color de tela sin analizar.';
+    if (!colorway) {
+        statusEl.textContent = 'Colorway sin analizar.';
         return;
     }
 
     const foundHex = window.ColorConfig?.findColorHex
-        ? window.ColorConfig.findColorHex(sourceText)
+        ? window.ColorConfig.findColorHex(colorway)
         : null;
 
     if (!foundHex) {
         statusEl.classList.add('is-unrecognized');
-        statusEl.textContent = `No se reconoció "${sourceText}" en la base de colores. Se usará fallback por texto.`;
+        statusEl.textContent = `No se reconoció el colorway "${colorway}" en la base de colores.`;
         return;
     }
 
-    const rgb = hexToRgbSafe(foundHex);
-    const resolved = window.ColorEngine?.resolveColor
-        ? window.ColorEngine.resolveColor({ hex: foundHex, rgb })
+    const fabricIsDark = window.RulesEngine?.esTelaOscura
+        ? window.RulesEngine.esTelaOscura(colorway)
         : null;
-
-    const tone = resolved?.toneCategory || 'unknown';
-    const toneLabel = tone === 'light' ? 'CLARO' : (tone === 'dark' ? 'OSCURO' : 'SIN CLASIFICAR');
-    const sourceLabel = resolved?.source === 'database' ? 'DB' : (resolved?.source === 'computed' ? 'COMPUTADO' : 'COLORCONFIG');
-    const fabricIsDark = window.RulesEngine?.esTelaOscura ? window.RulesEngine.esTelaOscura(sourceText) : null;
-    const fabricToneLabel = fabricIsDark === null ? 'N/A' : (fabricIsDark ? 'OSCURA' : 'CLARA');
+    const fabricToneLabel = fabricIsDark === null ? 'SIN CLASIFICAR' : (fabricIsDark ? 'TELA OSCURA' : 'TELA CLARA');
 
     statusEl.classList.add('is-recognized');
-    statusEl.textContent = `Reconocido: ${sourceText} → ${foundHex.toUpperCase()} · Tinta ${toneLabel} (${sourceLabel}) · Tela ${fabricToneLabel}`;
+    const label = document.createElement('span');
+    label.textContent = `${colorway} → ${String(foundHex).toUpperCase()}   ${fabricToneLabel}`;
+    statusEl.appendChild(label);
+
+    statusEl.dataset.colorwayHex = String(foundHex).toUpperCase();
 }
 
 function applyCustomerInkDefaults() {
@@ -596,8 +592,8 @@ function addNewPlacement(type = null, isFirst = false) {
         imageData: null,
         printColors: [],
         sequence: [], // Secuencia completa (incluye FLASH/COOL)
-        placementDetails: '#.#" FROM COLLAR SEAM',
-        dimensions: 'SIZE: (W) ## X (H) ##',
+        placementDetails: '',
+        dimensions: '',
         temp: '320 °F',
         time: '1:40 min',
         specialties: '',
@@ -616,7 +612,9 @@ function addNewPlacement(type = null, isFirst = false) {
         width: '',
         height: '',
         baseSize: '',
-        fabric: ''
+        fabric: '',
+        patternPieces: [],
+        patternPieceSelection: ''
     };
 
     if (!isFirst) {
@@ -746,6 +744,10 @@ if (typeof window.errorHandler === 'undefined') {
 
 window.generarConAsistente = async function (placementId) {
     const placement = placements.find(p => String(p.id) === String(placementId));
+    if (placement?.sequenceMode === 'MANUAL') {
+        showStatus('Esta secuencia contiene ajustes manuales. No se sobrescribió; elimina o reordena los pasos desde la tabla.', 'warning');
+        return;
+    }
     if (!placement) {
         showStatus('❌ Placement no encontrado', 'error');
         return;
@@ -763,11 +765,14 @@ window.generarConAsistente = async function (placementId) {
 
         // Obtener SOLO los colores del diseño (los que el usuario agregó manualmente)
         const designColors = placement.printColors.filter(c =>
-            c.type === 'COLOR' || c.type === 'METALLIC'
+            ['COLOR', 'METALLIC'].includes(String(c.type || '').toUpperCase())
         ).map(c => ({ id: c.id, val: c.val }));
+        const specialEffects = placement.printColors.filter(c =>
+            String(c.type || '').toUpperCase() === 'SPECIAL_EFFECT'
+        );
 
-        if (designColors.length === 0) {
-            showStatus('⚠️ No hay colores de diseño para generar secuencia', 'warning');
+        if (designColors.length === 0 && specialEffects.length === 0) {
+            showStatus('⚠️ Agrega colores o efectos especiales antes de generar la secuencia', 'warning');
             return;
         }
 
@@ -776,17 +781,18 @@ window.generarConAsistente = async function (placementId) {
         // =============================================
         // 2. CONSULTAR AL MOTOR DE REGLAS
         // =============================================
-        if (!window.RulesEngine) {
+        if (designColors.length > 0 && !window.RulesEngine?.generarSecuencia) {
             throw new Error('Motor de reglas no disponible');
         }
 
-        // Generar secuencia COMPLETA (incluye FLASH/COOL en la posición correcta)
-        const secuenciaCompleta = window.RulesEngine.generarSecuencia({
-            customer: customer,
-            garmentColor: garmentColor,
-            inkType: inkType,
-            designColors: designColors
-        });
+        const secuenciaCompleta = designColors.length > 0
+            ? window.RulesEngine.generarSecuencia({
+                customer: customer,
+                garmentColor: garmentColor,
+                inkType: inkType,
+                designColors: designColors
+            })
+            : [];
 
         console.log('✅ Secuencia completa generada:', secuenciaCompleta);
 
@@ -799,6 +805,7 @@ window.generarConAsistente = async function (placementId) {
             mesh: paso.mesh || '',
             additives: paso.additives || ''
         }));
+        placement.sequence = window.SpecialEffectsCatalog.appendToSequence(placement.sequence, specialEffects);
         placement.sequenceMode = 'AUTO';
 
         // =============================================
@@ -882,6 +889,23 @@ function renderPlacementHTML(placement) {
 
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
 
+    // Persistir los parámetros predeterminados en el placement.
+    // Antes solo se mostraban como fallback visual en los inputs y no
+    // llegaban al modelo de datos usado por la Spec HTML/PDF.
+    const printParamDefaults = {
+        durometer: preset.color.durometer || '70',
+        strokes: preset.color.strokes || '2',
+        angle: preset.color.angle || '15',
+        pressure: preset.color.pressure || '40',
+        speed: preset.color.speed || '35'
+    };
+
+    Object.entries(printParamDefaults).forEach(([param, defaultValue]) => {
+        if (placement[param] === undefined || placement[param] === null || String(placement[param]).trim() === '') {
+            placement[param] = String(defaultValue);
+        }
+    });
+
     const defaultMeshColor = preset.color.mesh || '157/48';
     const defaultMeshWhite = preset.white.mesh1 || '198/40';
     const defaultMeshBlocker = preset.blocker.mesh1 || '122/55';
@@ -895,6 +919,7 @@ function renderPlacementHTML(placement) {
     const defaultWhiteAdditives = preset.white.additives || 'N/A';
 
     const dimensions = extractDimensions(placement.dimensions);
+    const hasStoredDimensionText = /\d/.test(String(placement.dimensions || ''));
 
     const safeTemp = normalizeTextValue(placement.curing?.temperature ?? placement.temp, preset.temp || '320 °F');
     const safeTime = normalizeTextValue(placement.curing?.time ?? placement.time, preset.time || '1:40 min');
@@ -955,6 +980,35 @@ function renderPlacementHTML(placement) {
                         </small>
                     </div>
                     
+                    <!-- Piezas y encogimientos del patrón asignados a este placement -->
+                    <div class="card placement-pattern-assignment">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size: 1rem;">
+                                <i class="fas fa-ruler-combined"></i> Piezas y encogimientos
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label" for="placement-pattern-piece-select-${placement.id}">PIEZA DEL PATRÓN:</label>
+                                <select id="placement-pattern-piece-select-${placement.id}"
+                                        class="form-control placement-pattern-piece-select"
+                                        data-placement-id="${placement.id}">
+                                    <option value="">Carga un patrón primero</option>
+                                </select>
+                                <small id="placement-pattern-status-${placement.id}" class="form-help pattern-piece-assignment-status">
+                                    Carga un patrón para ver las piezas disponibles.
+                                </small>
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm"
+                                    data-add-placement-pattern-piece="${placement.id}">
+                                <i class="fas fa-plus"></i> Asignar pieza
+                            </button>
+                            <div id="placement-pattern-pieces-${placement.id}" class="pattern-shrinkage-export">
+                                <p class="pattern-shrinkage-empty">Sin piezas asignadas.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Imagen de Referencia -->
                     <div class="card">
                         <div class="card-header">
@@ -991,14 +1045,7 @@ function renderPlacementHTML(placement) {
                         </div>
                         <div class="card-body">
                             <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">DETALLES DE UBICACIÓN:</label>
-                                    <input type="text" 
-                                           id="placement-details-${placement.id}"
-                                           class="form-control placement-details"
-                                           value="${placement.placementDetails}"
-                                           oninput="updatePlacementField(${placement.id}, 'placementDetails', this.value)">
-                                </div>
+
                                 
                                 <!-- Dimensiones separadas -->
                                 <div class="form-group">
@@ -1008,7 +1055,7 @@ function renderPlacementHTML(placement) {
                                                id="dimension-w-${placement.id}"
                                                class="form-control placement-dimension-w"
                                                placeholder="Ancho"
-                                               value="${placement.width || dimensions.width.replace('"', '')}"
+                                               value="${placement.width || (hasStoredDimensionText ? dimensions.width.replace('"', '') : '')}"
                                                oninput="handleDimensionInput(${placement.id}, 'width', this)"
                                                onblur="window.ScreenCategoryRules?.validateScreen(${placement.id})"
                                                onpaste="handleDimensionPaste(event, ${placement.id}, 'width')"
@@ -1018,7 +1065,7 @@ function renderPlacementHTML(placement) {
                                                id="dimension-h-${placement.id}"
                                                class="form-control placement-dimension-h"
                                                placeholder="Alto"
-                                               value="${placement.height || dimensions.height.replace('"', '')}"
+                                               value="${placement.height || (hasStoredDimensionText ? dimensions.height.replace('"', '') : '')}"
                                                oninput="handleDimensionInput(${placement.id}, 'height', this)"
                                                onblur="window.ScreenCategoryRules?.validateScreen(${placement.id})"
                                                onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
@@ -1027,7 +1074,7 @@ function renderPlacementHTML(placement) {
                                     </div>
                                 </div>
                                 
-                                <!-- Campos de temperatura y tiempo -->
+                                <div class="artwork-sizes-editor" id="artwork-sizes-editor-${placement.id}" style="margin-top:10px;padding:10px;border:1px solid var(--border-color, #555);border-radius:8px;"><div style="font-weight:700;margin-bottom:6px;">TAMAÑOS DE ARTE</div><div id="artwork-sizes-list-${placement.id}"></div></div><!-- Campos de temperatura y tiempo -->
                                 <div class="form-group">
                                     <label class="form-label">TEMPERATURA:</label>
                                     <input type="text" 
@@ -1194,8 +1241,8 @@ function renderPlacementHTML(placement) {
                                 <button type="button" class="btn btn-primary btn-sm" onclick="addPlacementColorItem(${placement.id}, 'COLOR')">
                                     <i class="fas fa-plus"></i> Color
                                 </button>
-                                <button type="button" class="btn btn-warning btn-sm" onclick="addPlacementColorItem(${placement.id}, 'METALLIC')">
-                                    <i class="fas fa-star"></i> Metálico
+                                <button type="button" class="btn btn-warning btn-sm" onclick="openSpecialEffectsCatalog(${placement.id})">
+                                    <i class="fas fa-layer-group"></i> Special Effects
                                 </button>
                             </div>
                             <div id="placement-colors-container-${placement.id}" class="color-sequence"></div>
@@ -1212,7 +1259,11 @@ function renderPlacementHTML(placement) {
                         <button class="btn btn-outline btn-sm" onclick="pastePlacementSequence(${placement.id})">
                             <i class="fas fa-paste"></i> Pegar Secuencia
                         </button>
-                    </div>
+                    
+                        <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'FLASH')">+ FLASH</button>
+                        <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'COOL')">+ COOL</button>
+                        <button class="btn btn-outline btn-sm" onclick="addManualProductionStation(${placement.id}, 'HOT_HEAD')">+ HOT HEAD</button>
+</div>
                     
                     <!-- Instrucciones Especiales -->
                     <div class="form-group">
@@ -1244,6 +1295,7 @@ function renderPlacementHTML(placement) {
 
     container.innerHTML += sectionHTML;
 
+    renderArtworkSizesUI(placement.id);
     renderPlacementColors(placement.id);
 
     // Usar la secuencia guardada; si no existe, generar la ruta inicial automáticamente.
@@ -1352,6 +1404,7 @@ function updatePlacementType(placementId, type) {
         }
 
         updateAllPlacementTitles(placementId);
+        renderArtworkSizesUI(placementId);
         showStatus(`✅ Tipo de placement cambiado a ${type}`);
     }
 }
@@ -1425,8 +1478,24 @@ function updateAllPlacementTitles(placementId) {
 function updatePlacementInkType(placementId, inkType) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
-
+    const previousInkType = placement.inkType || 'WATER';
+    const nextInkKey = window.SpecialEffectsCatalog.normalizeInkType(inkType);
+    const incompatibleEffects = (placement.printColors || []).filter(item =>
+        String(item.type || '').toUpperCase() === 'SPECIAL_EFFECT' &&
+        window.SpecialEffectsCatalog.normalizeInkType(item.inkType || item.specialEffect?.inkType || previousInkType) !== nextInkKey
+    );
+    if (incompatibleEffects.length) {
+        if (!window.confirm('Cambiar el tipo de tinta eliminará los efectos especiales seleccionados para el sistema anterior. ¿Deseas continuar?')) {
+            const select = document.querySelector(`.placement-ink-type[data-placement-id="${placementId}"]`);
+            if (select) select.value = previousInkType;
+            return;
+        }
+        const removedIds = new Set(incompatibleEffects.map(item => String(item.id)));
+        placement.printColors = placement.printColors.filter(item => !removedIds.has(String(item.id)));
+        if (placement.sequenceMode === 'MANUAL') placement.sequence = (placement.sequence || []).filter(step => !removedIds.has(String(step.specialEffectId || '')));
+    }
     placement.inkType = inkType;
+    renderArtworkSizesUI(placementId);
 
     const preset = getInkPresetSafe(inkType);
 
@@ -1449,8 +1518,11 @@ function updatePlacementInkType(placementId, inkType) {
     }
 
     updateDefaultParameters(placementId, inkType);
+    if (placement.sequenceMode !== 'MANUAL') generatePlacementSequenceFromRules(placementId, { silent: true });
+    renderPlacementColors(placementId);
     updatePlacementStations(placementId);
-    showStatus(`✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`);
+    updatePlacementColorsPreview(placementId);
+    showStatus(incompatibleEffects.length ? `Tinta actualizada. Se retiraron ${incompatibleEffects.length} efecto(s) incompatibles.` : `✅ Tinta: ${inkType} - Temp: ${preset.temp}, Tiempo: ${preset.time}`, incompatibleEffects.length ? 'warning' : 'success');
 }
 
 function updateDefaultParameters(placementId, inkType) {
@@ -1797,7 +1869,105 @@ function updatePlacementDimension(placementId, type, value) {
         placement.height = height;
 
         placement.dimensions = `SIZE: (W) ${width || '##'} X (H) ${height || '##'}`;
+        renderArtworkSizesUI(placementId);
     }
+}
+
+
+function getArtworkSizingContext() {
+    return window.Store?.getState?.()?.generalData || window.Store?.state?.generalData || {};
+}
+
+function escapeArtworkSizeText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, function (char) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
+    });
+}
+
+function renderArtworkSizesUI(placementId) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    const list = document.getElementById('artwork-sizes-list-' + placementId);
+    if (!placement || !list) return;
+
+    const context = getArtworkSizingContext();
+    const automatic = window.ArtworkSizingRules ? window.ArtworkSizingRules.getAutomaticSizes(placement, context) : [];
+    const manual = window.ArtworkSizingRules ? window.ArtworkSizingRules.getManualSizes(placement) : [];
+    const hasOriginal = Number.parseFloat(placement.width) > 0 && Number.parseFloat(placement.height) > 0;
+
+    if (!hasOriginal) {
+        list.innerHTML = '<small style="color:var(--text-secondary);">Introduce primero el tamaño original 100%.</small>';
+        return;
+    }
+
+    let html = '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 8px;background:var(--surface-secondary, rgba(127,127,127,.12));border-radius:6px;margin-bottom:6px;"><strong>100% · Original</strong><strong>' +
+        escapeArtworkSizeText(placement.width) + ' × ' + escapeArtworkSizeText(placement.height) + '&quot;</strong></div>';
+
+    if (automatic.length) {
+        html += automatic.map(function (size) {
+            if (size.rule === 'PPF_PLUS_3MM') {
+                return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border-color, #555);"><strong>' +
+                    escapeArtworkSizeText(size.label) + '</strong><input class="form-control" type="number" step="0.001" aria-label="Ancho PPF +3 mm" value="' + escapeArtworkSizeText(size.width) +
+                    '" oninput="updateAutomaticArtworkSize(' + placementId + ', \'PPF_PLUS_3MM\', \'width\', this.value)"><input class="form-control" type="number" step="0.001" aria-label="Alto PPF +3 mm" value="' +
+                    escapeArtworkSizeText(size.height) + '" oninput="updateAutomaticArtworkSize(' + placementId + ', \'PPF_PLUS_3MM\', \'height\', this.value)"></div>';
+            }
+            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border-color, #555);"><span>' +
+                escapeArtworkSizeText(size.label) + '</span><strong>' + escapeArtworkSizeText(size.width) + ' × ' +
+                escapeArtworkSizeText(size.height) + '&quot;</strong></div>';
+        }).join('');
+    } else {
+        html += manual.map(function (size) {
+            const id = "'" + String(size.id).replace(/'/g, '') + "'";
+            return '<div style="display:grid;grid-template-columns:1.1fr 1fr 1fr auto;gap:6px;align-items:center;margin-top:7px;">' +
+                '<input class="form-control" type="text" placeholder="Nombre (ej. 95%)" value="' + escapeArtworkSizeText(size.label || '') +
+                '" oninput="updateAdditionalArtworkSize(' + placementId + ', ' + id + ', \'label\', this.value)">' +
+                '<input class="form-control" type="number" step="0.01" placeholder="Ancho" value="' + escapeArtworkSizeText(size.width || '') +
+                '" oninput="updateAdditionalArtworkSize(' + placementId + ', ' + id + ', \'width\', this.value)">' +
+                '<input class="form-control" type="number" step="0.01" placeholder="Alto" value="' + escapeArtworkSizeText(size.height || '') +
+                '" oninput="updateAdditionalArtworkSize(' + placementId + ', ' + id + ', \'height\', this.value)">' +
+                '<button type="button" class="btn btn-outline btn-sm" title="Eliminar tamaño" onclick="removeAdditionalArtworkSize(' + placementId + ', ' + id + ')">×</button></div>';
+        }).join('');
+        html += '<button type="button" class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="addAdditionalArtworkSize(' + placementId + ')"><i class="fas fa-plus"></i> Agregar tamaño</button>';
+    }
+    list.innerHTML = html;
+}
+
+function updateAutomaticArtworkSize(placementId, rule, field, value) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    if (!placement || rule !== 'PPF_PLUS_3MM' || !['width', 'height'].includes(field)) return;
+    placement.automaticArtworkSizeOverrides = placement.automaticArtworkSizeOverrides || {};
+    placement.automaticArtworkSizeOverrides[rule] = placement.automaticArtworkSizeOverrides[rule] || {};
+    placement.automaticArtworkSizeOverrides[rule][field] = value;
+}
+
+function addAdditionalArtworkSize(placementId) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    if (!placement) return;
+    placement.additionalArtworkSizes = Array.isArray(placement.additionalArtworkSizes) ? placement.additionalArtworkSizes : [];
+    placement.additionalArtworkSizes.push({
+        id: 'size-' + Date.now() + '-' + placement.additionalArtworkSizes.length,
+        label: '',
+        width: '',
+        height: ''
+    });
+    renderArtworkSizesUI(placementId);
+}
+
+function updateAdditionalArtworkSize(placementId, sizeId, field, value) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    const size = placement && Array.isArray(placement.additionalArtworkSizes)
+        ? placement.additionalArtworkSizes.find(function (item) { return String(item.id) === String(sizeId); })
+        : null;
+    if (!size || !['label', 'width', 'height'].includes(field)) return;
+    size[field] = value;
+}
+
+function removeAdditionalArtworkSize(placementId, sizeId) {
+    const placement = placements.find(function (item) { return String(item.id) === String(placementId); });
+    if (!placement) return;
+    placement.additionalArtworkSizes = (placement.additionalArtworkSizes || []).filter(function (item) {
+        return String(item.id) !== String(sizeId);
+    });
+    renderArtworkSizesUI(placementId);
 }
 
 function markPlacementSequenceManual(placement) {
@@ -1932,31 +2102,27 @@ function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason 
 
 function generatePlacementSequenceFromRules(placementId, options = {}) {
     const placement = placements.find(p => String(p.id) === String(placementId));
-    if (!placement || !window.RulesEngine?.generarSecuencia) return false;
-
-    const designColors = (placement.printColors || [])
-        .filter(c => c.type === 'COLOR' || c.type === 'METALLIC')
-        .map(c => ({ id: c.id, val: c.val }))
-        .filter(c => String(c.val || '').trim());
-
-    if (designColors.length === 0) return false;
-
-    const customer = document.getElementById('customer')?.value || '';
-    const garmentColor = document.getElementById('colorway')?.value || '';
+    if (!placement) return false;
+    if (placement.sequenceMode === 'MANUAL' && options.force !== true) return false;
+    const designColors = (placement.printColors || []).filter(c => ['COLOR','METALLIC'].includes(String(c.type||'').toUpperCase())).map(c=>({id:c.id,val:c.val})).filter(c=>String(c.val||'').trim());
+    const specialEffects = (placement.printColors || []).filter(c=>String(c.type||'').toUpperCase()==='SPECIAL_EFFECT');
+    if (!designColors.length && !specialEffects.length) return false;
+    if (designColors.length && !window.RulesEngine?.generarSecuencia) return false;
+    const read = id => document.getElementById(id)?.value || '';
+    const customer = read('customer');
+    const garmentColor = read('colorway');
     const inkType = placement.inkType || 'WATER';
-
-    const sequence = window.RulesEngine.generarSecuencia({
-        customer, garmentColor, inkType, designColors
-    });
-
-    placement.sequence = sequence.map((step, index) => ({
-        id: Date.now() + Math.random() + index,
-        type: step.tipo,
-        screenLetter: step.screenLetter || '',
-        val: step.nombre || '---',
-        mesh: step.mesh || '',
-        additives: step.additives || ''
-    }));
+    // PPF se detecta para alertas; HOT HEAD nunca se inserta automáticamente.
+    const sequence = designColors.length ? window.RulesEngine.generarSecuencia({
+        customer, garmentColor, inkType, designColors,
+        stage: read('sample-type'), fabric: read('fabric'), style: read('style'),
+        pattern: read('pattern'), exportedPatternName: read('exported-pattern-name'),
+        blankPatternName: read('blank-pattern-name'),
+        customerTechpackName: read('customer-techpack-name'),
+        customerSchematicName: read('customer-schematic-name'), includePpfHotHead: false
+    }) : [];
+    placement.sequence = sequence.map((step,index)=>({id:Date.now()+Math.random()+index,type:step.tipo,screenLetter:step.screenLetter||'',val:step.nombre||'---',mesh:step.mesh||'',additives:step.additives||''}));
+    placement.sequence = window.SpecialEffectsCatalog.appendToSequence(placement.sequence,specialEffects);
     placement.sequenceMode = 'AUTO';
 
     const curing = window.RulesEngine.getCuringConditions
@@ -2003,68 +2169,207 @@ function syncPlacementSequenceWithColors(placement, force = false) {
     if (!Array.isArray(placement.sequence)) placement.sequence = [];
 }
 
-function addPlacementColorItem(placementId, type) {
-    if (!guardSpecSequenceEdit()) return;
+function getNextSpecialEffectLetter(placement) {
+    const effectItems = [
+        ...(placement?.printColors || []).filter(item => String(item.type || '').toUpperCase() === 'SPECIAL_EFFECT'),
+        ...(placement?.sequence || []).filter(item => String(item.type || item.tipo || '').toUpperCase() === 'SPECIAL_EFFECT')
+    ];
+    const usedLetters = effectItems.map(item => String(item.screenLetter || '').trim().toUpperCase());
+    const nextLetter = window.SpecialEffectsCatalog.nextLetter(usedLetters);
+    if (nextLetter) return nextLetter;
+    showStatus('No quedan letras disponibles para otro efecto especial.', 'warning');
+    return '';
+}
 
+
+let specialEffectsCatalogPromise = null;
+function loadSpecialEffectsCatalog() {
+    if (!specialEffectsCatalogPromise) {
+        specialEffectsCatalogPromise = fetch('config/EFECTOS%20ESPECIALES.json')
+            .then(response => { if (!response.ok) throw new Error('No se pudo cargar el catálogo.'); return response.json(); })
+            .catch(error => { specialEffectsCatalogPromise = null; throw error; });
+    }
+    return specialEffectsCatalogPromise;
+}
+async function openSpecialEffectsCatalog(placementId) {
+    if (!guardSpecSequenceEdit()) return;
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
+    try {
+        const catalog = await loadSpecialEffectsCatalog();
+        const categories = window.SpecialEffectsCatalog.getOptions(catalog, placement.inkType || 'WATER');
+        if (!categories.length) { showStatus('No hay efectos especiales para este tipo de tinta.', 'warning'); return; }
+        document.getElementById('special-effects-modal')?.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'special-effects-modal';
+        overlay.className = 'special-effects-modal-overlay';
+        overlay.innerHTML = `
+            <section class="special-effects-modal" role="dialog" aria-modal="true" aria-labelledby="special-effects-title">
+                <header class="special-effects-modal-header">
+                    <div><h3 id="special-effects-title">Special Effects</h3><p>Catálogo filtrado para tinta ${escapeHtml(placement.inkType || 'WATER')}</p></div>
+                    <button type="button" class="btn btn-outline btn-sm" data-close-special-effects aria-label="Cerrar">✕</button>
+                </header>
+                <div class="form-group"><label class="form-label" for="special-effects-category">CATEGORÍA</label>
+                    <select id="special-effects-category" class="form-control">${categories.map((c,i)=>`<option value="${i}">${escapeHtml(c.category)}</option>`).join('')}</select>
+                </div>
+                <div id="special-effects-options" class="special-effects-options"></div>
+                <footer class="special-effects-modal-footer"><small>El efecto se agrega como una sola tinta de impresión con dos pasadas.</small><button type="button" class="btn btn-outline" data-close-special-effects>Cancelar</button></footer>
+            </section>`;
+        const list=overlay.querySelector('#special-effects-options'), select=overlay.querySelector('#special-effects-category');
+        const render=()=>{const group=categories[Number(select.value)]||categories[0];list.innerHTML=group.items.map((effect,i)=>{
+            const formula=(effect.components||[]).map(c=>`${escapeHtml(c.producto)} ${Number(c.porcentaje)}%`).join(' + ');
+            return `<button type="button" class="special-effects-option" data-effect-index="${i}"><span><strong>${escapeHtml(effect.label||effect.producto)}</strong><small class="special-effects-option-detail">${formula||escapeHtml(group.category)}</small></span><i class="fas fa-plus"></i></button>`;
+        }).join('');};
+        const close=()=>{overlay.remove();document.removeEventListener('keydown',onKey);};
+        const onKey=e=>{if(e.key==='Escape')close();};
+        select.addEventListener('change',render);
+        list.addEventListener('click',e=>{const button=e.target.closest('[data-effect-index]');if(!button)return;const group=categories[Number(select.value)]||categories[0];const effect=group.items[Number(button.dataset.effectIndex)];if(effect){addCatalogSpecialEffect(placementId,effect);close();}});
+        overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-close-special-effects]'))close();});
+        document.addEventListener('keydown',onKey);document.body.appendChild(overlay);render();
+    } catch(error){console.error('Error cargando Special Effects:',error);showStatus('No fue posible abrir el catálogo de efectos especiales.','error');}
+}
+function addCatalogSpecialEffect(placementId, catalogEffect) {
+    if (!guardSpecSequenceEdit()) return;
+    const placement=placements.find(p=>String(p.id)===String(placementId));
+    if(!placement||!catalogEffect)return;
+    const screenLetter=getNextSpecialEffectLetter(placement);if(!screenLetter)return;
+    const effectData={...catalogEffect,inkType:window.SpecialEffectsCatalog.normalizeInkType(placement.inkType||'WATER'),components:Array.isArray(catalogEffect.components)?catalogEffect.components.map(c=>({...c})):[]};
+    const colorId=Date.now()+Math.random();
+    const item={id:colorId,type:'SPECIAL_EFFECT',screenLetter,val:catalogEffect.producto,inkType:placement.inkType||'WATER',specialEffect:effectData,mesh:'',additives:''};
+    placement.printColors.push(item);
+    if(placement.sequenceMode==='MANUAL'){placement.sequence=window.SpecialEffectsCatalog.appendToSequence(placement.sequence||[],[item]);markPlacementSequenceManual(placement);}
+    else generatePlacementSequenceFromRules(placementId,{silent:true});
+    renderPlacementColors(placementId);updatePlacementStations(placementId);updatePlacementColorsPreview(placementId);window.ProductionAlertsUI?.render();
+    checkForSpecialtiesInColors(placementId);
+    showStatus(`Efecto ${catalogEffect.label||catalogEffect.producto} agregado con pantalla ${screenLetter} y dos pasadas.`,'success');
+}
 
+function addManualProductionStation(placementId, stationType) {
+    if (!guardSpecSequenceEdit()) return;
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+    const type = String(stationType || '').toUpperCase();
+    if (!['FLASH', 'COOL', 'HOT_HEAD'].includes(type)) return;
+    placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+    const hasHotHead = placement.sequence.some(step =>
+        [step.type, step.tipo, step.stationType, step.val, step.nombre]
+            .some(value => String(value || '').toUpperCase().replace(/[\s-]+/g, '_').includes('HOT_HEAD'))
+    );
+    if (type === 'HOT_HEAD' && hasHotHead) {
+        showStatus('HOT HEAD ya está agregado en esta secuencia. No se insertó un duplicado.', 'warning');
+        return;
+    }
+    if (!placement.sequence.length && placement.printColors?.some(color =>
+        ['COLOR', 'METALLIC'].includes(String(color.type || '').toUpperCase()) && String(color.val || '').trim()
+    )) {
+        generatePlacementSequenceFromRules(placementId, { silent: true });
+        placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
+    }
+    const step = {
+        id: Date.now() + Math.random(), type, stationType: type, screenLetter: '',
+        val: type === 'HOT_HEAD' ? 'HOT HEAD' : type,
+        mesh: type === 'HOT_HEAD' ? 'TEFLÓN' : '-', additives: ''
+    };
+    const sequence = placement.sequence;
+    const sequenceBefore = sequence.map(item => ({ ...item }));
+    if (type === 'HOT_HEAD' && !sequence.some(item =>
+        ['COLOR', 'METALLIC', 'SPECIAL_EFFECT', 'BLOCKER', 'WHITE_BASE'].includes(String(item.type || item.tipo || '').toUpperCase())
+    )) {
+        showStatus('Agrega primero una pantalla de impresión antes de insertar HOT HEAD.', 'warning');
+        return;
+    }
+    if (type === 'HOT_HEAD') {
+        let flash = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'FLASH');
+        let cool = flash >= 0 ? sequence.findIndex((item, index) =>
+            index > flash && String(item.type || item.tipo || '').toUpperCase() === 'COOL') : -1;
+        // En placements de una sola pantalla no existe ciclo intermedio.
+        if (flash < 0 || cool < 0) {
+            sequence.push(
+                { id: Date.now() + Math.random(), type: 'FLASH', screenLetter: '', val: 'FLASH', mesh: '-', additives: '' },
+                { id: Date.now() + Math.random(), type: 'COOL', screenLetter: '', val: 'COOL', mesh: '-', additives: '' }
+            );
+            flash = sequence.length - 2;
+            cool = sequence.length - 1;
+        }
+        const insertAt = cool + 1;
+        sequence.splice(insertAt, 0, step);
+        if (String(sequence[insertAt + 1]?.type || sequence[insertAt + 1]?.tipo || '').toUpperCase() !== 'COOL') {
+            sequence.splice(insertAt + 1, 0, {
+                id: Date.now() + Math.random(), type: 'COOL', screenLetter: '',
+                val: 'COOL', mesh: '-', additives: ''
+            });
+        }
+    } else if (type === 'COOL') {
+        const hotHead = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'HOT_HEAD');
+        if (hotHead >= 0 && String(sequence[hotHead + 1]?.type || sequence[hotHead + 1]?.tipo || '').toUpperCase() !== 'COOL') {
+            sequence.splice(hotHead + 1, 0, step);
+        } else sequence.push(step);
+    } else {
+        const firstCool = sequence.findIndex(item => String(item.type || item.tipo || '').toUpperCase() === 'COOL');
+        sequence.splice(firstCool >= 0 ? firstCool : sequence.length, 0, step);
+    }
+    recordSpecSequenceChange({
+        placement, path: 'placements[' + placementId + '].sequence',
+        oldValue: sequenceBefore, newValue: placement.sequence.map(item => ({ ...item })),
+        reason: 'Estación ' + type + ' agregada manualmente', action: 'ADD'
+    });
+    markPlacementSequenceManual(placement);
+    updatePlacementStations(placementId);
+    updatePlacementColorsPreview(placementId);
+    window.ProductionAlertsUI?.render();
+    showStatus(type + ' agregado manualmente a la secuencia.', 'success');
+}
+
+function addPlacementColorItem(placementId, type) {
+    if (!guardSpecSequenceEdit()) return;
+    const placement = placements.find(p => String(p.id) === String(placementId));
+    if (!placement) return;
+    if (String(type || '').toUpperCase() === 'SPECIAL_EFFECT') {
+        showStatus('Selecciona los efectos desde el catálogo Special Effects.', 'warning');
+        return;
+    }
     let initialLetter = '';
     let initialVal = '';
     const preset = getInkPresetSafe(placement.inkType || 'WATER');
-
     if (type === 'BLOCKER') {
         initialLetter = 'A';
-        if (placement.inkType === 'PLASTISOL') {
-            initialVal = 'BARRIER BASE';
-        } else if (placement.inkType === 'SILICONE') {
-            initialVal = 'BLOCKER LIBRA';
-        } else {
-            initialVal = preset.blocker?.name || 'BLOCKER CHT';
-        }
+        initialVal = placement.inkType === 'PLASTISOL' ? 'BARRIER BASE'
+            : placement.inkType === 'SILICONE' ? 'BLOCKER LIBRA' : (preset.blocker?.name || 'BLOCKER CHT');
     } else if (type === 'WHITE_BASE') {
         initialLetter = 'B';
         initialVal = preset.white?.name || 'AQUAFLEX V2 WHITE';
+    } else if (type === 'SPECIAL_EFFECT') {
+        initialLetter = getNextSpecialEffectLetter(placement);
+        initialVal = 'GEL';
+        if (!initialLetter) return;
     } else if (type === 'METALLIC') {
-        const colorItems = placement.printColors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        const colorItems = placement.printColors.filter(c => ['COLOR', 'METALLIC'].includes(String(c.type || '').toUpperCase()));
         initialLetter = String(colorItems.length + 1);
         initialVal = 'METALLIC GOLD';
     } else {
-        const colorItems = placement.printColors.filter(c => c.type === 'COLOR' || c.type === 'METALLIC');
+        const colorItems = placement.printColors.filter(c => ['COLOR', 'METALLIC'].includes(String(c.type || '').toUpperCase()));
         initialLetter = String(colorItems.length + 1);
     }
-
     const colorId = Date.now() + Math.random();
-    const item = {
-        id: colorId,
-        type: type,
-        screenLetter: initialLetter,
-        val: initialVal,
-        mesh: null,
-        additives: null
-    };
-
-    if (type === 'WHITE_BASE' || type === 'BLOCKER' || type === 'FLASH' || type === 'COOL') {
+    const item = { id: colorId, type, screenLetter: initialLetter, val: initialVal,
+        mesh: type === 'SPECIAL_EFFECT' ? '' : null, additives: '' };
+    if (type === 'WHITE_BASE' || type === 'BLOCKER') {
         placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
-        placement.sequence.push(item);
+        placement.sequence.push({ ...item });
         markPlacementSequenceManual(placement);
     } else {
+        if (type === 'SPECIAL_EFFECT' && placement.sequenceMode !== 'MANUAL' &&
+            (!Array.isArray(placement.sequence) || !placement.sequence.length)) {
+            generatePlacementSequenceFromRules(placementId, { silent: true });
+        }
         placement.printColors.push(item);
-
-        if (placement.sequenceMode === 'MANUAL') {
-            // Manual mode: keep the existing production route intact and add
-            // the newly requested print color as one explicit production screen.
+        if (placement.sequenceMode === 'MANUAL' || type === 'SPECIAL_EFFECT') {
             placement.sequence = Array.isArray(placement.sequence) ? placement.sequence : [];
             placement.sequence.push({
-                id: colorId,
-                type: type,
-                screenLetter: initialLetter,
-                val: initialVal || '---',
-                mesh: '',
-                additives: ''
+                id: colorId, type, screenLetter: initialLetter, val: initialVal || '---', mesh: '', additives: ''
             });
+            markPlacementSequenceManual(placement);
         } else {
-            // Automatic mode: recalculate the full route from the Rules Engine.
             try {
                 const generated = generatePlacementSequenceFromRules(placementId, { silent: true });
                 if (generated) {
@@ -2076,15 +2381,13 @@ function addPlacementColorItem(placementId, type) {
             }
         }
     }
-
     syncPlacementSequenceWithColors(placement);
     renderPlacementColors(placementId);
     updatePlacementStations(placementId);
     updatePlacementColorsPreview(placementId);
-
+    window.ProductionAlertsUI?.render();
     checkForSpecialtiesInColors(placementId);
 }
-
 function renderPlacementColors(placementId) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return;
@@ -2155,6 +2458,9 @@ function renderPlacementColors(placementId) {
         } else if (color.type === 'METALLIC') {
             badgeClass = 'badge-warning';
             label = 'METÁLICO';
+        } else if (color.type === 'SPECIAL_EFFECT') {
+            badgeClass = 'badge-warning';
+            label = 'EFECTO ESPECIAL';
         }
 
         const div = document.createElement('div');
@@ -2182,9 +2488,11 @@ function renderPlacementColors(placementId) {
                    data-placement-id="${placementId}"
                    placeholder="Nombre de la tinta..." 
                    value="${escapeHtml(color.val)}"
+                   ${color.type === 'SPECIAL_EFFECT' ? 'readonly title="Producto seleccionado desde el catálogo"' : ''}
                    oninput="updatePlacementColorValue(${placementId}, ${color.id}, this.value)"
                    onkeydown="if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); this.blur(); }"
                    ondblclick="this.select()">
+            ${color.type === 'SPECIAL_EFFECT' && color.specialEffect?.formulation ? `<small class="special-effect-formula">Formulación: ${escapeHtml(color.specialEffect.formulation)} · ${(color.specialEffect.components || []).map(component => `${escapeHtml(component.producto)} ${Number(component.porcentaje)}%`).join(' + ')}</small>` : ''}
             <input type="text"
                    style="width: 82px; text-align:center;"
                    class="form-control placement-mesh-line"
@@ -2330,6 +2638,7 @@ function updatePlacementColorValue(placementId, colorId, value) {
         delete color.hex;
         delete color.rgb;
     }
+    if (String(color.type || '').toUpperCase() === 'SPECIAL_EFFECT') { showStatus('El producto de un efecto especial se cambia desde el catálogo.', 'warning'); return; }
     color.val = value;
 
     // Auto-link only an unambiguous exact name match. Never infer a color from
@@ -2402,6 +2711,8 @@ function updatePlacementScreenLetter(placementId, colorId, value) {
             if ((type === 'COLOR' || type === 'METALLIC') &&
                 String(step.val || '') === String(color.val || '')) {
                 step.screenLetter = color.screenLetter;
+            } else if (type === 'SPECIAL_EFFECT' && String(step.specialEffectId || '') === String(color.id)) {
+                step.screenLetter = color.screenLetter;
             }
         });
         markPlacementSequenceManual(placement);
@@ -2434,6 +2745,8 @@ function updatePlacementColorMesh(placementId, colorId, value) {
             if ((type === 'COLOR' || type === 'METALLIC') &&
                 String(step.screenLetter || '') === String(color.screenLetter || '')) {
                 step.mesh = value;
+            } else if (type === 'SPECIAL_EFFECT' && String(step.specialEffectId || '') === String(color.id)) {
+                step.mesh = value;
             }
         });
         markPlacementSequenceManual(placement);
@@ -2465,6 +2778,7 @@ function removePlacementColorItem(placementId, colorId) {
         const letter = String(color.screenLetter || '');
         placement.sequence = (placement.sequence || []).filter((step) => {
             const type = String(step.type || step.tipo || '').toUpperCase();
+            if (type === 'SPECIAL_EFFECT') return String(step.specialEffectId || '') !== String(color.id);
             if (type !== 'COLOR' && type !== 'METALLIC') return true;
             return String(step.screenLetter || '') !== letter;
         });
@@ -2719,27 +3033,16 @@ function updatePlacementColorsPreview(placementId) {
     if (!container) return;
 
     const uniqueColors = [];
+    const uniqueEffects = [];
     const seenColors = new Set();
-
     placement.printColors.forEach(color => {
         if (color.type === 'COLOR' || color.type === 'METALLIC') {
             const colorVal = (color.val || '').toUpperCase().replace(/\s*\(\d+\)\s*$/, '').trim();
-            if (colorVal && !seenColors.has(colorVal)) {
-                seenColors.add(colorVal);
-                uniqueColors.push({
-                    val: colorVal,
-                    screenLetter: color.screenLetter
-                });
-            }
-        }
+            if (colorVal && !seenColors.has(colorVal)) { seenColors.add(colorVal); uniqueColors.push({ val: colorVal, screenLetter: color.screenLetter }); }
+        } else if (String(color.type || '').toUpperCase() === 'SPECIAL_EFFECT') uniqueEffects.push(color);
     });
-
-    if (uniqueColors.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
-
-    let html = '<div><strong>Leyenda de Colores:</strong></div><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px;">';
+    if (uniqueColors.length === 0 && uniqueEffects.length === 0) { container.innerHTML = ''; return; }
+    let html = '<div><strong>Leyenda de Colores y Efectos:</strong></div><div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 10px;">';
 
     uniqueColors.forEach(color => {
         const colorHex = getColorHex(color.val) || '#cccccc';
@@ -2751,6 +3054,12 @@ function updatePlacementColorsPreview(placementId) {
         `;
     });
 
+    uniqueEffects.forEach(effect => {
+        const formula = effect.specialEffect?.formulation
+            ? ` · ${escapeHtml(effect.specialEffect.formulation)}: ${(effect.specialEffect.components || []).map(component => `${escapeHtml(component.producto)} ${Number(component.porcentaje)}%`).join(' + ')}`
+            : '';
+        html += `<div class="color-legend-item" style="display:flex;align-items:center;margin-bottom:5px;"><span style="font-size:11px;">${escapeHtml(effect.screenLetter)}: ${escapeHtml(effect.val)}${formula}</span></div>`;
+    });
     html += '</div>';
     container.innerHTML = html;
 }
@@ -2785,21 +3094,16 @@ function updatePlacementStations(placementId, returnOnly = false) {
         // =========================================
         // CASO 1: Es FLASH o COOL (ya están en la secuencia)
         // =========================================
-        if (item.type === 'FLASH' || item.type === 'COOL') {
+        const itemType = String(item.type || item.tipo || item.stationType || '').toUpperCase();
+        if (['FLASH', 'COOL', 'HOT_HEAD'].includes(itemType)) {
             stationsData.push({
-                st: stNum++,
-                screenLetter: '',
-                screenCombined: item.type,
-                mesh: '-',
-                ink: '-',
-                strokes: '-',
-                duro: '-',
-                angle: '-',
-                pressure: '-',
-                speed: '-',
+                st: stNum++, screenLetter: '',
+                screenCombined: itemType === 'HOT_HEAD' ? 'HOT HEAD' : itemType,
+                mesh: itemType === 'HOT_HEAD' ? 'TEFLÓN' : '-',
+                ink: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-',
                 add: item.additives || ''
             });
-            continue; // ← IMPORTANTE: No añadir FLASH/COOL adicional
+            continue;
         }
 
         // =========================================
@@ -2831,7 +3135,16 @@ function updatePlacementStations(placementId, returnOnly = false) {
             add = item.additives || '3% cross linker 500 · 3% Binder Flex';
         }
         // =========================================
-        // CASO 5: Es COLOR
+        // CASO 5: Es SPECIAL EFFECT (por ejemplo GEL)
+        // =========================================
+        else if (String(item.type || item.tipo || '').toUpperCase() === 'SPECIAL_EFFECT') {
+            mesh = item.mesh || placement.meshColor || preset.color.mesh;
+            add = item.specialEffect?.formulation
+                ? `${item.specialEffect.formulation}: ${(item.specialEffect.components || []).map(component => `${component.producto} ${Number(component.porcentaje)}%`).join(' + ')}`
+                : (item.additives || '');
+        }
+        // =========================================
+        // CASO 6: Es COLOR
         // =========================================
         else {
             mesh = item.mesh || placement.meshColor || preset.color.mesh;
@@ -3054,22 +3367,21 @@ function renderPlacementStationsTable(placementId, data) {
 
     sequence.forEach((item, idx) => {
         const type = String(item.type || item.tipo || '').toUpperCase();
-        const isProcess = type === 'FLASH' || type === 'COOL';
+        const isProcess = ['FLASH', 'COOL', 'HOT_HEAD'].includes(type);
         const rowClass = isProcess ? ' class="flash-row"' : '';
-
         if (isProcess) {
+            const processName = type === 'HOT_HEAD' ? 'HOT HEAD' : (item.val || type);
+            const processMesh = type === 'HOT_HEAD' ? 'TEFLÓN' : '-';
             html += `
                 <tr${rowClass}>
-                    <td><strong>${idx + 1}</strong></td>
-                    <td></td>
-                    <td><strong>${escapeSequenceCellValue(item.val || type)}</strong></td>
-                    <td>${escapeSequenceCellValue(item.additives || '')}</td>
-                    <td>-</td>
+                    <td><strong>${idx + 1}</strong></td><td></td>
+                    <td><strong>${escapeSequenceCellValue(processName)}</strong></td>
+                    <td>${escapeSequenceCellValue(item.additives || '')}</td><td>${processMesh}</td>
                     <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-                    <td class="no-print">
-                        <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementSequenceItem(${placementId}, ${idx})" title="Eliminar paso">
-                            <i class="fas fa-times"></i>
-                        </button>
+                    <td class="no-print" style="white-space:nowrap;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementSequenceItem(${placementId}, ${idx}, -1)" title="Subir"><i class="fas fa-arrow-up"></i></button>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="movePlacementSequenceItem(${placementId}, ${idx}, 1)" title="Bajar"><i class="fas fa-arrow-down"></i></button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removePlacementSequenceItem(${placementId}, ${idx})" title="Eliminar paso"><i class="fas fa-times"></i></button>
                     </td>
                 </tr>`;
             return;
@@ -4101,7 +4413,16 @@ function getSpecGeneralData(source = {}) {
         technicianName: data?.technicianName || '',
         technicalComments: data?.technicalComments || '',
         program: data?.program || '',
-        specDate: data?.specDate || ''
+        specDate: data?.specDate || '',
+        designerOtherName: data?.designerOtherName || '',
+        stageDate: data?.stageDate || '',
+        _stageDateForStage: data?._stageDateForStage || data?.sampleType || '',
+        exportedPatternName: data?.exportedPatternName || '',
+        blankPatternName: data?.blankPatternName || '',
+        customerSchematicName: data?.customerSchematicName || '',
+        customerTechpackName: data?.customerTechpackName || '',
+        patternPieces: Array.isArray(data?.patternPieces) ? data.patternPieces : [],
+        availablePatternPieces: Array.isArray(data?.availablePatternPieces) ? data.availablePatternPieces : []
     };
 }
 
@@ -4427,6 +4748,12 @@ function loadSpecData(data) {
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
     setInputValue('technical-comments', data.technicalComments || '');
+    setInputValue('designer-other-name', data.designerOtherName || '');
+    setInputValue('spec-stage-date', data.stageDate || '');
+    setInputValue('exported-pattern-name', data.exportedPatternName || '');
+    setInputValue('blank-pattern-name', data.blankPatternName || '');
+    setInputValue('customer-schematic-name', data.customerSchematicName || '');
+    setInputValue('customer-techpack-name', data.customerTechpackName || '');
 
     const placementsContainer = document.getElementById('placements-container');
     if (placementsContainer) placementsContainer.innerHTML = '';
@@ -4440,6 +4767,12 @@ function loadSpecData(data) {
 
         Store.replaceState({
             ...Store.getState(),
+            // Restore the complete saved general data, including the detected
+            // pattern-piece catalog and shrinkages, when reopening a Spec.
+            generalData: {
+                ...(Store.getState().generalData || {}),
+                ...getSpecGeneralData(data)
+            },
             specLifecycle: loadedLifecycle,
             styleVersion: data.styleVersion,
             versionHistory: Array.isArray(data.versionHistory) ? data.versionHistory : [],

@@ -95,11 +95,69 @@
                         placeholder="Algodón, Polyester, Twill..." oninput="updateGarmentColorRecognition()">
                 </div>
                 <div class="form-group" style="grid-column: 1 / -1;">
-                    <div id="garment-color-recognition" class="color-recognition-note">Color de tela sin analizar.</div>
+                    <div id="garment-color-recognition" class="color-recognition-note">Colorway sin analizar.</div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- =========== CARD: DATOS DE PATRÓN Y ENCOGIMIENTOS =========== -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-ruler-combined"></i> Patrón y encogimientos</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-grid two-col">
+                <div class="form-group">
+                    <label for="spec-stage-date" class="form-label">FECHA DE ETAPA:</label>
+                    <input type="text" id="spec-stage-date" class="form-control" data-bind-general="stageDate" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="exported-pattern-file" class="form-label">EXPORTED PATTERN (.AI):</label>
+                    <input type="file" id="exported-pattern-file" class="form-control" accept=".ai,application/pdf">
+                    <small id="exported-pattern-status" class="form-help">Carga el patrón para extraer las piezas y sus encogimientos.</small>
+                    <input type="text" id="exported-pattern-name" class="form-control" data-bind-general="exportedPatternName" placeholder="El nombre se completa al cargar el archivo" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="blank-pattern-name" class="form-label">BLANK PATTERN FOR PRINT:</label>
+                    <input type="text" id="blank-pattern-name" class="form-control" data-bind-general="blankPatternName" placeholder="Nombre del archivo e iniciales">
+                </div>
+                <div class="form-group">
+                    <label for="customer-schematic-name" class="form-label">CUSTOMER SCHEMATIC:</label>
+                    <input type="text" id="customer-schematic-name" class="form-control" data-bind-general="customerSchematicName" placeholder="Pegar el nombre exacto del archivo">
+                </div>
+                <div class="form-group">
+                    <label for="customer-techpack-name" class="form-label">CUSTOMER TECHPACK:</label>
+                    <input type="text" id="customer-techpack-name" class="form-control" data-bind-general="customerTechpackName" placeholder="Se completa al usar “Cargar Tech Pack Nike”" readonly>
+                </div>
+            </div>
+            <p class="form-help pattern-general-help">Carga el patrón para detectar piezas y encogimientos. La asignación se hace dentro de cada placement.</p>
+        </div>
+    </div>
+
+    <style>
+        .catalog-help-trigger { display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:6px;border:1px solid var(--border-dark);border-radius:50%;background:transparent;color:var(--text-secondary);font-weight:700;cursor:pointer; }
+        .catalog-help-popover { margin-top:7px;padding:9px 11px;border:1px solid var(--border-dark);border-radius:6px;color:var(--text-secondary);font-size:12px;line-height:1.45; }
+        .pattern-general-help{display:block;margin-top:12px}
+.placement-pattern-assignment{margin:12px 0;padding:12px;border:1px solid var(--border-dark);border-radius:8px}
+.placement-pattern-assignment .form-group{margin-bottom:8px}
+.placement-pattern-assignment .pattern-piece-assignment-status{display:block;margin-top:6px}
+.placement-pattern-assignment .pattern-shrinkage-line{font-size:12px}
+.pattern-piece-picker { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 10px 14px; align-items: end; margin-top: 12px; }
+        .pattern-piece-picker .form-group { margin-bottom: 0; }
+        #pattern-piece-add, #pattern-piece-picker-status { grid-column: 1 / -1; }
+        .pattern-shrinkage-export { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-dark); }
+        .pattern-shrinkage-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; padding: 5px 0; border-bottom: 1px solid var(--border-light); }
+        .pattern-shrinkage-line button { flex: 0 0 auto; }
+        .pattern-placement-group { margin-bottom: 10px; }
+        .pattern-placement-group > strong { display: block; margin-bottom: 4px; color: var(--tegra-red); }
+        .pattern-shrinkage-empty { margin: 0; color: var(--text-secondary); font-size: 0.85rem; }
+        #exported-pattern-status { display: block; margin: 5px 0; color: var(--text-secondary); }
+        @media (max-width: 650px) { .pattern-piece-picker { grid-template-columns: 1fr; } }
+    </style>
+
+    <!-- =========== ALERTAS DE PRODUCCIÓN PPF =========== -->
+    <section id="production-alerts-panel" class="production-alerts-panel" hidden aria-live="polite"></section>
 
     <!-- =========== CARD: PLACEMENTS =========== -->
     <div class="card">

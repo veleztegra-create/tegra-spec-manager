@@ -73,6 +73,10 @@ test('la tecla Enter en el campo Pantone no se propaga ni ejecuta la acción pre
 test('el generador de la spec rechaza imageData no válido y escapa src', () => {
   const generatorContext = { window: {} };
   vm.runInNewContext(
+    fs.readFileSync(path.join(root, 'features', 'approved-spec-renderer.js'), 'utf8'),
+    generatorContext
+  );
+  vm.runInNewContext(
     fs.readFileSync(path.join(root, 'features', 'pdf-generator-mejorado.js'), 'utf8'),
     generatorContext
   );
@@ -85,8 +89,8 @@ test('el generador de la spec rechaza imageData no válido y escapa src', () => 
     placements: [{ title: 'BACK', imageData: malicious }]
   });
   assert.ok(!maliciousHtml.includes('onerror="alert(1)"'), 'no debe permitir atributos inyectados');
-  assert.ok(maliciousHtml.includes('https://via.placeholder.com/200x180/E31837/FFFFFF?text=PLACEMENT'),
-    'un imageData inválido debe usar el placeholder seguro');
+  assert.ok(!maliciousHtml.includes('data:image/png;base64,AAAA"'), 'no debe conservar una data URI manipulada');
+  assert.ok(maliciousHtml.includes('[ARTWORK / ARTE]'), 'una imagen inválida debe mostrar el placeholder visual aprobado');
 
   const validHtml = generate({
     style: 'TEST',
@@ -94,4 +98,36 @@ test('el generador de la spec rechaza imageData no válido y escapa src', () => 
   });
   assert.ok(validHtml.includes('src="data:image/png;base64,AAAA"'),
     'debe conservar data URI raster base64 válido');
+});
+
+test('HTML Spec muestra los tamaños calculados y los tamaños manuales', () => {
+  const renderContext = { window: {} };
+  vm.runInNewContext(
+    fs.readFileSync(path.join(root, 'features', 'artwork-sizing-rules.js'), 'utf8'),
+    renderContext
+  );
+  vm.runInNewContext(
+    fs.readFileSync(path.join(root, 'features', 'approved-spec-renderer.js'), 'utf8'),
+    renderContext
+  );
+
+  const html = renderContext.window.TegraApprovedSpecRenderer.render({
+    customer: 'PPF',
+    fabric: 'PPF',
+    placements: [{
+      type: 'FRONT',
+      title: 'FRONT',
+      width: '14.6',
+      height: '12',
+      fabric: 'PPF',
+      additionalArtworkSizes: [{ id: 'custom-1', label: 'Manual 95%', width: '13.87', height: '11.40' }]
+    }]
+  });
+
+  assert.ok(html.includes('100% · Original'));
+  assert.ok(html.includes('PPF +3 mm'));
+  assert.ok(html.includes('14.718'));
+  assert.ok(html.includes('12.118'));
+  assert.ok(html.includes('Manual 95%'));
+  assert.ok(html.includes('13.87'));
 });
