@@ -2,7 +2,7 @@
 'use strict';
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const val = (v, d='—') => { const s=String(v ?? '').trim(); return s && s!=='undefined' && s!=='null' ? s : d; };
-const img = v => /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(String(v||'')) ? v : '';
+const img = v => /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(String(v||'')) ? v : '';
 const logo = (v, cls, alt) => img(v) ? '<img class="'+cls+'" src="'+esc(img(v))+'" alt="'+esc(alt)+'">' : '';
 const hex = c => c?.hex || window.ColorConfig?.findColorHex?.(c?.val || c?.name) || '#bdbdbd';
 function render(data={}) {
