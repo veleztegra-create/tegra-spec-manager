@@ -902,6 +902,7 @@ function renderPlacementHTML(placement) {
     const defaultWhiteAdditives = preset.white.additives || 'N/A';
 
     const dimensions = extractDimensions(placement.dimensions);
+    const hasStoredDimensionText = /\d/.test(String(placement.dimensions || ''));
 
     const safeTemp = normalizeTextValue(placement.curing?.temperature ?? placement.temp, preset.temp || '320 °F');
     const safeTime = normalizeTextValue(placement.curing?.time ?? placement.time, preset.time || '1:40 min');
@@ -1037,7 +1038,7 @@ function renderPlacementHTML(placement) {
                                                id="dimension-w-${placement.id}"
                                                class="form-control placement-dimension-w"
                                                placeholder="Ancho"
-                                               value="${placement.width || dimensions.width.replace('"', '')}"
+                                               value="\${placement.width || (hasStoredDimensionText ? dimensions.width.replace('"', '') : '')}"
                                                oninput="handleDimensionInput(${placement.id}, 'width', this)"
                                                onblur="window.ScreenCategoryRules?.validateScreen(${placement.id})"
                                                onpaste="handleDimensionPaste(event, ${placement.id}, 'width')"
@@ -1047,7 +1048,7 @@ function renderPlacementHTML(placement) {
                                                id="dimension-h-${placement.id}"
                                                class="form-control placement-dimension-h"
                                                placeholder="Alto"
-                                               value="${placement.height || dimensions.height.replace('"', '')}"
+                                               value="\${placement.height || (hasStoredDimensionText ? dimensions.height.replace('"', '') : '')}"
                                                oninput="handleDimensionInput(${placement.id}, 'height', this)"
                                                onblur="window.ScreenCategoryRules?.validateScreen(${placement.id})"
                                                onpaste="handleDimensionPaste(event, ${placement.id}, 'height')"
