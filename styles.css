@@ -1185,7 +1185,16 @@ textarea.form-control:focus {
     margin: 12mm;
 }
 
+/* En el editor de secuencia, las versiones print-only no deben duplicar los campos editables en pantalla. */
+[id^="placement-sequence-table-"] .print-only {
+    display: none !important;
+}
+
 @media print {
+    [id^="placement-sequence-table-"] .print-only {
+        display: inline !important;
+    }
+
     body {
         margin: 0;
         background: white;
