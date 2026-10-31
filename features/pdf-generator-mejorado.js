@@ -71,34 +71,18 @@
     const height = normalizeTextValue(placement.height, '');
     if (!width || !height) return [];
 
-    const notes = [];
-    notes.push(`Tamaño Final = ${width} x ${height}`);
+    const notes = [`100% Original = ${width} x ${height}`];
+    const automatic = window.ArtworkSizingRules?.getAutomaticSizes
+      ? window.ArtworkSizingRules.getAutomaticSizes(placement, data)
+      : [];
+    const manual = window.ArtworkSizingRules?.getManualSizes
+      ? window.ArtworkSizingRules.getManualSizes(placement)
+      : (Array.isArray(placement.additionalArtworkSizes) ? placement.additionalArtworkSizes : []);
 
-    const fabric = String(data?.fabric || '').toUpperCase();
-    const customer = String(data?.customer || '').toUpperCase();
-    const isNfsArt = String(placement.type || '').toUpperCase().includes('NFS')
-      || String(placement.name || '').toUpperCase().includes('NFS')
-      || String(placement.placementDetails || '').toUpperCase().includes('NFS');
-
-    if (fabric.includes('TWILL')) {
-      notes.push(`Tamaño con -1% = ${formatScaledValue(width, 0.99)} x ${formatScaledValue(height, 0.99)}`);
-      notes.push(`Tamaño con -4mm = ${formatOffsetValue(width, -0.1575)} x ${formatOffsetValue(height, -0.1575)}`);
-    }
-
-    if (customer.includes('NCAA')) {
-      notes.push(`Tamaño -1.5% = ${formatScaledValue(width, 0.985)} x ${formatScaledValue(height, 0.985)}`);
-    }
-
-    if (isNfsArt) {
-      const currentH = Number.parseFloat(height);
-      const currentW = Number.parseFloat(width);
-      if (Number.isFinite(currentH) && Number.isFinite(currentW) && currentH > 0) {
-        const newHeight = currentH - 0.1181;
-        const factor = newHeight / currentH;
-        notes.push(`Tamaño -3mm alto proporcional = ${formatScaledValue(width, factor)} x ${formatOffsetValue(height, -0.1181)}`);
-      }
-    }
-
+    automatic.forEach((size) => notes.push(`${size.label} = ${size.width} x ${size.height}`));
+    manual.filter((size) => size.width && size.height).forEach((size) => {
+      notes.push(`${normalizeTextValue(size.label, 'Additional size')} = ${size.width} x ${size.height}`);
+    });
     return notes;
   }
 
