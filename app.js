@@ -2152,6 +2152,7 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     const placement = placements.find(p => String(p.id) === String(placementId));
     if (!placement) return false;
     if (placement.sequenceMode === 'MANUAL' && options.force !== true) return false;
+    const previousSequenceSignature = JSON.stringify((placement.sequence || []).map(({ type, screenLetter, val, mesh, additives, specialEffect }) => ({ type, screenLetter, val, mesh, additives, specialEffect })));
     const designColors = (placement.printColors || []).filter(c => ['COLOR','METALLIC'].includes(String(c.type||'').toUpperCase())).map(c=>({id:c.id,val:c.val})).filter(c=>String(c.val||'').trim());
     const specialEffects = (placement.printColors || []).filter(c=>String(c.type||'').toUpperCase()==='SPECIAL_EFFECT');
     if (!designColors.length && !specialEffects.length) return false;
@@ -2171,6 +2172,10 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     }) : [];
     placement.sequence = sequence.map((step,index)=>({id:Date.now()+Math.random()+index,type:step.tipo,screenLetter:step.screenLetter||'',val:step.nombre||'---',mesh:step.mesh||'',additives:step.additives||''}));
     placement.sequence = window.SpecialEffectsCatalog.appendToSequence(placement.sequence,specialEffects);
+    const nextSequenceSignature = JSON.stringify((placement.sequence || []).map(({ type, screenLetter, val, mesh, additives, specialEffect }) => ({ type, screenLetter, val, mesh, additives, specialEffect })));
+    if (previousSequenceSignature !== nextSequenceSignature && window.Store?.state) {
+        window.Store.state.lastModified = new Date().toISOString();
+    }
     placement.sequenceMode = 'AUTO';
 
     const curing = window.RulesEngine.getCuringConditions
