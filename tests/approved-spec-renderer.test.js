@@ -76,6 +76,8 @@ test('approved spec keeps placement data separate and complete', () => {
   const html = renderFixture();
   const count = (value) => html.split(value).length - 1;
 
+  assert.match(html, /\.seq tr\.placement-sequence-heading\\{break-inside:avoid;break-after:avoid;page-break-inside:avoid;page-break-after:avoid\\}/, 'placement headings should stay with the next sequence row when printing');
+
   assert.equal(count('class="placement-sequence-heading"'), 2);
   assert.equal(count('class="proc-group"'), 2);
   assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
