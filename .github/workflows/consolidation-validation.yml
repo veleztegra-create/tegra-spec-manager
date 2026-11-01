@@ -24,10 +24,13 @@ jobs:
           node --check fixes.js
           node --check js/nikeTechPackExtractor.js
           node --check features/pdf-generator-mejorado.js
+          node --check features/approved-spec-renderer.js
           node --check features/manual-palette-extractor.js
           node --check modules/acb-reader.js
           node --check modules/acb-library-storage.js
           node --check modules/acb-color-matcher.js
+      - name: Run approved spec renderer regression tests
+        run: npm run test:approved-spec
       - name: Run production sequence and PPF alert regression tests
         run: npm run test:production
       - name: Run frontend utility and Pantone regression tests
