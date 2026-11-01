@@ -139,7 +139,7 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.equal(count('class="proc-group"'), 2);
   assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
 
-  assert.equal(count('Front Panel'), 1);
+  assert.equal(count('FT 1.25_LX3_W'), 1);
   assert.equal(count('Legacy Piece'), 1);
   const legacyBlock = html.indexOf('<section class="legacy-pattern-pieces">');
   assert.ok(legacyBlock > html.lastIndexOf('</section>', legacyBlock), 'legacy pieces stay outside placement sections');
