@@ -434,6 +434,17 @@ function updateClientLogo() {
     }
 }
 
+// El selector global se renderiza desde un template cargado de forma asíncrona.
+// La delegación en document permite sincronizarlo aunque el control aún no exista al iniciar app.js.
+document.addEventListener('change', (event) => {
+    const element = event.target;
+    if (!element?.matches?.('[data-bind-general="specType"]')) return;
+    if (!window.Store?.state?.generalData) return;
+
+    const value = element.value === 'CUT' || element.value === 'PRINT' ? element.value : '';
+    window.Store.state.generalData.specType = value;
+});
+
 function setInputValue(id, value) {
     const element = document.getElementById(id);
     if (!element) return;
