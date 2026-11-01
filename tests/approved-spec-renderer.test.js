@@ -90,7 +90,7 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(html.includes('class="pn">Front</span>'));
   assert.ok(html.includes('class="pn">Back</span>'));
   assert.ok(html.includes('.placement-sheet{break-after:page;page-break-after:always}.placement-sheet:last-child{break-after:auto;page-break-after:auto}'), 'each placement sheet starts on a new printed page');
-  const sequenceTables = [...html.matchAll(/<table class="seq">([\\s\\S]*?)<\\/table>/g)].map(match => match[1]);
+  const sequenceTables = html.split('<table class="seq">').slice(1).map(table => table.split('</table>')[0]);
   assert.equal(sequenceTables.length, 2);
   assert.ok(sequenceTables[0].includes('RED'), 'Front sequence stays in the Front table');
   assert.ok(!sequenceTables[0].includes('SHINY SILICONE'), 'Back sequence must not continue the Front table');
