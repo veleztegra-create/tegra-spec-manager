@@ -38,7 +38,7 @@ function renderFixture() {
     placements: [
       {
         id: 1,
-        name: 'Front',
+        name: 'Placement 1',
         type: 'FRONT',
         inkType: 'WATER',
         curing: { temperature: '320 F', time: '1:40' },
@@ -46,12 +46,14 @@ function renderFixture() {
         patternPieces: [{ pieceName: 'Front Panel', shrinkage: '2%' }],
         sequence: [
           { type: 'COLOR', val: 'RED', screenLetter: '1', post: ['FLASH', 'COOL'] },
-          { type: 'FLASH', val: 'FLASH' }
+          { type: 'HOT_HEAD', val: 'HOT HEAD' },
+          { type: 'FLASH', val: 'FLASH' },
+          { type: 'COOL', val: 'COOL' }
         ]
       },
       {
         id: 2,
-        name: 'Back',
+        name: 'Placement 2',
         type: 'BACK',
         inkType: 'PLASTISOL',
         curing: { temperature: '330 F', time: '1:00' },
@@ -89,6 +91,9 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.equal(count('<table class="seq">'), 2, 'each placement must own a separate sequence table');
   assert.ok(html.includes('class="pn">Front</span>'));
   assert.ok(html.includes('class="pn">Back</span>'));
+  assert.ok(html.includes('<div class="rt">Front</div>'));
+  assert.ok(html.includes('<div class="rt">Back</div>'));
+  assert.ok(html.includes('Pattern pieces / Piezas del patrón:'));
   assert.ok(html.includes('.placement-sheet{break-after:page;page-break-after:always}.placement-sheet:last-child{break-after:auto;page-break-after:auto}'), 'each placement sheet starts on a new printed page');
   const sequenceTables = html.split('<table class="seq">').slice(1).map(table => table.split('</table>')[0]);
   assert.equal(sequenceTables.length, 2);
@@ -97,9 +102,15 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(sequenceTables[1].includes('SHINY SILICONE'), 'Back sequence stays in the Back table');
   assert.ok(!sequenceTables[1].includes('RED'), 'Front sequence must not leak into the Back table');
   assert.ok(sequenceTables[0].includes('3% cross-linker'), 'automatic preset additives remain on print-color rows');
+  const hotHeadRow = sequenceTables[0].match(/<tr class="print">(?:(?!<\\/tr>)[\\s\\S])*HOT HEAD(?:(?!<\\/tr>)[\\s\\S])*<\\/tr>/)?.[0] || '';
+  assert.ok(hotHeadRow, 'Hot Head remains a print step');
+  assert.equal(hotHeadRow.split('<td class="add">')[1]?.split('</td>')[0]?.trim(), '', 'Hot Head has no additives');
   const auxiliaryRows = [...sequenceTables[0].matchAll(/<tr class="(?:flash|cool)">([\s\S]*?)<\/tr>/g)].map(match => match[1]);
-  assert.ok(auxiliaryRows.length >= 3, 'standalone and post-print Flash/Cool rows are present in the fixture');
-  assert.ok(auxiliaryRows.every(row => { const additivesCell = row.split('<td class="add">')[1]?.split('</td>')[0]; return additivesCell === undefined || additivesCell.trim() === ''; }), 'Flash and Cool rows keep the additives column empty');
+  assert.ok(auxiliaryRows.length >= 4, 'standalone and post-print Flash/Cool rows are present in the fixture');
+  assert.ok(auxiliaryRows.every(row => {
+    const cells = [...row.matchAll(/<td(?: class="[^"]*")?>([\\s\\S]*?)<\\/td>/g)].map(match => match[1].trim());
+    return cells[3] === '' && cells.slice(6, 11).every(value => value === '');
+  }), 'Flash and Cool rows keep additives, durometer, speed, angle, strokes and pressure empty');
   assert.equal(count('class="proc-group"'), 2);
   assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
 
