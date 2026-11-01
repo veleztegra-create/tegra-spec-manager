@@ -470,12 +470,20 @@ function updateStageDateForSampleType(value) {
     const nextStage = String(value || '').trim();
     const previousStage = String(general._stageDateForStage || '').trim();
     if (!nextStage || nextStage === previousStage) return;
+
     const today = new Date();
-    const stageDate = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
-    general.stageDate = stageDate;
+    const creationDate = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+
+    // C. Date / Artwork Date representa la fecha de creación del folder de la etapa actual.
+    general.stageDate = creationDate;
+    general.specDate = creationDate;
+    general.artworkDate = creationDate;
     general._stageDateForStage = nextStage;
+
     const stageDateInput = document.getElementById('spec-stage-date');
-    if (stageDateInput) stageDateInput.value = stageDate;
+    if (stageDateInput) stageDateInput.value = creationDate;
+    const artworkDateInput = document.getElementById('artwork-date');
+    if (artworkDateInput) artworkDateInput.value = creationDate;
 }
 
 function setInputValue(id, value) {
@@ -4479,8 +4487,8 @@ function getSpecGeneralData(source = {}) {
             if (/PRINT|FULL|GARMENT|P\. TERMINADA/.test(rawType)) return 'PRINT';
             return '';
         })(),
-        specDate: data?.specDate || '',
-        artworkDate: data?.artworkDate || '',
+        specDate: data?.specDate || data?.artworkDate || data?.stageDate || '',
+        artworkDate: data?.artworkDate || data?.specDate || data?.stageDate || '',
         lastModified: data?.lastModified || '',
         designerOtherName: data?.designerOtherName || '',
         stageDate: data?.stageDate || '',
@@ -4813,7 +4821,7 @@ function loadSpecData(data) {
     setInputValue('gender', data.gender || '');
     setInputValue('designer', data.designer || '');
     setInputValue('spec-type', data.specType || '');
-    setInputValue('artwork-date', data.artworkDate || '');
+    setInputValue('artwork-date', data.artworkDate || data.specDate || data.stageDate || '');
     setInputValue('base-size', data.baseSize || '');
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
@@ -5118,10 +5126,15 @@ function createNewStyleVersion(options = {}) {
     const previousStage = String(currentVersion.stage?.sampleType || currentState.generalData?.sampleType || '').trim();
     const nextStage = String(nextState.generalData.sampleType || '').trim();
     if (nextStage && nextStage !== previousStage) {
-        nextState.generalData.stageDate = now.slice(0, 10);
+        const creationDate = now.slice(0, 10);
+        nextState.generalData.stageDate = creationDate;
+        nextState.generalData.specDate = creationDate;
+        nextState.generalData.artworkDate = creationDate;
         nextState.generalData._stageDateForStage = nextStage;
     } else {
         nextState.generalData.stageDate = currentState.generalData?.stageDate || '';
+        nextState.generalData.specDate = currentState.generalData?.specDate || currentState.generalData?.artworkDate || currentState.generalData?.stageDate || '';
+        nextState.generalData.artworkDate = currentState.generalData?.artworkDate || currentState.generalData?.specDate || currentState.generalData?.stageDate || '';
         nextState.generalData._stageDateForStage = previousStage;
     }
 
