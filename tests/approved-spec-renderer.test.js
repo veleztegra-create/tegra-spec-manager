@@ -42,6 +42,7 @@ function renderFixture() {
         type: 'FRONT',
         inkType: 'WATER',
         curing: { temperature: '320 F', time: '1:40' },
+        specialInstructions: 'Print front logo centered 2 inches below collar.',
         patternPieces: [{ pieceName: 'Front Panel', shrinkage: '2%' }],
         sequence: [
           { type: 'COLOR', val: 'RED', screenLetter: '1' },
@@ -54,6 +55,7 @@ function renderFixture() {
         type: 'BACK',
         inkType: 'PLASTISOL',
         curing: { temperature: '330 F', time: '1:00' },
+        specialInstructions: 'Back graphic must align with center seam.',
         patternPieces: [],
         sequence: [
           {
@@ -90,6 +92,9 @@ test('approved spec keeps placement data separate and complete', () => {
 
   assert.ok(html.includes('320 F'));
   assert.ok(html.includes('330 F'));
+  assert.ok(html.includes('Print front logo centered 2 inches below collar.'));
+  assert.ok(html.includes('Back graphic must align with center seam.'));
+  assert.equal(count('Special instructions / Instrucciones especiales:'), 2, 'each placement keeps its own production instructions');
   assert.ok(html.includes('WATER'));
   assert.ok(html.includes('PLASTISOL'));
   assert.ok(html.includes('PART A 50%'));
