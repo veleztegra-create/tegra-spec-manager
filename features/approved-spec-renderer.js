@@ -11,7 +11,7 @@ const placementLabel = (p, i) => {
  if (standard[type.toUpperCase()]) return standard[type.toUpperCase()];
  if (/^CUSTOM:\s*/i.test(type)) return type.replace(/^CUSTOM:\s*/i, '').trim();
  const candidate = String(p.title || p.name || '').trim();
- if (candidate && !/^Placement\s*\\d+$/i.test(candidate)) return candidate;
+ if (candidate && !/^Placement\s*\d+$/i.test(candidate)) return candidate;
  return val(type, 'Placement ' + (i + 1));
 };
 function render(data={}) {
@@ -77,7 +77,7 @@ function render(data={}) {
  const headerHtml='<header class="hdr">'+logo(logos.TEGRA,'tegra','TEGRA')+'<span class="vsep"></span><div class="cust"><b>'+esc(val(data.customer,'CUSTOMER'))+'</b> / CLIENTE</div>'+logo(logos[key],'fan',data.customer)+'<div class="title"><h1>TECHNICAL SPEC</h1><div class="es">ESPECIFICACIÓN TÉCNICA</div><div class="en">Print Sequence / Secuencia de Impresión</div></div><div class="folder"><div class="l"># Folder</div><div class="num">'+esc(val(data.folder,'00000'))+'</div></div><div class="upd"><div class="l">Hora &amp; fecha de actualización</div><b>'+esc(val(data.specDate||data.lastModified,new Date().toLocaleDateString('en-US')) )+'</b></div></header>';
  const commentsHtml='<div class="bar cm">Comments / Comentarios</div><div class="notes"><ol>'+comments.map((c,i)=>'<li>'+(i+1)+'. '+esc(c)+'</li>').join('')+'</ol></div>';
  const footerHtml='<footer class="foot"><span>Tegra Spec Manager · '+esc(val(data.style,''))+' · '+esc(val(data.folder,''))+'</span><span>Version: '+esc(val(data.styleVersion?.number,''))+' · Stage: '+esc(val(data.styleVersion?.stage?.sampleType,''))+'</span></footer>';
- const sheets=ps.map((p,i)=>'<main class="sheet placement-sheet">'+headerHtml+'<div class="meta">'+metadata+'</div><div class="bar pl"><span>Placement / Ubicación</span><span class="pn">'+esc(val(p.title||p.name||p.type,'Placement '+(i+1)))+'</span><span class="type">'+specTypeLabel+'<span>'+specTypeDescription+'</span></span></div>'+blocks[i]+(i===0?legacyPiecesHtml:'')+sequenceHtml[i]+productionHtml[i]+commentsHtml+footerHtml+'</main>').join('');
+ const sheets=ps.map((p,i)=>'<main class="sheet placement-sheet">'+headerHtml+'<div class="meta">'+metadata+'</div><div class="bar pl"><span>Placement / Ubicación</span><span class="pn">'+esc(placementLabel(p,i))+'</span><span class="type">'+specTypeLabel+'<span>'+specTypeDescription+'</span></span></div>'+blocks[i]+(i===0?legacyPiecesHtml:'')+sequenceHtml[i]+productionHtml[i]+commentsHtml+footerHtml+'</main>').join('');
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Technical Spec — Tegra</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>'+CSS+'</style></head><body>'+sheets+'</body></html>'
 }
 const CSS = String.raw`
