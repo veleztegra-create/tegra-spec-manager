@@ -14,6 +14,10 @@ Sistema web para gestión de especificaciones técnicas de serigrafía.
 8. **Base de datos Pantone/UNI**: Colores estándar de la industria
 9. **Interfaz modular**: 4 pestañas principales
 
+## Documentación de integridad
+
+- [Patrones .AI, piezas, encogimientos y recuperación de Specs](docs/integridad-datos-patrones-encogimientos.md): arquitectura de datos, flujo de guardado/restauración, causas conocidas de regresión y checklist de validación.
+
 ## Estructura de Carpetas
  https://veleztegra-create.github.io/tegra-spec-manager/
 

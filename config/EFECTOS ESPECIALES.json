@@ -1,0 +1,50 @@
+{
+  "EFECTOS ESPECIALES": {
+    "PLASTISOL": {
+      "METALICOS": [
+        { "producto": "EPIC ULTRA GOLD SHIMMER", "kg": 4, "bodega": 0, "unidad": null, "vencimiento": null },
+        { "producto": "EPIC LIQUID SILVER", "kg": 20, "bodega": 25, "unidad": "GL", "vencimiento": "29/10/2016-2018-2019" },
+        { "producto": "EPIC INFINITE SILVER SHIMMER", "kg": 8, "bodega": 70, "unidad": "GL", "vencimiento": "2022-08-20" },
+        { "producto": "EPIC BRIGHT GOLD SHIMMER", "kg": 4, "bodega": 5, "unidad": "GL", "vencimiento": "2017-03-08" },
+        { "producto": "EPIC LIQUID GOLD", "kg": 1, "bodega": 5, "unidad": "GL", "vencimiento": "2018-03-22" },
+        { "producto": "EPIC IMAGE BRITE PLAT", "kg": 1, "bodega": 10, "unidad": "GL", "vencimiento": "2017-09-12" },
+        { "producto": "TXP REFLECTIVE GREY", "kg": 8, "bodega": 0, "unidad": null, "vencimiento": null },
+        { "producto": "TXP AUTOLUX PLUS", "kg": 4, "bodega": 0, "unidad": null, "vencimiento": null }
+      ],
+      "BASE PUFF Y H.D": [
+        { "producto": "BASE PUFF Y H.D", "kg": null, "bodega": null, "unidad": null, "vencimiento": null },
+        { "producto": "EPIC ESCULTURE BASE", "kg": null, "bodega": 93, "unidad": "GL", "vencimiento": "04/11/2021 Y 12/08/2022" },
+        { "producto": "EPIC INFINITE PUFF BASE", "kg": null, "bodega": 79, "unidad": "GL", "vencimiento": "17/09/2016-15/08/2017 Y 13/07/2022" }
+      ],
+      "BASE CLEAR PARA EFECTO DE BRILLO": [
+        { "producto": "BASE CLEAR PARA EFECTO DE BRILLO", "kg": null, "bodega": null, "unidad": null, "vencimiento": null },
+        { "producto": "EPIC INFINITE FX CLEAR BASE", "kg": null, "bodega": 50, "unidad": "GL", "vencimiento": "2027-02-16" }
+      ]
+    },
+    "BASE AGUA": {
+      "METALICOS": [
+        { "producto": "MAGNA BLING SILVER", "kg": null, "bodega": 1170, "unidad": "KG", "vencimiento": "2026-11-30" },
+        { "producto": "MAGNA PEARL FLEX NEUTRAL", "kg": null, "bodega": 780, "unidad": "KG", "vencimiento": "2027-04-30" },
+        { "producto": "RUBBER -M7000", "kg": null, "bodega": 0, "unidad": null, "vencimiento": null }
+      ],
+      "BASE PUFF Y H.D": [
+        { "producto": "MAGNA EXPANDING HT", "kg": null, "bodega": 60, "unidad": "KG", "vencimiento": "2026-08-31" },
+        { "producto": "MAGNA SUEDE FOAM NF", "kg": null, "bodega": 60, "unidad": "KG", "vencimiento": "2025-08-07" },
+        { "producto": "MAGNA HIGH DENSITY NEUTRAL XL", "kg": null, "bodega": 60, "unidad": "KG", "vencimiento": "2027-03-31" }
+      ]
+    },
+    "SILICON": {
+      "METALICOS": [
+        { "producto": "LIBRA SILVER SHIMMER TONER", "kg": null, "bodega": 0, "unidad": null, "vencimiento": null }
+      ],
+      "EFECTO DE BRILLO": [
+        { "producto": "LIBRA CLEAR PART-A", "kg": null, "bodega": 11, "unidad": "GL", "vencimiento": "2026-09-30" },
+        { "producto": "LIBRA CLEAR PART-B", "kg": null, "bodega": 10, "unidad": "GL", "vencimiento": "2026-09-30" },
+        { "producto": "CHT ALPATEC 30194 PART-A", "kg": null, "bodega": 20, "unidad": "KG", "vencimiento": "2027-02-21" },
+        { "producto": "CHT ALPATEC 30194 PART-B", "kg": null, "bodega": 20, "unidad": "KG", "vencimiento": "2027-03-06" },
+        { "producto": "IMS CLEAR PART-A", "kg": null, "bodega": 10, "unidad": "GL", "vencimiento": "2021-10-01" },
+        { "producto": "IMS CLEAR PART-B", "kg": null, "bodega": 10, "unidad": "GL", "vencimiento": "2021-10-01" }
+      ]
+    }
+  }
+}

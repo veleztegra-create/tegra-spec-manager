@@ -10,6 +10,11 @@
     "render:start": "npm --prefix backend start",
     "backend:check": "npm --prefix backend run check",
     "backend:test": "npm --prefix backend test",
-    "test:acb": "node --test tests/acb-*.test.js"
+    "test:artwork-sizing": "node --test tests/artwork-sizing-rules.test.js",
+    "test:acb": "node --test tests/acb-*.test.js",
+    "test:sequence": "node --test tests/sequence-builder.test.js",
+    "test:special-effects": "node --test tests/special-effects-catalog.test.js",
+    "test:production-alerts": "node --test tests/production-alerts.test.js",
+    "test:production": "npm run test:sequence && npm run test:special-effects && npm run test:production-alerts && npm run test:artwork-sizing"
   }
 }

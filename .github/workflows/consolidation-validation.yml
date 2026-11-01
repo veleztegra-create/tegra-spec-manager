@@ -20,6 +20,7 @@ jobs:
       - name: Check frontend JavaScript syntax
         run: |
           node --check app.js
+          node --check modules/production-alerts.js
           node --check fixes.js
           node --check js/nikeTechPackExtractor.js
           node --check features/pdf-generator-mejorado.js
@@ -27,6 +28,8 @@ jobs:
           node --check modules/acb-reader.js
           node --check modules/acb-library-storage.js
           node --check modules/acb-color-matcher.js
+      - name: Run production sequence and PPF alert regression tests
+        run: npm run test:production
       - name: Run frontend utility and Pantone regression tests
         run: node --test html-utils.test.js
       - name: Run ACB tests

@@ -1185,7 +1185,16 @@ textarea.form-control:focus {
     margin: 12mm;
 }
 
+/* En el editor de secuencia, las versiones print-only no deben duplicar los campos editables en pantalla. */
+[id^="placement-sequence-table-"] .print-only {
+    display: none !important;
+}
+
 @media print {
+    [id^="placement-sequence-table-"] .print-only {
+        display: inline !important;
+    }
+
     body {
         margin: 0;
         background: white;
@@ -1775,3 +1784,37 @@ textarea.form-control:focus {
     opacity: .55;
     cursor: not-allowed;
 }
+
+
+/* PPF / HOT HEAD semimanual production alerts */
+.production-alerts-panel { margin: 0 0 16px; }
+.production-alerts-panel[hidden] { display: none !important; }
+.production-alert-card {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid rgba(211, 158, 0, .55);
+    border-left: 4px solid #d39e00;
+    border-radius: 8px;
+    background: rgba(211, 158, 0, .09);
+}
+.production-alert-content { min-width: 0; }
+.production-alert-content h3 { margin: 0 0 6px; color: var(--text-primary); font-size: .95rem; }
+.production-alert-content p { margin: 0; color: var(--text-secondary); font-size: .86rem; line-height: 1.45; }
+.production-alert-content .production-alert-meta { margin-top: 7px; font-size: .75rem; overflow-wrap: anywhere; }
+
+
+/* Special Effects catalog */
+.special-effects-modal-overlay{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.72)}
+.special-effects-modal{width:min(680px,100%);max-height:min(82vh,760px);overflow:auto;padding:22px;border:1px solid var(--border-dark);border-radius:12px;background:var(--card-bg,var(--surface));box-shadow:0 18px 60px rgba(0,0,0,.35)}
+.special-effects-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.special-effects-modal-header h3{margin:0 0 5px;font-size:1.1rem}
+.special-effects-modal-header p,.special-effects-modal-footer small{margin:0;color:var(--text-secondary);font-size:.82rem}
+.special-effects-options{display:grid;gap:8px;margin-top:12px}
+.special-effects-option{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:12px 14px;border:1px solid var(--border-dark);border-radius:8px;background:var(--input-bg,var(--surface));color:var(--text-primary);text-align:left;cursor:pointer}
+.special-effects-option:hover{border-color:var(--tegra-red);background:rgba(227,24,55,.08)}
+.special-effects-option span{display:grid;gap:4px}
+.special-effects-option-detail{color:var(--text-secondary);font-size:.78rem}
+.special-effects-modal-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border-dark)}
+.special-effect-formula{display:block;flex-basis:100%;margin:0 0 4px 76px;color:var(--text-secondary);font-size:.72rem;line-height:1.35}
+@media(max-width:600px){.special-effects-modal-overlay{padding:10px}.special-effects-modal{padding:16px}.special-effects-modal-footer{align-items:flex-start;flex-direction:column}}

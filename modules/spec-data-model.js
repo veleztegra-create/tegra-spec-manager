@@ -24,8 +24,14 @@ function buildSpecData() {
         )
         : state.styleVersion;
 
+    const colorway = String(state.generalData?.colorway || '').trim();
+    const colorwayHex = colorway && window.ColorConfig?.findColorHex
+        ? window.ColorConfig.findColorHex(colorway)
+        : null;
+
     return {
         ...state.generalData,
+        colorwayHex: colorwayHex ? String(colorwayHex).toUpperCase() : '',
         placements: state.placements,
         styleVersion,
         versionHistory: Array.isArray(state.versionHistory)
