@@ -99,7 +99,7 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(sequenceTables[0].includes('3% cross-linker'), 'automatic preset additives remain on print-color rows');
   const auxiliaryRows = [...sequenceTables[0].matchAll(/<tr class="(?:flash|cool)">([\s\S]*?)<\/tr>/g)].map(match => match[1]);
   assert.ok(auxiliaryRows.length >= 3, 'standalone and post-print Flash/Cool rows are present in the fixture');
-  assert.ok(auxiliaryRows.every(row => { const additivesCell = row.match(/<td class="add">([\\s\\S]*?)<\\/td>/); return !additivesCell || additivesCell[1].trim() === ''; }), 'Flash and Cool rows keep the additives column empty');
+  assert.ok(auxiliaryRows.every(row => { const additivesCell = row.split('<td class="add">')[1]?.split('</td>')[0]; return additivesCell === undefined || additivesCell.trim() === ''; }), 'Flash and Cool rows keep the additives column empty');
   assert.equal(count('class="proc-group"'), 2);
   assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
 
