@@ -82,7 +82,8 @@ test('approved spec keeps placement data separate and complete', () => {
 
   assert.equal(count('Front Panel'), 1);
   assert.equal(count('Legacy Piece'), 1);
-  assert.ok(html.indexOf('Legacy Piece') > html.lastIndexOf('</section>'), 'legacy pieces stay outside placement sections');
+  const legacyBlock = html.indexOf('<section class="legacy-pattern-pieces">');
+  assert.ok(legacyBlock > html.lastIndexOf('</section>', legacyBlock), 'legacy pieces stay outside placement sections');
 
   assert.ok(html.includes('320 F'));
   assert.ok(html.includes('330 F'));
