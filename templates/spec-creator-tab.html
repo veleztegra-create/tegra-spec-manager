@@ -84,14 +84,25 @@
                         <option value="OTRO">OTRO</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="spec-type" class="form-label">SPEC TYPE / TIPO DE PRENDA:</label>
-                    <select id="spec-type" class="form-control" data-bind-general="specType">
-                        <option value="">Seleccionar...</option>
-                        <option value="CUT">CUT PARTS / PARTES CORTADAS</option>
-                        <option value="PRINT">FULL GARMENT / PRENDA TERMINADA</option>
+                <div class="form-group spec-type-group">
+                    <label class="form-label">SPEC TYPE / TIPO DE PRENDA:</label>
+                    <div class="spec-type-selector" role="group" aria-label="Tipo de prenda">
+                        <button type="button" class="spec-type-option" data-spec-type-option="CUT" aria-pressed="false" onclick="setSpecType('CUT')">
+                            <i class="fas fa-scissors" aria-hidden="true"></i><span class="spec-type-option-title">CUT PARTS</span><small>Partes cortadas</small>
+                        </button>
+                        <button type="button" class="spec-type-option" data-spec-type-option="PRINT" aria-pressed="false" onclick="setSpecType('PRINT')">
+                            <i class="fas fa-shirt" aria-hidden="true"></i><span class="spec-type-option-title">FULL GARMENT</span><small>Prenda terminada</small>
+                        </button>
+                    </div>
+                    <select id="spec-type" class="spec-type-source" data-bind-general="specType" aria-hidden="true" tabindex="-1">
+                        <option value="">Seleccionar...</option><option value="CUT">CUT PARTS / PARTES CORTADAS</option><option value="PRINT">FULL GARMENT / PRENDA TERMINADA</option>
                     </select>
                     <small class="form-help">La clasificación se aplica a toda la Spec y a todos sus placements.</small>
+                </div>
+                <div class="form-group">
+                    <label for="artwork-date" class="form-label">ARTWORK DATE / FECHA DEL ARTE:</label>
+                    <input type="date" id="artwork-date" class="form-control" data-bind-general="artworkDate">
+                    <small class="form-help">Fecha de referencia de la versión del arte, independiente de la etapa y de los cambios de secuencia.</small>
                 </div>
                 <div class="form-group">
                     <label for="base-size" class="form-label">TALLA BASE:</label>
@@ -145,6 +156,16 @@
     </div>
 
     <style>
+        .spec-type-source{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+        .spec-type-selector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:4px}
+        .spec-type-option{min-height:76px;display:grid;grid-template-columns:28px 1fr;grid-template-rows:auto auto;align-content:center;align-items:center;gap:2px 9px;padding:11px 13px;border:1px solid var(--border-dark);border-radius:9px;background:var(--surface,#fff);color:var(--text-primary);text-align:left;cursor:pointer;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease}
+        .spec-type-option>i{grid-row:1 / span 2;font-size:22px;color:var(--text-secondary);text-align:center}
+        .spec-type-option-title{font-size:13px;font-weight:800;letter-spacing:.035em}
+        .spec-type-option small{font-size:11px;color:var(--text-secondary)}
+        .spec-type-option:hover{border-color:var(--tegra-red,#c62828)}
+        .spec-type-option.is-selected{border:2px solid var(--tegra-red,#c62828);padding:10px 12px;background:rgba(195,35,45,.07);box-shadow:inset 0 0 0 1px rgba(195,35,45,.08)}
+        .spec-type-option.is-selected>i{color:var(--tegra-red,#c62828)}
+        @media(max-width:520px){.spec-type-selector{grid-template-columns:1fr}}
         .catalog-help-trigger { display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:6px;border:1px solid var(--border-dark);border-radius:50%;background:transparent;color:var(--text-secondary);font-weight:700;cursor:pointer; }
         .catalog-help-popover { margin-top:7px;padding:9px 11px;border:1px solid var(--border-dark);border-radius:6px;color:var(--text-secondary);font-size:12px;line-height:1.45; }
         .pattern-general-help{display:block;margin-top:12px}
