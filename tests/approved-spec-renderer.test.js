@@ -32,6 +32,11 @@ function renderFixture() {
     folder: '12345',
     specType: 'CUT',
     blankPatternName: 'BLANK-AI',
+    sampleType: 'PPS/L',
+    stageDate: '2026-03-11',
+    exportedPatternName: '381892F_JAG_RVLY_exportedpattern_nh260115',
+    customerSchematicName: '67NM-0JFM-9NF JAG M GAME JSY RVLY SCHEMATIC 01-30-2026',
+    customerTechpackName: '67NM-0JFM-9NF JAG M GAME JSY RVLY TECHPACK 3-10-2026',
     styleVersion: { number: 2, stage: { sampleType: 'PPF' } },
     fabric: '100% Polyester',
     patternPieces: [{ pieceName: 'Legacy Piece', shrinkage: '1%' }],
@@ -42,6 +47,7 @@ function renderFixture() {
         width: '15',
         height: '22',
         baseSize: 'L',
+        patternPieces: [{ pieceName: 'FT', shrinkage: '1.25_LX3_W' }],
         additionalArtworkSizes: [{ label: 'PPF +3 mm', width: '15.118', height: '22.118' }],
         type: 'FRONT',
         inkType: 'WATER',
@@ -103,6 +109,15 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(html.includes('PPF +3 mm</span><strong>15.118 × 22.118&quot;</strong>'));
   assert.ok(html.includes('<div class="lbl">Dimensions / Dimensiones</div><div class="art-sizes">'));
   assert.ok(!html.includes('<b>Artwork sizes / Tamaños de arte</b>'), 'separate artwork sizes heading is removed');
+  assert.ok(!html.includes('<span class="k">Size</span>'), 'base size is removed from Dimensions');
+  assert.ok(html.includes('<b>Sample Type:</b> PPS/L'));
+  assert.ok(html.includes('<b>Size:</b> L'));
+  assert.ok(html.includes('REMINDER PPS/L — 11 MAR 2026'));
+  assert.ok(html.includes('381892F_JAG_RVLY_exportedpattern_nh260115'));
+  assert.ok(html.includes('67NM-0JFM-9NF JAG M GAME JSY RVLY SCHEMATIC 01-30-2026'));
+  assert.ok(html.includes('67NM-0JFM-9NF JAG M GAME JSY RVLY TECHPACK 3-10-2026'));
+  assert.ok(html.includes('Shrinkage / Encogimiento:'));
+  assert.ok(html.includes('FT 1.25_LX3_W'));
   assert.ok(html.includes('.placement-sheet{break-after:page;page-break-after:always}.placement-sheet:last-child{break-after:auto;page-break-after:auto}'), 'each placement sheet starts on a new printed page');
   const sequenceTables = html.split('<table class="seq">').slice(1).map(table => table.split('</table>')[0]);
   assert.equal(sequenceTables.length, 2);
