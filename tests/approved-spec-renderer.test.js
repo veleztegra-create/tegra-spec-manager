@@ -117,6 +117,8 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(html.includes('67NM-0JFM-9NF JAG M GAME JSY RVLY TECHPACK 3-10-2026'));
   assert.ok(html.includes('Shrinkage / Encogimiento:'));
   assert.ok(html.includes('FT 1.25_LX3_W'));
+  assert.ok(html.indexOf('TECHPACK 3-10-2026') < html.indexOf('Shrinkage / Encogimiento:'), 'shrinkage follows both customer resources');
+  assert.ok(html.indexOf('Print front logo centered') < html.indexOf('Shrinkage / Encogimiento:'), 'shrinkage is the final placement metadata item');
   assert.ok(html.includes('.placement-sheet{break-after:page;page-break-after:always}.placement-sheet:last-child{break-after:auto;page-break-after:auto}'), 'each placement sheet starts on a new printed page');
   const sequenceTables = html.split('<table class="seq">').slice(1).map(table => table.split('</table>')[0]);
   assert.equal(sequenceTables.length, 2);
