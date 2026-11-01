@@ -39,6 +39,7 @@ function buildSpecData() {
             : [],
         specLifecycle: state.specLifecycle,
         auditTrail: state.auditTrail,
+        lastModified: state.lastModified || state.generalData?.lastModified || null,
         savedAt: new Date().toISOString()
     };
 }
