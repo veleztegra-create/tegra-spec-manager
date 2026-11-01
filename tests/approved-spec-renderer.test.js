@@ -1,0 +1,101 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { runInNewContext } from 'node:vm';
+import { fileURLToPath } from 'node:url';
+import { test } from 'node:test';
+
+const rendererPath = fileURLToPath(new URL('../features/approved-spec-renderer.js', import.meta.url));
+const rendererSource = await readFile(rendererPath, 'utf8');
+
+function renderFixture() {
+  const window = {
+    Config: {
+      INK_PRESETS: {
+        WATER: {
+          color: { durometer: '70', speed: '35', angle: '15', strokes: '2', pressure: '40', mesh: '157/48', additives: '3% cross-linker' },
+          blocker: { mesh1: '122/55', additives: 'N/A' },
+          white: { mesh1: '198/40', additives: 'N/A' }
+        },
+        PLASTISOL: {
+          color: { durometer: '65', speed: '35', angle: '15', strokes: '1', pressure: '40', mesh: '156/64', additives: '1% catalyst' },
+          blocker: { mesh1: '110/64', additives: 'N/A' },
+          white: { mesh1: '156/64', additives: 'N/A' }
+        }
+      }
+    }
+  };
+
+  runInNewContext(rendererSource, { window });
+  return window.TegraApprovedSpecRenderer.render({
+    customer: 'TEST',
+    style: 'STYLE-01',
+    folder: '12345',
+    specType: 'CUT',
+    blankPatternName: 'BLANK-AI',
+    styleVersion: { number: 2, stage: { sampleType: 'PPF' } },
+    fabric: '100% Polyester',
+    patternPieces: [{ pieceName: 'Legacy Piece', shrinkage: '1%' }],
+    placements: [
+      {
+        id: 1,
+        name: 'Front',
+        type: 'FRONT',
+        inkType: 'WATER',
+        curing: { temperature: '320 F', time: '1:40' },
+        patternPieces: [{ pieceName: 'Front Panel', shrinkage: '2%' }],
+        sequence: [
+          { type: 'COLOR', val: 'RED', screenLetter: '1' },
+          { type: 'FLASH', val: 'FLASH' }
+        ]
+      },
+      {
+        id: 2,
+        name: 'Back',
+        type: 'BACK',
+        inkType: 'PLASTISOL',
+        curing: { temperature: '330 F', time: '1:00' },
+        patternPieces: [],
+        sequence: [
+          {
+            type: 'SPECIAL_EFFECT',
+            val: 'SHINY SILICONE',
+            specialEffect: {
+              components: [
+                { producto: 'PART A', porcentaje: 50 },
+                { producto: 'PART B', porcentaje: 50 }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  });
+}
+
+test('approved spec keeps placement data separate and complete', () => {
+  const html = renderFixture();
+  const count = (value) => html.split(value).length - 1;
+
+  assert.equal(count('class="placement-sequence-heading"'), 2);
+  assert.equal(count('class="proc-group"'), 2);
+  assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
+
+  assert.equal(count('Front Panel'), 1);
+  assert.equal(count('Legacy Piece'), 1);
+  assert.ok(html.indexOf('Legacy Piece') > html.lastIndexOf('</section>'), 'legacy pieces stay outside placement sections');
+
+  assert.ok(html.includes('320 F'));
+  assert.ok(html.includes('330 F'));
+  assert.ok(html.includes('WATER'));
+  assert.ok(html.includes('PLASTISOL'));
+  assert.ok(html.includes('PART A 50%'));
+  assert.ok(html.includes('PART B 50%'));
+
+  assert.ok(html.includes('BLANK-AI'));
+  assert.ok(html.includes('Version: 2'));
+  assert.ok(html.includes('Stage: PPF'));
+  assert.ok(html.includes('PARTES CORTADAS'));
+  assert.ok(html.includes('70'));
+  assert.ok(html.includes('65'));
+  assert.equal(count('Pattern file:</b>'), 0, 'exported pattern is not repeated');
+});
