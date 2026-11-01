@@ -4761,6 +4761,7 @@ function loadSpecData(data) {
     setInputValue('name-team', data.nameTeam || '');
     setInputValue('gender', data.gender || '');
     setInputValue('designer', data.designer || '');
+    setInputValue('spec-type', data.specType || '');
     setInputValue('base-size', data.baseSize || '');
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
