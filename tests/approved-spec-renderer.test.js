@@ -108,7 +108,7 @@ test('approved spec keeps placement data separate and complete', () => {
   const auxiliaryRows = sequenceTables[0].split(/<tr class="(?:flash|cool)">/).slice(1).map(row => row.split('</tr>')[0]);
   assert.ok(auxiliaryRows.length >= 4, 'standalone and post-print Flash/Cool rows are present in the fixture');
   assert.ok(auxiliaryRows.every(row => {
-    const cells = [...row.matchAll(/<td[^>]*>(.*?)<\\/td>/g)].map(match => match[1].trim());
+    const cells = [...row.matchAll(/<td[^>]*>(.*?)<\/td>/g)].map(match => match[1].trim());
     return cells.length === 3
       ? cells[2] === ''
       : cells[3] === '' && cells.slice(6, 11).every(value => value === '');
