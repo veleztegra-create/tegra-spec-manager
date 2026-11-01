@@ -5,6 +5,7 @@
     let future = [];
 
     const DEFAULT_STATE = {
+        lastModified: null,
         generalData: {
             customer: "",
             style: "",
