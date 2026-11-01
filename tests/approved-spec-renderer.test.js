@@ -109,7 +109,9 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(auxiliaryRows.length >= 4, 'standalone and post-print Flash/Cool rows are present in the fixture');
   assert.ok(auxiliaryRows.every(row => {
     const cells = row.split('<td').slice(1).map(cell => (cell.split('>')[1] || '').split('</td>')[0].trim());
-    return cells[3] === '' && cells.slice(6, 11).every(value => value === '');
+    return cells.length === 3
+      ? cells[2] === ''
+      : cells[3] === '' && cells.slice(6, 11).every(value => value === '');
   }), 'Flash and Cool rows keep additives, durometer, speed, angle, strokes and pressure empty');
   assert.equal(count('class="proc-group"'), 2);
   assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
