@@ -2,6 +2,13 @@
 'use strict';
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const val = (v, d='—') => { const s=String(v ?? '').trim(); return s && s!=='undefined' && s!=='null' ? s : d; };
+const formatReminderDate = value => {
+ const raw=String(value||'').trim();
+ if(!raw) return '';
+ const parsed=new Date(raw);
+ if(Number.isNaN(parsed.getTime())) return raw;
+ return parsed.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'}).replace(/\./g,'').toUpperCase();
+};
 const img = v => /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(String(v||'')) ? v : '';
 const logo = (v, cls, alt) => img(v) ? '<img class="'+cls+'" src="'+esc(img(v))+'" alt="'+esc(alt)+'">' : '';
 const hex = c => c?.hex || window.ColorConfig?.findColorHex?.(c?.val || c?.name) || '#bdbdbd';
@@ -25,7 +32,7 @@ function render(data={}) {
   const pieces=Array.isArray(p.patternPieces)?p.patternPieces:[];
   const instructions=String(p.specialInstructions||'').trim();
   const instructionsHtml=instructions?'<div class="placement-instructions"><b>Special instructions / Instrucciones especiales:</b> '+esc(instructions)+'</div>':'';
-  const pieceHtml=pieces.length?'<div class="piece-list"><b>Pattern pieces / Piezas del patrón:</b>'+pieces.map(x=>{const q=typeof x==='string'?{name:x}:x;return '<div class="ind">'+esc(q.name||q.pieceName||q.label||'')+(q.shrinkage?' — '+esc(q.shrinkage):'')+'</div>';}).join('')+'</div>':'';
+  const pieceHtml=pieces.length?'<div class="piece-list"><b>Shrinkage / Encogimiento:</b>'+pieces.map(x=>{const q=typeof x==='string'?{name:x}:x;return '<div class="ind">'+esc([q.pieceName||q.name||q.label||'',q.shrinkage||''].filter(Boolean).join(' '))+'</div>';}).join('')+'</div>':'';
   const artwork=img(p.imageData||p.artworkUrl);
   const automaticArtworkSizes=window.ArtworkSizingRules?.getAutomaticSizes
    ? window.ArtworkSizingRules.getAutomaticSizes(p,data) : [];
@@ -40,7 +47,7 @@ function render(data={}) {
   const artworkSizesHtml=artworkSizeRows.length
    ? '<div class="art-sizes">'+artworkSizeRows.map(s=>'<div><span>'+esc(s.label)+'</span><strong>'+esc(s.width)+' × '+esc(s.height)+'&quot;</strong></div>').join('')+'</div>'
    : '';
-  return '<section class="placement"><div class="art">'+(artwork?'<img src="'+esc(artwork)+'" alt="'+esc(placementLabel(p,i))+'">':'<div class="ph">[ARTWORK / ARTE]</div>')+'</div><div class="pr"><div class="top"><div class="dims"><div class="lbl">Dimensions / Dimensiones</div>'+artworkSizesHtml+'<div class="row"><span class="k">Size</span><span class="v">'+esc(val(p.baseSize||data.baseSize))+'</span></div></div><div class="scr"><div class="lbl">Pantalla / Screen</div><div class="name">'+esc(val(p.screenSize||p.screenName,'PENDIENTE'))+'</div><div class="dash"></div><div class="lbl">Category / Categoría</div><div class="cat">'+esc(p.category7Accepted?'7 (ESTACIONES '+val(p.category7Stations,(p.sequence||[]).length)+')':val(p.category))+'</div></div></div><div class="inks"><div class="lbl">Ink Colors / Colores</div><div class="swatches">'+swatches+'</div></div><div class="spec">Specialties / Especialidades: '+sp+'</div><div class="refs"><div class="rt">'+esc(placementLabel(p,i))+'</div><div><b>Exported pattern:</b> '+esc(val(data.exportedPatternName||data.pattern,''))+'</div><div><b>Blank pattern for print:</b> '+esc(val(data.blankPatternName||data.blankPattern,''))+'</div><div><b>Customer resources:</b> '+esc(val(data.customerTechpackName||data.customerSchematicName||data.techPack,''))+'</div>'+pieceHtml+instructionsHtml+'</div></div></section>';
+  return '<section class="placement"><div class="art">'+(artwork?'<img src="'+esc(artwork)+'" alt="'+esc(placementLabel(p,i))+'">':'<div class="ph">[ARTWORK / ARTE]</div>')+'</div><div class="pr"><div class="top"><div class="dims"><div class="lbl">Dimensions / Dimensiones</div>'+artworkSizesHtml+'</div><div class="scr"><div class="lbl">Pantalla / Screen</div><div class="name">'+esc(val(p.screenSize||p.screenName,'PENDIENTE'))+'</div><div class="dash"></div><div class="lbl">Category / Categoría</div><div class="cat">'+esc(p.category7Accepted?'7 (ESTACIONES '+val(p.category7Stations,(p.sequence||[]).length)+')':val(p.category))+'</div></div></div><div class="inks"><div class="lbl">Ink Colors / Colores</div><div class="swatches">'+swatches+'</div></div><div class="spec">Specialties / Especialidades: '+sp+'</div><div class="refs"><div class="rt">'+esc(placementLabel(p,i))+'</div><div><b>Sample Type:</b> '+esc(val(data.sampleType||data.styleVersion?.stage?.sampleType,''))+'</div><div><b>Size:</b> '+esc(val(p.baseSize||data.baseSize,''))+'</div>'+(data.stageDate?'<div><b>REMINDER '+esc(val(data.sampleType||data.styleVersion?.stage?.sampleType,''))+' — '+esc(formatReminderDate(data.stageDate))+'</b></div>':'')+'<div><b>Exported pattern:</b> '+esc(val(data.exportedPatternName||data.pattern,''))+'</div><div><b>Blank pattern for print:</b> '+esc(val(data.blankPatternName||data.blankPattern,''))+'</div><div><b>Customer resources:</b></div>'+(data.customerSchematicName?'<div>'+esc(data.customerSchematicName)+'</div>':'')+(data.customerTechpackName?'<div>'+esc(data.customerTechpackName)+'</div>':'')+pieceHtml+instructionsHtml+'</div></div></section>';
  });
  const sequenceHtml=ps.map((p,i)=>{
   let station=0;
