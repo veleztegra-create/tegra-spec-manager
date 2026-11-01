@@ -79,6 +79,7 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(html.includes('.seq tr.placement-sequence-heading{break-inside:avoid;break-after:avoid;page-break-inside:avoid;page-break-after:avoid}'), 'placement headings should stay with the next sequence row when printing');
 
   assert.equal(count('class="placement-sequence-heading"'), 2);
+  assert.ok(html.includes('MULTIPLE / VARIOS'), 'multi-placement specs should not identify only the first placement in the document header');
   assert.equal(count('class="proc-group"'), 2);
   assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
 
