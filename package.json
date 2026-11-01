@@ -11,6 +11,7 @@
     "backend:check": "npm --prefix backend run check",
     "backend:test": "npm --prefix backend test",
     "test:artwork-sizing": "node --test tests/artwork-sizing-rules.test.js",
+    "test:approved-spec": "node --test tests/approved-spec-renderer.test.js",
     "test:acb": "node --test tests/acb-*.test.js",
     "test:sequence": "node --test tests/sequence-builder.test.js",
     "test:special-effects": "node --test tests/special-effects-catalog.test.js",
