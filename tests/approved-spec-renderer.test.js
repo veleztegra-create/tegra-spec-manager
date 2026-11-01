@@ -79,6 +79,7 @@ test('approved spec keeps placement data separate and complete', () => {
   const count = (value) => html.split(value).length - 1;
 
   assert.ok(html.includes('.seq tr.placement-sequence-heading{break-inside:avoid;break-after:avoid;page-break-inside:avoid;page-break-after:avoid}'), 'placement headings should stay with the next sequence row when printing');
+  assert.ok(html.includes('.pr{display:grid;grid-template-rows:59.6pt auto minmax(14.4pt,auto) 1fr;min-width:0}'), 'placement color and specialty areas should grow when their content wraps');
 
   assert.equal(count('class="placement-sequence-heading"'), 2);
   assert.ok(html.includes('MULTIPLE / VARIOS'), 'multi-placement specs should not identify only the first placement in the document header');
