@@ -103,7 +103,7 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(html.includes('class="pn">Back</span>'));
   assert.ok(html.includes('<div class="rt">Front</div>'));
   assert.ok(html.includes('<div class="rt">Back</div>'));
-  assert.ok(html.includes('Pattern pieces / Piezas del patrón:'));
+  assert.ok(html.includes('Shrinkage / Encogimiento:'), 'assigned pattern pieces are shown as shrinkage after customer resources');
   assert.equal((html.match(/Dimensions \/ Dimensiones/g) || []).length, 2, 'dimensions heading appears once per independent placement sheet');
   assert.ok(html.includes('100% · Original</span><strong>15 × 22&quot;</strong>'));
   assert.ok(html.includes('PPF +3 mm</span><strong>15.118 × 22.118&quot;</strong>'));
