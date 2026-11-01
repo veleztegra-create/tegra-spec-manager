@@ -78,14 +78,24 @@ test('approved spec keeps placement data separate and complete', () => {
   const html = renderFixture();
   const count = (value) => html.split(value).length - 1;
 
-  assert.ok(html.includes('.seq tr.placement-sequence-heading{break-inside:avoid;break-after:avoid;page-break-inside:avoid;page-break-after:avoid}'), 'placement headings should stay with the next sequence row when printing');
   assert.ok(html.includes('.seq tr{break-inside:avoid;page-break-inside:avoid}'), 'individual sequence rows should remain intact without preventing the table body from splitting across pages');
   assert.ok(!html.includes('.seq tbody{break-inside:avoid'), 'the complete sequence body must not be forced to stay on one page');
   assert.ok(html.includes('.pr{display:grid;grid-template-rows:59.6pt auto minmax(14.4pt,auto) 1fr;min-width:0}'), 'placement color and specialty areas should grow when their content wraps');
   assert.ok(html.includes('.bar.cm{margin-top:5.9pt;height:11.8pt;break-after:avoid;page-break-after:avoid}.notes{border:1px solid var(--line);border-top:0;padding:3pt 5pt;font-size:8.55pt;line-height:11.1pt}.notes ol{margin:0;padding:0;list-style:none}.notes li{break-inside:avoid;page-break-inside:avoid}'), 'long comments should flow across pages while keeping individual comments intact');
 
-  assert.equal(count('class="placement-sequence-heading"'), 2);
-  assert.ok(html.includes('MULTIPLE / VARIOS'), 'multi-placement specs should not identify only the first placement in the document header');
+  assert.equal(count('<main class="sheet placement-sheet">'), 2, 'each placement must render as its own printable sheet');
+  assert.equal(count('<header class="hdr">'), 2, 'each independent sheet repeats the identifying header');
+  assert.equal(count('<div class="meta">'), 2, 'each independent sheet repeats the spec metadata');
+  assert.equal(count('<table class="seq">'), 2, 'each placement must own a separate sequence table');
+  assert.ok(html.includes('class="pn">Front</span>'));
+  assert.ok(html.includes('class="pn">Back</span>'));
+  assert.ok(html.includes('.placement-sheet{break-after:page;page-break-after:always}.placement-sheet:last-child{break-after:auto;page-break-after:auto}'), 'each placement sheet starts on a new printed page');
+  const sequenceTables = [...html.matchAll(/<table class="seq">([\\s\\S]*?)<\\/table>/g)].map(match => match[1]);
+  assert.equal(sequenceTables.length, 2);
+  assert.ok(sequenceTables[0].includes('RED'), 'Front sequence stays in the Front table');
+  assert.ok(!sequenceTables[0].includes('SHINY SILICONE'), 'Back sequence must not continue the Front table');
+  assert.ok(sequenceTables[1].includes('SHINY SILICONE'), 'Back sequence stays in the Back table');
+  assert.ok(!sequenceTables[1].includes('RED'), 'Front sequence must not leak into the Back table');
   assert.equal(count('class="proc-group"'), 2);
   assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
 
