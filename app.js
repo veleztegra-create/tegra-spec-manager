@@ -275,6 +275,11 @@ function setupPasteHandler() {
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf('image') !== -1) {
                 const blob = items[i].getAsFile();
+                if (!isSupportedPlacementImage(blob)) {
+                    showStatus('⚠️ Formato no compatible para la Spec. Usa PNG, JPG, WEBP o GIF.', 'warning');
+                    e.preventDefault();
+                    break;
+                }
                 const reader = new FileReader();
 
                 reader.onload = function (event) {
@@ -3453,6 +3458,12 @@ function renderPlacementStationsTable(placementId, data) {
 // FUNCIONES DE IMÁGENES
 // =====================================================
 
+function isSupportedPlacementImage(file) {
+    const type = String(file?.type || '').toLowerCase();
+    if (['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(type)) return true;
+    return /\.(png|jpe?g|webp|gif)$/i.test(String(file?.name || ''));
+}
+
 function openImagePickerForPlacement(placementId) {
     currentPlacementId = placementId;
     document.getElementById('placementImageInput')?.click();
@@ -3469,8 +3480,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const placement = placements.find(p => String(p.id) === String(placementId));
             if (!placement) return;
 
-            if (!file.type.match('image.*')) {
-                showStatus('❌ Por favor, selecciona un archivo de imagen válido', 'error');
+            if (!isSupportedPlacementImage(file)) {
+                showStatus('⚠️ Formato no compatible para la Spec. Usa PNG, JPG, WEBP o GIF.', 'warning');
+                e.target.value = '';
                 return;
             }
 
