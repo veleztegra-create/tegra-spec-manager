@@ -102,13 +102,13 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(sequenceTables[1].includes('SHINY SILICONE'), 'Back sequence stays in the Back table');
   assert.ok(!sequenceTables[1].includes('RED'), 'Front sequence must not leak into the Back table');
   assert.ok(sequenceTables[0].includes('3% cross-linker'), 'automatic preset additives remain on print-color rows');
-  const hotHeadRow = sequenceTables[0].match(/<tr class="print">(?:(?!<\\/tr>)[\\s\\S])*HOT HEAD(?:(?!<\\/tr>)[\\s\\S])*<\\/tr>/)?.[0] || '';
+  const hotHeadRow = sequenceTables[0].split('<tr class="print">').find(row => row.includes('HOT HEAD'))?.split('</tr>')[0] || '';
   assert.ok(hotHeadRow, 'Hot Head remains a print step');
   assert.equal(hotHeadRow.split('<td class="add">')[1]?.split('</td>')[0]?.trim(), '', 'Hot Head has no additives');
-  const auxiliaryRows = [...sequenceTables[0].matchAll(/<tr class="(?:flash|cool)">([\s\S]*?)<\/tr>/g)].map(match => match[1]);
+  const auxiliaryRows = sequenceTables[0].split(/<tr class="(?:flash|cool)">/).slice(1).map(row => row.split('</tr>')[0]);
   assert.ok(auxiliaryRows.length >= 4, 'standalone and post-print Flash/Cool rows are present in the fixture');
   assert.ok(auxiliaryRows.every(row => {
-    const cells = [...row.matchAll(/<td(?: class="[^"]*")?>([\\s\\S]*?)<\\/td>/g)].map(match => match[1].trim());
+    const cells = row.split('<td').slice(1).map(cell => (cell.split('>')[1] || '').split('</td>')[0].trim());
     return cells[3] === '' && cells.slice(6, 11).every(value => value === '');
   }), 'Flash and Cool rows keep additives, durometer, speed, angle, strokes and pressure empty');
   assert.equal(count('class="proc-group"'), 2);
