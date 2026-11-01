@@ -5,6 +5,15 @@ const val = (v, d='—') => { const s=String(v ?? '').trim(); return s && s!=='u
 const img = v => /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(String(v||'')) ? v : '';
 const logo = (v, cls, alt) => img(v) ? '<img class="'+cls+'" src="'+esc(img(v))+'" alt="'+esc(alt)+'">' : '';
 const hex = c => c?.hex || window.ColorConfig?.findColorHex?.(c?.val || c?.name) || '#bdbdbd';
+const placementLabel = (p, i) => {
+ const type = String(p.type || '').trim();
+ const standard = { FRONT:'Front', BACK:'Back', SLEEVE:'Sleeve', CHEST:'Chest', 'TV. NUMBERS':'TV. Numbers', SHOULDER:'Shoulder', COLLAR:'Collar' };
+ if (standard[type.toUpperCase()]) return standard[type.toUpperCase()];
+ if (/^CUSTOM:\\s*/i.test(type)) return type.replace(/^CUSTOM:\\s*/i, '').trim();
+ const candidate = String(p.title || p.name || '').trim();
+ if (candidate && !/^Placement\\s*\\d+$/i.test(candidate)) return candidate;
+ return val(type, 'Placement ' + (i + 1));
+};
 function render(data={}) {
  const ps=Array.isArray(data.placements)&&data.placements.length?data.placements:[{}], logos=window.LogoConfig||{};
  const key=String(data.customer||'').toUpperCase().replace(/&/g,'AND').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
@@ -16,7 +25,7 @@ function render(data={}) {
   const pieces=Array.isArray(p.patternPieces)?p.patternPieces:[];
   const instructions=String(p.specialInstructions||'').trim();
   const instructionsHtml=instructions?'<div class="placement-instructions"><b>Special instructions / Instrucciones especiales:</b> '+esc(instructions)+'</div>':'';
-  const pieceHtml=pieces.map(x=>{const q=typeof x==='string'?{name:x}:x;return '<div class="ind">'+esc(q.name||q.pieceName||q.label||'')+(q.shrinkage?' — '+esc(q.shrinkage):'')+'</div>';}).join('');
+  const pieceHtml=pieces.length?'<div class="piece-list"><b>Pattern pieces / Piezas del patrón:</b>'+pieces.map(x=>{const q=typeof x==='string'?{name:x}:x;return '<div class="ind">'+esc(q.name||q.pieceName||q.label||'')+(q.shrinkage?' — '+esc(q.shrinkage):'')+'</div>';}).join('')+'</div>':'';
   const artwork=img(p.imageData||p.artworkUrl);
   const automaticArtworkSizes=window.ArtworkSizingRules?.getAutomaticSizes
    ? window.ArtworkSizingRules.getAutomaticSizes(p,data) : [];
@@ -31,7 +40,7 @@ function render(data={}) {
   const artworkSizesHtml=artworkSizeRows.length
    ? '<div class="art-sizes"><b>Artwork sizes / Tamaños de arte</b>'+artworkSizeRows.map(s=>'<div><span>'+esc(s.label)+'</span><strong>'+esc(s.width)+' × '+esc(s.height)+'&quot;</strong></div>').join('')+'</div>'
    : '';
-  return '<section class="placement"><div class="art">'+(artwork?'<img src="'+esc(artwork)+'" alt="'+esc(p.title||p.name||p.type||'Placement')+'">':'<div class="ph">[ARTWORK / ARTE]</div>')+'</div><div class="pr"><div class="top"><div class="dims"><div class="lbl">Dimensions / Dimensiones</div><div class="row first"><span class="k">W</span><span class="v">'+esc(val(p.width,'--'))+'" </span></div><div class="row"><span class="k">H</span><span class="v">'+esc(val(p.height,'--'))+'" </span></div><div class="row"><span class="k">Size</span><span class="v">'+esc(val(p.baseSize||data.baseSize))+'</span></div></div><div class="scr"><div class="lbl">Pantalla / Screen</div><div class="name">'+esc(val(p.screenSize||p.screenName,'PENDIENTE'))+'</div><div class="dash"></div><div class="lbl">Category / Categoría</div><div class="cat">'+esc(p.category7Accepted?'7 (ESTACIONES '+val(p.category7Stations,(p.sequence||[]).length)+')':val(p.category))+'</div></div></div><div class="inks"><div class="lbl">Ink Colors / Colores</div><div class="swatches">'+swatches+'</div></div><div class="spec">Specialties / Especialidades: '+sp+'</div><div class="refs"><div class="rt">'+esc(val(p.title||p.name||p.type,'Placement '+(i+1)))+'</div><div><b>Exported pattern:</b> '+esc(val(data.exportedPatternName||data.pattern,''))+'</div><div><b>Blank pattern for print:</b> '+esc(val(data.blankPatternName||data.blankPattern,''))+'</div><div><b>Customer resources:</b> '+esc(val(data.customerTechpackName||data.customerSchematicName||data.techPack,''))+'</div>'+artworkSizesHtml+pieceHtml+instructionsHtml+'</div></div></section>';
+  return '<section class="placement"><div class="art">'+(artwork?'<img src="'+esc(artwork)+'" alt="'+esc(placementLabel(p,i))+'">':'<div class="ph">[ARTWORK / ARTE]</div>')+'</div><div class="pr"><div class="top"><div class="dims"><div class="lbl">Dimensions / Dimensiones</div><div class="row first"><span class="k">W</span><span class="v">'+esc(val(p.width,'--'))+'" </span></div><div class="row"><span class="k">H</span><span class="v">'+esc(val(p.height,'--'))+'" </span></div><div class="row"><span class="k">Size</span><span class="v">'+esc(val(p.baseSize||data.baseSize))+'</span></div></div><div class="scr"><div class="lbl">Pantalla / Screen</div><div class="name">'+esc(val(p.screenSize||p.screenName,'PENDIENTE'))+'</div><div class="dash"></div><div class="lbl">Category / Categoría</div><div class="cat">'+esc(p.category7Accepted?'7 (ESTACIONES '+val(p.category7Stations,(p.sequence||[]).length)+')':val(p.category))+'</div></div></div><div class="inks"><div class="lbl">Ink Colors / Colores</div><div class="swatches">'+swatches+'</div></div><div class="spec">Specialties / Especialidades: '+sp+'</div><div class="refs"><div class="rt">'+esc(placementLabel(p,i))+'</div><div><b>Exported pattern:</b> '+esc(val(data.exportedPatternName||data.pattern,''))+'</div><div><b>Blank pattern for print:</b> '+esc(val(data.blankPatternName||data.blankPattern,''))+'</div><div><b>Customer resources:</b> '+esc(val(data.customerTechpackName||data.customerSchematicName||data.techPack,''))+'</div>'+artworkSizesHtml+pieceHtml+instructionsHtml+'</div></div></section>';
  });
  const sequenceHtml=ps.map((p,i)=>{
   let station=0;
@@ -43,14 +52,15 @@ function render(data={}) {
    const stepParams=stepType==='BLOCKER'?(preset.blocker||{}):stepType==='WHITE_BASE'?(preset.white||{}):(preset.color||{});
    const effectComponents=type==='print'&&Array.isArray(s.specialEffect?.components)?s.specialEffect.components.map(c=>[c.producto,c.porcentaje!=null?String(c.porcentaje)+'%':''].filter(Boolean).join(' ')).join(' / '):'';
    const baseAdditives=type==='print'?(s.additives||(stepType==='BLOCKER'?(p.additivesBlocker||stepParams.additives):(stepType==='WHITE_BASE'?(p.additivesWhiteBase||stepParams.additives):(p.additives||stepParams.additives)))||''):'';
-   const additiveText=[baseAdditives,effectComponents].filter(Boolean).join(' · ');
-   const row='<tr class="'+type+'"><td class="n">'+(++station)+'</td><td class="scr">'+esc(type==='print'?val(s.screenLetter,''):name)+'</td><td class="l">'+esc(name)+'</td><td class="add">'+esc(additiveText)+'</td><td>'+esc(s.inkId||'')+'</td><td>'+esc(s.mesh||stepParams.mesh1||stepParams.mesh||'')+'</td><td>'+esc(s.durometer||p.durometer||stepParams.durometer||'')+'</td><td>'+esc(s.speed||p.speed||stepParams.speed||'')+'</td><td>'+esc(s.angle||p.angle||stepParams.angle||'')+'</td><td>'+esc(s.strokes||p.strokes||stepParams.strokes||'')+'</td><td>'+esc(s.pressure||p.pressure||stepParams.pressure||'')+'</td></tr>';
+   const isHotHead=/^HOT\\s*HEAD$/i.test(name.trim());
+   const additiveText=isHotHead?'':[baseAdditives,effectComponents].filter(Boolean).join(' · ');
+   const row='<tr class="'+type+'"><td class="n">'+(++station)+'</td><td class="scr">'+esc(type==='print'?val(s.screenLetter,''):name)+'</td><td class="l">'+esc(name)+'</td><td class="add">'+esc(additiveText)+'</td><td>'+esc(s.inkId||'')+'</td><td>'+esc(s.mesh||stepParams.mesh1||stepParams.mesh||'')+'</td><td>'+esc(type==='print'?(s.durometer||p.durometer||stepParams.durometer||''):'')+'</td><td>'+esc(type==='print'?(s.speed||p.speed||stepParams.speed||''):'')+'</td><td>'+esc(type==='print'?(s.angle||p.angle||stepParams.angle||''):'')+'</td><td>'+esc(type==='print'?(s.strokes||p.strokes||stepParams.strokes||''):'')+'</td><td>'+esc(type==='print'?(s.pressure||p.pressure||stepParams.pressure||''):'')+'</td></tr>';
    return row+(Array.isArray(s.post)?s.post.map(a=>'<tr class="'+(String(a).toUpperCase()==='FLASH'?'flash':'cool')+'"><td class="n">'+(++station)+'</td><td class="scr">'+esc(a)+'</td><td class="aux" colspan="9">'+esc(String(a).toUpperCase()==='COOL'?(s.coolNote||''):'')+'</td></tr>').join(''):'');
   }).join('');
   return '<div class="bar ps">Print Sequence <small>Secuencia de impresión</small></div><table class="seq"><colgroup><col style="width:.36in"><col style="width:.5in"><col style="width:1.84in"><col><col style="width:.5in"><col style="width:.55in"><col style="width:.5in"><col style="width:.43in"><col style="width:.42in"><col style="width:.45in"><col style="width:.5in"></colgroup><thead><tr><th># <small>Station</small></th><th>Screen<small>Pantalla</small></th><th>Ink name<small>Nombre de la tinta</small></th><th>Additives<small>Aditivos</small></th><th>Ink ID<small>ID tintas</small></th><th>Mesh<small>Malla</small></th><th>Durom.<small>Durómetro</small></th><th>Speed<small>Veloc.</small></th><th>Angle<small>Ángulo</small></th><th>Strokes<small>Pasadas</small></th><th>Press.<small>Presión</small></th></tr></thead><tbody>'+(body||'<tr><td colspan="11">Sin secuencia registrada para este placement</td></tr>')+'</tbody></table>';
  });
  const productionHtml=ps.map((p,i)=>{
-  const label=val(p.title||p.name||p.type,'Placement '+(i+1));
+  const label=placementLabel(p,i);
   return '<div class="proc-group"><div class="proc-heading">'+esc(label)+' — Production conditions / Condiciones de producción</div><dl class="proc">'+
    '<div><div class="lbl">Ink type / Tipo de tinta</div><b>'+esc(val(p.inkType||data.inkType))+'</b></div>'+
    '<div><div class="lbl">Temp</div><b>'+esc(val(p.curing?.temperature||p.temp||data.temp))+'</b></div>'+
