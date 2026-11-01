@@ -45,7 +45,7 @@ function renderFixture() {
         specialInstructions: 'Print front logo centered 2 inches below collar.',
         patternPieces: [{ pieceName: 'Front Panel', shrinkage: '2%' }],
         sequence: [
-          { type: 'COLOR', val: 'RED', screenLetter: '1' },
+          { type: 'COLOR', val: 'RED', screenLetter: '1', post: ['FLASH', 'COOL'] },
           { type: 'FLASH', val: 'FLASH' }
         ]
       },
@@ -96,6 +96,10 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(!sequenceTables[0].includes('SHINY SILICONE'), 'Back sequence must not continue the Front table');
   assert.ok(sequenceTables[1].includes('SHINY SILICONE'), 'Back sequence stays in the Back table');
   assert.ok(!sequenceTables[1].includes('RED'), 'Front sequence must not leak into the Back table');
+  assert.ok(sequenceTables[0].includes('3% cross-linker'), 'automatic preset additives remain on print-color rows');
+  const auxiliaryRows = [...sequenceTables[0].matchAll(/<tr class="(?:flash|cool)">([\s\S]*?)<\/tr>/g)].map(match => match[1]);
+  assert.ok(auxiliaryRows.length >= 3, 'standalone and post-print Flash/Cool rows are present in the fixture');
+  assert.ok(auxiliaryRows.every(row => !row.includes('class="add"')), 'Flash and Cool rows never receive an additives cell or print-step additives');
   assert.equal(count('class="proc-group"'), 2);
   assert.equal(count('class="n">1</td>'), 2, 'station numbering restarts for each placement');
 
