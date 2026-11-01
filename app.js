@@ -4413,6 +4413,12 @@ function getSpecGeneralData(source = {}) {
         technicianName: data?.technicianName || '',
         technicalComments: data?.technicalComments || '',
         program: data?.program || '',
+        specType: (() => {
+            const rawType = String(data?.specType || data?.program || '').trim().toUpperCase();
+            if (/CUT/.test(rawType)) return 'CUT';
+            if (/PRINT|FULL|GARMENT|P\. TERMINADA/.test(rawType)) return 'PRINT';
+            return '';
+        })(),
         specDate: data?.specDate || '',
         designerOtherName: data?.designerOtherName || '',
         stageDate: data?.stageDate || '',
