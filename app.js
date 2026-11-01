@@ -443,12 +443,40 @@ function updateClientLogo() {
 // La delegación en document permite sincronizarlo aunque el control aún no exista al iniciar app.js.
 document.addEventListener('change', (event) => {
     const element = event.target;
+    if (element?.id === 'sample-type') updateStageDateForSampleType(element.value);
     if (!element?.matches?.('[data-bind-general="specType"]')) return;
     if (!window.Store?.state?.generalData) return;
 
     const value = element.value === 'CUT' || element.value === 'PRINT' ? element.value : '';
     window.Store.state.generalData.specType = value;
 });
+
+function updateSpecTypeButtons(value = document.getElementById('spec-type')?.value || '') {
+    document.querySelectorAll('[data-spec-type-option]').forEach((button) => {
+        const selected = button.dataset.specTypeOption === value;
+        button.classList.toggle('is-selected', selected);
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+}
+
+function setSpecType(value) {
+    if (!['CUT', 'PRINT'].includes(value)) return;
+    setInputValue('spec-type', value);
+}
+
+function updateStageDateForSampleType(value) {
+    if (!window.Store?.state?.generalData) return;
+    const general = Store.state.generalData;
+    const nextStage = String(value || '').trim();
+    const previousStage = String(general._stageDateForStage || '').trim();
+    if (!nextStage || nextStage === previousStage) return;
+    const today = new Date();
+    const stageDate = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+    general.stageDate = stageDate;
+    general._stageDateForStage = nextStage;
+    const stageDateInput = document.getElementById('spec-stage-date');
+    if (stageDateInput) stageDateInput.value = stageDate;
+}
 
 function setInputValue(id, value) {
     const element = document.getElementById(id);
@@ -468,6 +496,9 @@ function setInputValue(id, value) {
             Store.state.generalData[generalKey] = nextValue;
         }
     }
+
+    if (id === 'sample-type' && changed) updateStageDateForSampleType(nextValue);
+    if (id === 'spec-type') updateSpecTypeButtons(nextValue);
 
     // Disparar input para ejecutar lógica ligada al campo (logos, defaults, etc.)
     if (changed) {
@@ -2091,6 +2122,7 @@ function recordSpecSequenceChange({ placement, path, oldValue, newValue, reason 
     if (!placement) return null;
 
     const now = new Date().toISOString();
+    if (window.Store?.state) window.Store.state.lastModified = now;
     const actor = getCurrentSpecActor();
     const styleVersion = Store.state.styleVersion || (Store.state.styleVersion = {});
     const version = styleVersion.number ?? null;
@@ -4443,6 +4475,8 @@ function getSpecGeneralData(source = {}) {
             return '';
         })(),
         specDate: data?.specDate || '',
+        artworkDate: data?.artworkDate || '',
+        lastModified: data?.lastModified || '',
         designerOtherName: data?.designerOtherName || '',
         stageDate: data?.stageDate || '',
         _stageDateForStage: data?._stageDateForStage || data?.sampleType || '',
@@ -4774,6 +4808,7 @@ function loadSpecData(data) {
     setInputValue('gender', data.gender || '');
     setInputValue('designer', data.designer || '');
     setInputValue('spec-type', data.specType || '');
+    setInputValue('artwork-date', data.artworkDate || '');
     setInputValue('base-size', data.baseSize || '');
     setInputValue('fabric', data.fabric || '');
     setInputValue('technician-name', data.technicianName || '');
@@ -4799,6 +4834,7 @@ function loadSpecData(data) {
             ...Store.getState(),
             // Restore the complete saved general data, including the detected
             // pattern-piece catalog and shrinkages, when reopening a Spec.
+            lastModified: data.lastModified || data.meta?.lastModified || null,
             generalData: {
                 ...(Store.getState().generalData || {}),
                 ...getSpecGeneralData(data)
@@ -4968,7 +5004,8 @@ async function saveCurrentSpec() {
         });
 
         data.savedAt = new Date().toISOString();
-        data.lastModified = new Date().toISOString();
+        data.lastModified = data.lastModified || Store.getState().lastModified || new Date().toISOString();
+        Store.state.lastModified = data.lastModified;
 
         let savedRemotely = false;
 
@@ -5073,6 +5110,15 @@ function createNewStyleVersion(options = {}) {
         )
     };
     nextState.generalData.sampleType = nextState.styleVersion.stage.sampleType || nextState.generalData.sampleType || '';
+    const previousStage = String(currentVersion.stage?.sampleType || currentState.generalData?.sampleType || '').trim();
+    const nextStage = String(nextState.generalData.sampleType || '').trim();
+    if (nextStage && nextStage !== previousStage) {
+        nextState.generalData.stageDate = now.slice(0, 10);
+        nextState.generalData._stageDateForStage = nextStage;
+    } else {
+        nextState.generalData.stageDate = currentState.generalData?.stageDate || '';
+        nextState.generalData._stageDateForStage = previousStage;
+    }
 
     const nextNumber = nextState.styleVersion.number;
     const versionEntry = window.SpecLifecycle?.createVersionAuditEntry
