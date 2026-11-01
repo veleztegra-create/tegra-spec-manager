@@ -34,6 +34,8 @@ function renderFixture() {
     blankPatternName: 'BLANK-AI',
     sampleType: 'PPS/L',
     stageDate: '2026-03-11',
+    artworkDate: '2026-03-09',
+    lastModified: '2026-03-12T14:30:00.000Z',
     exportedPatternName: '381892F_JAG_RVLY_exportedpattern_nh260115',
     customerSchematicName: '67NM-0JFM-9NF JAG M GAME JSY RVLY SCHEMATIC 01-30-2026',
     customerTechpackName: '67NM-0JFM-9NF JAG M GAME JSY RVLY TECHPACK 3-10-2026',
@@ -112,6 +114,10 @@ test('approved spec keeps placement data separate and complete', () => {
   assert.ok(html.includes('<b>Sample Type:</b> PPS/L'));
   assert.ok(html.includes('<b>Size:</b> L'));
   assert.ok(html.includes('REMINDER PPS/L — 11 MAR 2026'));
+  assert.ok(html.includes('Artwork Date / Fecha del arte'));
+  assert.ok(html.includes('09 MAR 2026'));
+  assert.ok(html.includes('Modification Date / Fecha de modificación'));
+  assert.ok(html.includes('12 MAR 2026'));
   assert.ok(html.includes('381892F_JAG_RVLY_exportedpattern_nh260115'));
   assert.ok(html.includes('67NM-0JFM-9NF JAG M GAME JSY RVLY SCHEMATIC 01-30-2026'));
   assert.ok(html.includes('67NM-0JFM-9NF JAG M GAME JSY RVLY TECHPACK 3-10-2026'));
