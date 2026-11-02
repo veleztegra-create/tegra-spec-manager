@@ -35,9 +35,9 @@ function render(data={}) {
   /NIKE|NIQUE/.test(customerName)?'NIKE':
   /FANATIC/.test(customerName)?'FANATICS':
   /ADIDAS/.test(customerName)?'ADIDAS':
-  /UNDER\\s*ARMOUR|UNDER_ARMOUR/.test(customerName)?'UNDER_ARMOUR':
+  /UNDER\s*ARMOUR|UNDER_ARMOUR/.test(customerName)?'UNDER_ARMOUR':
   /NCAA/.test(customerName)?'NCAA':
-  /GEAR\\s*FOR\\s*SPORT|GEARFORSPORT|(^|[^A-Z0-9])G\\.?F\\.?S\\.?([^A-Z0-9]|$)/.test(customerName)?'GEAR_FOR_SPORT':key;
+  /GEAR\s*FOR\s*SPORT|GEARFORSPORT|(^|[^A-Z0-9])G\\.?F\\.?S\\.?([^A-Z0-9]|$)/.test(customerName)?'GEAR_FOR_SPORT':key;
  const metadata=[['s2 r1','Name / Team / Nombre / Equipo',data.nameTeam],['r1','# Style / Estilo',data.style],['r1','C. Date / Fecha de creación',data.specDate],['s2 r2','Sample Type',data.sampleType],['r2','Category / Categoría',data.category],['r2','Gender / Género',data.gender],['r3','Colorway / Color de tela',data.colorway],['r3','Season / Temporada',data.season],['r3','Artist',data.designerOtherName||data.designer],['r3','Technician',data.technicianName],].map(([cl,l,v])=>'<div class="'+cl+'"><div class="lbl">'+esc(l)+'</div><b>'+esc(val(v,''))+'</b>'+(l.startsWith('Colorway')&&data.colorwayHex?'<span class="sw" style="background:'+esc(data.colorwayHex)+'"></span>':'')+'</div>').join('');
  const blocks=ps.map((p,i)=>{
   const colors=(Array.isArray(p.printColors)?p.printColors:[]).filter(c=>['COLOR','METALLIC'].includes(String(c.type||'COLOR').toUpperCase()));
