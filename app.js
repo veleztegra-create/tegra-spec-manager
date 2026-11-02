@@ -3712,10 +3712,26 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('📦 Datos extraídos:', extracted);
 
     const applyGeneralInfo = (info, source = 'manual') => {
-        if (window.SourcePriority && typeof window.SourcePriority.recordImportedFields === 'function') {
-            window.SourcePriority.recordImportedFields(info, source);
-        }
         if (!info || typeof info !== 'object') return;
+
+        const rawStyleForGender = String(info.style || '');
+        const normalizedInfo = { ...info };
+
+        // El Style de la Spec debe salir del SWO y contener solo sus primeros
+        // tres grupos separados por guiones (ej. 67NM-DLGH-9SF).
+        if (/^SWO$/i.test(String(source)) && rawStyleForGender) {
+            const styleCodeMatch = rawStyleForGender.match(/(?:^|[^A-Z0-9])([A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+)(?:-[A-Z0-9]+)?(?=$|[^A-Z0-9])/i);
+            if (styleCodeMatch) {
+                normalizedInfo.style = styleCodeMatch[1].toUpperCase();
+            } else {
+                delete normalizedInfo.style;
+            }
+        }
+
+        if (window.SourcePriority && typeof window.SourcePriority.recordImportedFields === 'function') {
+            window.SourcePriority.recordImportedFields(normalizedInfo, source);
+        }
+        info = normalizedInfo;
 
         if (info.customer) {
             setInputValue('customer', info.customer);
@@ -3735,7 +3751,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         if (info.sample || info.sampleType) setInputValue('sample-type', info.sample || info.sampleType);
         if (info.team || info.nameTeam) setInputValue('name-team', info.team || info.nameTeam);
 
-        const resolvedGender = normalizeGenderValue(info.gender, info.style, info.customer);
+        const resolvedGender = normalizeGenderValue(info.gender, rawStyleForGender || info.style, info.customer);
         if (resolvedGender) setInputValue('gender', resolvedGender);
 
         if (info.baseSize) setInputValue('base-size', info.baseSize);
