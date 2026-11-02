@@ -34,7 +34,7 @@ test('extracts only the product category from first-page descriptions', () => {
 test('does not use the Tech Pack Style field as the Spec Style source', () => {
     const info = extractor.extractGeneralInfo(
         'Style # 381892F_JAG_RVLY_PPF\nSeasonal Plan FA27',
-        'Nike College Football Game Crop Top'
+        'Seasonal Plan Fall 2027\\nDescription:: Nike College Football Game Crop Top'
     );
 
     assert.equal(info.category, 'Game Crop Top');
