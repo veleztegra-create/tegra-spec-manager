@@ -75,11 +75,11 @@ function render(data={}) {
    const name=val(s.val||s.nombre||s.type||s.tipo,'—');
    const type=String(s.type||s.tipo||name).toUpperCase()==='FLASH'?'flash':String(s.type||s.tipo||name).toUpperCase()==='COOL'?'cool':'print';
    const preset=window.Config?.INK_PRESETS?.[p.inkType]||window.Config?.INK_PRESETS?.WATER||{};
-   const stepType=String(s.type||s.tipo||'').toUpperCase();
+   const stepType=String(s.type||s.tipo||s.stationType||'').trim().toUpperCase().replace(/[\s-]+/g,'_');
    const stepParams=stepType==='BLOCKER'?(preset.blocker||{}):stepType==='WHITE_BASE'?(preset.white||{}):(preset.color||{});
    const effectComponents=type==='print'&&Array.isArray(s.specialEffect?.components)?s.specialEffect.components.map(c=>[c.producto,c.porcentaje!=null?String(c.porcentaje)+'%':''].filter(Boolean).join(' ')).join(' / '):'';
    const baseAdditives=type==='print'?(s.additives||(stepType==='BLOCKER'?(p.additivesBlocker||stepParams.additives):(stepType==='WHITE_BASE'?(p.additivesWhiteBase||stepParams.additives):(p.additives||stepParams.additives)))||''):'';
-   const isHotHead=/^HOT\s*HEAD$/i.test(name.trim())||stepType==='HOT_HEAD';
+   const isHotHead=stepType==='HOT_HEAD'||/^HOT\s*HEAD$/i.test(name.trim())||[s.type,s.tipo,s.stationType,s.val,s.nombre].some(value=>String(value||'').trim().toUpperCase().replace(/[\s-]+/g,'_')==='HOT_HEAD');
    const additiveText=isHotHead?'':[baseAdditives,effectComponents].filter(Boolean).join(' · ');
    const row='<tr class="'+type+'"><td class="n">'+(++station)+'</td><td class="scr">'+esc(type==='print'?val(s.screenLetter,''):name)+'</td><td class="l">'+esc(name)+'</td><td class="add">'+esc(additiveText)+'</td><td>'+esc(s.inkId||'')+'</td><td>'+esc(s.mesh||stepParams.mesh1||stepParams.mesh||'')+'</td><td>'+esc(type==='print'&&!isHotHead?(s.durometer||p.durometer||stepParams.durometer||''):'')+'</td><td>'+esc(type==='print'&&!isHotHead?(s.speed||p.speed||stepParams.speed||''):'')+'</td><td>'+esc(type==='print'&&!isHotHead?(s.angle||p.angle||stepParams.angle||''):'')+'</td><td>'+esc(type==='print'&&!isHotHead?(s.strokes||p.strokes||stepParams.strokes||''):'')+'</td><td>'+esc(type==='print'&&!isHotHead?(s.pressure||p.pressure||stepParams.pressure||''):'')+'</td></tr>';
    return row+(Array.isArray(s.post)?s.post.map(a=>'<tr class="'+(String(a).toUpperCase()==='FLASH'?'flash':'cool')+'"><td class="n">'+(++station)+'</td><td class="scr">'+esc(a)+'</td><td class="aux" colspan="9">'+esc(String(a).toUpperCase()==='COOL'?(s.coolNote||''):'')+'</td></tr>').join(''):'');
