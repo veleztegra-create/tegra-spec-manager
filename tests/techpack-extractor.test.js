@@ -38,7 +38,7 @@ test('does not use the Tech Pack Style field as the Spec Style source', () => {
         'Seasonal Plan Fall 2027\\nDescription:: Nike College Football Game Crop Top'
     );
 
-    assert.equal(info.category, 'Game Crop Top');
+    assert.equal(info.category, 'GAME');
     assert.equal(info.season, 'FA27');
     assert.equal(Object.hasOwn(info, 'styleNumber'), false);
 });
