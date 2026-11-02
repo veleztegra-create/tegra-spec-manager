@@ -50,12 +50,15 @@ class NikeTechPackExtractor {
 
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             let fullText = '';
+            let firstPageText = '';
 
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
                 const lines = this.groupTextIntoLines(textContent.items);
-                fullText += lines.join('\n') + '\n';
+                const pageText = lines.join('\n');
+                if (i === 1) firstPageText = pageText;
+                fullText += pageText + '\n';
             }
 
             console.log('📄 Texto extraído del PDF');
@@ -65,7 +68,7 @@ class NikeTechPackExtractor {
             console.log(`📏 Talla base detectada: ${this.extractedData.tallaBase}`);
 
             // Extraer información general
-            this.extractedData.informacionGeneral = this.extractGeneralInfo(fullText);
+            this.extractedData.informacionGeneral = this.extractGeneralInfo(fullText, firstPageText);
             
             // Extraer telas
             this.extractedData.telas = this.extractFabrics(fullText);
@@ -275,14 +278,16 @@ class NikeTechPackExtractor {
         return placements;
     }
 
-    extractGeneralInfo(text) {
+    extractGeneralInfo(text, firstPageText = '') {
         const info = {};
-
-        const styleMatch = text.match(/Style\s*#?\s*[:#]?\s*([A-Z0-9-]+)/i);
-        if (styleMatch) info.styleNumber = styleMatch[1].trim();
 
         const seasonMatch = text.match(/Seasonal Plan[\s:]*([^\n]+)/i);
         if (seasonMatch) info.season = seasonMatch[1].trim();
+
+        // La primera categoría se deriva únicamente de la descripción del producto
+        // en la primera página. Si no hay una descripción reconocible, se deja vacía.
+        const productCategory = this.extractProductCategory(firstPageText || text);
+        if (productCategory) info.category = productCategory;
 
         // Detectar equipo
         const teams = ['Bills', 'Steelers', 'Cowboys', 'Eagles', 'Patriots', 'Chiefs', '49ers', 'Packers', 'Dolphins', 'Giants'];
@@ -296,22 +301,103 @@ class NikeTechPackExtractor {
         return info;
     }
 
+    extractProductCategory(firstPageText) {
+        const lines = String(firstPageText || '')
+            .split(/\r?\n/)
+            .map(line => line.replace(/\s+/g, ' ').trim())
+            .filter(Boolean);
+
+        const garmentPattern = /\b(?:jerseys?|crop\s+tops?|tops?|tees?|t-?shirts?|hoodies?|sweatshirts?|pants?|shorts?|jackets?|vests?|polos?)\b/i;
+        const labelPattern = /^(?:Product Description|Product Name|Marketing Name)\s*[:\-]?\s*(.*)$/i;
+        const candidates = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            const labelMatch = lines[i].match(labelPattern);
+            if (labelMatch) {
+                const labeledValue = labelMatch[1] || lines[i + 1] || '';
+                if (labeledValue) candidates.push(labeledValue);
+            }
+
+            const combined = [lines[i], lines[i + 1] || ''].join(' ').trim();
+            if (garmentPattern.test(lines[i])) candidates.push(lines[i]);
+            else if (garmentPattern.test(combined)) candidates.push(combined);
+        }
+
+        for (const candidate of candidates) {
+            const category = this.normalizeProductCategory(candidate);
+            if (category && garmentPattern.test(category)) return category;
+        }
+
+        return '';
+    }
+
+    normalizeProductCategory(value) {
+        let category = String(value || '')
+            .replace(/^(?:Product Description|Product Name|Marketing Name)\s*[:\-]?\s*/i, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        // Quitar marcas/liga y contexto deportivo que no forman parte de la categoría.
+        category = category.replace(/^(?:(?:NFL|NIKE|JORDAN|NCAA)\s+)+/i, '');
+        category = category.replace(/^(?:COLLEGE\s+)?FOOTBALL\s+/i, '');
+        category = category.replace(/^A\/SS\s+/i, '');
+        // En el nombre plural de producto, "Jerseys" funciona como descriptor genérico;
+        // se conserva "Jersey" cuando forma parte de nombres como "Game Jersey".
+        category = category.replace(/\s+Jerseys$/i, '');
+        category = category.replace(/\s+/g, ' ').trim();
+
+        return category
+            .split(' ')
+            .map(word => word.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join('-'))
+            .join(' ');
+    }
+
     extractFabrics(text) {
+        const source = String(text || '');
+        const bomStart = source.search(/Bill\s+of\s+Materials?/i);
+        let fabricSection = source;
+
+        if (bomStart >= 0) {
+            fabricSection = source.slice(bomStart);
+            const sectionEnd = fabricSection.search(/\n\s*(?:Measurement|Graphic Placement|Page\s+\d+)/i);
+            if (sectionEnd >= 0) fabricSection = fabricSection.slice(0, sectionEnd);
+        }
+
+        const fiberPattern = /\b\d{1,3}\s*%\s*(?:(?:recycled|organic)\s+)?(?:polyester|cotton|nylon|spandex|elastane|rayon|viscose|wool|acrylic|polyamide|polyurethane)\b/gi;
         const telas = [];
-        const bomSection = text.match(/Bill of Material[\s\S]*?(?=Page|$)/i);
-        
-        if (bomSection) {
-            // Buscar telas tipo Knit
-            const knitMatches = bomSection[0].matchAll(/Knit\s+([A-Z0-9]+).*?(\d+\s*gsm)/gi);
-            for (const match of knitMatches) {
-                telas.push({
-                    tipo: 'Tejido',
-                    nombre: match[1],
-                    peso: match[2]
-                });
+        const seen = new Set();
+        const lines = fabricSection.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const matches = [...line.matchAll(fiberPattern)];
+            if (!matches.length) continue;
+
+            const composicion = matches
+                .map(match => match[0].replace(/\s+/g, ' ').trim())
+                .join(' / ');
+
+            const key = composicion.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            telas.push({
+                nombre: telas.length === 0 ? 'Tela principal' : `Tela ${telas.length + 1}`,
+                tipo: telas.length === 0 ? 'Principal' : 'Secundaria',
+                composicion
+            });
+        }
+
+        // Algunos Tech Packs no presentan la sección BOM como texto seleccionable.
+        // Solo se usa esta alternativa si no apareció composición dentro de BOM.
+        if (telas.length === 0 && bomStart >= 0) {
+            const matches = [...source.matchAll(fiberPattern)];
+            if (matches.length) {
+                const composicion = matches[0][0].replace(/\s+/g, ' ').trim();
+                telas.push({ nombre: 'Tela principal', tipo: 'Principal', composicion });
             }
         }
-        
+
         return telas;
     }
 
