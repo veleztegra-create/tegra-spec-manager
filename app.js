@@ -5340,7 +5340,7 @@ async function exportPDF() {
         }
 
         const htmlContent = window.generateSpecHTMLDocument(data);
-        const printScript = '<script>window.addEventListener("load", function () { window.focus(); window.print(); });<\/script>';
+        const printScript = '<script>window.addEventListener("load", function () { var images = Array.from(document.images); Promise.all(images.map(function (image) { if (image.complete) return Promise.resolve(); return new Promise(function (resolve) { image.onload = resolve; image.onerror = resolve; setTimeout(resolve, 5000); }); })).then(function () { window.focus(); window.print(); }); });<\/script>';
         const printableHtml = htmlContent.replace(/<\/body>/i, printScript + '</body>');
 
         printWindow.document.open();
