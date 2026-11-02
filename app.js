@@ -3616,6 +3616,43 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     
     const extracted = {};
 
+    // Normalizar las categorías comerciales de jersey.
+    const normalizeJerseyCategory = (raw) => {
+        const text = String(raw || '').toUpperCase();
+        const found = ['GAME', 'LIMITED', 'ELITE'].filter(category =>
+            new RegExp('\\\\b' + category + '\\\\b').test(text)
+        );
+        return found.length === 1 ? found[0] : '';
+    };
+
+    const findSwoCategory = (grid) => {
+        if (!Array.isArray(grid)) return '';
+        // Prioridad a campos que describen explícitamente el producto.
+        for (const row of grid) {
+            if (!Array.isArray(row)) continue;
+            for (let col = 0; col < row.length; col++) {
+                const label = String(row[col] || '').trim().toUpperCase();
+                if (/CATEGORY|PRODUCT DESCRIPTION|DESCRIPTION|STYLE NAME|PRODUCT NAME/.test(label)) {
+                    for (const candidate of [row[col + 1], row[col + 2]]) {
+                        const category = normalizeJerseyCategory(candidate);
+                        if (category) return category;
+                    }
+                }
+            }
+        }
+        // Respaldo: buscar en el contenido del SWO. Si hay varias categorías,
+        // se evita elegir arbitrariamente.
+        const found = new Set();
+        for (const row of grid) {
+            if (!Array.isArray(row)) continue;
+            for (const cell of row) {
+                const category = normalizeJerseyCategory(cell);
+                if (category) found.add(category);
+            }
+        }
+        return found.size === 1 ? [...found][0] : '';
+    };
+
     const normalizedSheetName = String(sheetName || '').toUpperCase();
     const hasStructuredLabels = data.slice(0, 30).some((row) => {
         if (!Array.isArray(row)) return false;
@@ -3638,6 +3675,11 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('🔍 isSWOSheet:', isSWOSheet, '| hasStructuredLabels:', hasStructuredLabels);
 
     // --- 1. EXTRACCIÓN DE DATOS BÁSICOS ---
+    if (isSWOSheet) {
+        extracted.category = findSwoCategory(data);
+        if (extracted.category) console.log('🏷️ Categoría detectada desde SWO:', extracted.category);
+    }
+
     const sanitizeExtractedValue = (valueRaw, currentLabel = '') => {
         const value = String(valueRaw || '').trim();
         if (!value) return '';
@@ -3746,6 +3788,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
             console.log(`✅ colorway asignado (${source}):`, info.colorway);
         }
         if (info.season) setInputValue('season', info.season);
+        if (info.category) setInputValue('category', info.category);
         if (info.pattern) setInputValue('pattern', info.pattern);
         if (info.po) setInputValue('po', info.po);
         if (info.sample || info.sampleType) setInputValue('sample-type', info.sample || info.sampleType);
