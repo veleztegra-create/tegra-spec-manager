@@ -3620,7 +3620,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
     const normalizeJerseyCategory = (raw) => {
         const text = String(raw || '').toUpperCase();
         const found = ['GAME', 'LIMITED', 'ELITE'].filter(category =>
-            new RegExp('\\\\b' + category + '\\\\b').test(text)
+            new RegExp('\\b' + category + '\\b').test(text)
         );
         return found.length === 1 ? found[0] : '';
     };
