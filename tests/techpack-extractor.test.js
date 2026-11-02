@@ -8,15 +8,27 @@ const extractor = new window.NikeTechPackExtractor();
 
 test('extracts only the product category from first-page descriptions', () => {
     const cases = [
-        ['Jordan College Football Limited 3.0 Jersey', 'Limited 3.0 Jersey'],
-        ['A/SS Game Jersey', 'Game Jersey'],
-        ['Nike College Football Game Crop Top', 'Game Crop Top'],
-        ['NFL Nike Limited Sewn-Down Twill Jerseys', 'Limited Sewn-Down Twill']
+        ['Description:: Jordan College Football Limited 3.0 Jersey', 'Limited 3.0 Jersey'],
+        ['Description:: A/SS Game Jersey', 'Game Jersey'],
+        ['Description:: Nike College Football Game Crop Top', 'Game Crop Top'],
+        ['Description:: NFL Nike Limited Sewn-Down Twill Jerseys', 'Limited Sewn-Down Twill']
     ];
 
     for (const [description, expected] of cases) {
         assert.equal(extractor.extractProductCategory(description), expected, description);
     }
+
+    const firstPage = [
+        'Seasonal Plan Fall 2027',
+        'Nike College PID #',
+        'Product Status Concept',
+        'Description::',
+        'Nike College Football Game Crop Top'
+    ].join('\\n');
+
+    assert.equal(extractor.extractProductCategory(firstPage), 'Game Crop Top');
+    assert.equal(extractor.extractProductCategory('Seasonal Plan Fall 2027 Football Game Crop Top'), '',
+        'must not infer Category from Seasonal Plan/header text');
 });
 
 test('does not use the Tech Pack Style field as the Spec Style source', () => {
