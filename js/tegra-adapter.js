@@ -150,6 +150,13 @@
             if (info.category) setTechPackGeneralField('category', 'category', info.category);
         }
 
+        // Si la categoría no se pudo resolver desde SWO ni Tech Pack,
+        // mantenerla vacía y pedir revisión manual en lugar de adivinar.
+        const categoryInput = document.getElementById('category');
+        if (!categoryInput || !String(categoryInput.value || '').trim()) {
+            showStatus('⚠️ No se pudo identificar la categoría GAME / LIMITED / ELITE en SWO ni Tech Pack. Confirmar manualmente.', 'warning');
+        }
+
         // 2. TALLA BASE
         if (datosPDF.tallaBase) {
             setTechPackGeneralField('baseSize', 'base-size', datosPDF.tallaBase);
