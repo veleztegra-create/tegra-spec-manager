@@ -24,6 +24,9 @@ function buildSpecData() {
         )
         : state.styleVersion;
 
+    const folderInputValue = typeof document !== 'undefined'
+        ? document.getElementById('folder-num')?.value
+        : undefined;
     const colorway = String(state.generalData?.colorway || '').trim();
     const colorwayHex = colorway && window.ColorConfig?.findColorHex
         ? window.ColorConfig.findColorHex(colorway)
@@ -48,6 +51,7 @@ function buildSpecData() {
 
     return {
         ...state.generalData,
+        folder: folderInputValue ?? state.generalData?.folder ?? '',
         specDate: creationDate,
         stageDate: state.generalData?.stageDate || creationDate,
         // Printed Modification Date follows the local calendar date shown in
