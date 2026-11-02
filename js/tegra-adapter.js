@@ -145,8 +145,9 @@
         if (datosPDF.informacionGeneral) {
             const info = datosPDF.informacionGeneral;
             if (info.equipo) setTechPackGeneralField('nameTeam', 'name-team', info.equipo);
-            if (info.styleNumber) setTechPackGeneralField('style', 'style', info.styleNumber);
+            // Style es responsabilidad del SWO; nunca se toma del Tech Pack.
             if (info.season) setTechPackGeneralField('season', 'season', info.season);
+            if (info.category) setTechPackGeneralField('category', 'category', info.category);
         }
 
         // 2. TALLA BASE
