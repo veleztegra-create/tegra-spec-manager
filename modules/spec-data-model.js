@@ -32,21 +32,27 @@ function buildSpecData() {
     // C. Date is the creation date of the current stage/folder. Older specs
     // may not have specDate populated, so recover it from stageDate, the
     // version creation timestamp, or (as a final fallback) today's date.
+    const today = new Date();
+    const todayLocal = [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, '0'),
+        String(today.getDate()).padStart(2, '0')
+    ].join('-');
     const creationDate = String(
         state.generalData?.stageDate ||
         state.generalData?.specDate ||
         state.generalData?.artworkDate ||
         styleVersion?.createdAt ||
-        new Date().toISOString()
+        todayLocal
     ).slice(0, 10);
 
     return {
         ...state.generalData,
         specDate: creationDate,
         stageDate: state.generalData?.stageDate || creationDate,
-        // Printed Modification Date follows the live date shown in the app
-        // header below # Folder; lastModified remains the separate audit value.
-        modificationDate: new Date().toISOString(),
+        // Printed Modification Date follows the local calendar date shown in
+        // the app header below # Folder; lastModified remains the audit value.
+        modificationDate: todayLocal,
         colorwayHex: colorwayHex ? String(colorwayHex).toUpperCase() : '',
         placements: state.placements,
         styleVersion,
