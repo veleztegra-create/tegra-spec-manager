@@ -8,10 +8,11 @@ const extractor = new window.NikeTechPackExtractor();
 
 test('extracts only the product category from first-page descriptions', () => {
     const cases = [
-        ['Description:: Jordan College Football Limited 3.0 Jersey', 'Limited 3.0 Jersey'],
-        ['Description:: A/SS Game Jersey', 'Game Jersey'],
-        ['Description:: Nike College Football Game Crop Top', 'Game Crop Top'],
-        ['Description:: NFL Nike Limited Sewn-Down Twill Jerseys', 'Limited Sewn-Down Twill']
+        ['Description:: Jordan College Football Limited 3.0 Jersey', 'LIMITED'],
+        ['Description:: A/SS Game Jersey', 'GAME'],
+        ['Description:: Nike College Football Game Crop Top', 'GAME'],
+        ['Description:: NFL Nike Limited Sewn-Down Twill Jerseys', 'LIMITED'],
+        ['Description:: Nike Elite Jersey', 'ELITE']
     ];
 
     for (const [description, expected] of cases) {
@@ -26,7 +27,7 @@ test('extracts only the product category from first-page descriptions', () => {
         'Nike College Football Game Crop Top'
     ].join('\\n');
 
-    assert.equal(extractor.extractProductCategory(firstPage), 'Game Crop Top');
+    assert.equal(extractor.extractProductCategory(firstPage), 'GAME');
     assert.equal(extractor.extractProductCategory('Seasonal Plan Fall 2027 Football Game Crop Top'), '',
         'must not infer Category from Seasonal Plan/header text');
 });
