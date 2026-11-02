@@ -346,7 +346,7 @@ class NikeTechPackExtractor {
     normalizeProductCategory(value) {
         const text = String(value || '').toUpperCase();
         const found = ['GAME', 'LIMITED', 'ELITE'].filter(category =>
-            new RegExp('\\\\b' + category + '\\\\b').test(text)
+            new RegExp('\\b' + category + '\\b').test(text)
         );
         // Si la descripción contiene varias categorías, no adivinar.
         return found.length === 1 ? found[0] : '';
