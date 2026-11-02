@@ -344,24 +344,12 @@ class NikeTechPackExtractor {
     }
 
     normalizeProductCategory(value) {
-        let category = String(value || '')
-            .replace(/^(?:Product Description|Product Name|Marketing Name)\s*[:\-]?\s*/i, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-
-        // Quitar marcas/liga y contexto deportivo que no forman parte de la categoría.
-        category = category.replace(/^(?:(?:NFL|NIKE|JORDAN|NCAA)\s+)+/i, '');
-        category = category.replace(/^(?:COLLEGE\s+)?FOOTBALL\s+/i, '');
-        category = category.replace(/^A\/SS\s+/i, '');
-        // En el nombre plural de producto, "Jerseys" funciona como descriptor genérico;
-        // se conserva "Jersey" cuando forma parte de nombres como "Game Jersey".
-        category = category.replace(/\s+Jerseys$/i, '');
-        category = category.replace(/\s+/g, ' ').trim();
-
-        return category
-            .split(' ')
-            .map(word => word.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join('-'))
-            .join(' ');
+        const text = String(value || '').toUpperCase();
+        const found = ['GAME', 'LIMITED', 'ELITE'].filter(category =>
+            new RegExp('\\\\b' + category + '\\\\b').test(text)
+        );
+        // Si la descripción contiene varias categorías, no adivinar.
+        return found.length === 1 ? found[0] : '';
     }
 
     extractFabrics(text) {
