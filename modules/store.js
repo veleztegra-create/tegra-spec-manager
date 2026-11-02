@@ -9,6 +9,7 @@
         generalData: {
             customer: "",
             style: "",
+            category: "",
             season: "",
             colorway: "",
             po: "",
