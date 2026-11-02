@@ -7,6 +7,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
 let currentBook = null;
 let currentFileName = '';
 let visibleLimit = PAGE_SIZE;
+let currentSort = 'original';
 let initialized = false;
 
 function escapeHtml(value) {
@@ -90,8 +91,18 @@ function renderRows() {
     [color.name, color.rawName, color.code, color.hex, `${color.rgb.r},${color.rgb.g},${color.rgb.b}`]
       .some((value) => String(value).toLocaleLowerCase().includes(query))
   );
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  const sorted = [...filtered].sort((a, b) => {
+    let comparison = 0;
+    if (currentSort === 'name-asc') comparison = collator.compare(a.name, b.name);
+    else if (currentSort === 'name-desc') comparison = collator.compare(b.name, a.name);
+    else if (currentSort === 'code') comparison = collator.compare(a.code, b.code);
+    else if (currentSort === 'hex') comparison = collator.compare(a.hex, b.hex);
+    else comparison = a.index - b.index;
+    return comparison || a.index - b.index;
+  });
   const body = document.getElementById('acb-color-rows');
-  const shown = filtered.slice(0, visibleLimit);
+  const shown = sorted.slice(0, visibleLimit);
   body.innerHTML = shown.map((color) => {
     const types = duplicates.get(color.index);
     const review = types
@@ -116,8 +127,8 @@ function renderRows() {
   document.getElementById('acb-table-summary').textContent =
     query ? `Coincidencias: ${filtered.length} de ${currentBook.colorCount}` : `Colores del libro: ${currentBook.colorCount}`;
   document.getElementById('acb-page-info').textContent =
-    filtered.length ? `Mostrando ${shown.length} de ${filtered.length}` : 'No hay colores que coincidan con la búsqueda.';
-  document.getElementById('acb-show-more').hidden = shown.length >= filtered.length;
+    sorted.length ? `Mostrando ${shown.length} de ${sorted.length}` : 'No hay colores que coincidan con la búsqueda.';
+  document.getElementById('acb-show-more').hidden = shown.length >= sorted.length;
   document.getElementById('acb-show-more').textContent = `Mostrar siguientes ${PAGE_SIZE}`;
 }
 
@@ -235,6 +246,11 @@ function initAcbImporter() {
     handleFile(event.target.files?.[0]);
   });
   document.getElementById('acb-color-search').addEventListener('input', () => {
+    visibleLimit = PAGE_SIZE;
+    renderRows();
+  });
+  document.getElementById('acb-color-sort')?.addEventListener('change', (event) => {
+    currentSort = event.target.value || 'original';
     visibleLimit = PAGE_SIZE;
     renderRows();
   });
