@@ -411,23 +411,23 @@ function updateClientLogo() {
     const logoElement = document.getElementById('logoCliente');
     if (!logoElement) return;
 
-    let logoUrl = '';
-
+    const logos = window.LogoConfig || {};
     const gfsVariations = ['GEAR FOR SPORT', 'GEARFORSPORT', 'GFS', 'G.F.S.', 'G.F.S', 'GEAR', 'G-F-S'];
     const isGFS = gfsVariations.some(variation => customer.includes(variation));
 
+    let logoUrl = '';
     if (customer.includes('NIKE') || customer.includes('NIQUE')) {
-        logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Nike-Logotipo-PNG-Photo.png';
+        logoUrl = logos.NIKE || '';
     } else if (customer.includes('FANATICS') || customer.includes('FANATIC')) {
-        logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/Fanatics_company_logo.svg.png';
+        logoUrl = logos.FANATICS || '';
     } else if (customer.includes('ADIDAS')) {
-        logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/tegra-spec-manager/refs/heads/cLabelformulas/logos/ncaa.png';
+        logoUrl = logos.ADIDAS || '';
     } else if (customer.includes('NCAA')) {
-        logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Puma_Logo.svg/1280px-Puma_Logo.svg.png';
-    } else if (customer.includes('UNDER ARMOUR') || customer.includes('UA')) {
-        logoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Under_armour_logo.svg/1280px-Under_armour_logo.svg.png';
+        logoUrl = logos.NCAA || '';
+    } else if (customer.includes('UNDER ARMOUR') || customer.includes('UNDER_ARMOUR') || customer === 'UA') {
+        logoUrl = logos.UNDER_ARMOUR || '';
     } else if (isGFS) {
-        logoUrl = 'https://raw.githubusercontent.com/veleztegra-create/costos/refs/heads/main/SVG.png';
+        logoUrl = logos.GEAR_FOR_SPORT || '';
     }
 
     if (logoUrl) {
