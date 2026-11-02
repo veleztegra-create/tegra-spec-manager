@@ -106,7 +106,7 @@
         return partes.join(' ');
     }
 
-    function poblarFormularioConPDF(datosPDF) {
+    function poblarFormularioConPDF(datosPDF, techPackFileName = '') {
         if (!datosPDF) {
             showStatus('❌ No hay datos para poblar', 'error');
             return;
@@ -130,6 +130,15 @@
             const current = document.getElementById(inputId)?.value || '';
             if (!current && value) setInputValue(inputId, value);
             return { action: current ? 'protected' : 'filled', value: current || value };
+        }
+
+        // El nombre del PDF seleccionado forma parte de los Customer Resources de la Spec.
+        // Disparar input/change mantiene Store.generalData sincronizado con el campo readonly.
+        const techPackNameInput = document.getElementById('customer-techpack-name');
+        if (techPackNameInput && techPackFileName) {
+            techPackNameInput.value = techPackFileName;
+            techPackNameInput.dispatchEvent(new Event('input', { bubbles: true }));
+            techPackNameInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
         // 1. INFORMACIÓN GENERAL
@@ -298,7 +307,7 @@
                 const datosPDF = await extractor.procesarPDF(file);
                 
                 console.log('📊 Datos extraídos:', datosPDF);
-                poblarFormularioConPDF(datosPDF);
+                poblarFormularioConPDF(datosPDF, file.name);
 
             } catch (error) {
                 console.error('❌ Error:', error);
