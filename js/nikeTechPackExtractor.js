@@ -325,7 +325,9 @@ class NikeTechPackExtractor {
 
         for (const candidate of candidates) {
             const category = this.normalizeProductCategory(candidate);
-            if (category && garmentPattern.test(category)) return category;
+            // La categoría puede omitir el sustantivo plural "Jerseys", pero
+            // la descripción original debe contener un tipo de prenda reconocible.
+            if (category && garmentPattern.test(candidate)) return category;
         }
 
         return '';
