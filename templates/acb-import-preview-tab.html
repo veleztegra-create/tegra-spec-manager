@@ -35,7 +35,15 @@
         <div class="acb-import-controls" style="margin-top:14px">
           <label for="acb-color-search">Buscar por nombre, código o HEX</label>
           <input id="acb-color-search" class="form-control" type="search" placeholder="Ej. University Gold o C00047">
-          <button id="acb-clear-search" class="btn" type="button">Limpiar</button>
+          <label for="acb-color-sort">Ordenar por</label>
+          <select id="acb-color-sort" class="form-control" aria-label="Ordenar colores">
+            <option value="original">Orden original del ACB</option>
+            <option value="name-asc">Nombre A–Z</option>
+            <option value="name-desc">Nombre Z–A</option>
+            <option value="code">Código</option>
+            <option value="hex">HEX</option>
+          </select>
+          <button id="acb-clear-search" class="btn" type="button">Limpiar búsqueda</button>
         </div>
         <p id="acb-table-summary" class="acb-import-muted" style="margin:12px 0 8px"></p>
         <div class="acb-import-table-wrap">
