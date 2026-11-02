@@ -11,7 +11,12 @@ const formatReminderDate = value => {
 };
 const formatModificationDate = value => formatReminderDate(value);
 const img = v => /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(String(v||'')) ? v : '';
-const logo = (v, cls, alt) => img(v) ? '<img class="'+cls+'" src="'+esc(img(v))+'" alt="'+esc(alt)+'">' : '';
+const logoSource = v => {
+ const raw=String(v||'').trim();
+ if(img(raw)) return raw;
+ return /^https:\/\/[^\s"'<>]+$/i.test(raw) ? raw : '';
+};
+const logo = (v, cls, alt) => logoSource(v) ? '<img class="'+cls+'" src="'+esc(logoSource(v))+'" alt="'+esc(alt)+'">' : '';
 const hex = c => c?.hex || window.ColorConfig?.findColorHex?.(c?.val || c?.name) || '#bdbdbd';
 const placementLabel = (p, i) => {
  const type = String(p.type || '').trim();
@@ -24,7 +29,15 @@ const placementLabel = (p, i) => {
 };
 function render(data={}) {
  const ps=Array.isArray(data.placements)&&data.placements.length?data.placements:[{}], logos=window.LogoConfig||{};
- const key=String(data.customer||'').toUpperCase().replace(/&/g,'AND').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+ const customerName=String(data.customer||'').trim().toUpperCase();
+ const key=customerName.replace(/&/g,'AND').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+ const clientLogoKey=logos[key]?key:
+  /NIKE|NIQUE/.test(customerName)?'NIKE':
+  /FANATIC/.test(customerName)?'FANATICS':
+  /ADIDAS/.test(customerName)?'ADIDAS':
+  /UNDER\\s*ARMOUR|UNDER_ARMOUR/.test(customerName)?'UNDER_ARMOUR':
+  /NCAA/.test(customerName)?'NCAA':
+  /GEAR\\s*FOR\\s*SPORT|GEARFORSPORT|(^|[^A-Z0-9])G\\.?F\\.?S\\.?([^A-Z0-9]|$)/.test(customerName)?'GEAR_FOR_SPORT':key;
  const metadata=[['s2 r1','Name / Team / Nombre / Equipo',data.nameTeam],['r1','# Style / Estilo',data.style],['r1','C. Date / Fecha de creación',data.specDate],['s2 r2','Sample Type',data.sampleType],['r2','Category / Categoría',data.category],['r2','Gender / Género',data.gender],['r3','Colorway / Color de tela',data.colorway],['r3','Season / Temporada',data.season],['r3','Artist',data.designerOtherName||data.designer],['r3','Technician',data.technicianName],].map(([cl,l,v])=>'<div class="'+cl+'"><div class="lbl">'+esc(l)+'</div><b>'+esc(val(v,''))+'</b>'+(l.startsWith('Colorway')&&data.colorwayHex?'<span class="sw" style="background:'+esc(data.colorwayHex)+'"></span>':'')+'</div>').join('');
  const blocks=ps.map((p,i)=>{
   const colors=(Array.isArray(p.printColors)?p.printColors:[]).filter(c=>['COLOR','METALLIC'].includes(String(c.type||'COLOR').toUpperCase()));
@@ -88,7 +101,7 @@ function render(data={}) {
  const comments=[data.technicalComments,data.specialInstructions].filter(Boolean);
  const legacyPieces=Array.isArray(data.patternPieces)?data.patternPieces:[];
  const legacyPiecesHtml=legacyPieces.length?'<section class="legacy-pattern-pieces"><b>Unassigned legacy pattern pieces / Piezas heredadas sin placement</b>'+legacyPieces.map(x=>{const q=typeof x==='string'?{pieceName:x}:x;return '<div>'+esc(q.pieceName||q.name||q.label||'')+(q.shrinkage?' — '+esc(q.shrinkage):'')+'</div>';}).join('')+'</section>':'';
- const headerHtml='<header class="hdr">'+logo(logos.TEGRA,'tegra','TEGRA')+'<span class="vsep"></span><div class="cust"><b>'+esc(val(data.customer,'CUSTOMER'))+'</b> / CLIENTE</div>'+logo(logos[key],'fan',data.customer)+'<div class="title"><h1>TECHNICAL SPEC</h1><div class="es">ESPECIFICACIÓN TÉCNICA</div><div class="en">Print Sequence / Secuencia de Impresión</div></div><div class="folder"><div class="l"># Folder</div><div class="num">'+esc(val(data.folder,'00000'))+'</div></div><div class="upd"><div class="l">Modification Date / Fecha de modificación</div><b>'+esc(val(formatModificationDate(data.modificationDate||data.lastModified),''))+'</b></div></header>';
+ const headerHtml='<header class="hdr">'+logo(logos.TEGRA,'tegra','TEGRA')+'<span class="vsep"></span><div class="cust"><b>'+esc(val(data.customer,'CUSTOMER'))+'</b> / CLIENTE</div>'+logo(logos[clientLogoKey],'fan',data.customer)+'<div class="title"><h1>TECHNICAL SPEC</h1><div class="es">ESPECIFICACIÓN TÉCNICA</div><div class="en">Print Sequence / Secuencia de Impresión</div></div><div class="folder"><div class="l"># Folder</div><div class="num">'+esc(val(data.folder,'00000'))+'</div></div><div class="upd"><div class="l">Modification Date / Fecha de modificación</div><b>'+esc(val(formatModificationDate(data.modificationDate||data.lastModified),''))+'</b></div></header>';
  const commentsHtml='<div class="bar cm">Comments / Comentarios</div><div class="notes"><ol>'+comments.map((c,i)=>'<li>'+(i+1)+'. '+esc(c)+'</li>').join('')+'</ol></div>';
  const footerHtml='<footer class="foot"><span>Tegra Spec Manager · '+esc(val(data.style,''))+' · '+esc(val(data.folder,''))+'</span><span>Version: '+esc(val(data.styleVersion?.number,''))+' · Stage: '+esc(val(data.styleVersion?.stage?.sampleType,''))+'</span></footer>';
  const sheets=ps.map((p,i)=>'<main class="sheet placement-sheet">'+headerHtml+'<div class="meta">'+metadata+'</div><div class="bar pl"><span>Placement / Ubicación</span><span class="pn">'+esc(placementLabel(p,i))+'</span><span class="type">'+specTypeLabel+'<span>'+specTypeDescription+'</span></span></div>'+blocks[i]+(i===0?legacyPiecesHtml:'')+sequenceHtml[i]+productionHtml[i]+commentsHtml+footerHtml+'</main>').join('');
