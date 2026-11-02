@@ -302,35 +302,45 @@ class NikeTechPackExtractor {
     }
 
     extractProductCategory(firstPageText) {
-        const lines = String(firstPageText || '')
+        const source = String(firstPageText || '');
+        const lines = source
             .split(/\r?\n/)
             .map(line => line.replace(/\s+/g, ' ').trim())
             .filter(Boolean);
 
-        const garmentPattern = /\b(?:jerseys?|crop\s+tops?|tops?|tees?|t-?shirts?|hoodies?|sweatshirts?|pants?|shorts?|jackets?|vests?|polos?)\b/i;
-        const labelPattern = /^(?:Product Description|Product Name|Marketing Name)\s*[:\-]?\s*(.*)$/i;
-        const candidates = [];
+        // La Category se obtiene exclusivamente del campo Description::
+        // Seasonal Plan, Product Status y otros campos de cabecera no son fuentes.
+        const descriptionPattern = /\bDescription\s*::?\s*/i;
+        let description = '';
 
         for (let i = 0; i < lines.length; i++) {
-            const labelMatch = lines[i].match(labelPattern);
-            if (labelMatch) {
-                const labeledValue = labelMatch[1] || lines[i + 1] || '';
-                if (labeledValue) candidates.push(labeledValue);
+            const match = lines[i].match(descriptionPattern);
+            if (!match) continue;
+
+            description = lines[i].slice(match.index + match[0].length).trim();
+            if (!description && lines[i + 1]) {
+                description = lines[i + 1].trim();
             }
-
-            const combined = [lines[i], lines[i + 1] || ''].join(' ').trim();
-            if (garmentPattern.test(lines[i])) candidates.push(lines[i]);
-            else if (garmentPattern.test(combined)) candidates.push(combined);
+            break;
         }
 
-        for (const candidate of candidates) {
-            const category = this.normalizeProductCategory(candidate);
-            // La categoría puede omitir el sustantivo plural "Jerseys", pero
-            // la descripción original debe contener un tipo de prenda reconocible.
-            if (category && garmentPattern.test(candidate)) return category;
+        if (!description) {
+            const inlineMatch = source.match(/\bDescription\s*::?\s*([^\r\n]+)/i);
+            if (inlineMatch) description = inlineMatch[1].trim();
         }
 
-        return '';
+        if (!description) return '';
+
+        // Si el PDF concatena varios campos en la misma línea, cortar al
+        // siguiente campo reconocible antes de normalizar la descripción.
+        description = description
+            .replace(/\s+(?:Seasonal Plan|Product Status|PID\s*#|Style\s*#)\b.*$/i, '')
+            .trim();
+
+        const garmentPattern = /\b(?:jerseys?|crop\s+tops?|tops?|tees?|t-?shirts?|hoodies?|sweatshirts?|pants?|shorts?|jackets?|vests?|polos?)\b/i;
+        if (!garmentPattern.test(description)) return '';
+
+        return this.normalizeProductCategory(description);
     }
 
     normalizeProductCategory(value) {
