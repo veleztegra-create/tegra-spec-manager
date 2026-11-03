@@ -1819,3 +1819,32 @@ textarea.form-control:focus {
 .special-effects-modal-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border-dark)}
 .special-effect-formula{display:block;flex-basis:100%;margin:0 0 4px 76px;color:var(--text-secondary);font-size:.72rem;line-height:1.35}
 @media(max-width:600px){.special-effects-modal-overlay{padding:10px}.special-effects-modal{padding:16px}.special-effects-modal-footer{align-items:flex-start;flex-direction:column}}
+
+
+/* ACB library manager: compact actions, family filters and safe color editing */
+.acb-import-controls .acb-archive-toggle { display:inline-flex; align-items:center; gap:7px; color:var(--text-secondary); font-size:.82rem; }
+.acb-archive-toggle input { accent-color:var(--primary-red-dark,#d32f2f); }
+#acb-merge-colors { white-space:nowrap; }
+.acb-import-table th:first-child,.acb-import-table td:first-child { width:42px; text-align:center; }
+.acb-import-table input[type="checkbox"] { accent-color:var(--primary-red-dark,#d32f2f); width:16px; height:16px; }
+.acb-color-actions { display:flex; gap:5px; white-space:nowrap; }
+.acb-color-actions .btn,.acb-import-table .btn { padding:5px 8px; font-size:.72rem; }
+.acb-import-table .acb-delete-color { background:#8f2020; border-color:#b94a4a; }
+.acb-import-table .acb-edit-color { background:#3d5268; }
+.acb-archived-row { opacity:.68; background:rgba(128,128,128,.08); }
+.acb-import-table .acb-archived-row .acb-import-swatch { opacity:.55; }
+.acb-color-editor[hidden] { display:none !important; }
+.acb-color-editor { position:fixed; inset:0; z-index:10060; display:flex; align-items:center; justify-content:center; padding:18px; background:rgba(0,0,0,.68); }
+.acb-color-editor-card { display:grid; gap:10px; width:min(460px,100%); padding:22px; border:1px solid var(--border-dark); border-radius:12px; background:var(--bg-card,var(--surface)); box-shadow:var(--shadow-lg); }
+.acb-color-editor-card h3 { margin:0; }
+.acb-color-editor-card label { margin-top:4px; font-size:.82rem; font-weight:700; }
+.acb-color-editor-card .form-control { width:100%; }
+.acb-edit-hex-row { display:flex; align-items:center; gap:10px; }
+.acb-edit-hex-row .form-control { flex:1; }
+.acb-edit-hex-row .acb-import-swatch { display:block; width:42px; height:42px; flex:0 0 42px; border-radius:7px; }
+.acb-color-editor-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
+@media(max-width:760px) {
+  .acb-color-actions { flex-direction:column; }
+  .acb-import-table { min-width:920px; }
+  .acb-import-controls .acb-archive-toggle { width:100%; }
+}
