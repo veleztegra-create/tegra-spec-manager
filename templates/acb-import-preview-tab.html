@@ -53,10 +53,17 @@
           </select>
           <button id="acb-clear-search" class="btn" type="button">Limpiar búsqueda</button>
           <button id="acb-merge-colors" class="btn btn-primary" type="button" disabled>Combinar 2 seleccionados</button>
+          <div class="acb-view-switch" role="group" aria-label="Vista de colores">
+            <button id="acb-view-grid" class="btn active" type="button">Cuadrícula</button>
+            <button id="acb-view-list" class="btn" type="button">Lista</button>
+          </div>
           <label class="acb-archive-toggle"><input id="acb-show-archived" type="checkbox"> Mostrar eliminados (<span id="acb-archived-count">0</span>)</label>
         </div>
         <p id="acb-table-summary" class="acb-import-muted" style="margin:12px 0 8px"></p>
-        <div class="acb-import-table-wrap">
+        <div id="acb-color-grid-view" class="acb-color-grid-view">
+          <div id="acb-color-grid" class="acb-color-grid"></div>
+        </div>
+        <div id="acb-color-table-view" class="acb-import-table-wrap" hidden>
           <table class="acb-import-table">
             <thead><tr><th>Sel.</th><th>#</th><th>Muestra</th><th>Nombre</th><th>Código</th><th>RGB</th><th>HEX</th><th>Revisión</th><th>Acciones</th></tr></thead>
             <tbody id="acb-color-rows"></tbody>
