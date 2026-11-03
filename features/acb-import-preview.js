@@ -210,6 +210,8 @@ function openColorEditor(index) {
   document.getElementById('acb-edit-name').value = color.name || '';
   document.getElementById('acb-edit-hex').value = color.hex || '#000000';
   document.getElementById('acb-edit-swatch').style.background = color.hex || '#000000';
+  const restoreButton = document.getElementById('acb-edit-restore');
+  if (restoreButton) restoreButton.hidden = !color.sourceSnapshot;
   document.getElementById('acb-color-editor').hidden = false;
   document.getElementById('acb-edit-name').focus();
 }
@@ -226,6 +228,8 @@ function saveColorEditor() {
   const hex = document.getElementById('acb-edit-hex').value.trim().toUpperCase();
   if (!name) return setMessage('El nombre del color no puede quedar vacío.', 'error');
   if (!/^#[0-9A-F]{6}$/.test(hex)) return setMessage('Introduce un HEX válido, por ejemplo #ECA521.', 'error');
+  const sameHex = currentBook.colors.find((item) => item.index !== color.index && item.hex.toUpperCase() === hex);
+  if (sameHex) return setMessage(`Ese HEX ya pertenece a "${sameHex.name}" (${sameHex.code}). Combina los registros en lugar de crear otro duplicado.`, 'warning');
   if (!color.sourceSnapshot) color.sourceSnapshot = { name: color.name, hex: color.hex, rgb: { ...color.rgb }, code: color.code, rawName: color.rawName };
   color.name = name;
   color.hex = hex;
@@ -236,6 +240,22 @@ function saveColorEditor() {
   setMessage('Color actualizado. El nombre original y el código ACB se conservaron como referencia.', 'success');
   renderRows();
   refreshLibraryControls();
+}
+
+function restoreColorOriginal() {
+  const color = currentBook?.colors.find((item) => item.index === editingColorIndex);
+  if (!color?.sourceSnapshot) return;
+  const original = color.sourceSnapshot;
+  color.name = original.name;
+  color.hex = original.hex;
+  color.rgb = { ...original.rgb };
+  color.code = original.code;
+  color.rawName = original.rawName;
+  delete color.sourceSnapshot;
+  if (!persistCurrentBook()) return;
+  closeColorEditor();
+  setMessage('Se restauraron los valores originales del ACB.', 'success');
+  renderRows();
 }
 
 function archiveColor(index, reason) {
@@ -402,6 +422,7 @@ function initAcbImporter() {
   document.getElementById('acb-merge-colors')?.addEventListener('click', mergeSelectedColors);
   document.getElementById('acb-edit-cancel')?.addEventListener('click', closeColorEditor);
   document.getElementById('acb-edit-save')?.addEventListener('click', saveColorEditor);
+  document.getElementById('acb-edit-restore')?.addEventListener('click', restoreColorOriginal);
   document.getElementById('acb-color-editor')?.addEventListener('click', (event) => {
     if (event.target.id === 'acb-color-editor') closeColorEditor();
   });
