@@ -291,7 +291,7 @@ function renderRows() {
     sorted.length ? `Mostrando ${shown.length} de ${sorted.length}` : 'No hay colores que coincidan con la búsqueda.';
   document.getElementById('acb-show-more').hidden = shown.length >= sorted.length;
   document.getElementById('acb-show-more').textContent = `Mostrar siguientes ${PAGE_SIZE}`;
-remove fragile listeners
+
 }
 
 function openColorEditor(index) {
