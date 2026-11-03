@@ -65,6 +65,24 @@
   function activePalette() {
     return state.palettes.find((palette) => palette.id === state.activePaletteId) || null;
   }
+  async function persistAndSyncPalette(palette) {
+    await persist();
+    if (!palette || typeof window.syncPaletteColorsToAcb !== 'function') return;
+    const result = window.syncPaletteColorsToAcb(
+      palette.colors.map(color => ({ ...color, sourcePalette: palette.name })),
+      palette.name
+    );
+    if (!result?.ok && result.reason === 'no-active-acb') {
+      setStatus('Paleta guardada. Para sincronizar sus colores, carga primero una biblioteca ACB en la pestaña Biblioteca ACB.', 'warning');
+    } else if (!result?.ok) {
+      setStatus('Paleta guardada, pero no se pudieron incorporar colores a ACB (' + result.reason + ').', 'warning');
+    } else if (result.added > 0) {
+      setStatus('Paleta guardada y ' + result.added + ' color(es) nuevo(s) incorporado(s) a la Biblioteca ACB.');
+    } else if (result.declined) {
+      setStatus('Paleta guardada. No se modificó la Biblioteca ACB.');
+    }
+  }
+
   function getSerigraphyAdvice(r, g, b) {
     const thresholdInput = $('#gfsextr-threshold');
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
@@ -217,7 +235,15 @@
       if (!incoming.length) throw new Error('El respaldo no contiene paletas.');
       state.palettes.push(...incoming);
       state.activePaletteId = incoming[0].id;
-      await persist(); renderAll();
+      await persist();
+      if (typeof window.syncPaletteColorsToAcb === 'function') {
+        const mergedColors = incoming.flatMap(palette => palette.colors.map(color => ({ ...color, sourcePalette: palette.name })));
+        const result = window.syncPaletteColorsToAcb(mergedColors, incoming.length === 1 ? incoming[0].name : 'paletas importadas');
+        if (!result?.ok && result.reason === 'no-active-acb') setStatus('JSON importado. Carga una biblioteca ACB para sincronizar los colores.', 'warning');
+        else if (result?.added > 0) setStatus('JSON importado: ' + result.added + ' colores nuevos agregados a ACB.');
+        else if (result?.declined) setStatus('JSON importado. No se modificó la Biblioteca ACB.');
+      }
+      renderAll();
       setStatus('Importación completada: ' + incoming.length + (incoming.length === 1 ? ' paleta.' : ' paletas.'));
     } catch (error) {
       setStatus('No se pudo importar el JSON: ' + error.message, 'error');
@@ -311,7 +337,7 @@
       }
       palette.colors.push({ id: uid('color_'), hex: pendingColor.hex, colorName: name, underbase: pendingColor.underbase });
       pendingColor = null;
-      await persist(); renderAll();
+      await persistAndSyncPalette(palette); renderAll();
       setStatus('Color guardado en "' + palette.name + '". Puedes corregir el nombre o el indicador de base desde la lista.');
     } catch (error) {
       console.error(error); setStatus('No se pudo reconocer el texto: ' + error.message, 'error');
