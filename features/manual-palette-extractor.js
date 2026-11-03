@@ -193,7 +193,8 @@
       const hex = normalizeHex(color.hex);
       if (!hex || seen.has(hex)) return result;
       seen.add(hex);
-      result.push({ id: uid('color_'), hex, colorName: String(color.colorName || 'Sin nombre'), underbase: Boolean(color.underbase) });
+      const importedName = color.colorName || color.name || color.rawName || color.code || '';
+      result.push({ id: uid('color_'), hex, colorName: String(importedName).trim() || 'Sin nombre', underbase: Boolean(color.underbase) });
       return result;
     }, []);
   }
