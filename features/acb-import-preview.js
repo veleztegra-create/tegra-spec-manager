@@ -9,6 +9,7 @@ let currentFileName = '';
 let visibleLimit = PAGE_SIZE;
 let currentSort = 'original';
 let currentFamily = 'all';
+let currentView = 'grid';
 let selectedColorIndexes = [];
 let editingColorIndex = null;
 let initialized = false;
@@ -182,6 +183,43 @@ function renderRows() {
       </tr>`;
     }).join('');
   }
+  const grid = document.getElementById('acb-color-grid');
+  if (grid) {
+    grid.innerHTML = shown.map((color) => {
+      const types = duplicates.get(color.index);
+      const review = types ? `<span class="acb-import-badge duplicate">Revisar: ${escapeHtml([...types].join(', '))}</span>` : '';
+      const checked = selectedColorIndexes.includes(color.index) ? 'checked' : '';
+      return `<article class="acb-color-card">
+        <div class="acb-color-card-swatch" style="background:${color.hex}"></div>
+        <div class="acb-color-card-body">
+          <label class="acb-color-card-select"><input type="checkbox" class="acb-color-select" data-color-index="${color.index}" ${checked}> Seleccionar</label>
+          <strong>${escapeHtml(color.name)}</strong>
+          <small>${escapeHtml(color.code)} · ${escapeHtml(color.hex)}</small>
+          ${review}
+          <div class="acb-color-card-actions">
+            <button type="button" class="btn btn-sm acb-edit-color" data-color-index="${color.index}">Editar</button>
+            <button type="button" class="btn btn-sm acb-delete-color" data-color-index="${color.index}">Eliminar</button>
+          </div>
+        </div>
+      </article>`;
+    }).join('');
+    if (document.getElementById('acb-show-archived')?.checked) {
+      grid.innerHTML += archived.map((entry, index) => `<article class="acb-color-card acb-archived-card">
+        <div class="acb-color-card-swatch" style="background:${entry.color.hex}"></div>
+        <div class="acb-color-card-body"><strong>${escapeHtml(entry.color.name)}</strong>
+        <small>Archivado · ${escapeHtml(entry.reason || '')}</small>
+        <button type="button" class="btn btn-sm acb-restore-color" data-archive-index="${index}">Restaurar</button></div>
+      </article>`).join('');
+    }
+  }
+  const gridView = document.getElementById('acb-color-grid-view');
+  const tableView = document.getElementById('acb-color-table-view');
+  if (gridView && tableView) {
+    gridView.hidden = currentView !== 'grid';
+    tableView.hidden = currentView !== 'list';
+    document.getElementById('acb-view-grid')?.classList.toggle('active', currentView === 'grid');
+    document.getElementById('acb-view-list')?.classList.toggle('active', currentView === 'list');
+  }
   const mergeButton = document.getElementById('acb-merge-colors');
   if (mergeButton) mergeButton.disabled = selectedColorIndexes.length !== 2;
   const archiveLabel = document.getElementById('acb-archived-count');
@@ -206,6 +244,15 @@ function renderRows() {
   body.querySelectorAll('.acb-edit-color').forEach((button) => button.addEventListener('click', () => openColorEditor(Number(button.dataset.colorIndex))));
   body.querySelectorAll('.acb-delete-color').forEach((button) => button.addEventListener('click', () => archiveColor(Number(button.dataset.colorIndex), 'eliminación manual')));
   body.querySelectorAll('.acb-restore-color').forEach((button) => button.addEventListener('click', () => restoreArchivedColor(Number(button.dataset.archiveIndex))));
+  const grid = document.getElementById('acb-color-grid');
+  grid?.querySelectorAll('.acb-color-select').forEach((input) => input.addEventListener('change', () => {
+    const index = Number(input.dataset.colorIndex);
+    selectedColorIndexes = input.checked ? [...selectedColorIndexes, index].slice(-2) : selectedColorIndexes.filter((value) => value !== index);
+    renderRows();
+  }));
+  grid?.querySelectorAll('.acb-edit-color').forEach((button) => button.addEventListener('click', () => openColorEditor(Number(button.dataset.colorIndex))));
+  grid?.querySelectorAll('.acb-delete-color').forEach((button) => button.addEventListener('click', () => archiveColor(Number(button.dataset.colorIndex), 'eliminación manual')));
+  grid?.querySelectorAll('.acb-restore-color').forEach((button) => button.addEventListener('click', () => restoreArchivedColor(Number(button.dataset.archiveIndex))));
 }
 
 function openColorEditor(index) {
@@ -418,6 +465,8 @@ function initAcbImporter() {
   document.getElementById('acb-file-input').addEventListener('change', (event) => {
     handleFile(event.target.files?.[0]);
   });
+  document.getElementById('acb-view-grid')?.addEventListener('click', () => { currentView = 'grid'; renderRows(); });
+  document.getElementById('acb-view-list')?.addEventListener('click', () => { currentView = 'list'; renderRows(); });
   document.getElementById('acb-color-family')?.addEventListener('change', (event) => {
     currentFamily = event.target.value || 'all';
     visibleLimit = PAGE_SIZE;
