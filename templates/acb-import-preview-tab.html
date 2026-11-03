@@ -35,6 +35,14 @@
         <div class="acb-import-controls" style="margin-top:14px">
           <label for="acb-color-search">Buscar por nombre, código o HEX</label>
           <input id="acb-color-search" class="form-control" type="search" placeholder="Ej. University Gold o C00047">
+          <label for="acb-color-family">Familia</label>
+          <select id="acb-color-family" class="form-control" aria-label="Filtrar por familia cromática">
+            <option value="all">Todas las familias</option><option value="neutrals">Neutrales</option>
+            <option value="reds">Rojos</option><option value="oranges">Naranjas</option>
+            <option value="yellows">Amarillos</option><option value="greens">Verdes</option>
+            <option value="cyans">Cianes</option><option value="blues">Azules</option>
+            <option value="purples">Violetas</option><option value="pinks">Rosas</option>
+          </select>
           <label for="acb-color-sort">Ordenar por</label>
           <select id="acb-color-sort" class="form-control" aria-label="Ordenar colores">
             <option value="original">Orden original del ACB</option>
@@ -44,11 +52,13 @@
             <option value="hex">HEX</option>
           </select>
           <button id="acb-clear-search" class="btn" type="button">Limpiar búsqueda</button>
+          <button id="acb-merge-colors" class="btn btn-primary" type="button" disabled>Combinar 2 seleccionados</button>
+          <label class="acb-archive-toggle"><input id="acb-show-archived" type="checkbox"> Mostrar eliminados (<span id="acb-archived-count">0</span>)</label>
         </div>
         <p id="acb-table-summary" class="acb-import-muted" style="margin:12px 0 8px"></p>
         <div class="acb-import-table-wrap">
           <table class="acb-import-table">
-            <thead><tr><th>#</th><th>Muestra</th><th>Nombre</th><th>Código</th><th>RGB</th><th>HEX</th><th>Revisión</th></tr></thead>
+            <thead><tr><th>Sel.</th><th>#</th><th>Muestra</th><th>Nombre</th><th>Código</th><th>RGB</th><th>HEX</th><th>Revisión</th><th>Acciones</th></tr></thead>
             <tbody id="acb-color-rows"></tbody>
           </table>
         </div>
@@ -57,6 +67,20 @@
           <button id="acb-show-more" class="btn" type="button" hidden>Mostrar siguientes</button>
         </div>
       </div>
+    </div>
+    <div id="acb-color-editor" class="acb-color-editor" hidden>
+      <section class="acb-color-editor-card" role="dialog" aria-modal="true" aria-labelledby="acb-edit-title">
+        <h3 id="acb-edit-title">Editar color de biblioteca</h3>
+        <p class="acb-import-muted">Corrige el nombre o el HEX. El código ACB y el nombre original se conservan como referencia.</p>
+        <label for="acb-edit-name">Nombre visible</label>
+        <input id="acb-edit-name" class="form-control" type="text" maxlength="120">
+        <label for="acb-edit-hex">HEX</label>
+        <div class="acb-edit-hex-row"><span id="acb-edit-swatch" class="acb-import-swatch"></span><input id="acb-edit-hex" class="form-control" type="text" maxlength="7" placeholder="#ECA521"></div>
+        <div class="acb-color-editor-actions">
+          <button id="acb-edit-cancel" class="btn" type="button">Cancelar</button>
+          <button id="acb-edit-save" class="btn btn-primary" type="button">Guardar cambios</button>
+        </div>
+      </section>
     </div>
     <div class="acb-import-message warning">
       <strong>Importante:</strong> el ACB no define por sí solo tipo de tinta, blocker, base blanca, malla ni curado. Esos datos no se deducen del tono y no se asignarán en esta vista previa.
