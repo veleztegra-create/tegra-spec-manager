@@ -37,10 +37,11 @@
           <input id="acb-color-search" class="form-control" type="search" placeholder="Ej. University Gold o C00047">
           <label for="acb-color-family">Familia</label>
           <select id="acb-color-family" class="form-control" aria-label="Filtrar por familia cromática">
-            <option value="all">Todas las familias</option><option value="neutrals">Neutrales</option>
+            <option value="all">Todas las familias</option><option value="whites">Blancos</option>
+            <option value="blacks">Negros</option><option value="grays">Grises</option>
             <option value="reds">Rojos</option><option value="oranges">Naranjas</option>
             <option value="yellows">Amarillos</option><option value="greens">Verdes</option>
-            <option value="cyans">Cianes</option><option value="blues">Azules</option>
+            <option value="cyans">Turquesas</option><option value="blues">Azules</option>
             <option value="purples">Violetas</option><option value="pinks">Rosas</option>
           </select>
           <label for="acb-color-sort">Ordenar por</label>
@@ -56,12 +57,16 @@
           <div class="acb-view-switch" role="group" aria-label="Vista de colores">
             <button id="acb-view-grid" class="btn active" type="button">Cuadrícula</button>
             <button id="acb-view-list" class="btn" type="button">Lista</button>
+            <button id="acb-view-grouped" class="btn" type="button">Agrupar</button>
           </div>
           <label class="acb-archive-toggle"><input id="acb-show-archived" type="checkbox"> Mostrar eliminados (<span id="acb-archived-count">0</span>)</label>
         </div>
         <p id="acb-table-summary" class="acb-import-muted" style="margin:12px 0 8px"></p>
         <div id="acb-color-grid-view" class="acb-color-grid-view">
           <div id="acb-color-grid" class="acb-color-grid"></div>
+        </div>
+        <div id="acb-color-grouped-view" class="acb-color-grouped-view" hidden>
+          <div id="acb-color-groups" class="acb-color-groups"></div>
         </div>
         <div id="acb-color-table-view" class="acb-import-table-wrap" hidden>
           <table class="acb-import-table">
