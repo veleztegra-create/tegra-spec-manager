@@ -114,7 +114,12 @@ function persistCurrentBook() {
   renumberBookColors();
   const result = saveAcbLibrary(window.localStorage, currentBook, currentFileName);
   if (!result.ok) {
-    setMessage('No se pudo guardar el cambio en la biblioteca. ' + result.reason, 'error');
+    const saved = loadAcbLibrary(window.localStorage);
+    if (saved?.book) {
+      currentBook = saved.book;
+      currentFileName = saved.sourceFile || currentFileName;
+    }
+    setMessage('No se pudo guardar el cambio en la biblioteca. ' + result.reason + '. Se restauró la versión guardada.', 'error');
     return false;
   }
   return true;
