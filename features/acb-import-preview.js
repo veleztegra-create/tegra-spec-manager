@@ -10,6 +10,7 @@ let visibleLimit = PAGE_SIZE;
 let currentSort = 'original';
 let currentFamily = 'all';
 let currentView = 'grid';
+let groupedExpanded = new Set();
 let selectedColorIndexes = [];
 let editingColorIndex = null;
 let initialized = false;
@@ -90,21 +91,30 @@ function findDuplicates(colors) {
 function getColorFamily(color) {
   const { r = 0, g = 0, b = 0 } = color.rgb || {};
   const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
-  if (delta < 22) return 'neutrals';
+  if (min >= 224 && delta <= 34) return 'whites';
+  if (max <= 42) return 'blacks';
+  if (delta <= 25) return 'grays';
   let hue = 0;
   if (max === r) hue = ((g - b) / delta) % 6;
   else if (max === g) hue = (b - r) / delta + 2;
   else hue = (r - g) / delta + 4;
   hue = (hue * 60 + 360) % 360;
   if (hue < 15 || hue >= 345) return 'reds';
-  if (hue < 45) return 'oranges';
-  if (hue < 70) return 'yellows';
+  if (hue < 42) return 'oranges';
+  if (hue < 68) return 'yellows';
   if (hue < 165) return 'greens';
   if (hue < 195) return 'cyans';
   if (hue < 255) return 'blues';
   if (hue < 290) return 'purples';
   return 'pinks';
 }
+
+const COLOR_FAMILIES = [
+  ['whites', 'Blancos'], ['blacks', 'Negros'], ['grays', 'Grises'],
+  ['reds', 'Rojos'], ['oranges', 'Naranjas'], ['yellows', 'Amarillos'],
+  ['greens', 'Verdes'], ['cyans', 'Turquesas'], ['blues', 'Azules'],
+  ['purples', 'Violetas'], ['pinks', 'Rosas']
+];
 
 function renumberBookColors() {
   currentBook.colors.forEach((color, index) => { color.index = index; });
@@ -214,11 +224,56 @@ function renderRows() {
   }
   const gridView = document.getElementById('acb-color-grid-view');
   const tableView = document.getElementById('acb-color-table-view');
-  if (gridView && tableView) {
+  const groupedView = document.getElementById('acb-color-grouped-view');
+  if (gridView && tableView && groupedView) {
     gridView.hidden = currentView !== 'grid';
     tableView.hidden = currentView !== 'list';
+    groupedView.hidden = currentView !== 'grouped';
     document.getElementById('acb-view-grid')?.classList.toggle('active', currentView === 'grid');
     document.getElementById('acb-view-list')?.classList.toggle('active', currentView === 'list');
+    document.getElementById('acb-view-grouped')?.classList.toggle('active', currentView === 'grouped');
+  }
+  const groupedContainer = document.getElementById('acb-color-groups');
+  if (groupedContainer) {
+    const groups = COLOR_FAMILIES.map(([key, label]) => {
+      const members = sorted.filter(color => getColorFamily(color) === key);
+      return { key, label, members };
+    }).filter(group => group.members.length);
+    groupedContainer.innerHTML = groups.map(group => {
+      const isOpen = groupedExpanded.has(group.key);
+      const swatches = group.members.slice(0, 7).map(color =>
+        `<span class="acb-group-mini-swatch" style="background:${color.hex}" title="${escapeHtml(color.name)}"></span>`
+      ).join('');
+      const cards = group.members.map(color => {
+        const types = duplicates.get(color.index);
+        const review = types ? `<span class="acb-import-badge duplicate">Revisar: ${escapeHtml([...types].join(', '))}</span>` : '';
+        return `<article class="acb-color-card">
+          <div class="acb-color-card-swatch" style="background:${color.hex}"></div>
+          <div class="acb-color-card-body">
+            <strong>${escapeHtml(color.name)}</strong>
+            <small>${escapeHtml(color.code)} · ${escapeHtml(color.hex)}</small>
+            ${review}
+            <div class="acb-color-card-actions">
+              <button type="button" class="btn btn-sm acb-edit-color" data-color-index="${color.index}">Editar</button>
+              <button type="button" class="btn btn-sm acb-delete-color" data-color-index="${color.index}">Eliminar</button>
+            </div>
+          </div>
+        </article>`;
+      }).join('');
+      return `<details class="acb-color-family" data-family="${group.key}" ${isOpen ? 'open' : ''}>
+        <summary><span class="acb-family-title">${group.label}</span><span class="acb-family-count">${group.members.length} tonos</span><span class="acb-family-swatches">${swatches}</span><span class="acb-family-chevron">⌄</span></summary>
+        <div class="acb-family-colors">${cards}</div>
+      </details>`;
+    }).join('') || '<p class="acb-import-muted">No hay colores para agrupar con los filtros actuales.</p>';
+    groupedContainer.querySelectorAll('details.acb-color-family').forEach(details => {
+      details.addEventListener('toggle', () => {
+        if (details.open) groupedExpanded.add(details.dataset.family);
+        else groupedExpanded.delete(details.dataset.family);
+      });
+    });
+    if (document.getElementById('acb-show-archived')?.checked && archived.length) {
+      groupedContainer.innerHTML += '<p class="acb-import-muted">Los colores archivados se consultan en las vistas Cuadrícula o Lista.</p>';
+    }
   }
   const mergeButton = document.getElementById('acb-merge-colors');
   if (mergeButton) mergeButton.disabled = selectedColorIndexes.length !== 2;
@@ -236,23 +291,7 @@ function renderRows() {
     sorted.length ? `Mostrando ${shown.length} de ${sorted.length}` : 'No hay colores que coincidan con la búsqueda.';
   document.getElementById('acb-show-more').hidden = shown.length >= sorted.length;
   document.getElementById('acb-show-more').textContent = `Mostrar siguientes ${PAGE_SIZE}`;
-  body.querySelectorAll('.acb-color-select').forEach((input) => input.addEventListener('change', () => {
-    const index = Number(input.dataset.colorIndex);
-    selectedColorIndexes = input.checked ? [...selectedColorIndexes, index].slice(-2) : selectedColorIndexes.filter((value) => value !== index);
-    renderRows();
-  }));
-  body.querySelectorAll('.acb-edit-color').forEach((button) => button.addEventListener('click', () => openColorEditor(Number(button.dataset.colorIndex))));
-  body.querySelectorAll('.acb-delete-color').forEach((button) => button.addEventListener('click', () => archiveColor(Number(button.dataset.colorIndex), 'eliminación manual')));
-  body.querySelectorAll('.acb-restore-color').forEach((button) => button.addEventListener('click', () => restoreArchivedColor(Number(button.dataset.archiveIndex))));
-  const gridContainer = document.getElementById('acb-color-grid');
-  gridContainer?.querySelectorAll('.acb-color-select').forEach((input) => input.addEventListener('change', () => {
-    const index = Number(input.dataset.colorIndex);
-    selectedColorIndexes = input.checked ? [...selectedColorIndexes, index].slice(-2) : selectedColorIndexes.filter((value) => value !== index);
-    renderRows();
-  }));
-  gridContainer?.querySelectorAll('.acb-edit-color').forEach((button) => button.addEventListener('click', () => openColorEditor(Number(button.dataset.colorIndex))));
-  gridContainer?.querySelectorAll('.acb-delete-color').forEach((button) => button.addEventListener('click', () => archiveColor(Number(button.dataset.colorIndex), 'eliminación manual')));
-  gridContainer?.querySelectorAll('.acb-restore-color').forEach((button) => button.addEventListener('click', () => restoreArchivedColor(Number(button.dataset.archiveIndex))));
+remove fragile listeners
 }
 
 function openColorEditor(index) {
@@ -467,6 +506,21 @@ function initAcbImporter() {
   });
   document.getElementById('acb-view-grid')?.addEventListener('click', () => { currentView = 'grid'; renderRows(); });
   document.getElementById('acb-view-list')?.addEventListener('click', () => { currentView = 'list'; renderRows(); });
+  document.getElementById('acb-view-grouped')?.addEventListener('click', () => { currentView = 'grouped'; renderRows(); });
+  root.addEventListener('click', (event) => {
+    const editButton = event.target.closest('.acb-edit-color');
+    if (editButton) { event.preventDefault(); event.stopPropagation(); openColorEditor(Number(editButton.dataset.colorIndex)); return; }
+    const deleteButton = event.target.closest('.acb-delete-color');
+    if (deleteButton) { event.preventDefault(); archiveColor(Number(deleteButton.dataset.colorIndex), 'eliminación manual'); return; }
+    const restoreButton = event.target.closest('.acb-restore-color');
+    if (restoreButton) { event.preventDefault(); restoreArchivedColor(Number(restoreButton.dataset.archiveIndex)); }
+  });
+  root.addEventListener('change', (event) => {
+    if (!event.target.matches('.acb-color-select')) return;
+    const index = Number(event.target.dataset.colorIndex);
+    selectedColorIndexes = event.target.checked ? [...selectedColorIndexes, index].slice(-2) : selectedColorIndexes.filter(value => value !== index);
+    renderRows();
+  });
   document.getElementById('acb-color-family')?.addEventListener('change', (event) => {
     currentFamily = event.target.value || 'all';
     visibleLimit = PAGE_SIZE;
