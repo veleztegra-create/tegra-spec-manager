@@ -8,6 +8,9 @@ let currentBook = null;
 let currentFileName = '';
 let visibleLimit = PAGE_SIZE;
 let currentSort = 'original';
+let currentFamily = 'all';
+let selectedColorIndexes = [];
+let editingColorIndex = null;
 let initialized = false;
 
 function escapeHtml(value) {
@@ -83,11 +86,46 @@ function findDuplicates(colors) {
   return issues;
 }
 
+function getColorFamily(color) {
+  const { r = 0, g = 0, b = 0 } = color.rgb || {};
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
+  if (delta < 22) return 'neutrals';
+  let hue = 0;
+  if (max === r) hue = ((g - b) / delta) % 6;
+  else if (max === g) hue = (b - r) / delta + 2;
+  else hue = (r - g) / delta + 4;
+  hue = (hue * 60 + 360) % 360;
+  if (hue < 15 || hue >= 345) return 'reds';
+  if (hue < 45) return 'oranges';
+  if (hue < 70) return 'yellows';
+  if (hue < 165) return 'greens';
+  if (hue < 195) return 'cyans';
+  if (hue < 255) return 'blues';
+  if (hue < 290) return 'purples';
+  return 'pinks';
+}
+
+function renumberBookColors() {
+  currentBook.colors.forEach((color, index) => { color.index = index; });
+  currentBook.colorCount = currentBook.colors.length;
+}
+
+function persistCurrentBook() {
+  renumberBookColors();
+  const result = saveAcbLibrary(window.localStorage, currentBook, currentFileName);
+  if (!result.ok) {
+    setMessage('No se pudo guardar el cambio en la biblioteca. ' + result.reason, 'error');
+    return false;
+  }
+  return true;
+}
+
 function renderRows() {
   if (!currentBook) return;
   const query = (document.getElementById('acb-color-search')?.value || '').trim().toLocaleLowerCase();
   const duplicates = findDuplicates(currentBook.colors);
   const filtered = currentBook.colors.filter((color) =>
+    (currentFamily === 'all' || getColorFamily(color) === currentFamily) &&
     [color.name, color.rawName, color.code, color.hex, `${color.rgb.r},${color.rgb.g},${color.rgb.b}`]
       .some((value) => String(value).toLocaleLowerCase().includes(query))
   );
@@ -108,7 +146,9 @@ function renderRows() {
     const review = types
       ? `<span class="acb-import-badge duplicate">Revisar: ${escapeHtml([...types].join(', '))}</span>`
       : '<span class="acb-import-badge">Sin repetición interna</span>';
+    const checked = selectedColorIndexes.includes(color.index) ? 'checked' : '';
     return `<tr>
+      <td><input type="checkbox" class="acb-color-select" data-color-index="${color.index}" ${checked} aria-label="Seleccionar ${escapeHtml(color.name)}"></td>
       <td>${color.index + 1}</td>
       <td><span class="acb-import-swatch" style="background:${color.hex}" title="${color.hex}" aria-label="Muestra ${color.hex}"></span></td>
       <td>${escapeHtml(color.name)}</td>
@@ -116,8 +156,31 @@ function renderRows() {
       <td>${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}</td>
       <td><code>${escapeHtml(color.hex)}</code></td>
       <td>${review}</td>
+      <td class="acb-color-actions">
+        <button type="button" class="btn btn-sm acb-edit-color" data-color-index="${color.index}">Editar</button>
+        <button type="button" class="btn btn-sm acb-delete-color" data-color-index="${color.index}">Eliminar</button>
+      </td>
     </tr>`;
   }).join('');
+
+  const archived = Array.isArray(currentBook.archivedColors) ? currentBook.archivedColors : [];
+  if (document.getElementById('acb-show-archived')?.checked) {
+    body.innerHTML += archived.map((entry, index) => {
+      const color = entry.color;
+      return `<tr class="acb-archived-row">
+        <td>—</td><td>—</td>
+        <td><span class="acb-import-swatch" style="background:${color.hex}" title="${color.hex}"></span></td>
+        <td>${escapeHtml(color.name)}</td><td><code>${escapeHtml(color.code)}</code></td>
+        <td>${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b}</td><td><code>${escapeHtml(color.hex)}</code></td>
+        <td>Archivado: ${escapeHtml(entry.reason || '')}</td>
+        <td><button type="button" class="btn btn-sm acb-restore-color" data-archive-index="${index}">Restaurar</button></td>
+      </tr>`;
+    }).join('');
+  }
+  const mergeButton = document.getElementById('acb-merge-colors');
+  if (mergeButton) mergeButton.disabled = selectedColorIndexes.length !== 2;
+  const archiveLabel = document.getElementById('acb-archived-count');
+  if (archiveLabel) archiveLabel.textContent = archived.length;
 
   const issueCount = duplicates.size;
   document.getElementById('acb-stat-title').textContent = currentBook.title || '(sin título)';
@@ -130,6 +193,88 @@ function renderRows() {
     sorted.length ? `Mostrando ${shown.length} de ${sorted.length}` : 'No hay colores que coincidan con la búsqueda.';
   document.getElementById('acb-show-more').hidden = shown.length >= sorted.length;
   document.getElementById('acb-show-more').textContent = `Mostrar siguientes ${PAGE_SIZE}`;
+  body.querySelectorAll('.acb-color-select').forEach((input) => input.addEventListener('change', () => {
+    const index = Number(input.dataset.colorIndex);
+    selectedColorIndexes = input.checked ? [...selectedColorIndexes, index].slice(-2) : selectedColorIndexes.filter((value) => value !== index);
+    renderRows();
+  }));
+  body.querySelectorAll('.acb-edit-color').forEach((button) => button.addEventListener('click', () => openColorEditor(Number(button.dataset.colorIndex))));
+  body.querySelectorAll('.acb-delete-color').forEach((button) => button.addEventListener('click', () => archiveColor(Number(button.dataset.colorIndex), 'eliminación manual')));
+  body.querySelectorAll('.acb-restore-color').forEach((button) => button.addEventListener('click', () => restoreArchivedColor(Number(button.dataset.archiveIndex))));
+}
+
+function openColorEditor(index) {
+  const color = currentBook?.colors.find((item) => item.index === index);
+  if (!color) return;
+  editingColorIndex = index;
+  document.getElementById('acb-edit-name').value = color.name || '';
+  document.getElementById('acb-edit-hex').value = color.hex || '#000000';
+  document.getElementById('acb-edit-swatch').style.background = color.hex || '#000000';
+  document.getElementById('acb-color-editor').hidden = false;
+  document.getElementById('acb-edit-name').focus();
+}
+
+function closeColorEditor() {
+  document.getElementById('acb-color-editor').hidden = true;
+  editingColorIndex = null;
+}
+
+function saveColorEditor() {
+  const color = currentBook?.colors.find((item) => item.index === editingColorIndex);
+  if (!color) return closeColorEditor();
+  const name = document.getElementById('acb-edit-name').value.trim();
+  const hex = document.getElementById('acb-edit-hex').value.trim().toUpperCase();
+  if (!name) return setMessage('El nombre del color no puede quedar vacío.', 'error');
+  if (!/^#[0-9A-F]{6}$/.test(hex)) return setMessage('Introduce un HEX válido, por ejemplo #ECA521.', 'error');
+  if (!color.sourceSnapshot) color.sourceSnapshot = { name: color.name, hex: color.hex, rgb: { ...color.rgb }, code: color.code, rawName: color.rawName };
+  color.name = name;
+  color.hex = hex;
+  color.rgb = { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) };
+  if (!persistCurrentBook()) return;
+  closeColorEditor();
+  selectedColorIndexes = [];
+  setMessage('Color actualizado. El nombre original y el código ACB se conservaron como referencia.', 'success');
+  renderRows();
+  refreshLibraryControls();
+}
+
+function archiveColor(index, reason) {
+  const color = currentBook?.colors.find((item) => item.index === index);
+  if (!color) return;
+  if (!window.confirm(`¿Retirar "${color.name}" (${color.code}) de esta biblioteca?\n\nLas especificaciones existentes conservan su propia copia del nombre y HEX. Podrás restaurar el registro desde "Mostrar eliminados".`)) return;
+  currentBook.archivedColors = Array.isArray(currentBook.archivedColors) ? currentBook.archivedColors : [];
+  currentBook.archivedColors.push({ color: { ...color, rgb: { ...color.rgb } }, reason, archivedAt: new Date().toISOString() });
+  currentBook.colors = currentBook.colors.filter((item) => item.index !== index);
+  selectedColorIndexes = [];
+  if (!persistCurrentBook()) return;
+  setMessage('Color retirado de la biblioteca y archivado para poder restaurarlo.', 'success');
+  renderRows();
+}
+
+function restoreArchivedColor(archiveIndex) {
+  const archived = currentBook?.archivedColors?.[archiveIndex];
+  if (!archived) return;
+  currentBook.colors.push({ ...archived.color, index: currentBook.colors.length });
+  currentBook.archivedColors.splice(archiveIndex, 1);
+  if (!persistCurrentBook()) return;
+  setMessage('Color restaurado a la biblioteca.', 'success');
+  renderRows();
+}
+
+function mergeSelectedColors() {
+  if (!currentBook || selectedColorIndexes.length !== 2) return;
+  const [keepIndex, removeIndex] = selectedColorIndexes;
+  const keep = currentBook.colors.find((item) => item.index === keepIndex);
+  const remove = currentBook.colors.find((item) => item.index === removeIndex);
+  if (!keep || !remove || keep === remove) return;
+  if (!window.confirm(`Se conservará "${keep.name}" (${keep.hex}) y se archivará "${remove.name}" (${remove.hex}).\n\nLas especificaciones existentes conservarán sus copias de color; no se actualizarán automáticamente. ¿Continuar?`)) return;
+  currentBook.archivedColors = Array.isArray(currentBook.archivedColors) ? currentBook.archivedColors : [];
+  currentBook.archivedColors.push({ color: { ...remove, rgb: { ...remove.rgb } }, reason: `combinado en ${keep.code}`, archivedAt: new Date().toISOString() });
+  currentBook.colors = currentBook.colors.filter((item) => item.index !== removeIndex);
+  selectedColorIndexes = [];
+  if (!persistCurrentBook()) return;
+  setMessage(`Registros combinados. Se conservó "${keep.name}" y el otro quedó archivado.`, 'success');
+  renderRows();
 }
 
 function showBook(book, fileName, options = {}) {
@@ -149,6 +294,7 @@ function showBook(book, fileName, options = {}) {
   ];
   document.getElementById('acb-book-details').textContent = details.join(' · ');
   const duplicateCount = findDuplicates(book.colors).size;
+  selectedColorIndexes = [];
   let persistenceNote = '';
   if (options.restored) {
     persistenceNote = ' Biblioteca restaurada desde este navegador.';
@@ -220,8 +366,10 @@ function exportPreview() {
       rawName: color.rawName,
       code: color.code,
       rgb: color.rgb,
-      hex: color.hex
+      hex: color.hex,
+      ...(color.sourceSnapshot ? { sourceSnapshot: color.sourceSnapshot } : {})
     })),
+    archivedColors: currentBook.archivedColors || [],
     notes: [
       'Este archivo es una exportación de vista previa; no es una biblioteca registrada.',
       'El ACB no contiene reglas de producción como tinta, blocker o base blanca.'
@@ -244,6 +392,22 @@ function initAcbImporter() {
   initialized = true;
   document.getElementById('acb-file-input').addEventListener('change', (event) => {
     handleFile(event.target.files?.[0]);
+  });
+  document.getElementById('acb-color-family')?.addEventListener('change', (event) => {
+    currentFamily = event.target.value || 'all';
+    visibleLimit = PAGE_SIZE;
+    renderRows();
+  });
+  document.getElementById('acb-show-archived')?.addEventListener('change', renderRows);
+  document.getElementById('acb-merge-colors')?.addEventListener('click', mergeSelectedColors);
+  document.getElementById('acb-edit-cancel')?.addEventListener('click', closeColorEditor);
+  document.getElementById('acb-edit-save')?.addEventListener('click', saveColorEditor);
+  document.getElementById('acb-color-editor')?.addEventListener('click', (event) => {
+    if (event.target.id === 'acb-color-editor') closeColorEditor();
+  });
+  document.getElementById('acb-edit-hex')?.addEventListener('input', (event) => {
+    const value = event.target.value.trim();
+    if (/^#[0-9A-F]{6}$/i.test(value)) document.getElementById('acb-edit-swatch').style.background = value;
   });
   document.getElementById('acb-color-search').addEventListener('input', () => {
     visibleLimit = PAGE_SIZE;
