@@ -719,6 +719,71 @@ function openAcbColorPicker(placementId, colorId) {
   search.focus();
 }
 
+
+// Merge colors from a local GFSEXTR palette into the currently active ACB book.
+// Existing HEX values are treated as already represented; no color is overwritten.
+window.syncPaletteColorsToAcb = function syncPaletteColorsToAcb(colors, paletteName = '') {
+  if (!Array.isArray(colors) || !colors.length) return { ok: true, added: 0, existing: 0 };
+  if (!currentBook) {
+    const saved = loadActiveAcbLibrary(window.localStorage);
+    if (saved?.book) {
+      currentBook = saved.book;
+      currentFileName = saved.sourceFile || '';
+    }
+  }
+  if (!currentBook) return { ok: false, reason: 'no-active-acb' };
+
+  const normalizeHex = (value) => {
+    const hex = String(value || '').trim().replace(/^#/, '').toUpperCase();
+    return /^[0-9A-F]{6}$/.test(hex) ? '#' + hex : '';
+  };
+  const existingHex = new Set(currentBook.colors.map(color => normalizeHex(color.hex)).filter(Boolean));
+  const candidates = [];
+  let existing = 0;
+  for (const color of colors) {
+    const hex = normalizeHex(color.hex);
+    if (!hex) continue;
+    if (existingHex.has(hex)) { existing += 1; continue; }
+    existingHex.add(hex);
+    const name = String(color.colorName || color.name || color.rawName || hex).trim() || hex;
+    const [r, g, b] = [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16));
+    candidates.push({ name, rawName: name, hex, rgb: { r, g, b }, sourcePalette: String(color.sourcePalette || paletteName || '') });
+  }
+  if (!candidates.length) return { ok: true, added: 0, existing };
+  const label = paletteName ? ' de "' + paletteName + '"' : '';
+  if (!window.confirm('Se encontraron ' + candidates.length + ' colores nuevos' + label + '. ¿Agregar a la Biblioteca ACB activa "' + (currentBook.title || currentFileName || 'ACB') + '"?\n\nLos colores existentes no se duplicarán ni sobrescribirán.')) {
+    return { ok: true, added: 0, existing, declined: true };
+  }
+
+  const usedCodes = new Set(currentBook.colors.map(color => String(color.code || '').trim().toUpperCase()));
+  let codeNumber = 1;
+  const makeCode = () => {
+    let code;
+    do { code = 'G' + String(codeNumber++).padStart(5, '0'); } while (usedCodes.has(code));
+    usedCodes.add(code);
+    return code;
+  };
+  candidates.forEach((color) => {
+    const index = currentBook.colors.length;
+    currentBook.colors.push({
+      index, name: color.name, rawName: color.rawName, code: makeCode(),
+      rgb: color.rgb, hex: color.hex, sourcePalette: color.sourcePalette
+    });
+  });
+  currentBook.colorCount = currentBook.colors.length;
+  const active = loadActiveAcbLibrary(window.localStorage);
+  const saved = saveAcbLibrary(window.localStorage, currentBook, active?.sourceFile || currentFileName);
+  if (!saved.ok) {
+    currentBook.colors.splice(currentBook.colors.length - candidates.length, candidates.length);
+    currentBook.colorCount = currentBook.colors.length;
+    return { ok: false, reason: saved.reason };
+  }
+  setMessage(candidates.length + ' colores agregados desde la paleta "' + (paletteName || 'GFSEXTR') + '".', 'success');
+  renderRows();
+  refreshLibraryControls();
+  return { ok: true, added: candidates.length, existing };
+};
+
 window.getAcbColorLibrary = getAcbColorLibrary;
 window.openAcbColorPicker = openAcbColorPicker;
 
