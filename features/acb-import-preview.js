@@ -244,15 +244,15 @@ function renderRows() {
   body.querySelectorAll('.acb-edit-color').forEach((button) => button.addEventListener('click', () => openColorEditor(Number(button.dataset.colorIndex))));
   body.querySelectorAll('.acb-delete-color').forEach((button) => button.addEventListener('click', () => archiveColor(Number(button.dataset.colorIndex), 'eliminación manual')));
   body.querySelectorAll('.acb-restore-color').forEach((button) => button.addEventListener('click', () => restoreArchivedColor(Number(button.dataset.archiveIndex))));
-  const grid = document.getElementById('acb-color-grid');
-  grid?.querySelectorAll('.acb-color-select').forEach((input) => input.addEventListener('change', () => {
+  const gridContainer = document.getElementById('acb-color-grid');
+  gridContainer?.querySelectorAll('.acb-color-select').forEach((input) => input.addEventListener('change', () => {
     const index = Number(input.dataset.colorIndex);
     selectedColorIndexes = input.checked ? [...selectedColorIndexes, index].slice(-2) : selectedColorIndexes.filter((value) => value !== index);
     renderRows();
   }));
-  grid?.querySelectorAll('.acb-edit-color').forEach((button) => button.addEventListener('click', () => openColorEditor(Number(button.dataset.colorIndex))));
-  grid?.querySelectorAll('.acb-delete-color').forEach((button) => button.addEventListener('click', () => archiveColor(Number(button.dataset.colorIndex), 'eliminación manual')));
-  grid?.querySelectorAll('.acb-restore-color').forEach((button) => button.addEventListener('click', () => restoreArchivedColor(Number(button.dataset.archiveIndex))));
+  gridContainer?.querySelectorAll('.acb-edit-color').forEach((button) => button.addEventListener('click', () => openColorEditor(Number(button.dataset.colorIndex))));
+  gridContainer?.querySelectorAll('.acb-delete-color').forEach((button) => button.addEventListener('click', () => archiveColor(Number(button.dataset.colorIndex), 'eliminación manual')));
+  gridContainer?.querySelectorAll('.acb-restore-color').forEach((button) => button.addEventListener('click', () => restoreArchivedColor(Number(button.dataset.archiveIndex))));
 }
 
 function openColorEditor(index) {
