@@ -546,7 +546,27 @@ function updateGarmentColorRecognition() {
 
     if (!foundHex) {
         statusEl.classList.add('is-unrecognized');
-        statusEl.textContent = `No se reconoció el colorway "${colorway}" en la base de colores.`;
+        const message = document.createElement('span');
+        message.textContent = `No se reconoció el colorway "${colorway}" en la base de colores. `;
+        statusEl.appendChild(message);
+
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.className = 'btn btn-outline btn-sm color-registry-add-button';
+        addButton.textContent = 'Agregar color';
+        addButton.addEventListener('click', () => {
+            if (typeof window.openColorRegistryDialog !== 'function') return;
+            window.openColorRegistryDialog({
+                query: colorway,
+                kind: 'garment',
+                onSave: async (savedColor) => {
+                    // Keep the current Colorway text and all other Spec fields unchanged.
+                    updateGarmentColorRecognition();
+                    showStatus(`Color "${savedColor.name}" agregado al catálogo compartido.`, 'success');
+                }
+            });
+        });
+        statusEl.appendChild(addButton);
         return;
     }
 
