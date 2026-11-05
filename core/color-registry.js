@@ -84,6 +84,8 @@
     registry.updatedAt = new Date().toISOString();
     try {
       global.localStorage.setItem(STORAGE_KEY, JSON.stringify(registry));
+      // Refresh the legacy resolver so rules/spec color lookup sees registry updates immediately.
+      global.ColorConfig?.buildFromSources?.();
       return true;
     } catch (error) {
       console.error('[ColorRegistry] Could not persist registry:', error);
