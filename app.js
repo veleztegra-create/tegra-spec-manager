@@ -2582,7 +2582,7 @@ function renderPlacementColors(placementId) {
                    title="Malla por tinta"
                    oninput="updatePlacementColorMesh(${placementId}, ${color.id}, this.value)"
                    ondblclick="this.select()">
-            ${color.type === 'COLOR' || color.type === 'METALLIC' ? `<button type="button" class="btn btn-outline btn-sm acb-color-pick-button" onclick="openAcbColorPicker(${placementId}, ${color.id})" title="Seleccionar color desde la biblioteca ACB"><i class="fas fa-book-open"></i></button>` : ''}
+            ${color.type === 'COLOR' || color.type === 'METALLIC' ? `<button type="button" class="btn btn-outline btn-sm acb-color-pick-button" onclick="openAcbColorPicker(${placementId}, ${color.id})" title="Seleccionar color desde la biblioteca ACB"><i class="fas fa-book-open"></i></button><button type="button" class="btn btn-outline btn-sm color-registry-add-button" onclick="openColorRegistryForPlacementInk(${placementId}, ${color.id})" title="Agregar color al catálogo compartido"><i class="fas fa-plus"></i></button>` : ''}
             ${color.acbColor?.code ? `<span class="acb-selected-color-code" title="Color vinculado desde ${String(color.acbColor.bookTitle || 'ACB').replace(/[<>&"]/g, '')}">${String(color.acbColor.code).replace(/[<>&"]/g, '')}</span>` : ''}
             <div class="color-preview" 
                  id="placement-color-preview-${placementId}-${color.id}" 
@@ -2616,6 +2616,45 @@ function renderPlacementColors(placementId) {
         container.appendChild(div);
 
         setTimeout(() => updatePlacementColorPreview(placementId, color.id), 10);
+    });
+}
+
+function openColorRegistryForPlacementInk(placementId, colorId) {
+    const placement = placements.find(item => String(item.id) === String(placementId));
+    const color = placement?.printColors?.find(item => String(item.id) === String(colorId));
+    if (!placement || !color || typeof window.openColorRegistryDialog !== 'function') return;
+
+    window.openColorRegistryDialog({
+        query: color.val || '',
+        kind: 'ink',
+        onSave: async (savedColor) => {
+            updatePlacementColorValue(placementId, colorId, savedColor.name);
+            const currentColor = placement.printColors.find(item => String(item.id) === String(colorId));
+            if (currentColor) {
+                currentColor.hex = savedColor.hex;
+                currentColor.rgb = { ...savedColor.rgb };
+                currentColor.colorRegistryId = savedColor.id;
+                currentColor.colorRegistryClassifications = { ...savedColor.classifications };
+            }
+            updatePlacementColorPreview(placementId, colorId);
+            updatePlacementColorsPreview(placementId);
+            renderPlacementColors(placementId);
+
+            if (window.confirm('¿También deseas incorporar este color a la biblioteca ACB activa para Illustrator?')) {
+                if (typeof window.syncPaletteColorsToAcb === 'function') {
+                    window.syncPaletteColorsToAcb([{
+                        colorName: savedColor.name,
+                        name: savedColor.name,
+                        hex: savedColor.hex,
+                        underbase: savedColor.classifications.underbase === 'yes',
+                        sourcePalette: 'Tegra Spec Manager'
+                    }], 'Tegra Spec Manager');
+                } else {
+                    showStatus('Color guardado en el catálogo JSON. La sincronización ACB no está disponible.', 'warning');
+                }
+            }
+            showStatus(`Color "${savedColor.name}" agregado al catálogo compartido.`, 'success');
+        }
     });
 }
 
