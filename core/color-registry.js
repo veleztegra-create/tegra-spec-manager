@@ -108,15 +108,23 @@
     const color = normalizeColor(input);
     const byId = registry.colors.findIndex(item => item.id === color.id);
     const byHex = registry.colors.findIndex(item => item.hex === color.hex);
-    const index = byId >= 0 ? byId : byHex;
 
-    if (index >= 0) {
-      const existing = registry.colors[index];
-      // Preserve user-defined classifications if an incoming import does not specify them.
-      if (!input.classifications && input.underbase == null) color.classifications.underbase = existing.classifications.underbase;
-      if (!input.classifications && input.fabricTone == null) color.classifications.fabricTone = existing.classifications.fabricTone;
+    if (byId >= 0) {
+      const existing = registry.colors[byId];
+      // Explicit id updates a record, while retaining its identity.
       color.id = existing.id;
-      registry.colors[index] = color;
+      registry.colors[byId] = color;
+    } else if (byHex >= 0) {
+      // Same HEX is the same swatch: preserve canonical name/classification and add alternate names.
+      const existing = registry.colors[byHex];
+      if (color.name !== existing.name) existing.aliases.push(color.name);
+      if (color.code && color.code !== existing.code) existing.aliases.push(color.code);
+      existing.aliases = [...new Set([...existing.aliases, ...color.aliases])];
+      if (color.classifications.underbase !== 'unknown') existing.classifications.underbase = color.classifications.underbase;
+      if (color.classifications.fabricTone !== 'unknown') existing.classifications.fabricTone = color.classifications.fabricTone;
+      existing.updatedAt = new Date().toISOString();
+      registry.colors[byHex] = existing;
+      color = existing;
     } else {
       registry.colors.push(color);
     }
