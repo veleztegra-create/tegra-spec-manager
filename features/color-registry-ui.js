@@ -46,6 +46,47 @@
     return dialog;
   }
 
+  function setTransferStatus(message, isError = false) {
+    const status = document.getElementById('color-registry-transfer-status');
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('is-error', isError);
+  }
+
+  document.addEventListener('click', event => {
+    if (event.target?.closest?.('#color-registry-export')) {
+      if (!window.ColorRegistry) return setTransferStatus('Catálogo JSON no disponible.', true);
+      const blob = new Blob([window.ColorRegistry.exportJson()], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Tegra-Color-Registry.json';
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTransferStatus('Catálogo exportado. Puedes compartir este JSON o importarlo en otra computadora.');
+    }
+  });
+
+  document.addEventListener('change', async event => {
+    const input = event.target;
+    if (input?.id !== 'color-registry-import-file' || !input.files?.[0]) return;
+    const file = input.files[0];
+    try {
+      if (!window.ColorRegistry) throw new Error('Catálogo JSON no disponible.');
+      const parsed = JSON.parse(await file.text());
+      if (!window.confirm('¿Combinar los colores de "' + file.name + '" con el catálogo actual? Los colores existentes no se eliminarán.')) {
+        setTransferStatus('Importación cancelada. No se modificó el catálogo.');
+        return;
+      }
+      const result = window.ColorRegistry.importJson(parsed, 'merge');
+      setTransferStatus('Importación completada: ' + result.imported + ' registro(s) procesados; catálogo total: ' + result.total + '.');
+    } catch (error) {
+      setTransferStatus('No se pudo importar el JSON: ' + (error.message || 'archivo inválido'), true);
+    } finally {
+      input.value = '';
+    }
+  });
+
   window.openColorRegistryDialog = function (options = {}) {
     if (!window.ColorRegistry) {
       window.alert('El catálogo JSON no está disponible.');
