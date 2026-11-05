@@ -119,6 +119,12 @@ window.RulesEngine = (function() {
     function esTelaOscura(colorTela) {
         if (!colorTela) return false;
 
+        // Explicit catalog classification wins over lexical/HEX heuristics.
+        const registryColor = window.ColorRegistry?.find?.(colorTela);
+        const explicitFabricTone = registryColor?.classifications?.fabricTone;
+        if (explicitFabricTone === 'dark') return true;
+        if (explicitFabricTone === 'light') return false;
+
         const telaLower = String(colorTela).toLowerCase();
 
         // Regla de negocio textil: solo blancos/naturales se consideran telas claras por defecto.
