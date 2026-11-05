@@ -41,7 +41,7 @@
       : [];
 
     return {
-      id: String(input.id || 'clr-' + hex.slice(1).toLowerCase()),
+      id: String(input.id || 'clr-' + normalizeKey(name).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 36) + '-' + hex.slice(1).toLowerCase()),
       name,
       code: String(input.code || '').trim(),
       aliases,
