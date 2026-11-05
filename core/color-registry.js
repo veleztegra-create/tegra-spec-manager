@@ -165,7 +165,7 @@
       ...color,
       name: color.name || color.colorName,
       classifications: color.classifications || {
-        underbase: color.underbase ? 'yes' : 'unknown',
+        underbase: color.underbase === true ? 'yes' : (color.underbase === false ? 'no' : 'unknown'),
         fabricTone: color.fabricTone || 'unknown'
       },
       source: color.source || 'json-import'
