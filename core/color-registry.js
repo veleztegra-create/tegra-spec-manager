@@ -105,7 +105,7 @@
   }
 
   function upsert(input) {
-    const color = normalizeColor(input);
+    let color = normalizeColor(input);
     const byId = registry.colors.findIndex(item => item.id === color.id);
     const byHex = registry.colors.findIndex(item => item.hex === color.hex);
 
