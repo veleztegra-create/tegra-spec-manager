@@ -48,8 +48,8 @@
       hex,
       rgb: rgbFromHex(hex),
       classifications: {
-        underbase: ['yes', 'no', 'unknown'].includes(String(input.classifications?.underbase || input.underbase || '').toLowerCase())
-          ? String(input.classifications?.underbase || input.underbase).toLowerCase()
+        underbase: ['yes', 'no', 'unknown'].includes(String(input.classifications?.underbase ?? (input.underbase === true ? 'yes' : input.underbase === false ? 'no' : input.underbase) ?? '').toLowerCase())
+          ? String(input.classifications?.underbase ?? (input.underbase === true ? 'yes' : input.underbase === false ? 'no' : input.underbase)).toLowerCase()
           : 'unknown',
         fabricTone: ['light', 'dark', 'unknown'].includes(String(input.classifications?.fabricTone || input.fabricTone || '').toLowerCase())
           ? String(input.classifications?.fabricTone || input.fabricTone).toLowerCase()
@@ -134,7 +134,10 @@
 
   function importJson(data, mode = 'merge') {
     const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-    if (!parsed || !Array.isArray(parsed.colors)) throw new Error('JSON file must contain a colors array.');
+    const isGfsextrBackup = parsed?.format === 'GFSEXTR-Backup' && Array.isArray(parsed.palettes);
+    if (!parsed || (!Array.isArray(parsed.colors) && !isGfsextrBackup)) {
+      throw new Error('JSON file must contain a colors array or a GFSEXTR palette backup.');
+    }
     if (parsed.format && parsed.format !== FORMAT && parsed.format !== 'GFSEXTR-Palette' && parsed.format !== 'GFSEXTR-Backup') {
       throw new Error('Unsupported color JSON format: ' + parsed.format);
     }
