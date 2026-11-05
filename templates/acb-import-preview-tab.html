@@ -8,6 +8,18 @@
         </div>
         <span class="acb-import-badge">IMPORTACIÓN · VISTA PREVIA</span>
       </div>
+      <div class="color-registry-controls">
+        <div>
+          <strong>Catálogo maestro JSON</strong>
+          <p>Importa o exporta el catálogo compartido de colores (nombres, códigos, aliases y clasificaciones).</p>
+        </div>
+        <div class="color-registry-controls-actions">
+          <button id="color-registry-export" class="btn btn-primary" type="button">Exportar catálogo JSON</button>
+          <label class="btn" for="color-registry-import-file">Importar JSON</label>
+          <input id="color-registry-import-file" type="file" accept=".json,application/json" hidden>
+        </div>
+        <p id="color-registry-transfer-status" role="status" aria-live="polite"></p>
+      </div>
       <div class="acb-import-controls" style="margin-top:14px">
         <input id="acb-file-input" class="acb-import-file" type="file" accept=".acb,application/octet-stream">
         <label for="acb-saved-libraries">Biblioteca activa</label>
