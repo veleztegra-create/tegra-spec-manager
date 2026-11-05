@@ -24,11 +24,14 @@ jobs:
           node --check js/nikeTechPackExtractor.js
           node --check features/pdf-generator-mejorado.js
           node --check features/manual-palette-extractor.js
+          node --check features/ai-pattern-piece-shrinkage.js
           node --check modules/acb-reader.js
           node --check modules/acb-library-storage.js
           node --check modules/acb-color-matcher.js
       - name: Run frontend utility and Pantone regression tests
         run: node --test html-utils.test.js
+      - name: Test AI pattern piece shrinkage parser
+        run: node --test tests/ai-pattern-piece-shrinkage.test.js
       - name: Run ACB tests
         run: npm run test:acb
 
