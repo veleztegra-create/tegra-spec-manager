@@ -118,6 +118,16 @@
         });
       });
 
+      // 4) Shared JSON registry: common color names/aliases for ink and garment recognition.
+      // Registry metadata remains separate from the Pantone/ACB production rules.
+      const registryColors = global.ColorRegistry?.getAll?.() || [];
+      registryColors.forEach((color) => {
+        if (!color || !color.hex || !color.name) return;
+        addEntry(color.name, color.hex, 'institutional');
+        if (color.code) addEntry(color.code, color.hex, 'institutional');
+        (color.aliases || []).forEach((alias) => addEntry(alias, color.hex, 'institutional'));
+      });
+
       return this.db;
     },
 
@@ -136,6 +146,10 @@
       const normalized = this.normalizeLookupKey(raw);
       const pantoneHex = this.findPantoneHex(raw);
       if (pantoneHex) return pantoneHex;
+
+      // Exact registry alias/name/code lookup before legacy partial matching.
+      const registryColor = global.ColorRegistry?.find?.(raw);
+      if (registryColor?.hex) return registryColor.hex;
 
       if (this.db.all[normalized]) return this.db.all[normalized].hex;
 
