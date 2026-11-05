@@ -1929,3 +1929,21 @@ textarea.form-control:focus {
   .tegra-color-registry-classifications { grid-template-columns:1fr; }
   .tegra-color-registry-form { padding:16px; }
 }
+
+.color-registry-controls {
+  margin: 16px 0;
+  padding: 14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  border:1px solid var(--border-color,#444);
+  border-radius:8px;
+  background:var(--card-bg,rgba(128,128,128,.06));
+}
+.color-registry-controls p { margin:4px 0 0; font-size:.84rem; color:var(--text-secondary,#aaa); }
+.color-registry-controls-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.color-registry-controls-actions label.btn { cursor:pointer; }
+#color-registry-transfer-status { flex-basis:100%; margin:0; font-size:.85rem; color:var(--text-secondary,#aaa); }
+#color-registry-transfer-status.is-error { color:#e66; }
