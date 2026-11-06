@@ -435,7 +435,7 @@ window.RulesEngine = (function() {
         const steps = [];
         let nextNumber = 1; // Solo para colores
 
-        function addStep(tipo, nombre, mesh, additives) {
+        function addStep(tipo, nombre, mesh, additives, purpose = '') {
             let screenLetter = '';
             
             if (tipo === 'BLOCKER') {
@@ -449,7 +449,8 @@ window.RulesEngine = (function() {
                 screenLetter: screenLetter,
                 nombre: nombre,
                 mesh: mesh,
-                additives: additives
+                additives: additives,
+                ...(purpose ? { purpose } : {})
             });
         }
 
@@ -459,8 +460,8 @@ window.RulesEngine = (function() {
                 // Tratamiento preventivo aprobado para BLACK, COLLAGE NAVY y FIR.
                 // Las mallas de las pantallas blocker se dejan sin fijar para usar el preset vigente.
                 addStep('BLOCKER', 'AQUARIUS MIGRATION BLOCKER STOP', '', '10% Aquaflex V2 Neutral · 0.75% Aquarius Thickener');
-                addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral');
-                addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral');
+                addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral', 'migration-screen-2');
+                addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral', 'migration-screen-3');
                 addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '3% CL 500');
                 addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '198/40', '3% CL 500');
             } else if (esOscura) {
