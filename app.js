@@ -3235,14 +3235,14 @@ function updatePlacementStations(placementId, returnOnly = false) {
 
         if (item.type === 'BLOCKER') {
             mesh = item.mesh || placement.meshBlocker || preset.blocker.mesh1;
-            add = placement.additivesBlocker || item.additives || preset.blocker.additives;
+            add = item.additives || placement.additivesBlocker || preset.blocker.additives;
         }
         // =========================================
         // CASO 3: Es WHITE_BASE
         // =========================================
         else if (item.type === 'WHITE_BASE') {
             mesh = item.mesh || placement.meshWhite || preset.white.mesh1;
-            add = placement.additivesWhiteBase || item.additives || preset.white.additives;
+            add = item.additives || placement.additivesWhiteBase || preset.white.additives;
         }
         // =========================================
         // CASO 4: Es METALLIC
