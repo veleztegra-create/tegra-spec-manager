@@ -64,6 +64,24 @@ window.RulesEngine = (function() {
     // =====================================================
     // FUNCIONES AUXILIARES
     // =====================================================
+
+    // Excepción WATERBASE para telas con riesgo confirmado de Fibrillation & Migration.
+    // Se reconocen nombres completos/tokens, nunca coincidencias parciales como "FIR" dentro de otra palabra.
+    function esTelaFibrillationMigration(colorTela) {
+        if (!colorTela) return false;
+        const registryColor = window.ColorRegistry?.find?.(colorTela);
+        const candidates = [
+            colorTela,
+            registryColor?.name,
+            ...(Array.isArray(registryColor?.aliases) ? registryColor.aliases : [])
+        ];
+        return candidates.some(value => {
+            const normalized = String(value || '').toUpperCase().trim();
+            return /(^|[^A-Z])BLACK([^A-Z]|$)/.test(normalized) ||
+                /(^|[^A-Z])COLLAGE NAVY([^A-Z]|$)/.test(normalized) ||
+                /(^|[^A-Z])FIR([^A-Z]|$)/.test(normalized);
+        });
+    }
     
 
 
@@ -321,6 +339,7 @@ window.RulesEngine = (function() {
         const baseConfig = getBaseConfig(inkType, customer);
         const esOscura = esTelaOscura(garmentColor);
         const inkUpper = inkType.toUpperCase();
+        const esFibrillationMigration = inkUpper === 'WATER' && esTelaFibrillationMigration(garmentColor);
         
         console.log(`   📋 Config: ${baseConfig.blocker.nombre} / ${baseConfig.whiteBase.nombre}`);
         console.log(`   📊 Tela: ${esOscura ? 'oscura' : 'clara'}`);
@@ -415,7 +434,7 @@ window.RulesEngine = (function() {
         const steps = [];
         let nextNumber = 1; // Solo para colores
 
-        function addStep(tipo, nombre, mesh, additives) {
+        function addStep(tipo, nombre, mesh, additives, purpose = '') {
             let screenLetter = '';
             
             if (tipo === 'BLOCKER') {
@@ -429,13 +448,22 @@ window.RulesEngine = (function() {
                 screenLetter: screenLetter,
                 nombre: nombre,
                 mesh: mesh,
-                additives: additives
+                additives: additives,
+                ...(purpose ? { purpose } : {})
             });
         }
 
         // ===== PASOS PREVIOS SEGÚN TIPO DE TINTA =====
         if (inkUpper === 'WATER') {
-            if (esOscura) {
+            if (esFibrillationMigration) {
+                // Tratamiento preventivo aprobado para BLACK, COLLAGE NAVY y FIR.
+                // Las mallas de las pantallas blocker se dejan sin fijar para usar el preset vigente.
+                addStep('BLOCKER', 'AQUARIUS MIGRATION BLOCKER STOP', '', '10% Aquaflex V2 Neutral · 0.75% Aquarius Thickener');
+                addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral', 'migration-screen-2');
+                addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral', 'migration-screen-3');
+                addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '3% CL 500');
+                addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '198/40', '3% CL 500');
+            } else if (esOscura) {
                 const blockerMallas = ['110/64', '122/55', '157/48'];
                 blockerMallas.forEach(malla => {
                     addStep('BLOCKER', baseConfig.blocker.nombre, malla, '');
@@ -584,9 +612,21 @@ window.RulesEngine = (function() {
             ? window.LayerNormalizer.normalizeLayers(steps, { mergeTypes: ['WHITE_BASE', 'BLOCKER'] })
             : steps;
 
-        const finalSequence = window.SequenceBuilder?.buildSequence
+        let finalSequence = window.SequenceBuilder?.buildSequence
             ? window.SequenceBuilder.buildSequence(normalizedLayers)
             : normalizedLayers;
+
+        if (esFibrillationMigration && finalSequence.length > 0) {
+            // HOT HEAD representa el planchador automático con pantalla de teflón.
+            // Se coloca después del primer ciclo FLASH/COOL y antes del segundo blocker.
+            const firstCoolIndex = finalSequence.findIndex(step => String(step.tipo || step.type || '').toUpperCase() === 'COOL');
+            if (firstCoolIndex >= 0) {
+                finalSequence.splice(firstCoolIndex + 1, 0,
+                    { tipo: 'HOT_HEAD', screenLetter: '', nombre: 'PLANCHADOR AUTOMÁTICO · 120 °F', mesh: 'TEFLÓN', additives: '' },
+                    { tipo: 'COOL', screenLetter: '', nombre: 'COOL', mesh: '-', additives: '' }
+                );
+            }
+        }
 
         console.log(`🧠 Capas crudas: ${steps.length} · Capas normalizadas: ${normalizedLayers.length}`);
         console.log(`✅ Secuencia generada con ${finalSequence.length} pasos`);
@@ -595,11 +635,14 @@ window.RulesEngine = (function() {
         return finalSequence;
     }
 
-    function getCuringConditions(inkType, customer) {
+    function getCuringConditions(inkType, customer, garmentColor = '') {
         const config = getBaseConfig(inkType, customer);
+        const isWaterbaseMigrationFabric =
+            String(inkType || 'WATER').toUpperCase() === 'WATER' &&
+            esTelaFibrillationMigration(garmentColor);
         return {
-            temperatura: config.temperatura,
-            tiempo: config.tiempo
+            temperatura: isWaterbaseMigrationFabric ? '320 °F' : config.temperatura,
+            tiempo: isWaterbaseMigrationFabric ? '1:30 min' : config.tiempo
         };
     }
 
@@ -611,6 +654,7 @@ window.RulesEngine = (function() {
         generarSecuencia,
         getCuringConditions,
         esTelaOscura,
+        esTelaFibrillationMigration,
         esColorMetalico,
         esThreeScreenSpecial,
         esGrisOscuro
