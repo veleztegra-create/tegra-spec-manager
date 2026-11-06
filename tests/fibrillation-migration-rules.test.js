@@ -33,7 +33,7 @@ test('WATERBASE BLACK uses migration blockers, automatic press, two AquaFlex bas
         designColors: [{ val: 'RED' }]
     });
 
-    assert.deepEqual(sequence.map(step => step.tipo), [
+    assert.deepEqual(Array.from(sequence, step => step.tipo), [
         'BLOCKER', 'FLASH', 'COOL',
         'HOT_HEAD', 'COOL',
         'BLOCKER', 'FLASH', 'COOL',
