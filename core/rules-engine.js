@@ -461,6 +461,8 @@ window.RulesEngine = (function() {
                 addStep('BLOCKER', 'AQUARIUS MIGRATION BLOCKER STOP', '', '10% Aquaflex V2 Neutral · 0.75% Aquarius Thickener');
                 addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral');
                 addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral');
+                addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '122/55', '3% CL 500');
+                addStep('WHITE_BASE', baseConfig.whiteBase.nombre, '198/40', '3% CL 500');
             } else if (esOscura) {
                 const blockerMallas = ['110/64', '122/55', '157/48'];
                 blockerMallas.forEach(malla => {
