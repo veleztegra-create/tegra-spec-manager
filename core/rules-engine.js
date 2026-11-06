@@ -141,6 +141,23 @@ window.RulesEngine = (function() {
         return true;
     }
 
+    // Regla aprobada: tela White/Natural en Waterbase usa 3 bases White sin Blocker.
+    // Se consulta también el catálogo por si garmentColor contiene un código de colorway.
+    function esTelaWhiteNatural(colorTela) {
+        if (!colorTela) return false;
+
+        const registryColor = window.ColorRegistry?.find?.(colorTela);
+        const candidates = [
+            colorTela,
+            registryColor?.name,
+            ...(Array.isArray(registryColor?.aliases) ? registryColor.aliases : [])
+        ];
+
+        return candidates.some(value =>
+            /(^|[^a-z])(white|natural|blanco)(?=$|[^a-z])/i.test(String(value || ''))
+        );
+    }
+
     function extractPantoneNumber(colorName) {
         if (!colorName) return null;
         const match = colorName.toUpperCase().match(/\b(\d{3,4})C?\b/);
@@ -432,17 +449,32 @@ window.RulesEngine = (function() {
                 if (!directToBlockerApproved && numBases >= 2 && baseConfig.whiteBaseRefuerzo?.nombre && !hasExplicitWhiteReinforcement) {
                     addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
                 }
+            } else if (esTelaWhiteNatural(garmentColor)) {
+                // White/Natural: 3 bases B, sin Blocker.
+                // Solo la primera base lleva la formulación especial aprobada.
+                const whiteBaseMeshes = ['110/64', '122/55', '122/55'];
+                const whiteBaseAdditives = '0.25% Aquarius Thickener · 10% Aquaflex V2 Neutral';
+
+                whiteBaseMeshes.forEach((malla, index) => {
+                    addStep(
+                        'WHITE_BASE',
+                        baseConfig.whiteBase.nombre,
+                        malla,
+                        index === 0 ? whiteBaseAdditives : ''
+                    );
+                });
             } else {
+                // Otras telas claras conservan la secuencia existente.
                 const baseMallasIniciales = ['110/64', '122/55'];
                 baseMallasIniciales.forEach(malla => {
                     addStep('WHITE_BASE', baseConfig.whiteBase.nombre, malla, '');
                 });
-                
+
                 addStep('BLOCKER', baseConfig.blocker.nombre, '157/48', '');
-                
+
                 addStep('WHITE_BASE', baseConfig.whiteBaseRefuerzo.nombre, '122/55', baseConfig.baseAdditives);
             }
-        } 
+        }
         else if (inkUpper === 'PLASTISOL') {
             const variant = detectCustomerVariant(customer);
             const configPlast = (variant === 'PLASTISOL_GFS') ? BASE_CONFIG.PLASTISOL_GFS : BASE_CONFIG.PLASTISOL_FANATICS;
