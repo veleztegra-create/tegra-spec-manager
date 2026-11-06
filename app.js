@@ -3092,7 +3092,9 @@ function checkForSpecialtiesInColors(placementId) {
                 }
             }
 
-            if (isMetallicColor(colorVal)) {
+            // PEARLFLEX se clasifica como specialty METALLIC aunque el nombre
+            // del color no contenga un número Pantone de rango metálico.
+            if (colorVal.includes('PEARLFLEX') || isMetallicColor(colorVal)) {
                 if (!specialties.includes('METALLIC')) {
                     specialties.push('METALLIC');
                 }
