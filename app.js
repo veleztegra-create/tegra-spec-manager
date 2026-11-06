@@ -3492,7 +3492,7 @@ function renderPlacementStationsTable(placementId, data) {
         const isProcess = ['FLASH', 'COOL', 'HOT_HEAD'].includes(type);
         const rowClass = isProcess ? ' class="flash-row"' : '';
         if (isProcess) {
-            const processName = type === 'HOT_HEAD' ? 'HOT HEAD' : (item.val || type);
+            const processName = type === 'HOT_HEAD' ? (item.val || 'HOT HEAD') : (item.val || type);
             const processMesh = type === 'HOT_HEAD' ? 'TEFLÓN' : '-';
             html += `
                 <tr${rowClass}>
