@@ -887,7 +887,7 @@ window.generarConAsistente = async function (placementId) {
         // 4. ACTUALIZAR CONDICIONES DE CURADO
         // =============================================
         const curing = window.RulesEngine.getCuringConditions
-            ? window.RulesEngine.getCuringConditions(inkType, customer)
+            ? window.RulesEngine.getCuringConditions(inkType, customer, garmentColor)
             : { temperature: '320 °F', time: '1:40 min' };
 
         placement.curing = {
@@ -2207,7 +2207,7 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     placement.sequenceMode = 'AUTO';
 
     const curing = window.RulesEngine.getCuringConditions
-        ? window.RulesEngine.getCuringConditions(inkType, customer)
+        ? window.RulesEngine.getCuringConditions(inkType, customer, garmentColor)
         : {};
     placement.curing = {
         temperature: curing.temperature ?? curing.temperatura ?? placement.temp ?? '',
@@ -3220,7 +3220,7 @@ function updatePlacementStations(placementId, returnOnly = false) {
         if (['FLASH', 'COOL', 'HOT_HEAD'].includes(itemType)) {
             stationsData.push({
                 st: stNum++, screenLetter: '',
-                screenCombined: itemType === 'HOT_HEAD' ? 'HOT HEAD' : itemType,
+                screenCombined: itemType === 'HOT_HEAD' ? (item.val || 'HOT HEAD') : itemType,
                 mesh: itemType === 'HOT_HEAD' ? 'TEFLÓN' : '-',
                 ink: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-',
                 add: item.additives || ''
