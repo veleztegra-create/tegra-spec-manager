@@ -125,6 +125,10 @@ window.RulesEngine = (function() {
         if (explicitFabricTone === 'dark') return true;
         if (explicitFabricTone === 'light') return false;
 
+        // El colorway puede ser un código; si el catálogo lo identifica como White/Natural,
+        // debe tratarse como tela clara aunque el texto ingresado no incluya el nombre.
+        if (esTelaWhiteNatural(colorTela)) return false;
+
         const telaLower = String(colorTela).toLowerCase();
 
         // Regla de negocio textil: solo blancos/naturales se consideran telas claras por defecto.
