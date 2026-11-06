@@ -76,8 +76,7 @@ window.RulesEngine = (function() {
             ...(Array.isArray(registryColor?.aliases) ? registryColor.aliases : [])
         ];
         return candidates.some(value => {
-            const normalized = String(value || '').normalize('NFD')
-                .replace(/[\\u0300-\\u036f]/g, '').toUpperCase().trim();
+            const normalized = String(value || '').toUpperCase().trim();
             return /(^|[^A-Z])BLACK([^A-Z]|$)/.test(normalized) ||
                 /(^|[^A-Z])COLLAGE NAVY([^A-Z]|$)/.test(normalized) ||
                 /(^|[^A-Z])FIR([^A-Z]|$)/.test(normalized);
