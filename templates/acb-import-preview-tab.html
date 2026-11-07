@@ -1,79 +1,117 @@
 <section class="acb-import-shell">
-  <div class="card">
+  <div class="card acb-library-toolbar-card">
     <div class="card-body">
       <div class="acb-import-head">
         <div>
           <h2>Biblioteca ACB</h2>
-          <p class="acb-import-muted">Guarda varias bibliotecas Adobe Color Book (por ejemplo, Nike y NFL), cambia cuál está activa y consulta sus colores en tus especificaciones. Se guardan solo en este navegador; no modifican las reglas de producción.</p>
+          <p class="acb-import-muted">Carga y consulta bibliotecas de colores Adobe. Se guardan localmente en este navegador.</p>
         </div>
-        <span class="acb-import-badge">IMPORTACIÓN · VISTA PREVIA</span>
+        <span class="acb-import-badge">BIBLIOTECA LOCAL</span>
       </div>
-      <div class="color-registry-controls">
-        <div>
-          <strong>Catálogo maestro JSON</strong>
-          <p>Importa o exporta el catálogo compartido de colores (nombres, códigos, aliases y clasificaciones).</p>
+
+      <div class="acb-library-main-controls">
+        <div class="acb-library-load">
+          <label class="acb-control-label" for="acb-file-input">Cargar archivo ACB</label>
+          <input id="acb-file-input" class="acb-import-file" type="file" accept=".acb,application/octet-stream">
         </div>
-        <div class="color-registry-controls-actions">
-          <button id="color-registry-export" class="btn btn-primary" type="button">Exportar catálogo JSON</button>
-          <label class="btn" for="color-registry-import-file">Importar JSON</label>
-          <input id="color-registry-import-file" type="file" accept=".json,application/json" hidden>
+        <div class="acb-library-active">
+          <label class="acb-control-label" for="acb-saved-libraries">Biblioteca activa</label>
+          <select id="acb-saved-libraries" class="form-control" aria-label="Seleccionar biblioteca ACB guardada">
+            <option value="">No hay bibliotecas guardadas</option>
+          </select>
         </div>
-        <p id="color-registry-transfer-status" role="status" aria-live="polite"></p>
+        <button id="acb-delete-current-library" class="btn acb-library-secondary-action" type="button" disabled>Eliminar biblioteca</button>
+        <button id="acb-export-preview" class="btn btn-primary" type="button" disabled>Exportar JSON</button>
       </div>
-      <div class="acb-import-controls" style="margin-top:14px">
-        <input id="acb-file-input" class="acb-import-file" type="file" accept=".acb,application/octet-stream">
-        <label for="acb-saved-libraries">Biblioteca activa</label>
-        <select id="acb-saved-libraries" class="form-control" aria-label="Seleccionar biblioteca ACB guardada">
-          <option value="">No hay bibliotecas guardadas</option>
-        </select>
-        <button id="acb-delete-current-library" class="btn" type="button" disabled>Eliminar esta biblioteca</button>
-        <button id="acb-export-preview" class="btn btn-primary" type="button" disabled>Exportar vista previa JSON</button>
-        <button id="acb-clear-saved-library" class="btn" type="button">Eliminar todas las bibliotecas</button>
-      </div>
-      <p id="acb-import-message" class="acb-import-message" role="status" aria-live="polite" style="margin-top:12px">Selecciona un archivo .ACB. El archivo se procesa localmente y la biblioteca puede restaurarse al volver a abrir la aplicación en este mismo navegador.</p>
+
+      <details class="acb-library-advanced">
+        <summary>Administrar bibliotecas y catálogo JSON</summary>
+        <div class="acb-library-advanced-content">
+          <div class="acb-library-advanced-row">
+            <div>
+              <strong>Bibliotecas guardadas</strong>
+              <p>Elimina todas las bibliotecas ACB almacenadas en este navegador.</p>
+            </div>
+            <button id="acb-clear-saved-library" class="btn" type="button">Eliminar todas las bibliotecas</button>
+          </div>
+          <div class="color-registry-controls">
+            <div>
+              <strong>Catálogo maestro de colores</strong>
+              <p>Importa o exporta nombres, códigos, aliases y clasificaciones compartidas.</p>
+            </div>
+            <div class="color-registry-controls-actions">
+              <button id="color-registry-export" class="btn btn-primary" type="button">Exportar catálogo JSON</button>
+              <label class="btn" for="color-registry-import-file">Importar JSON</label>
+              <input id="color-registry-import-file" type="file" accept=".json,application/json" hidden>
+            </div>
+            <p id="color-registry-transfer-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+      </details>
+
+      <p id="acb-import-message" class="acb-import-message" role="status" aria-live="polite">Carga un archivo .ACB para consultar sus colores. La biblioteca puede restaurarse al volver a abrir la aplicación en este navegador.</p>
     </div>
   </div>
+
   <div id="acb-import-results" hidden>
     <div class="acb-import-summary">
-      <div class="acb-import-stat"><small>Libro</small><strong id="acb-stat-title">—</strong></div>
-      <div class="acb-import-stat"><small>Colores leídos</small><strong id="acb-stat-count">0</strong></div>
+      <div class="acb-import-stat"><small>Biblioteca</small><strong id="acb-stat-title">—</strong></div>
+      <div class="acb-import-stat"><small>Colores</small><strong id="acb-stat-count">0</strong></div>
       <div class="acb-import-stat"><small>Posibles duplicados</small><strong id="acb-stat-duplicates">0</strong></div>
       <div class="acb-import-stat"><small>Modelo</small><strong id="acb-stat-model">—</strong></div>
     </div>
-    <div class="card">
+
+    <details class="acb-book-details">
+      <summary>Detalles técnicos del archivo ACB</summary>
+      <div id="acb-book-details" class="acb-import-muted"></div>
+    </details>
+
+    <div class="card acb-color-browser">
       <div class="card-body">
-        <h3 style="margin-top:0">Datos del archivo</h3>
-        <div id="acb-book-details" class="acb-import-muted"></div>
-        <div class="acb-import-controls" style="margin-top:14px">
-          <label for="acb-color-search">Buscar por nombre, código o HEX</label>
-          <input id="acb-color-search" class="form-control" type="search" placeholder="Ej. University Gold o C00047">
-          <label for="acb-color-family">Familia</label>
-          <select id="acb-color-family" class="form-control" aria-label="Filtrar por familia cromática">
-            <option value="all">Todas las familias</option><option value="whites">Blancos</option>
-            <option value="blacks">Negros</option><option value="grays">Grises</option>
-            <option value="reds">Rojos</option><option value="oranges">Naranjas</option>
-            <option value="yellows">Amarillos</option><option value="greens">Verdes</option>
-            <option value="cyans">Turquesas</option><option value="blues">Azules</option>
-            <option value="purples">Violetas</option><option value="pinks">Rosas</option>
-          </select>
-          <label for="acb-color-sort">Ordenar por</label>
-          <select id="acb-color-sort" class="form-control" aria-label="Ordenar colores">
-            <option value="original">Orden original del ACB</option>
-            <option value="name-asc">Nombre A–Z</option>
-            <option value="name-desc">Nombre Z–A</option>
-            <option value="code">Código</option>
-            <option value="hex">HEX</option>
-          </select>
-          <button id="acb-clear-search" class="btn" type="button">Limpiar búsqueda</button>
-          <button id="acb-merge-colors" class="btn btn-primary" type="button" disabled>Combinar 2 seleccionados</button>
+        <div class="acb-color-browser-heading">
+          <div>
+            <h3>Buscar colores</h3>
+            <p class="acb-import-muted">Busca por nombre, código, HEX o RGB.</p>
+          </div>
           <div class="acb-view-switch" role="group" aria-label="Vista de colores">
             <button id="acb-view-grid" class="btn active" type="button">Cuadrícula</button>
             <button id="acb-view-list" class="btn" type="button">Lista</button>
             <button id="acb-view-grouped" class="btn" type="button">Agrupar</button>
           </div>
-          <label class="acb-archive-toggle"><input id="acb-show-archived" type="checkbox"> Mostrar eliminados (<span id="acb-archived-count">0</span>)</label>
         </div>
-        <p id="acb-table-summary" class="acb-import-muted" style="margin:12px 0 8px"></p>
+
+        <div class="acb-color-search-primary">
+          <input id="acb-color-search" class="form-control" type="search" placeholder="Buscar color… ej. University Gold, C00047 o #F2AE2D" autocomplete="off" aria-label="Buscar color por nombre, código, HEX o RGB">
+          <button id="acb-clear-search" class="btn" type="button">Limpiar</button>
+        </div>
+
+        <div class="acb-color-filter-row">
+          <div class="acb-filter-field">
+            <label for="acb-color-family">Familia</label>
+            <select id="acb-color-family" class="form-control" aria-label="Filtrar por familia cromática">
+              <option value="all">Todas</option><option value="whites">Blancos</option>
+              <option value="blacks">Negros</option><option value="grays">Grises</option>
+              <option value="reds">Rojos</option><option value="oranges">Naranjas</option>
+              <option value="yellows">Amarillos</option><option value="greens">Verdes</option>
+              <option value="cyans">Turquesas</option><option value="blues">Azules</option>
+              <option value="purples">Violetas</option><option value="pinks">Rosas</option>
+            </select>
+          </div>
+          <div class="acb-filter-field">
+            <label for="acb-color-sort">Orden</label>
+            <select id="acb-color-sort" class="form-control" aria-label="Ordenar colores">
+              <option value="original">Orden original ACB</option>
+              <option value="name-asc">Nombre A–Z</option>
+              <option value="name-desc">Nombre Z–A</option>
+              <option value="code">Código</option>
+              <option value="hex">HEX</option>
+            </select>
+          </div>
+          <label class="acb-archive-toggle"><input id="acb-show-archived" type="checkbox"> Mostrar eliminados <span>(<span id="acb-archived-count">0</span>)</span></label>
+          <button id="acb-merge-colors" class="btn btn-primary" type="button" disabled>Combinar 2 seleccionados</button>
+        </div>
+
+        <p id="acb-table-summary" class="acb-import-muted acb-color-result-summary"></p>
         <div id="acb-color-grid-view" class="acb-color-grid-view">
           <div id="acb-color-grid" class="acb-color-grid"></div>
         </div>
@@ -86,16 +124,17 @@
             <tbody id="acb-color-rows"></tbody>
           </table>
         </div>
-        <div class="acb-import-footer" style="margin-top:12px">
+        <div class="acb-import-footer">
           <span id="acb-page-info" class="acb-import-muted"></span>
           <button id="acb-show-more" class="btn" type="button" hidden>Mostrar siguientes</button>
         </div>
       </div>
     </div>
+
     <div id="acb-color-editor" class="acb-color-editor" hidden>
       <section class="acb-color-editor-card" role="dialog" aria-modal="true" aria-labelledby="acb-edit-title">
         <h3 id="acb-edit-title">Editar color de biblioteca</h3>
-        <p class="acb-import-muted">Corrige el nombre o el HEX. El código ACB y el nombre original se conservan como referencia.</p>
+        <p class="acb-import-muted">Corrige el nombre o HEX. El código ACB y el nombre original se conservan como referencia.</p>
         <label for="acb-edit-name">Nombre visible</label>
         <input id="acb-edit-name" class="form-control" type="text" maxlength="120">
         <label for="acb-edit-hex">HEX</label>
@@ -107,8 +146,7 @@
         </div>
       </section>
     </div>
-    <div class="acb-import-message warning">
-      <strong>Importante:</strong> el ACB no define por sí solo tipo de tinta, blocker, base blanca, malla ni curado. Esos datos no se deducen del tono y no se asignarán en esta vista previa.
-    </div>
+
+    <p class="acb-import-message acb-production-note"><strong>Nota:</strong> el ACB contiene colores, no reglas de producción. Tinta, blocker, base blanca, malla y curado siguen definidos por las reglas de la spec.</p>
   </div>
 </section>
