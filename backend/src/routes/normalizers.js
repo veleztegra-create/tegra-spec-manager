@@ -134,6 +134,7 @@ export function normalizeSpecPayload(payload = {}) {
       ? payload.specLifecycle
       : null,
     auditTrail: Array.isArray(payload.auditTrail) ? payload.auditTrail : [],
+    specWorkflow: payload.specWorkflow && typeof payload.specWorkflow === 'object' ? payload.specWorkflow : null,
     meta: payload.meta && typeof payload.meta === 'object' ? payload.meta : {}
   };
 }
