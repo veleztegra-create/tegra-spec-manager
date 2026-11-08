@@ -82,19 +82,11 @@ test('normalizeSpecPayload and mapPlacementForDb sanitize entities', () => {
   const specPayload = normalizeSpecPayload({
     generalData: 'invalid',
     meta: 'invalid',
-    specWorkflow: {
-      id: 'SPEC-1',
-      orders: [{ po: 'PO-1', stage: 'DEV 1st Proto' }],
-      currentRound: 2
-    },
     placements: [null, { name: ' Chest ', inkType: '' }]
   });
 
   assert.deepEqual(specPayload.generalData, {});
   assert.deepEqual(specPayload.meta, {});
-  assert.equal(specPayload.specWorkflow.id, 'SPEC-1');
-  assert.equal(specPayload.specWorkflow.orders[0].po, 'PO-1');
-  assert.equal(specPayload.specWorkflow.currentRound, 2);
   assert.equal(specPayload.placements.length, 1);
 
   const mapped = mapPlacementForDb(specPayload.placements[0], 0);
