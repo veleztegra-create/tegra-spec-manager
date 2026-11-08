@@ -84,13 +84,8 @@
             }))
             : [];
 
-        const specWorkflow = global.SpecWorkflow?.normalizeWorkflow
-            ? global.SpecWorkflow.normalizeWorkflow(spec.specWorkflow, generalData)
-            : (spec.specWorkflow && typeof spec.specWorkflow === 'object' ? spec.specWorkflow : null);
-
         return {
             ...spec,
-            specWorkflow,
             specLifecycle: normalizeLifecycle(spec.specLifecycle),
             styleVersion: normalizeStyleVersion(
                 spec.styleVersion || {

@@ -47,6 +47,41 @@ test('one shared spec can link multiple POs with different stages', () => {
   assert.equal(spec.artwork.sharingConfirmed, true);
 });
 
+test('legacy PO is recovered when the workflow object was initialized before Excel import', () => {
+  const workflow = loadWorkflow();
+  const initialized = workflow.normalizeWorkflow({});
+  const afterExcelImport = workflow.normalizeWorkflow(initialized, {
+    po: 'PO-2001',
+    sampleType: 'Size Set'
+  });
+
+  assert.equal(afterExcelImport.orders.length, 1);
+  assert.equal(afterExcelImport.orders[0].po, 'PO-2001');
+  assert.equal(afterExcelImport.orders[0].stage, 'Size Set');
+});
+
+test('linking a second PO requires explicit same-artwork confirmation', () => {
+  const workflow = loadWorkflow();
+  let spec = workflow.createWorkflow({ id: 'SPEC-1' });
+  spec = workflow.linkOrder(spec, { po: 'PO-1', stage: 'Proto' });
+
+  assert.throws(
+    () => workflow.linkOrder(spec, { po: 'PO-2', stage: 'Size Set' }),
+    /mismo arte/
+  );
+});
+
+test('the last active order cannot be detached from its Spec', () => {
+  const workflow = loadWorkflow();
+  let spec = workflow.createWorkflow({ id: 'SPEC-1' });
+  spec = workflow.linkOrder(spec, { po: 'PO-1', stage: 'Proto' });
+
+  assert.throws(
+    () => workflow.unlinkOrder(spec, { po: 'PO-1', stage: 'Proto' }),
+    /última orden/
+  );
+});
+
 test('duplicate PO/stage/SWO association is not added twice', () => {
   const workflow = loadWorkflow();
   let spec = workflow.createWorkflow({ id: 'SPEC-1' });

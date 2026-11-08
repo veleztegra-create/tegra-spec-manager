@@ -82,8 +82,13 @@
             colorway: generalData.colorway,
             swoId: generalData.swoId
         }, 0);
-        const orders = Array.isArray(source.orders)
+        const explicitOrders = Array.isArray(source.orders)
             ? source.orders.map(normalizeOrder).filter(Boolean)
+            : [];
+        // A Store initialized before Excel import may contain an empty workflow
+        // object. Recover the legacy PO after generalData is populated.
+        const orders = explicitOrders.length > 0
+            ? explicitOrders
             : (fallbackOrder ? [fallbackOrder] : []);
 
         const status = STATUSES.includes(source.status) ? source.status : 'DRAFT';
@@ -138,6 +143,12 @@
         const identity = orderIdentity(nextOrder);
         const existing = normalized.orders.find((item) => orderIdentity(item) === identity);
         if (existing && existing.status === 'ACTIVE') return normalized;
+        const hasAnotherActiveOrder = normalized.orders.some((item) =>
+            item.status === 'ACTIVE' && orderIdentity(item) !== identity
+        );
+        if (hasAnotherActiveOrder && !options.confirmSameArtwork && !normalized.artwork.sharingConfirmed) {
+            throw new Error('Confirma que las órdenes corresponden al mismo arte antes de compartir una Spec.');
+        }
 
         const linked = {
             ...nextOrder,
@@ -167,6 +178,13 @@
         const target = normalizeOrder(orderRef);
         if (!target) throw new Error('Se requiere una PO para retirar una orden.');
         const identity = orderIdentity(target);
+        const activeMatches = normalized.orders.filter((item) =>
+            item.status === 'ACTIVE' && orderIdentity(item) === identity
+        ).length;
+        const activeCount = normalized.orders.filter((item) => item.status === 'ACTIVE').length;
+        if (activeMatches > 0 && activeCount <= 1) {
+            throw new Error('No se puede retirar la última orden vinculada a la Spec.');
+        }
         return {
             ...normalized,
             orders: normalized.orders.map((item) => orderIdentity(item) === identity
