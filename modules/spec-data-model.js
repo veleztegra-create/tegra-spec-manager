@@ -59,6 +59,9 @@ function buildSpecData() {
         modificationDate: todayLocal,
         colorwayHex: colorwayHex ? String(colorwayHex).toUpperCase() : '',
         placements: state.placements,
+        specWorkflow: window.SpecWorkflow?.normalizeWorkflow
+            ? window.SpecWorkflow.normalizeWorkflow(state.specWorkflow, state.generalData || {})
+            : (state.specWorkflow || null),
         styleVersion,
         versionHistory: Array.isArray(state.versionHistory)
             ? state.versionHistory

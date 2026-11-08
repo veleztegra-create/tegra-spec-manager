@@ -18,6 +18,7 @@
             specDate: ""
         },
         placements: [],
+        specWorkflow: null,
         specLifecycle: {
             status: 'DRAFT',
             source: 'RULE_ENGINE',
@@ -65,6 +66,9 @@
             placements: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
                 ? window.SpecNormalizer.normalizeSpecData(safeCandidate).placements
                 : (Array.isArray(safeCandidate.placements) ? safeCandidate.placements : []),
+            specWorkflow: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
+                ? window.SpecNormalizer.normalizeSpecData(safeCandidate).specWorkflow
+                : (safeCandidate.specWorkflow || null),
             specLifecycle: typeof window.SpecNormalizer?.normalizeSpecData === 'function'
                 ? window.SpecNormalizer.normalizeSpecData(safeCandidate).specLifecycle
                 : (safeCandidate.specLifecycle || DEFAULT_STATE.specLifecycle),
