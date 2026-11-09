@@ -3667,46 +3667,6 @@ function updatePlacementField(placementId, field, value) {
 // FUNCIÓN PARA PROCESAR DATOS EXCEL (VERSIÓN CON LOGS Y SOPORTE PARA WORKBOOK)
 // =====================================================
 
-// Extrae tallas del encabezado SIZE BREAKDOWN del SWO, sin inferir tallas intermedias.
-function extractRequestedSizesFromGrid(grid) {
-    const SIZE_TOKENS = new Set([
-        'XXS','2XS','XS','XSM','S','SM','M','MD','MED','L','LG','XL','X-LARGE',
-        '2XL','XXL','XXLARGE','3XL','XXXL','4XL','5XL','6XL','7XL','8XL',
-        '2X','3X','4X','5X','6X','2XLT','3XLT','4XLT','LT','XLT',
-        'OS','OSFA','ONESIZE','ONE SIZE','YXS','YS','YM','YL','YXL',
-        '0','2','4','6','8','10','12','14','16','18','20','22','24','26','28','30','32','34','36','38','40','42','44','46','48','50','52','54','56','58','60'
-    ]);
-    const normalize = (value) => String(value ?? '').trim().toUpperCase().replace(/\\s+/g, ' ');
-    const isSize = (value) => SIZE_TOKENS.has(normalize(value));
-    if (!Array.isArray(grid)) return [];
-
-    let sectionIndex = grid.findIndex(row =>
-        Array.isArray(row) && row.some(cell => /SIZE\\s*BREAKDOWN/i.test(String(cell ?? '')))
-    );
-    const start = sectionIndex >= 0 ? sectionIndex : 0;
-    const end = sectionIndex >= 0 ? Math.min(grid.length, sectionIndex + 8) : Math.min(grid.length, 25);
-
-    let best = [];
-    for (let rowIndex = start; rowIndex < end; rowIndex++) {
-        const row = grid[rowIndex];
-        if (!Array.isArray(row)) continue;
-        const sizes = row.map(normalize).filter(isSize);
-        const unique = [...new Set(sizes)];
-        if (unique.length > best.length) best = unique;
-        if (sectionIndex >= 0 && rowIndex > sectionIndex && unique.length >= 2) {
-            // Primera fila posterior al título con varias tallas: suele ser el header.
-            return unique;
-        }
-    }
-    return best;
-}
-
-function formatSizeSetLabel(sizes) {
-    return Array.isArray(sizes) && sizes.length
-        ? `SIZESET / ${sizes.join('-')}`
-        : '';
-}
-
 function processExcelData(worksheet, sheetName = '', workbook = null) {
     console.log('📁 processExcelData INICIANDO con hoja:', sheetName);
     console.log('📊 worksheet:', worksheet);
@@ -3849,8 +3809,8 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
 
     // Size Set: usar los tokens de talla del encabezado, no las cantidades ni rangos inferidos.
     if (isSWOSheet) {
-        extracted.requestedSizes = extractRequestedSizesFromGrid(data);
-        extracted.sizeSetLabel = formatSizeSetLabel(extracted.requestedSizes);
+        extracted.requestedSizes = window.SizeSetExtractor?.extractRequestedSizesFromGrid(data) || [];
+        extracted.sizeSetLabel = window.SizeSetExtractor?.formatSizeSetLabel(extracted.requestedSizes) || '';
     }
 
     // Base size suele venir en fila 16 (C16:J16) en SWO/PPS
@@ -3907,7 +3867,7 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         if (info.baseSize) setInputValue('base-size', info.baseSize);
         if (Array.isArray(info.requestedSizes) && info.requestedSizes.length && window.Store?.state?.generalData) {
             window.Store.state.generalData.requestedSizes = [...info.requestedSizes];
-            window.Store.state.generalData.sizeSetLabel = info.sizeSetLabel || formatSizeSetLabel(info.requestedSizes);
+            window.Store.state.generalData.sizeSetLabel = info.sizeSetLabel || window.SizeSetExtractor?.formatSizeSetLabel(info.requestedSizes) || '';
         }
     };
 
