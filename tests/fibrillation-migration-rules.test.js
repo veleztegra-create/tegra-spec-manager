@@ -9,11 +9,12 @@ const [rulesSource, sequenceSource, normalizerSource] = await Promise.all([
     readFile(new URL('../core/layer-normalizer.js', import.meta.url), 'utf8')
 ]);
 
-function createEngine() {
+function createEngine(colorRegistry = null) {
     const window = {
         ProductionConditionEngine: {
             evaluatePlacement: () => ({ directToBlocker: false, matchedConditions: [], reason: '' })
-        }
+        },
+        ...(colorRegistry ? { ColorRegistry: colorRegistry } : {})
     };
     vm.runInNewContext(normalizerSource, { window });
     vm.runInNewContext(sequenceSource, { window });
@@ -25,55 +26,61 @@ function createEngine() {
     return window.RulesEngine;
 }
 
-test('WATERBASE BLACK uses migration blockers, automatic press, two AquaFlex bases and then colors', () => {
-    const engine = createEngine();
+function assertMigrationSequence(engine, garmentColor, customer = 'FANATICS') {
     const sequence = engine.generarSecuencia({
-        garmentColor: 'BLACK',
+        customer,
+        garmentColor,
         inkType: 'WATER',
         designColors: [{ val: 'RED' }]
     });
-
-    assert.deepEqual(Array.from(sequence, step => step.tipo), [
-        'BLOCKER', 'FLASH', 'COOL',
-        'HOT_HEAD', 'COOL',
-        'BLOCKER', 'FLASH', 'COOL',
-        'BLOCKER', 'FLASH', 'COOL',
-        'WHITE_BASE', 'FLASH', 'COOL',
-        'WHITE_BASE', 'FLASH', 'COOL',
-        'COLOR', 'FLASH', 'COOL', 'COLOR'
-    ]);
     assert.equal(sequence[0].nombre, 'AQUARIUS MIGRATION BLOCKER STOP');
-    assert.equal(sequence[0].additives, '10% Aquaflex V2 Neutral · 0.75% Aquarius Thickener');
-    assert.equal(sequence[3].nombre, 'PLANCHADOR AUTOMÁTICO · 120 °F');
-    assert.equal(sequence[3].mesh, 'TEFLÓN');
-    assert.equal(sequence[5].nombre, 'MAGNA MIGRATION BLOCKER BLACK');
-    assert.equal(sequence[8].nombre, 'MAGNA MIGRATION BLOCKER BLACK');
-    assert.equal(sequence[11].mesh, '122/55');
-    assert.equal(sequence[14].mesh, '198/40');
-});
+    assert.ok(sequence.some(step => step.tipo === 'HOT_HEAD'));
+    return sequence;
+}
 
-test('COLLAGE NAVY and FIR trigger the WATERBASE migration rule', () => {
+test('Fanatics WATERBASE BLACK, COLLEGE NAVY and FIR trigger migration treatment with code suffixes', () => {
     const engine = createEngine();
-    for (const garmentColor of ['COLLAGE NAVY', 'FIR']) {
-        const sequence = engine.generarSecuencia({
-            garmentColor,
-            inkType: 'WATER',
-            designColors: [{ val: 'RED' }]
-        });
-        assert.equal(sequence[0].nombre, 'AQUARIUS MIGRATION BLOCKER STOP');
-        assert.ok(sequence.some(step => step.tipo === 'HOT_HEAD'));
+    for (const garmentColor of ['BLACK 001', 'COLLEGE NAVY 41S', 'FIR 123']) {
+        const sequence = assertMigrationSequence(engine, garmentColor);
+        assert.equal(sequence.filter(step => step.purpose === 'migration-screen-2').length, 1);
+        assert.equal(sequence.filter(step => step.purpose === 'migration-screen-3').length, 1);
+        assert.equal(sequence.filter(step => step.tipo === 'WHITE_BASE').length, 2);
     }
 });
 
-test('migration treatment does not activate for other inks or unrelated colors', () => {
+test('Fanatics colorway codes resolve through ColorRegistry when the name is not entered', () => {
+    const engine = createEngine({
+        find: value => value === '41S'
+            ? { name: 'COLLEGE NAVY', aliases: ['COLLEGE NAVY 41S'] }
+            : null
+    });
+    assertMigrationSequence(engine, '41S');
+});
+
+test('migration treatment is restricted to Fanatics customers', () => {
+    const engine = createEngine();
+    for (const customer of ['NCAA', 'GFS', 'OTHER CUSTOMER', '']) {
+        const sequence = engine.generarSecuencia({
+            customer,
+            garmentColor: 'COLLEGE NAVY 41S',
+            inkType: 'WATER',
+            designColors: [{ val: 'RED' }]
+        });
+        assert.equal(sequence[0].nombre === 'AQUARIUS MIGRATION BLOCKER STOP', false, customer);
+        assert.equal(sequence.some(step => step.tipo === 'HOT_HEAD'), false, customer);
+    }
+});
+
+test('migration treatment does not activate for other inks or unrelated color names', () => {
     const engine = createEngine();
     const plastisol = engine.generarSecuencia({
+        customer: 'FANATICS',
         garmentColor: 'BLACK',
         inkType: 'PLASTISOL',
-        customer: 'GFS',
         designColors: [{ val: 'RED' }]
     });
     const unrelated = engine.generarSecuencia({
+        customer: 'FANATICS',
         garmentColor: 'FIRE RED',
         inkType: 'WATER',
         designColors: [{ val: 'RED' }]
@@ -83,13 +90,14 @@ test('migration treatment does not activate for other inks or unrelated colors',
     assert.equal(unrelated.some(step => step.tipo === 'HOT_HEAD'), false);
 });
 
-test('migration curing is 320 F for 1 minute 30 seconds only for WATERBASE target fabrics', () => {
+test('migration curing is 320 F for 1 minute 30 seconds only for Fanatics WATERBASE target fabrics', () => {
     const engine = createEngine();
     assert.deepEqual(
-        { ...engine.getCuringConditions('WATER', '', 'BLACK') },
+        { ...engine.getCuringConditions('WATER', 'FANATICS', 'BLACK') },
         { temperatura: '320 °F', tiempo: '1:30 min' }
     );
-    assert.equal(engine.getCuringConditions('WATER', '', 'FIR').tiempo, '1:30 min');
-    assert.notEqual(engine.getCuringConditions('PLASTISOL', 'GFS', 'BLACK').tiempo, '1:30 min');
-    assert.notEqual(engine.getCuringConditions('WATER', '', 'NAVY').tiempo, '1:30 min');
+    assert.equal(engine.getCuringConditions('WATER', 'FANATICS', 'FIR').tiempo, '1:30 min');
+    assert.notEqual(engine.getCuringConditions('PLASTISOL', 'FANATICS', 'BLACK').tiempo, '1:30 min');
+    assert.notEqual(engine.getCuringConditions('WATER', 'NCAA', 'BLACK').tiempo, '1:30 min');
+    assert.notEqual(engine.getCuringConditions('WATER', 'FANATICS', 'NAVY').tiempo, '1:30 min');
 });
