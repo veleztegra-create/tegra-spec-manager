@@ -21,6 +21,7 @@ jobs:
         run: |
           node --check app.js
           node --check modules/spec-workflow.js
+          node --check modules/size-set-extractor.js
           node --check modules/production-alerts.js
           node --check fixes.js
           node --check js/nikeTechPackExtractor.js
@@ -32,6 +33,8 @@ jobs:
           node --check modules/acb-color-matcher.js
       - name: Run shared spec workflow tests
         run: npm run test:workflow
+      - name: Run Size Set extractor tests
+        run: npm run test:size-set
       - name: Run approved spec renderer regression tests
         run: npm run test:approved-spec
       - name: Run production sequence and PPF alert regression tests
