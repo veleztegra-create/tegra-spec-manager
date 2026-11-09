@@ -70,6 +70,7 @@
     .bottom-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border-color); }
     .btn-main { background: var(--tegra-red); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
     .btn-add { background: #1e7a3c; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+  .add-input{cursor:pointer;background:#fffdf5!important}.additives-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.58);padding:14px;align-items:center;justify-content:center}.additives-modal.open{display:flex}.additives-dialog{background:#fff;border-radius:10px;padding:18px;width:min(620px,100%);max-height:88vh;overflow:auto}.additives-head{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding-bottom:12px}.additive-item{display:grid;grid-template-columns:minmax(0,1fr) 95px;gap:9px;border:1px solid #ddd;border-radius:7px;padding:10px;margin:9px 0}.additive-item label{display:block;font-size:.7rem;font-weight:bold;margin:5px 0}.additive-item select,.additive-item input{width:100%;padding:8px;border:1px solid #ccc;border-radius:5px}.additive-original{font-size:.7rem;color:#666}.additives-note{background:#fff8e7;padding:9px;margin-top:12px;font-size:.72rem}.additives-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.additives-actions button{padding:9px 14px;border:0;border-radius:5px;color:white;background:#666}.additives-actions .apply{background:var(--tegra-red)}
   </style>
 </head>
 <body>
@@ -147,11 +148,14 @@
     </div>
   </div>
 
+  <div class="additives-modal" id="additivesModal" aria-hidden="true"><section class="additives-dialog" role="dialog" aria-modal="true"><div class="additives-head"><div><h2>Editar aditivos</h2><p id="additivesInkLabel"></p></div><button id="closeAdditives" type="button">×</button></div><div id="additivesItems"></div><div class="additives-note"><b>Catálogo temporal: Water Base / colores sólidos.</b> En la integración real, formulaciones, inventario y sustitutos procederán del programa de tintas.</div><div class="additives-actions"><button id="cancelAdditives" type="button">Cancelar</button><button class="apply" id="applyAdditives" type="button">Aplicar cambios</button></div></section></div>
+
 <script>
   let docParsed = null;
   let fileName = "TegraSpec_Actualizado.html";
   let masterUnlocked = false;
   let draggedRows = [];
+  const DEMO_WATERBASE_ADDITIVES=[{name:'CL500',percent:'3%'},{name:'Binder Flex',percent:'3%'},{name:'Genesis',percent:'15%'},{name:'Aquarius Thickener',percent:'0.25%'},{name:'Aquaflex V2 Neutral',percent:'10%'},{name:'Matte Top Coat',percent:'10%'},{name:'Antitack',percent:'1.5%'},{name:'Ultra Stretch',percent:'10%'}];let activeAdditivesInput=null;let pendingAdditives=[];function parsearAditivos(v){return(v||'').split(/[,;\n]+/).map(p=>{const raw=p.trim();if(!raw)return null;const m=raw.match(/^([0-9]+(?:[.,][0-9]+)?)\s*%\s*(.+)$/);return m?{percent:m[1].replace(',','.')+'%',name:m[2].trim(),original:raw}:{percent:'',name:raw,original:raw};}).filter(Boolean);}function abrirEditorAditivos(input,ink){activeAdditivesInput=input;pendingAdditives=parsearAditivos(input.value);document.getElementById('additivesInkLabel').textContent='Tinta: '+(ink||'Sin nombre');renderizarAditivos();document.getElementById('additivesModal').classList.add('open');document.getElementById('additivesModal').setAttribute('aria-hidden','false');}function renderizarAditivos(){const host=document.getElementById('additivesItems');host.innerHTML='';if(!pendingAdditives.length){host.textContent='Esta línea no contiene aditivos para editar.';return;}pendingAdditives.forEach((item,index)=>{const card=document.createElement('div');card.className='additive-item';const left=document.createElement('div');const right=document.createElement('div');const original=document.createElement('div');original.className='additive-original';original.textContent='Enviado originalmente: '+item.original;const label=document.createElement('label');label.textContent='Aditivo / reemplazo';const select=document.createElement('select');const keep=document.createElement('option');keep.value='__keep__';keep.textContent='Mantener: '+item.name;select.appendChild(keep);DEMO_WATERBASE_ADDITIVES.forEach((entry,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=entry.name+' ('+entry.percent+')';if(entry.name.toLowerCase()===item.name.toLowerCase())o.selected=true;select.appendChild(o);});const pctLabel=document.createElement('label');pctLabel.textContent='Porcentaje';const pct=document.createElement('input');pct.value=item.percent;pct.placeholder='Ej. 3%';pct.addEventListener('input',()=>item.percent=pct.value.trim());select.addEventListener('change',()=>{if(select.value==='__keep__'){item.name=item.originalName||item.name;item.percent=item.originalPercent||item.percent;}else{const replacement=DEMO_WATERBASE_ADDITIVES[Number(select.value)];item.name=replacement.name;item.percent=replacement.percent;}pct.value=item.percent;});item.originalName=item.originalName||item.name;item.originalPercent=item.originalPercent||item.percent;left.append(original,label,select);right.append(pctLabel,pct);card.append(left,right);host.appendChild(card);});}function cerrarEditorAditivos(){const m=document.getElementById('additivesModal');m.classList.remove('open');m.setAttribute('aria-hidden','true');activeAdditivesInput=null;pendingAdditives=[];}function aplicarEditorAditivos(){if(!activeAdditivesInput)return;activeAdditivesInput.value=pendingAdditives.map(x=>(x.percent?x.percent+' ':'')+x.name).join(', ');activeAdditivesInput.dataset.appliedAdditives=activeAdditivesInput.value;cerrarEditorAditivos();}
 
   document.addEventListener("DOMContentLoaded", () => {
     const uploadZone = document.getElementById("uploadZone");
@@ -163,6 +167,9 @@
     document.getElementById("btnAddEstacion").addEventListener("click", () => agregarEstacion());
     document.getElementById("btnReset").addEventListener("click", reiniciarApp);
     document.getElementById("btnGuardar").addEventListener("click", descargarHTML);
+    ["closeAdditives","cancelAdditives"].forEach(id=>document.getElementById(id).addEventListener("click",cerrarEditorAditivos));
+    document.getElementById("applyAdditives").addEventListener("click",aplicarEditorAditivos);
+    document.getElementById("additivesModal").addEventListener("click",e=>{if(e.target.id==="additivesModal")cerrarEditorAditivos();});
 
     const btnMasterLock = document.getElementById("btnMasterLock");
     btnMasterLock.addEventListener("click", () => {
@@ -277,7 +284,7 @@
       <td>${estContainer}</td>
       <td><input type="text" value="${scr}"></td>
       <td><input type="text" value="${ink}" class="text-left"></td>
-      <td><input type="text" value="${add}" class="text-left"></td>
+      <td><input type="text" value="${add}" class="text-left add-input" title="Toca para revisar o sustituir aditivos"></td>
       <td><input type="text" value="${id}"></td>
       <td><input type="text" value="${mesh}"></td>
       <td><input type="text" value="${durom}"></td>
@@ -290,6 +297,8 @@
         <button class="btn-del" type="button" title="Eliminar">✕</button>
       </td>
     `;
+
+    row.querySelector(".add-input").addEventListener("click",()=>abrirEditorAditivos(row.querySelector(".add-input"),row.querySelectorAll("input")[2].value));
 
     // Eventos de Arrastre Inteligente sincronizado
     row.addEventListener("dragstart", (e) => {
@@ -389,7 +398,9 @@
         const strokes = tds[9] ? tds[9].textContent.trim() : "";
         const press = tds[10] ? tds[10].textContent.trim() : "";
 
-        tbody.appendChild(crearFilaHTML(n, scr, ink, add, id, mesh, durom, speed, angle, strokes, press, type));
+        const newRow=crearFilaHTML(n,scr,ink,add,id,mesh,durom,speed,angle,strokes,press,type);
+        newRow.dataset.originalAdditives=tr.dataset.originalAdditives||add;
+        tbody.appendChild(newRow);
       }
     });
 
@@ -429,6 +440,8 @@
 
       const newTr = document.createElement("tr");
       newTr.className = trClass;
+      newTr.dataset.originalAdditives = tr.dataset.originalAdditives || add;
+      newTr.dataset.appliedAdditives = add;
       newTr.innerHTML = `
         <td class="n">${n}</td>
         <td class="scr">${scr}</td>
