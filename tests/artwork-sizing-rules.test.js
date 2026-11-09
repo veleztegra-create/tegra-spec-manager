@@ -39,6 +39,16 @@ test('manual sizes are retained on the placement', () => {
   assert.deepEqual(rules.getManualSizes({ additionalArtworkSizes: custom }), custom);
 });
 
+test('PPF is detected from the uploaded exported pattern filename', () => {
+  const [size] = rules.getAutomaticSizes(
+    { type: 'FRONT', width: '10.8', height: '10' },
+    { exportedPatternName: '381892F_ST_PPF_exportedpattern_nh260602.ai' }
+  );
+  assert.equal(size.label, 'PPF +3 mm');
+  assert.equal(size.width, '10.918');
+  assert.equal(size.height, '10.118');
+});
+
 test('PPF calculated size can be manually overridden', () => {
   const [size] = rules.getAutomaticSizes({
     type: 'FRONT',
