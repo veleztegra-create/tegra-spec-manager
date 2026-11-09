@@ -17,7 +17,9 @@
   function descriptors(placement, data) {
     return [
       placement?.fabric, placement?.fabricContent, placement?.program, placement?.title, placement?.type,
-      data?.fabric, data?.fabricContent, data?.program, data?.sampleType, data?.category, data?.customer
+      data?.fabric, data?.fabricContent, data?.program, data?.sampleType, data?.category, data?.customer,
+      data?.exportedPatternName, data?.pattern, data?.customerSchematicName, data?.customerTechpackName,
+      data?.general?.exportedPatternName, data?.general?.pattern, data?.general?.customerSchematicName, data?.general?.customerTechpackName
     ].filter(Boolean).join(' ').toUpperCase();
   }
   function size(label, width, height, rule, precision = 2) {
