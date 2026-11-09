@@ -67,8 +67,11 @@ window.RulesEngine = (function() {
 
     // Excepción WATERBASE para telas con riesgo confirmado de Fibrillation & Migration.
     // Se reconocen nombres completos/tokens, nunca coincidencias parciales como "FIR" dentro de otra palabra.
-    function esTelaFibrillationMigration(colorTela) {
-        if (!colorTela) return false;
+    function esTelaFibrillationMigration(colorTela, customer = '') {
+        // Esta excepción está aprobada únicamente para Fanatics.
+        if (!String(customer || '').toUpperCase().includes('FANATICS') || !colorTela) return false;
+
+        // ColorRegistry permite resolver también colorways ingresados solo por código.
         const registryColor = window.ColorRegistry?.find?.(colorTela);
         const candidates = [
             colorTela,
@@ -78,7 +81,7 @@ window.RulesEngine = (function() {
         return candidates.some(value => {
             const normalized = String(value || '').toUpperCase().trim();
             return /(^|[^A-Z])BLACK([^A-Z]|$)/.test(normalized) ||
-                /(^|[^A-Z])COLLAGE NAVY([^A-Z]|$)/.test(normalized) ||
+                /(^|[^A-Z])COLLEGE NAVY([^A-Z]|$)/.test(normalized) ||
                 /(^|[^A-Z])FIR([^A-Z]|$)/.test(normalized);
         });
     }
@@ -339,7 +342,7 @@ window.RulesEngine = (function() {
         const baseConfig = getBaseConfig(inkType, customer);
         const esOscura = esTelaOscura(garmentColor);
         const inkUpper = inkType.toUpperCase();
-        const esFibrillationMigration = inkUpper === 'WATER' && esTelaFibrillationMigration(garmentColor);
+        const esFibrillationMigration = inkUpper === 'WATER' && esTelaFibrillationMigration(garmentColor, customer);
         
         console.log(`   📋 Config: ${baseConfig.blocker.nombre} / ${baseConfig.whiteBase.nombre}`);
         console.log(`   📊 Tela: ${esOscura ? 'oscura' : 'clara'}`);
@@ -456,7 +459,7 @@ window.RulesEngine = (function() {
         // ===== PASOS PREVIOS SEGÚN TIPO DE TINTA =====
         if (inkUpper === 'WATER') {
             if (esFibrillationMigration) {
-                // Tratamiento preventivo aprobado para BLACK, COLLAGE NAVY y FIR.
+                // Tratamiento preventivo aprobado para Fanatics: BLACK, COLLEGE NAVY y FIR.
                 // Las mallas de las pantallas blocker se dejan sin fijar para usar el preset vigente.
                 addStep('BLOCKER', 'AQUARIUS MIGRATION BLOCKER STOP', '', '10% Aquaflex V2 Neutral · 0.75% Aquarius Thickener');
                 addStep('BLOCKER', 'MAGNA MIGRATION BLOCKER BLACK', '', '10% Aquaflex V2 Neutral', 'migration-screen-2');
@@ -639,7 +642,7 @@ window.RulesEngine = (function() {
         const config = getBaseConfig(inkType, customer);
         const isWaterbaseMigrationFabric =
             String(inkType || 'WATER').toUpperCase() === 'WATER' &&
-            esTelaFibrillationMigration(garmentColor);
+            esTelaFibrillationMigration(garmentColor, customer);
         return {
             temperatura: isWaterbaseMigrationFabric ? '320 °F' : config.temperatura,
             tiempo: isWaterbaseMigrationFabric ? '1:30 min' : config.tiempo
