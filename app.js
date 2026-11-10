@@ -3807,9 +3807,17 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         extracted.gender = normalizeGenderValue('', extracted.style, extracted.customer);
     }
 
-    // Size Set: usar los tokens de talla del encabezado, no las cantidades ni rangos inferidos.
+    // Size Set: preferir el desglose más completo de cualquier hoja del workbook.
+    // Algunas SWO guardan las tallas en PPS aunque la hoja Proto sea la seleccionada.
     if (isSWOSheet) {
-        extracted.requestedSizes = window.SizeSetExtractor?.extractRequestedSizesFromGrid(data) || [];
+        const workbookSizeSet = window.SizeSetExtractor?.extractRequestedSizesFromWorkbook?.(workbook);
+        if (workbookSizeSet?.sizes?.length) {
+            extracted.requestedSizes = workbookSizeSet.sizes;
+            console.log('📏 Size Set detectado en hoja:', workbookSizeSet.sheetName, extracted.requestedSizes);
+        } else {
+            extracted.requestedSizes = window.SizeSetExtractor?.extractRequestedSizesFromGrid(data) || [];
+            console.log('📏 Size Set detectado en hoja seleccionada:', sheetName, extracted.requestedSizes);
+        }
         extracted.sizeSetLabel = window.SizeSetExtractor?.formatSizeSetLabel(extracted.requestedSizes) || '';
     }
 
