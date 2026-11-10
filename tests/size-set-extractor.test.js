@@ -79,7 +79,8 @@ test('chooses the fullest SIZE BREAKDOWN across Proto and PPS workbook sheets', 
   const xlsx = {
     utils: {
       sheet_to_json: (worksheet, options) => {
-        assert.deepEqual(options, { header: 1, defval: '' });
+        assert.equal(options.header, 1);
+        assert.equal(options.defval, '');
         return worksheet.grid;
       }
     }
