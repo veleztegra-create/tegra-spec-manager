@@ -10,6 +10,9 @@
     ]);
     const normalize = value => String(value ?? '').trim().toUpperCase().replace(/\s+/g, ' ');
     const isSize = value => SIZE_TOKENS.has(normalize(value));
+    const hasSizeBreakdown = grid => Array.isArray(grid) && grid.some(row =>
+        Array.isArray(row) && row.some(cell => /SIZE\s*BREAKDOWN/i.test(String(cell ?? '')))
+    );
 
     function extractRequestedSizesFromGrid(grid) {
         if (!Array.isArray(grid)) return [];
@@ -22,8 +25,7 @@
         for (let rowIndex = start; rowIndex < end; rowIndex++) {
             const row = grid[rowIndex];
             if (!Array.isArray(row)) continue;
-            // Do not stop at blank cells: SWO templates commonly leave spacer columns
-            // between the "Sizes" label and the first actual size (e.g. B16 blank C16).
+            // Blank spacer cells are valid; continue scanning later columns.
             const sizes = row.map(normalize).filter(isSize);
             const unique = [...new Set(sizes)];
             if (unique.length > best.length) best = unique;
@@ -32,8 +34,40 @@
         return best;
     }
 
+    // A SWO workbook may contain several Proto sheets plus a separate PPS sheet.
+    // Read every sheet with an explicit SIZE BREAKDOWN and keep the fullest header.
+    function extractRequestedSizesFromWorkbook(workbook) {
+        const result = { sheetName: '', sizes: [] };
+        const xlsx = global.XLSX;
+        if (!workbook || !Array.isArray(workbook.SheetNames) ||
+            !workbook.Sheets || !xlsx?.utils?.sheet_to_json) return result;
+
+        for (const sheetName of workbook.SheetNames) {
+            const worksheet = workbook.Sheets[sheetName];
+            if (!worksheet) continue;
+            let grid;
+            try {
+                grid = xlsx.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+            } catch (error) {
+                console.warn('No se pudo leer Size Breakdown de la hoja:', sheetName, error);
+                continue;
+            }
+            if (!hasSizeBreakdown(grid)) continue;
+            const sizes = extractRequestedSizesFromGrid(grid);
+            if (sizes.length > result.sizes.length) {
+                result.sheetName = sheetName;
+                result.sizes = sizes;
+            }
+        }
+        return result;
+    }
+
     function formatSizeSetLabel(sizes) {
         return Array.isArray(sizes) && sizes.length ? `SIZESET / ${sizes.join('-')}` : '';
     }
-    global.SizeSetExtractor = { extractRequestedSizesFromGrid, formatSizeSetLabel };
+    global.SizeSetExtractor = {
+        extractRequestedSizesFromGrid,
+        extractRequestedSizesFromWorkbook,
+        formatSizeSetLabel
+    };
 })(typeof window !== 'undefined' ? window : globalThis);
