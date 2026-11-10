@@ -32,6 +32,20 @@ test('extracts all sizes from SIZE BREAKDOWN header, independent of quantity cel
   );
 });
 
+test('extracts sizes across the blank spacer column used by the uploaded SWO PPS sheet', () => {
+  const extractor = loadExtractor();
+  const grid = [
+    ['TYPE OF PROCESS', null, null, null],
+    ['SIZE BREAKDOWN', null, null, null, null, null],
+    ['Sizes', null, 'S', 'M', 'L', 'XL', '2XL'],
+    ['Qty per Size', null, 2, 2, 2, 2, 2],
+    ['TOTAL UNITS', null, null, null, null, null, null, 10]
+  ];
+  const sizes = extractor.extractRequestedSizesFromGrid(grid);
+  assert.deepEqual(Array.from(sizes), ['S', 'M', 'L', 'XL', '2XL']);
+  assert.equal(extractor.formatSizeSetLabel(sizes), 'SIZESET / S-M-L-XL-2XL');
+});
+
 test('preserves non-contiguous requested sizes without inventing intermediate sizes', () => {
   const extractor = loadExtractor();
   const grid = [
