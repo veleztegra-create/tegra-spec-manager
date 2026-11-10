@@ -1947,3 +1947,57 @@ textarea.form-control:focus {
 .color-registry-controls-actions label.btn { cursor:pointer; }
 #color-registry-transfer-status { flex-basis:100%; margin:0; font-size:.85rem; color:var(--text-secondary,#aaa); }
 #color-registry-transfer-status.is-error { color:#e66; }
+
+
+/* Biblioteca ACB — interfaz simplificada y búsqueda prioritaria */
+.acb-library-toolbar-card .card-body { display:flex; flex-direction:column; gap:14px; }
+.acb-library-toolbar-card .acb-import-head { align-items:center; }
+.acb-library-toolbar-card .acb-import-head p { max-width:620px; margin-top:3px; }
+.acb-library-main-controls { display:grid; grid-template-columns:minmax(220px,1.15fr) minmax(240px,1.2fr) auto auto; gap:12px; align-items:end; }
+.acb-library-load,.acb-library-active,.acb-filter-field { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.acb-control-label,.acb-filter-field label { font-size:.76rem; font-weight:700; color:var(--text-secondary); }
+.acb-library-main-controls .form-control { width:100%; min-width:0; }
+.acb-library-main-controls .btn { min-height:39px; white-space:nowrap; }
+.acb-library-secondary-action { background:var(--gray-medium,#3d3d3d); }
+.acb-library-advanced { border-top:1px solid var(--border-dark); padding-top:10px; }
+.acb-library-advanced summary,.acb-book-details summary { cursor:pointer; color:var(--text-secondary); font-size:.82rem; font-weight:700; padding:4px 0; }
+.acb-library-advanced summary:hover,.acb-book-details summary:hover { color:var(--text-primary); }
+.acb-library-advanced-content { display:flex; flex-direction:column; gap:12px; padding:12px 0 2px; }
+.acb-library-advanced-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.acb-library-advanced-row p,.color-registry-controls p { margin:3px 0 0; color:var(--text-secondary); font-size:.8rem; }
+.acb-library-advanced .color-registry-controls { margin:0 !important; padding:12px; border:1px solid var(--border-dark); border-radius:8px; }
+.acb-library-advanced .color-registry-controls-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.acb-import-message { font-size:.82rem; line-height:1.45; }
+.acb-import-summary { margin-bottom:10px; }
+.acb-book-details { margin:0 0 14px; padding:10px 14px; border:1px solid var(--border-dark); border-radius:8px; background:var(--bg-card); }
+#acb-book-details { padding-top:8px; line-height:1.6; }
+.acb-color-browser .card-body { display:flex; flex-direction:column; gap:12px; }
+.acb-color-browser-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.acb-color-browser-heading h3 { margin:0; }
+.acb-color-browser-heading p { margin:3px 0 0; font-size:.8rem; }
+.acb-color-search-primary { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+#acb-color-search { width:100%; min-height:48px; padding:12px 15px; font-size:1rem; border:1px solid var(--border-hover); border-radius:8px; background:var(--bg-card-hover); }
+#acb-color-search:focus { outline:2px solid var(--primary-red); outline-offset:1px; border-color:var(--primary-red); }
+.acb-color-search-primary .btn { min-width:90px; }
+.acb-color-filter-row { display:flex; align-items:end; flex-wrap:wrap; gap:10px; padding:10px 12px; border:1px solid var(--border-dark); border-radius:8px; background:var(--bg-card); }
+.acb-filter-field { min-width:145px; }
+#acb-color-family,#acb-color-sort { width:100%; min-width:0; }
+.acb-archive-toggle { display:flex; align-items:center; gap:5px; margin:0 4px 8px 0; color:var(--text-secondary); font-size:.8rem; }
+.acb-archive-toggle input { accent-color:var(--primary-red); }
+.acb-color-result-summary { margin:0; font-size:.8rem; }
+.acb-import-footer { padding-top:4px; }
+.acb-production-note { margin-top:12px; }
+@media(max-width:850px) {
+ .acb-library-main-controls { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+ .acb-library-main-controls .btn { width:100%; }
+ .acb-color-filter-row { align-items:stretch; }
+ .acb-filter-field { flex:1 1 160px; }
+}
+@media(max-width:520px) {
+ .acb-library-main-controls { grid-template-columns:1fr; }
+ .acb-library-main-controls .btn { width:100%; }
+ .acb-color-browser-heading { align-items:flex-start; flex-direction:column; }
+ .acb-color-search-primary { grid-template-columns:1fr; }
+ .acb-color-search-primary .btn { width:100%; }
+ .acb-import-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

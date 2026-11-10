@@ -12,10 +12,13 @@
     "backend:test": "npm --prefix backend test",
     "test:artwork-sizing": "node --test tests/artwork-sizing-rules.test.js",
     "test:approved-spec": "node --test tests/approved-spec-renderer.test.js",
+    "test:workflow": "node --test tests/spec-workflow.test.js",
+    "test:size-set": "node --test tests/size-set-extractor.test.js",
     "test:acb": "node --test tests/acb-*.test.js",
     "test:sequence": "node --test tests/sequence-builder.test.js",
     "test:special-effects": "node --test tests/special-effects-catalog.test.js",
     "test:production-alerts": "node --test tests/production-alerts.test.js",
-    "test:production": "npm run test:sequence && npm run test:special-effects && npm run test:production-alerts && npm run test:artwork-sizing"
+    "test:production": "npm run test:sequence && npm run test:special-effects && npm run test:production-alerts && npm run test:artwork-sizing && npm run test:migration",
+    "test:migration": "node --test tests/fibrillation-migration-rules.test.js"
   }
 }

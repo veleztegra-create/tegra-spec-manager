@@ -887,7 +887,7 @@ window.generarConAsistente = async function (placementId) {
         // 4. ACTUALIZAR CONDICIONES DE CURADO
         // =============================================
         const curing = window.RulesEngine.getCuringConditions
-            ? window.RulesEngine.getCuringConditions(inkType, customer)
+            ? window.RulesEngine.getCuringConditions(inkType, customer, garmentColor)
             : { temperature: '320 °F', time: '1:40 min' };
 
         placement.curing = {
@@ -2207,7 +2207,7 @@ function generatePlacementSequenceFromRules(placementId, options = {}) {
     placement.sequenceMode = 'AUTO';
 
     const curing = window.RulesEngine.getCuringConditions
-        ? window.RulesEngine.getCuringConditions(inkType, customer)
+        ? window.RulesEngine.getCuringConditions(inkType, customer, garmentColor)
         : {};
     placement.curing = {
         temperature: curing.temperature ?? curing.temperatura ?? placement.temp ?? '',
@@ -3092,7 +3092,9 @@ function checkForSpecialtiesInColors(placementId) {
                 }
             }
 
-            if (isMetallicColor(colorVal)) {
+            // PEARLFLEX se clasifica como specialty METALLIC aunque el nombre
+            // del color no contenga un número Pantone de rango metálico.
+            if (colorVal.includes('PEARLFLEX') || isMetallicColor(colorVal)) {
                 if (!specialties.includes('METALLIC')) {
                     specialties.push('METALLIC');
                 }
@@ -3218,7 +3220,7 @@ function updatePlacementStations(placementId, returnOnly = false) {
         if (['FLASH', 'COOL', 'HOT_HEAD'].includes(itemType)) {
             stationsData.push({
                 st: stNum++, screenLetter: '',
-                screenCombined: itemType === 'HOT_HEAD' ? 'HOT HEAD' : itemType,
+                screenCombined: itemType === 'HOT_HEAD' ? (item.val || 'HOT HEAD') : itemType,
                 mesh: itemType === 'HOT_HEAD' ? 'TEFLÓN' : '-',
                 ink: '-', strokes: '-', duro: '-', angle: '-', pressure: '-', speed: '-',
                 add: item.additives || ''
@@ -3233,14 +3235,14 @@ function updatePlacementStations(placementId, returnOnly = false) {
 
         if (item.type === 'BLOCKER') {
             mesh = item.mesh || placement.meshBlocker || preset.blocker.mesh1;
-            add = placement.additivesBlocker || item.additives || preset.blocker.additives;
+            add = item.additives || placement.additivesBlocker || preset.blocker.additives;
         }
         // =========================================
         // CASO 3: Es WHITE_BASE
         // =========================================
         else if (item.type === 'WHITE_BASE') {
             mesh = item.mesh || placement.meshWhite || preset.white.mesh1;
-            add = placement.additivesWhiteBase || item.additives || preset.white.additives;
+            add = item.additives || placement.additivesWhiteBase || preset.white.additives;
         }
         // =========================================
         // CASO 4: Es METALLIC
@@ -3490,7 +3492,7 @@ function renderPlacementStationsTable(placementId, data) {
         const isProcess = ['FLASH', 'COOL', 'HOT_HEAD'].includes(type);
         const rowClass = isProcess ? ' class="flash-row"' : '';
         if (isProcess) {
-            const processName = type === 'HOT_HEAD' ? 'HOT HEAD' : (item.val || type);
+            const processName = type === 'HOT_HEAD' ? (item.val || 'HOT HEAD') : (item.val || type);
             const processMesh = type === 'HOT_HEAD' ? 'TEFLÓN' : '-';
             html += `
                 <tr${rowClass}>
@@ -3805,6 +3807,20 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         extracted.gender = normalizeGenderValue('', extracted.style, extracted.customer);
     }
 
+    // Size Set: preferir el desglose más completo de cualquier hoja del workbook.
+    // Algunas SWO guardan las tallas en PPS aunque la hoja Proto sea la seleccionada.
+    if (isSWOSheet) {
+        const workbookSizeSet = window.SizeSetExtractor?.extractRequestedSizesFromWorkbook?.(workbook);
+        if (workbookSizeSet?.sizes?.length) {
+            extracted.requestedSizes = workbookSizeSet.sizes;
+            console.log('📏 Size Set detectado en hoja:', workbookSizeSet.sheetName, extracted.requestedSizes);
+        } else {
+            extracted.requestedSizes = window.SizeSetExtractor?.extractRequestedSizesFromGrid(data) || [];
+            console.log('📏 Size Set detectado en hoja seleccionada:', sheetName, extracted.requestedSizes);
+        }
+        extracted.sizeSetLabel = window.SizeSetExtractor?.formatSizeSetLabel(extracted.requestedSizes) || '';
+    }
+
     // Base size suele venir en fila 16 (C16:J16) en SWO/PPS
     if (!extracted.baseSize) {
         extracted.baseSize = extractBaseSizeFromGrid(data);
@@ -3857,6 +3873,10 @@ function processExcelData(worksheet, sheetName = '', workbook = null) {
         if (resolvedGender) setInputValue('gender', resolvedGender);
 
         if (info.baseSize) setInputValue('base-size', info.baseSize);
+        if (Array.isArray(info.requestedSizes) && info.requestedSizes.length && window.Store?.state?.generalData) {
+            window.Store.state.generalData.requestedSizes = [...info.requestedSizes];
+            window.Store.state.generalData.sizeSetLabel = info.sizeSetLabel || window.SizeSetExtractor?.formatSizeSetLabel(info.requestedSizes) || '';
+        }
     };
 
     // --- 2. ASIGNAR VALORES INICIALES A LOS INPUTS ---

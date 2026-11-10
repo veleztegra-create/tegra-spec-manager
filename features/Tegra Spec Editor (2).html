@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tegra Spec Editor Móvil (Inteligente - Definitivo)</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --tegra-red: #a12228;
+      --tegra-red-dark: #6e151a;
+      --tegra-gray-dark: #191716;
+      --tegra-gray-light: #F5F5F5;
+      --border-color: #8f8f8f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #E9ECEF; color: #111; padding: 12px; }
+    
+    .app-header { background: linear-gradient(135deg, var(--tegra-red-dark) 0%, var(--tegra-red) 100%); color: #fff; padding: 14px 18px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); flex-wrap: wrap; gap: 8px; }
+    .app-header h1 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    
+    .header-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .meta-badge { background: rgba(0,0,0,0.25); padding: 4px 10px; border-radius: 4px; font-size: 0.72rem; font-family: monospace; border: 1px solid rgba(255,255,255,0.2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    
+    .main-card { background: #fff; border-radius: 0 0 8px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 16px; margin-bottom: 20px; }
+    
+    .upload-zone { border: 2px dashed var(--tegra-red); background: #FFF5F5; border-radius: 8px; padding: 25px 15px; text-align: center; cursor: pointer; }
+    .upload-icon { font-size: 2.2rem; color: var(--tegra-red); margin-bottom: 8px; }
+    .upload-text { font-size: 0.95rem; font-weight: 600; color: var(--tegra-gray-dark); }
+    .upload-sub { font-size: 0.75rem; color: #666; margin-top: 4px; }
+    
+    .editor-section { display: none; margin-top: 10px; }
+    
+    .panel-box { background: var(--tegra-gray-light); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; margin-bottom: 14px; }
+    .panel-box h3 { font-size: 0.85rem; text-transform: uppercase; color: var(--tegra-red); margin-bottom: 10px; border-bottom: 1px solid #DDD; padding-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    
+    .field-group { margin-bottom: 8px; }
+    .field-group label { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #555; margin-bottom: 3px; }
+    .field-group input { width: 100%; padding: 7px 9px; border: 1px solid #CCC; border-radius: 4px; font-size: 0.82rem; background: #fff; }
+    
+    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.75rem; }
+    th { background: var(--tegra-gray-dark); color: #fff; padding: 6px 4px; text-transform: uppercase; font-size: 0.6rem; text-align: center; border: 1px solid #9a9a9a; }
+    
+    tr.draggable-row { cursor: default; background: #fff; }
+    tr.draggable-row.unlocked-row { cursor: grab; }
+    tr.draggable-row.unlocked-row:active { cursor: grabbing; }
+    tr.dragging { opacity: 0.45; background: #ffe6e6 !important; }
+
+    td { padding: 4px; border: 1px solid #bdbdbd; text-align: center; vertical-align: middle; }
+    td input { width: 100%; padding: 4px; border: 1px solid #DDD; border-radius: 3px; font-size: 0.75rem; text-align: center; }
+    td input.text-left { text-align: left; }
+    
+    .flash-row-bg { background: #FFF0F0; }
+    .cool-row-bg { background: #F0F4FF; }
+    
+    .est-input { width: 35px !important; font-weight: bold; color: var(--tegra-red); text-align: center; }
+    .est-input:disabled { background: #E9ECEF; color: #495057; border-color: #ced4da; }
+    
+    .btn-lock-master { background: #333; color: white; border: none; padding: 2px 5px; border-radius: 3px; cursor: pointer; font-size: 0.65rem; margin-left: 4px; }
+    .btn-lock-master.unlocked { background: #d97706; }
+
+    .rule-toggle-container { font-size: 0.7rem; font-weight: normal; display: flex; align-items: center; gap: 5px; text-transform: none; color: #333; }
+    .rule-toggle-container input { cursor: pointer; }
+
+    .drag-handle { background: #ddd; color: #333; border: none; width: 24px; height: 24px; border-radius: 3px; font-size: 0.75rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .drag-handle:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-del { background: var(--tegra-red); color: #fff; border: none; width: 24px; height: 24px; border-radius: 3px; font-size: 0.7rem; cursor: pointer; }
+    
+    .bottom-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border-color); }
+    .btn-main { background: var(--tegra-red); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .btn-add { background: #1e7a3c; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+  .add-input{cursor:pointer;background:#fffdf5!important}.additives-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.58);padding:14px;align-items:center;justify-content:center}.additives-modal.open{display:flex}.additives-dialog{background:#fff;border-radius:10px;padding:18px;width:min(620px,100%);max-height:88vh;overflow:auto}.additives-head{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding-bottom:12px}.additive-item{display:grid;grid-template-columns:minmax(0,1fr) 95px;gap:9px;border:1px solid #ddd;border-radius:7px;padding:10px;margin:9px 0}.additive-item label{display:block;font-size:.7rem;font-weight:bold;margin:5px 0}.additive-item select,.additive-item input{width:100%;padding:8px;border:1px solid #ccc;border-radius:5px}.additive-original{font-size:.7rem;color:#666}.additives-note{background:#fff8e7;padding:9px;margin-top:12px;font-size:.72rem}.additives-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.additives-actions button{padding:9px 14px;border:0;border-radius:5px;color:white;background:#666}.additives-actions .apply{background:var(--tegra-red)}
+  </style>
+</head>
+<body>
+
+  <div class="app-header">
+    <h1><i class="fa-solid fa-sliders"></i> Tegra Spec Editor (Inteligente)</h1>
+    <div class="header-meta" id="headerMeta" style="display: none;">
+      <div class="meta-badge">Estilo: <span id="styleText">---</span></div>
+      <div class="meta-badge">Stage: <span id="stageText">---</span></div>
+      <div class="meta-badge">Fecha: <span id="dateText">---</span></div>
+    </div>
+  </div>
+
+  <div class="main-card">
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon"><i class="fa-solid fa-file-code"></i></div>
+      <div class="upload-text">Toca aquí para seleccionar tu archivo HTML</div>
+      <div class="upload-sub">Formatos compatibles: TegraSpec_*.html</div>
+      <input type="file" id="fileInput" accept=".html" style="display:none">
+    </div>
+
+    <div class="editor-section" id="editorSection">
+      <div class="panel-box">
+        <h3><i class="fa-solid fa-clipboard-list"></i> Comentarios / Notas</h3>
+        <div class="field-group">
+          <label>Comentario Principal:</label>
+          <input type="text" id="inputComentarios">
+        </div>
+      </div>
+
+      <div class="panel-box">
+        <h3>
+          <span><i class="fa-solid fa-list-ol"></i> Secuencia Inteligente</span>
+          <label class="rule-toggle-container" title="Permite mover elementos libremente rompiendo la regla de bloque color-flash-cool">
+            <input type="checkbox" id="chkBreakRule"> Modo Libre (Romper regla automática)
+          </label>
+        </h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size: 0.72rem; color: #555;">Al desbloquear y arrastrar un color, sus líneas FLASH y COOL se mueven juntas automáticamente.</span>
+          <button class="btn-add" id="btnAddEstacion" type="button"><i class="fa-solid fa-plus"></i> Estación</button>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:60px;">
+                  # 
+                  <button class="btn-lock-master" id="btnMasterLock" type="button" title="Bloquear/Desbloquear edición y movimiento">
+                    <i class="fa-solid fa-lock"></i>
+                  </button>
+                </th>
+                <th style="width:55px;">Screen</th>
+                <th>Ink Name</th>
+                <th>Additives</th>
+                <th style="width:65px;">Ink ID</th>
+                <th style="width:65px;">Mesh</th>
+                <th style="width:50px;">Durom.</th>
+                <th style="width:45px;">Speed</th>
+                <th style="width:45px;">Angle</th>
+                <th style="width:45px;">Strokes</th>
+                <th style="width:45px;">Press.</th>
+                <th style="width:65px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <button class="btn-add" style="background:#555;" id="btnReset" type="button"><i class="fa-solid fa-arrow-left"></i> Cambiar File</button>
+        <button class="btn-main" id="btnGuardar" type="button"><i class="fa-solid fa-floppy-disk"></i> Guardar HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="additives-modal" id="additivesModal" aria-hidden="true"><section class="additives-dialog" role="dialog" aria-modal="true"><div class="additives-head"><div><h2>Editar aditivos</h2><p id="additivesInkLabel"></p></div><button id="closeAdditives" type="button">×</button></div><div id="additivesItems"></div><div class="additives-note"><b>Catálogo temporal: Water Base / colores sólidos.</b> En la integración real, formulaciones, inventario y sustitutos procederán del programa de tintas.</div><div class="additives-actions"><button id="cancelAdditives" type="button">Cancelar</button><button class="apply" id="applyAdditives" type="button">Aplicar cambios</button></div></section></div>
+
+<script>
+  let docParsed = null;
+  let fileName = "TegraSpec_Actualizado.html";
+  let masterUnlocked = false;
+  let draggedRows = [];
+  const DEMO_WATERBASE_ADDITIVES=[{name:'CL500',percent:'3%'},{name:'Binder Flex',percent:'3%'},{name:'Genesis',percent:'15%'},{name:'Aquarius Thickener',percent:'0.25%'},{name:'Aquaflex V2 Neutral',percent:'10%'},{name:'Matte Top Coat',percent:'10%'},{name:'Antitack',percent:'1.5%'},{name:'Ultra Stretch',percent:'10%'}];let activeAdditivesInput=null;let pendingAdditives=[];function parsearAditivos(v){return(v||'').split(/[,;\n]+/).map(p=>{const raw=p.trim();if(!raw)return null;const m=raw.match(/^([0-9]+(?:[.,][0-9]+)?)\s*%\s*(.+)$/);return m?{percent:m[1].replace(',','.')+'%',name:m[2].trim(),original:raw}:{percent:'',name:raw,original:raw};}).filter(Boolean);}function abrirEditorAditivos(input,ink){activeAdditivesInput=input;pendingAdditives=parsearAditivos(input.value);document.getElementById('additivesInkLabel').textContent='Tinta: '+(ink||'Sin nombre');renderizarAditivos();document.getElementById('additivesModal').classList.add('open');document.getElementById('additivesModal').setAttribute('aria-hidden','false');}function renderizarAditivos(){const host=document.getElementById('additivesItems');host.innerHTML='';if(!pendingAdditives.length){host.textContent='Esta línea no contiene aditivos para editar.';return;}pendingAdditives.forEach((item,index)=>{const card=document.createElement('div');card.className='additive-item';const left=document.createElement('div');const right=document.createElement('div');const original=document.createElement('div');original.className='additive-original';original.textContent='Enviado originalmente: '+item.original;const label=document.createElement('label');label.textContent='Aditivo / reemplazo';const select=document.createElement('select');const keep=document.createElement('option');keep.value='__keep__';keep.textContent='Mantener: '+item.name;select.appendChild(keep);DEMO_WATERBASE_ADDITIVES.forEach((entry,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=entry.name+' ('+entry.percent+')';if(entry.name.toLowerCase()===item.name.toLowerCase())o.selected=true;select.appendChild(o);});const pctLabel=document.createElement('label');pctLabel.textContent='Porcentaje';const pct=document.createElement('input');pct.value=item.percent;pct.placeholder='Ej. 3%';pct.addEventListener('input',()=>item.percent=pct.value.trim());select.addEventListener('change',()=>{if(select.value==='__keep__'){item.name=item.originalName||item.name;item.percent=item.originalPercent||item.percent;}else{const replacement=DEMO_WATERBASE_ADDITIVES[Number(select.value)];item.name=replacement.name;item.percent=replacement.percent;}pct.value=item.percent;});item.originalName=item.originalName||item.name;item.originalPercent=item.originalPercent||item.percent;left.append(original,label,select);right.append(pctLabel,pct);card.append(left,right);host.appendChild(card);});}function cerrarEditorAditivos(){const m=document.getElementById('additivesModal');m.classList.remove('open');m.setAttribute('aria-hidden','true');activeAdditivesInput=null;pendingAdditives=[];}function aplicarEditorAditivos(){if(!activeAdditivesInput)return;activeAdditivesInput.value=pendingAdditives.map(x=>(x.percent?x.percent+' ':'')+x.name).join(', ');activeAdditivesInput.dataset.appliedAdditives=activeAdditivesInput.value;cerrarEditorAditivos();}
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const uploadZone = document.getElementById("uploadZone");
+    const fileInput = document.getElementById("fileInput");
+
+    uploadZone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", procesarArchivo);
+
+    document.getElementById("btnAddEstacion").addEventListener("click", () => agregarEstacion());
+    document.getElementById("btnReset").addEventListener("click", reiniciarApp);
+    document.getElementById("btnGuardar").addEventListener("click", descargarHTML);
+    ["closeAdditives","cancelAdditives"].forEach(id=>document.getElementById(id).addEventListener("click",cerrarEditorAditivos));
+    document.getElementById("applyAdditives").addEventListener("click",aplicarEditorAditivos);
+    document.getElementById("additivesModal").addEventListener("click",e=>{if(e.target.id==="additivesModal")cerrarEditorAditivos();});
+
+    const btnMasterLock = document.getElementById("btnMasterLock");
+    btnMasterLock.addEventListener("click", () => {
+      masterUnlocked = !masterUnlocked;
+      if (masterUnlocked) {
+        btnMasterLock.innerHTML = '<i class="fa-solid fa-lock-open"></i>';
+        btnMasterLock.classList.add("unlocked");
+      } else {
+        btnMasterLock.innerHTML = '<i class="fa-solid fa-lock"></i>';
+        btnMasterLock.classList.remove("unlocked");
+        recalcularEstacionesAutomaticas();
+      }
+      actualizarEstadoBloqueoGlobal();
+    });
+  });
+
+  function actualizarEstadoBloqueoGlobal() {
+    document.querySelectorAll(".draggable-row").forEach(row => {
+      row.setAttribute("draggable", masterUnlocked ? "true" : "false");
+      if (masterUnlocked) {
+        row.classList.add("unlocked-row");
+      } else {
+        row.classList.remove("unlocked-row");
+      }
+    });
+
+    document.querySelectorAll(".est-input").forEach(input => {
+      input.disabled = !masterUnlocked;
+    });
+
+    document.querySelectorAll(".drag-handle").forEach(btn => {
+      btn.disabled = !masterUnlocked;
+    });
+  }
+
+  function procesarArchivo(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    fileName = file.name;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const parser = new DOMParser();
+      docParsed = parser.parseFromString(evt.target.result, "text/html");
+      
+      const tablaSeq = docParsed.querySelector("table.seq");
+      if (!tablaSeq) {
+        alert("No se encontró la tabla de secuencia en este archivo.");
+        return;
+      }
+
+      extraerMetadatosCabecera();
+      cargarTablaSecuencia();
+
+      document.getElementById("uploadZone").style.display = "none";
+      document.getElementById("editorSection").style.display = "block";
+    };
+    reader.readAsText(file);
+  }
+
+  function extraerMetadatosCabecera() {
+    let estilo = "Desconocido";
+    let stage = "Desconocido";
+    let fecha = "Desconocido";
+
+    const metaDivs = docParsed.querySelectorAll('.meta > div');
+    metaDivs.forEach(div => {
+      const lbl = div.querySelector('.lbl');
+      const b = div.querySelector('b');
+      if (lbl && b) {
+        const txt = lbl.textContent.toUpperCase();
+        if (txt.includes("STYLE")) estilo = b.textContent.trim();
+      }
+    });
+
+    const foot = docParsed.querySelector('footer.foot');
+    if (foot) {
+      const parts = foot.textContent.split('·');
+      if (parts.length >= 3) {
+        const stagePart = parts[2].trim();
+        if (stagePart.includes("Stage:")) stage = stagePart.replace("Stage:", "").trim();
+      }
+    }
+
+    const upd = docParsed.querySelector('.hdr .upd b');
+    if (upd) fecha = upd.textContent.trim();
+
+    document.getElementById("styleText").textContent = estilo;
+    document.getElementById("stageText").textContent = stage;
+    document.getElementById("dateText").textContent = fecha;
+    document.getElementById("headerMeta").style.display = "flex";
+
+    let notaTxt = "";
+    const notesLi = docParsed.querySelector('.notes li');
+    if (notesLi) notaTxt = notesLi.textContent.trim();
+    document.getElementById("inputComentarios").value = notaTxt;
+  }
+
+  function crearFilaHTML(n = "", scr = "", ink = "", add = "", id = "", mesh = "", durom = "", speed = "", angle = "", strokes = "", press = "", rowType = "print") {
+    const row = document.createElement("tr");
+    row.className = "draggable-row" + (masterUnlocked ? " unlocked-row" : "");
+    row.setAttribute("draggable", masterUnlocked ? "true" : "false");
+    row.dataset.rowType = rowType;
+
+    if (rowType === "flash") row.classList.add("flash-row-bg");
+    if (rowType === "cool") row.classList.add("cool-row-bg");
+
+    const disabledAttr = masterUnlocked ? "" : "disabled";
+    const estContainer = `<input type="text" class="est-input" value="${n}" ${disabledAttr}>`;
+
+    row.innerHTML = `
+      <td>${estContainer}</td>
+      <td><input type="text" value="${scr}"></td>
+      <td><input type="text" value="${ink}" class="text-left"></td>
+      <td><input type="text" value="${add}" class="text-left add-input" title="Toca para revisar o sustituir aditivos"></td>
+      <td><input type="text" value="${id}"></td>
+      <td><input type="text" value="${mesh}"></td>
+      <td><input type="text" value="${durom}"></td>
+      <td><input type="text" value="${speed}"></td>
+      <td><input type="text" value="${angle}"></td>
+      <td><input type="text" value="${strokes}"></td>
+      <td><input type="text" value="${press}"></td>
+      <td>
+        <button class="drag-handle" type="button" title="Arrastrar" ${disabledAttr}>☰</button>
+        <button class="btn-del" type="button" title="Eliminar">✕</button>
+      </td>
+    `;
+
+    row.querySelector(".add-input").addEventListener("click",()=>abrirEditorAditivos(row.querySelector(".add-input"),row.querySelectorAll("input")[2].value));
+
+    // Eventos de Arrastre Inteligente sincronizado
+    row.addEventListener("dragstart", (e) => {
+      if (!masterUnlocked) return;
+      draggedRows = [row];
+      row.classList.add("dragging");
+
+      const breakRule = document.getElementById("chkBreakRule").checked;
+      if (!breakRule && row.dataset.rowType === "print") {
+        let next1 = row.nextElementSibling;
+        let next2 = next1 ? next1.nextElementSibling : null;
+
+        if (next1 && next1.dataset.rowType === "flash") {
+          draggedRows.push(next1);
+          next1.classList.add("dragging");
+        }
+        if (next2 && next2.dataset.rowType === "cool") {
+          draggedRows.push(next2);
+          next2.classList.add("dragging");
+        }
+      }
+    });
+
+    row.addEventListener("dragend", () => {
+      document.querySelectorAll(".dragging").forEach(r => r.classList.remove("dragging"));
+      draggedRows = [];
+      if (!masterUnlocked) recalcularEstacionesAutomaticas();
+    });
+
+    row.querySelector(".btn-del").addEventListener("click", () => {
+      const breakRule = document.getElementById("chkBreakRule").checked;
+      if (breakRule || rowType !== "print") {
+        row.remove();
+      } else {
+        const next1 = row.nextElementSibling;
+        const next2 = next1 ? next1.nextElementSibling : null;
+        row.remove();
+        if (next1 && next1.dataset.rowType === "flash") next1.remove();
+        if (next2 && next2.dataset.rowType === "cool") next2.remove();
+      }
+      if (!masterUnlocked) recalcularEstacionesAutomaticas();
+    });
+
+    return row;
+  }
+
+  const tbody = document.getElementById("tablaBody");
+  tbody.addEventListener("dragover", e => {
+    e.preventDefault();
+    if (!masterUnlocked || draggedRows.length === 0) return;
+
+    const afterElement = getDragAfterElement(tbody, e.clientY);
+    
+    // Insertar todas las filas del bloque juntas en el orden correcto
+    draggedRows.forEach(r => {
+      if (afterElement == null) {
+        tbody.appendChild(r);
+      } else {
+        tbody.insertBefore(r, afterElement);
+      }
+    });
+  });
+
+  function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll(".draggable-row:not(.dragging)")];
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  function cargarTablaSecuencia() {
+    tbody.innerHTML = "";
+    const trs = docParsed.querySelectorAll("table.seq tbody tr");
+
+    trs.forEach(tr => {
+      const tds = tr.querySelectorAll("td");
+      if (tds.length >= 11) {
+        let type = "print";
+        if (tr.classList.contains("flash")) type = "flash";
+        if (tr.classList.contains("cool")) type = "cool";
+
+        const n = tds[0] ? tds[0].textContent.trim() : "";
+        const scr = tds[1] ? tds[1].textContent.trim() : "";
+        const ink = tds[2] ? tds[2].textContent.trim() : "";
+        const add = tds[3] ? tds[3].textContent.trim() : "";
+        const id = tds[4] ? tds[4].textContent.trim() : "";
+        const mesh = tds[5] ? tds[5].textContent.trim() : "";
+        const durom = tds[6] ? tds[6].textContent.trim() : "";
+        const speed = tds[7] ? tds[7].textContent.trim() : "";
+        const angle = tds[8] ? tds[8].textContent.trim() : "";
+        const strokes = tds[9] ? tds[9].textContent.trim() : "";
+        const press = tds[10] ? tds[10].textContent.trim() : "";
+
+        const newRow=crearFilaHTML(n,scr,ink,add,id,mesh,durom,speed,angle,strokes,press,type);
+        newRow.dataset.originalAdditives=tr.dataset.originalAdditives||add;
+        tbody.appendChild(newRow);
+      }
+    });
+
+    if (!masterUnlocked) recalcularEstacionesAutomaticas();
+  }
+
+  function recalcularEstacionesAutomaticas() {
+    const filas = document.querySelectorAll("#tablaBody tr");
+    filas.forEach((row, index) => {
+      const estInput = row.querySelector(".est-input");
+      if (estInput) {
+        estInput.value = index + 1;
+      }
+    });
+  }
+
+  function guardarEnMemoria() {
+    const tablaSeqBody = docParsed.querySelector("table.seq tbody");
+    if (!tablaSeqBody) return;
+
+    tablaSeqBody.innerHTML = "";
+    document.querySelectorAll("#tablaBody tr").forEach(tr => {
+      const inputs = tr.querySelectorAll("input");
+      const n = inputs[0].value;
+      const scr = inputs[1].value;
+      const ink = inputs[2].value;
+      const add = inputs[3].value;
+      const id = inputs[4].value;
+      const mesh = inputs[5].value;
+      const durom = inputs[6].value;
+      const speed = inputs[7].value;
+      const angle = inputs[8].value;
+      const strokes = inputs[9].value;
+      const press = inputs[10].value;
+
+      let trClass = tr.dataset.rowType || "print";
+
+      const newTr = document.createElement("tr");
+      newTr.className = trClass;
+      newTr.dataset.originalAdditives = tr.dataset.originalAdditives || add;
+      newTr.dataset.appliedAdditives = add;
+      newTr.innerHTML = `
+        <td class="n">${n}</td>
+        <td class="scr">${scr}</td>
+        <td class="l">${ink}</td>
+        <td class="add">${add}</td>
+        <td>${id}</td>
+        <td>${mesh}</td>
+        <td>${durom}</td>
+        <td>${speed}</td>
+        <td>${angle}</td>
+        <td>${strokes}</td>
+        <td>${press}</td>
+      `;
+      tablaSeqBody.appendChild(newTr);
+    });
+
+    const notesLi = docParsed.querySelector('.notes li');
+    const notaVal = document.getElementById("inputComentarios").value;
+    if (notesLi) notesLi.textContent = "1. " + notaVal;
+  }
+
+  function agregarEstacion() {
+    const breakRule = document.getElementById("chkBreakRule").checked;
+    
+    const nuevaFilaPrint = crearFilaHTML("", "A", "NUEVA TINTA", "N/A", "", "157/48", "70", "35", "15", "2", "40", "print");
+    tbody.appendChild(nuevaFilaPrint);
+
+    if (!breakRule) {
+      const nuevaFilaFlash = crearFilaHTML("", "FLASH", "FLASH", "", "", "-", "", "", "", "", "", "flash");
+      const nuevaFilaCool = crearFilaHTML("", "COOL", "COOL", "", "", "-", "", "", "", "", "", "cool");
+      tbody.appendChild(nuevaFilaFlash);
+      tbody.appendChild(nuevaFilaCool);
+    }
+
+    if (!masterUnlocked) recalcularEstacionesAutomaticas();
+  }
+
+  function descargarHTML() {
+    guardarEnMemoria();
+    const serializer = new XMLSerializer();
+    const cleanHTML = "<!DOCTYPE html>\n" + serializer.serializeToString(docParsed);
+
+    const blob = new Blob([cleanHTML], { type: 'text/html;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName.replace(".html", "_Actualizado.html");
+    link.click();
+  }
+
+  function reiniciarApp() {
+    document.getElementById("editorSection").style.display = "none";
+    document.getElementById("uploadZone").style.display = "block";
+    document.getElementById("headerMeta").style.display = "none";
+    document.getElementById("fileInput").value = "";
+  }
+</script>
+
+</body>
+</html>
