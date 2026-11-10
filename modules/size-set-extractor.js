@@ -8,13 +8,13 @@
         'OS','OSFA','ONESIZE','ONE SIZE','YXS','YS','YM','YL','YXL',
         '0','2','4','6','8','10','12','14','16','18','20','22','24','26','28','30','32','34','36','38','40','42','44','46','48','50','52','54','56','58','60'
     ]);
-    const normalize = value => String(value ?? '').trim().toUpperCase().replace(/\\s+/g, ' ');
+    const normalize = value => String(value ?? '').trim().toUpperCase().replace(/\s+/g, ' ');
     const isSize = value => SIZE_TOKENS.has(normalize(value));
 
     function extractRequestedSizesFromGrid(grid) {
         if (!Array.isArray(grid)) return [];
         const sectionIndex = grid.findIndex(row =>
-            Array.isArray(row) && row.some(cell => /SIZE\\s*BREAKDOWN/i.test(String(cell ?? '')))
+            Array.isArray(row) && row.some(cell => /SIZE\s*BREAKDOWN/i.test(String(cell ?? '')))
         );
         const start = sectionIndex >= 0 ? sectionIndex : 0;
         const end = sectionIndex >= 0 ? Math.min(grid.length, sectionIndex + 8) : Math.min(grid.length, 25);
@@ -22,6 +22,8 @@
         for (let rowIndex = start; rowIndex < end; rowIndex++) {
             const row = grid[rowIndex];
             if (!Array.isArray(row)) continue;
+            // Do not stop at blank cells: SWO templates commonly leave spacer columns
+            // between the "Sizes" label and the first actual size (e.g. B16 blank C16).
             const sizes = row.map(normalize).filter(isSize);
             const unique = [...new Set(sizes)];
             if (unique.length > best.length) best = unique;
